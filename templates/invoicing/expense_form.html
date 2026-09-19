@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - BusinessOS{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+
+    <div class="glass-card p-6 rounded-2xl flex items-center justify-between border border-slate-200">
+        <div>
+            <h3 class="font-bold text-slate-900 text-lg font-display">{{ title }}</h3>
+            <p class="text-xs text-slate-500 mt-1">Registra comprobantes de egresos, alquileres e insumos operativos</p>
+        </div>
+        <a href="{% url 'expense_list' %}" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+            ← Volver a Gastos
+        </a>
+    </div>
+
+    <div class="glass-card p-8 rounded-2xl border border-slate-200 space-y-6">
+        <form method="POST" autocomplete="off" class="space-y-6">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Concepto del Gasto</label>
+                <input type="text" name="concept" value="{{ expense.concept|default:'' }}" placeholder="Ej: Alquiler de Local Comercial, Luz/Gas, Insumos" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Monto ({{ business.currency }})</label>
+                    <input type="number" step="0.01" name="amount" value="{% if expense %}{{ expense.amount }}{% endif %}" placeholder="0.00" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha de Comprobante</label>
+                    <input type="date" name="issue_date" value="{% if expense %}{{ expense.issue_date|date:'Y-m-d' }}{% else %}2026-09-16{% endif %}" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Categoría</label>
+                    <select name="category_id" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                        <option value="" {% if not expense or not expense.category %}selected{% endif %}>Seleccionar Categoría</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if expense and expense.category and expense.category.id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-slate-700">Proveedor (Opcional)</label>
+                        <a href="{% url 'supplier_create' %}" class="text-[11px] text-rose-900 hover:text-rose-950 font-bold">+ Crear Proveedor</a>
+                    </div>
+                    <select name="supplier_id" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                        <option value="" {% if not expense or not expense.supplier %}selected{% endif %}>Sin Proveedor Especial</option>
+                        {% for supp in suppliers %}
+                        <option value="{{ supp.id }}" {% if expense and expense.supplier and expense.supplier.id == supp.id %}selected{% endif %}>{{ supp.company_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nº Comprobante / Recibo</label>
+                    <input type="text" name="receipt_number" value="{{ expense.receipt_number|default:'' }}" placeholder="Ej: REC-8892" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Estado de Pago</label>
+                    <select name="status" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                        <option value="PAID" {% if not expense or expense.status == 'PAID' %}selected{% endif %}>Pagado</option>
+                        <option value="PENDING" {% if expense and expense.status == 'PENDING' %}selected{% endif %}>Pendiente de Pago</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 flex justify-end gap-3">
+                <a href="{% url 'expense_list' %}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-bold shadow-md shadow-rose-950/20 transition">Guardar Gasto</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Ejecutivo - BusinessOS{% endblock %}
+{% block header_title %}Resumen Ejecutivo & Control Integral (BusinessOS){% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN for dynamic visual analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Primary KPI Metric Cards Grid (8 Core Business Indicators) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Ingresos -->
+        <div class="glass-card bg-white p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Ingresos (Ventas POS)</span>
+                <div class="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl group-hover:scale-110 transition border border-emerald-200">
+                    <i data-lucide="trending-up" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ business.currency }}{{ total_sales|floatformat:2 }}</p>
+            <p class="text-xs text-emerald-700 mt-1 flex items-center gap-1 font-semibold">
+                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> +14.2% este mes
+            </p>
+        </div>
+
+        <!-- 2. Gastos Operativos -->
+        <div class="glass-card bg-white p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Gastos Operativos</span>
+                <div class="p-2.5 bg-rose-50 text-rose-900 rounded-xl group-hover:scale-110 transition border border-rose-200">
+                    <i data-lucide="trending-down" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ business.currency }}{{ total_expenses|floatformat:2 }}</p>
+            <p class="text-xs text-slate-500 mt-1">Alquiler, sueldos e insumos</p>
+        </div>
+
+        <!-- 3. Utilidad Neta -->
+        <div class="glass-card bg-white p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Utilidad Neta</span>
+                <div class="p-2.5 bg-rose-900/10 text-rose-900 rounded-xl group-hover:scale-110 transition border border-rose-900/20">
+                    <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-extrabold font-display {% if net_profit >= 0 %}text-emerald-700{% else %}text-amber-700{% endif %} mt-3">
+                {{ business.currency }}{{ net_profit|floatformat:2 }}
+            </p>
+            <p class="text-xs text-slate-500 mt-1">Margen operativo neto</p>
+        </div>
+
+        <!-- 4. Ticket Promedio -->
+        <div class="glass-card bg-white p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Ticket Promedio</span>
+                <div class="p-2.5 bg-slate-100 text-slate-900 rounded-xl group-hover:scale-110 transition border border-slate-200">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ business.currency }}{{ avg_ticket|floatformat:2 }}</p>
+            <p class="text-xs text-rose-900 font-semibold mt-1">Promedio por cliente</p>
+        </div>
+
+        <!-- 5. Cuentas Por Cobrar -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Por Cobrar</span>
+                <div class="p-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-200">
+                    <i data-lucide="clock" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <p class="text-xl font-bold font-display text-slate-900 mt-2">{{ business.currency }}{{ accounts_receivable|floatformat:2 }}</p>
+        </div>
+
+        <!-- 6. Cuentas Por Pagar -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Por Pagar</span>
+                <div class="p-2 bg-rose-50 text-rose-900 rounded-xl border border-rose-200">
+                    <i data-lucide="credit-card" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <p class="text-xl font-bold font-display text-slate-900 mt-2">{{ business.currency }}{{ accounts_payable|floatformat:2 }}</p>
+        </div>
+
+        <!-- 7. Ocupación de Agenda -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Ocupación Agenda</span>
+                <div class="p-2 bg-rose-900/10 text-rose-900 rounded-xl">
+                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <p class="text-xl font-bold font-display text-slate-900 mt-2">{{ agenda_occupancy_pct }}%</p>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden border border-slate-200">
+                <div class="bg-rose-900 h-full" style="width: {{ agenda_occupancy_pct }}%;"></div>
+            </div>
+        </div>
+
+        <!-- 8. Clientes Registrados -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Clientes Totales</span>
+                <div class="p-2 bg-slate-100 text-slate-900 rounded-xl">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <p class="text-xl font-bold font-display text-slate-900 mt-2">{{ total_clients }}</p>
+        </div>
+    </div>
+
+    <!-- Chart Analytics Section (Sales vs Expenses Trend + Payment Methods Donut) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Chart 1: Sales vs Expenses Trend -->
+        <div class="lg:col-span-8 glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base font-display">Flujo Financiero: Ingresos vs Gastos</h3>
+                    <p class="text-xs text-slate-500">Evolución mensual comparativa</p>
+                </div>
+                <span class="text-xs font-bold text-rose-900 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+                    Año 2026
+                </span>
+            </div>
+            <div class="h-64">
+                <canvas id="salesExpensesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 2: Payment Methods Distribution -->
+        <div class="lg:col-span-4 glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base font-display">Métodos de Pago</h3>
+                <p class="text-xs text-slate-500">Distribución de cobros POS</p>
+            </div>
+            <div class="h-64 relative flex items-center justify-center">
+                <canvas id="paymentMethodsChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Interactive AI Assistant Chatbot Embedded Widget -->
+    <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-md space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-900 to-slate-950 text-white flex items-center justify-center shadow-lg shadow-rose-900/30">
+                    <i data-lucide="bot" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        Chatbot Asistente IA (BusinessOS Executive Assistant)
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">En Línea</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Haz preguntas en lenguaje natural sobre finanzas, turnos vacíos o clientes inactivos</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Prompt Suggestion Pills -->
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span class="text-slate-500 font-semibold">Sugerencias rápidas:</span>
+            <button onclick="sendQuickPrompt('¿Cómo estuvo mi negocio este mes?')" class="px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 transition font-medium">
+                💡 ¿Cómo estuvo mi negocio este mes?
+            </button>
+            <button onclick="sendQuickPrompt('¿Tengo turnos vacíos para mañana?')" class="px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-rose-900 border border-slate-200 transition font-medium">
+                📅 ¿Tengo turnos vacíos para mañana?
+            </button>
+            <button onclick="sendQuickPrompt('Escanear clientes inactivos para enviar WhatsApp')" class="px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-emerald-800 border border-slate-200 transition font-medium">
+                📱 Escanear clientes inactivos para WhatsApp
+            </button>
+        </div>
+
+        <!-- Chat Conversation Output Box -->
+        <div id="aiChatBox" class="p-4 rounded-xl bg-slate-50 border border-slate-200 h-44 overflow-y-auto space-y-3 custom-scrollbar text-xs">
+            <div class="p-3 rounded-lg bg-white border border-rose-900/20 text-slate-800 shadow-sm">
+                🤖 <strong>BusinessOS IA:</strong> ¡Hola! Soy tu asistente de gestión. ¿En qué puedo ayudarte hoy para hacer crecer <strong>{{ business.name }}</strong>?
+            </div>
+        </div>
+
+        <!-- Chat Input Form -->
+        <form id="aiChatForm" class="flex items-center gap-2" autocomplete="off">
+            <input type="text" id="aiPromptInput" placeholder="Escribe tu consulta aquí..." required class="flex-1 bg-white border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
+            <button type="submit" class="px-5 py-2.5 bg-rose-900 hover:bg-rose-950 text-white font-bold text-sm rounded-xl shadow-md transition flex items-center gap-2">
+                <i data-lucide="send" class="w-4 h-4"></i> Enviar
+            </button>
+        </form>
+    </div>
+
+    <!-- Operational Split: Today's Appointments & Low Stock Warnings -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Today's Agenda -->
+        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-900 font-display flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4 text-rose-900"></i> Próximos Turnos de Hoy
+                </h3>
+                <a href="{% url 'agenda' %}" class="text-xs font-bold text-rose-900 hover:underline">Ver Agenda Completa →</a>
+            </div>
+            <div class="space-y-3">
+                {% for app in recent_appointments %}
+                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-rose-900 text-white font-bold flex items-center justify-center text-xs">
+                            {{ app.start_time }}
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-900">{{ app.client.full_name }}</p>
+                            <p class="text-xs text-slate-500">{{ app.service.name }} con {{ app.staff.full_name }}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                        {{ business.currency }}{{ app.total_price }}
+                    </span>
+                </div>
+                {% empty %}
+                <p class="text-xs text-slate-500">No hay citas para hoy.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Stock Warnings & Order Suggestion -->
+        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-900 font-display flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i> Alertas de Stock & Compras
+                </h3>
+                <a href="{% url 'inventory_list' %}" class="text-xs font-bold text-amber-700 hover:underline">Ver Inventario →</a>
+            </div>
+            <div class="space-y-3">
+                {% for prod in low_stock_products %}
+                <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-bold text-amber-900">{{ prod.name }}</p>
+                        <p class="text-xs text-amber-700">Stock crítico: <strong>{{ prod.stock }} {{ prod.unit }}s</strong> (Mínimo: {{ prod.min_stock }})</p>
+                    </div>
+                    <a href="{% url 'inventory_list' %}" class="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-bold shadow hover:bg-amber-700 transition">
+                        Sugerir Orden de Compra
+                    </a>
+                </div>
+                {% empty %}
+                <p class="text-xs text-emerald-700 font-semibold flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Todos los productos cuentan con nivel de stock suficiente.
+                </p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // 1. Render Sales vs Expenses Chart
+    const ctx1 = document.getElementById('salesExpensesChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+            datasets: [
+                {
+                    label: 'Ventas ({{ business.currency }})',
+                    data: {{ monthly_sales_data|safe }},
+                    borderColor: '#701a2b',
+                    backgroundColor: 'rgba(112, 26, 43, 0.08)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Gastos ({{ business.currency }})',
+                    data: {{ monthly_expenses_data|safe }},
+                    borderColor: '#0f172a',
+                    backgroundColor: 'rgba(15, 23, 42, 0.05)',
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#334155', font: { family: 'Inter' } } }
+            },
+            scales: {
+                x: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { color: '#64748b' } },
+                y: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { color: '#64748b' } }
+            }
+        }
+    });
+
+    // 2. Render Payment Methods Donut Chart
+    const ctx2 = document.getElementById('paymentMethodsChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ['MercadoPago QR', 'Efectivo', 'Tarjeta', 'Transferencia'],
+            datasets: [{
+                data: {{ payment_methods_data|safe }},
+                backgroundColor: ['#701a2b', '#0f172a', '#f59e0b', '#10b981'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } }
+            }
+        }
+    });
+
+    // 3. Interactive AI Chatbot Handler
+    const chatForm = document.getElementById('aiChatForm');
+    const promptInput = document.getElementById('aiPromptInput');
+    const chatBox = document.getElementById('aiChatBox');
+
+    function sendQuickPrompt(text) {
+        promptInput.value = text;
+        chatForm.dispatchEvent(new Event('submit'));
+    }
+
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const text = promptInput.value.trim();
+        if (!text) return;
+
+        // User Bubble
+        const userDiv = document.createElement('div');
+        userDiv.className = 'p-3 rounded-lg bg-slate-950 text-white text-right font-medium';
+        userDiv.innerHTML = `👤 <strong>Tú:</strong> ${text}`;
+        chatBox.appendChild(userDiv);
+        promptInput.value = '';
+
+        // Bot Loading indicator
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'p-3 rounded-lg bg-rose-50 text-rose-900 animate-pulse border border-rose-200 font-medium';
+        loadingDiv.innerHTML = `🤖 <strong>BusinessOS IA:</strong> Pensando respuesta...`;
+        chatBox.appendChild(loadingDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // Fetch AI API response
+        fetch('/ia/chat/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `prompt=${encodeURIComponent(text)}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            loadingDiv.className = 'p-3 rounded-lg bg-white border border-rose-900/30 text-slate-800 whitespace-pre-line shadow-sm';
+            loadingDiv.innerHTML = data.reply;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        })
+        .catch(err => {
+            loadingDiv.innerHTML = `⚠️ Error al comunicarse con la IA.`;
+        });
+    });
+</script>
+{% endblock %}
+

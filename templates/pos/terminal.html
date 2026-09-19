@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Ventas POS & Caja - BusinessOS{% endblock %}
+{% block header_title %}Terminal de Cobro POS{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Active Cash Register Banner -->
+    <div class="glass-card bg-white p-4 rounded-2xl flex items-center justify-between border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+                <i data-lucide="calculator" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-900 text-sm">Estado de Caja</h3>
+                {% if active_register %}
+                <p class="text-xs text-emerald-700 font-semibold flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                    Caja ABIERTA (Abierta a las {{ active_register.opened_at|date:"H:i" }} hs con {{ business.currency }}{{ active_register.initial_amount }})
+                </p>
+                {% else %}
+                <p class="text-xs text-rose-900 font-semibold">Caja CERRADA. Abre la caja antes de cobrar.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <a href="{% url 'cash_register' %}" class="px-3.5 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold shadow transition">
+            Administrar Caja
+        </a>
+    </div>
+
+    <!-- POS Layout: 2 Columns (Checkout Form + Fast Selection) -->
+    <form method="POST" autocomplete="off" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {% csrf_token %}
+
+        <!-- Left Column: Item Selection -->
+        <div class="lg:col-span-7 space-y-5">
+            <!-- Select Client -->
+            <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
+                    <i data-lucide="user" class="w-4 h-4 text-rose-900"></i> Cliente
+                </h4>
+                <select name="client_id" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
+                    <option value="">Cliente General (Mostrador)</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}">{{ client.full_name }} ({{ client.phone }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Select Staff Member -->
+            <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
+                    <i data-lucide="user-check" class="w-4 h-4 text-rose-900"></i> Profesional Atendió
+                </h4>
+                <select name="staff_id" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
+                    {% for staff in staff_members %}
+                    <option value="{{ staff.id }}">{{ staff.full_name }} ({{ staff.role_title }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Select Services -->
+            <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
+                    <i data-lucide="scissors" class="w-4 h-4 text-rose-900"></i> Agregar Servicio
+                </h4>
+                <select name="service_id" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
+                    <option value="">Seleccionar Servicio (Opcional)</option>
+                    {% for srv in services %}
+                    <option value="{{ srv.id }}">{{ srv.name }} - {{ business.currency }}{{ srv.price }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Select Products from Inventory -->
+            <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
+                    <i data-lucide="package" class="w-4 h-4 text-rose-900"></i> Agregar Producto del Inventario
+                </h4>
+                <select name="product_id" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
+                    <option value="">Seleccionar Producto (Opcional)</option>
+                    {% for prod in products %}
+                    <option value="{{ prod.id }}">{{ prod.name }} (Stock: {{ prod.stock }}) - {{ business.currency }}{{ prod.sale_price }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Right Column: Totals & Checkout -->
+        <div class="lg:col-span-5 space-y-5">
+            <div class="glass-card bg-white p-6 rounded-2xl space-y-5 border border-slate-200 shadow-md">
+                <h3 class="font-bold text-slate-900 text-lg font-display border-b border-slate-100 pb-3">Resumen del Cobro</h3>
+
+                <!-- Tip & Discount Inputs -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-600 font-semibold mb-1">Propina</label>
+                        <input type="number" step="0.01" name="tip_amount" value="0.00" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-rose-900">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-600 font-semibold mb-1">Descuento</label>
+                        <input type="number" step="0.01" name="discount_amount" value="0.00" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-rose-900">
+                    </div>
+                </div>
+
+                <!-- Payment Method -->
+                <div>
+                    <label class="block text-xs text-slate-600 font-semibold mb-2">Método de Pago</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2 text-xs font-semibold cursor-pointer hover:border-rose-900 text-slate-800">
+                            <input type="radio" name="payment_method" value="Efectivo" checked class="text-rose-900 focus:ring-rose-900"> Efectivo
+                        </label>
+                        <label class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2 text-xs font-semibold cursor-pointer hover:border-rose-900 text-slate-800">
+                            <input type="radio" name="payment_method" value="Tarjeta" class="text-rose-900 focus:ring-rose-900"> Tarjeta
+                        </label>
+                        <label class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2 text-xs font-semibold cursor-pointer hover:border-rose-900 text-slate-800">
+                            <input type="radio" name="payment_method" value="MercadoPago / QR" class="text-rose-900 focus:ring-rose-900"> MercadoPago QR
+                        </label>
+                        <label class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2 text-xs font-semibold cursor-pointer hover:border-rose-900 text-slate-800">
+                            <input type="radio" name="payment_method" value="Transferencia" class="text-rose-900 focus:ring-rose-900"> Transferencia
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Complete Charge Button -->
+                <button type="submit" {% if not active_register %}disabled{% endif %} class="w-full py-4 rounded-xl bg-rose-900 hover:bg-rose-950 disabled:opacity-50 text-white font-extrabold text-base shadow-md transition flex items-center justify-center gap-2">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i>
+                    Finalizar Venta POS
+                </button>
+            </div>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - BusinessOS{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+
+    <div class="glass-card p-6 rounded-2xl flex items-center justify-between border border-slate-200">
+        <div>
+            <h3 class="font-bold text-slate-900 text-lg font-display">{{ title }}</h3>
+            <p class="text-xs text-slate-500 mt-1">Configura las tarifas, duración y comisiones del servicio</p>
+        </div>
+        <a href="{% url 'service_list' %}" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+            ← Volver a Servicios
+        </a>
+    </div>
+
+    <div class="glass-card p-8 rounded-2xl border border-slate-200 space-y-6">
+        <form method="POST" autocomplete="off" class="space-y-6">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre del Servicio</label>
+                <input type="text" name="name" value="{{ service.name|default:'' }}" placeholder="Ej: Corte de Cabello VIP" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-semibold text-slate-700">Categoría</label>
+                    <a href="{% url 'service_category_create' %}" class="text-[11px] text-rose-900 hover:text-rose-950 font-bold">+ Crear Categoría</a>
+                </div>
+                <select name="category_id" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                    <option value="" {% if not service or not service.category %}selected{% endif %}>Seleccionar Categoría (Opcional)</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if service and service.category and service.category.id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Precio ({{ business.currency }})</label>
+                    <input type="number" step="0.01" name="price" value="{% if service %}{{ service.price }}{% endif %}" placeholder="25.00" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Duración (Minutos)</label>
+                    <input type="number" name="duration_minutes" value="{% if service %}{{ service.duration_minutes }}{% endif %}" placeholder="45" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Comisión (%) (Opcional)</label>
+                    <input type="number" step="0.01" name="commission_rate" value="{% if service %}{{ service.commission_rate }}{% endif %}" placeholder="0.00" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Descripción del Servicio</label>
+                <textarea name="description" rows="3" placeholder="Detalles de lo que incluye el servicio..." class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">{{ service.description|default:'' }}</textarea>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 flex justify-end gap-3">
+                <a href="{% url 'service_list' %}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-bold shadow-md shadow-rose-950/20 transition">Guardar Servicio</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

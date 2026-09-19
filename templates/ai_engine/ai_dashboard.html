@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Centro de IA & Automatización - BusinessOS{% endblock %}
+{% block header_title %}Motor de IA & Automatización Comercial (WhatsApp / Marketing){% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- AI Triggers Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- 1. IA Administrativa -->
+        <div class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200">
+                    <i data-lucide="bot" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base font-display">IA Administrativa & Financiera</h3>
+                    <p class="text-xs text-slate-500">Diagnóstico sintético del negocio en tiempo real</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-slate-600">
+                Responde a la pregunta: <em>"¿Cómo estuvo mi negocio este mes y qué acciones debo tomar para elevar el margen?"</em>
+            </p>
+
+            <form method="POST" autocomplete="off">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="run_financial_insight">
+                <button type="submit" class="w-full py-3 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i> Generar Informe Ejecutivo IA
+                </button>
+            </form>
+
+            {% if financial_insight %}
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs whitespace-pre-line font-mono shadow-inner">
+                {{ financial_insight }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 2. IA Comercial & Reactivación WhatsApp -->
+        <div class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="p-3 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">
+                    <i data-lucide="message-square" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base font-display">IA Comercial & Reactivación WhatsApp</h3>
+                    <p class="text-xs text-slate-500">Detección de clientes inactivos (+60 días)</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-slate-600">
+                Analiza la base de clientes, detecta inactividad y redacta mensajes de oferta personalizada para envío automático por WhatsApp.
+            </p>
+
+            <form method="POST" autocomplete="off">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="run_whatsapp_campaign">
+                <button type="submit" class="w-full py-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2">
+                    <i data-lucide="send" class="w-4 h-4"></i> Escanear e Iniciar Campaña WhatsApp
+                </button>
+            </form>
+
+            {% if whatsapp_campaigns %}
+            <div class="space-y-3">
+                {% for camp in whatsapp_campaigns %}
+                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                    <div class="flex justify-between text-xs">
+                        <strong class="text-slate-900">{{ camp.client_name }}</strong>
+                        <span class="text-emerald-700 font-mono font-bold">{{ camp.phone }}</span>
+                    </div>
+                    <p class="text-xs text-slate-800 font-mono bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">{{ camp.message }}</p>
+                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Mensaje Simulado Listo para Envío</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- AI Log Activity -->
+    <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+        <div class="p-4 border-b border-slate-100 bg-slate-50">
+            <h4 class="font-bold text-slate-900 text-base font-display">Historial de Ejecuciones de IA</h4>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold">
+                    <tr>
+                        <th class="p-4">Acción</th>
+                        <th class="p-4">Prompt / Desencadenante</th>
+                        <th class="p-4">Resultado Generado</th>
+                        <th class="p-4">Fecha</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for log in logs %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-4 font-bold text-rose-900">{{ log.get_action_type_display }}</td>
+                        <td class="p-4 text-slate-600 text-xs">{{ log.prompt_used }}</td>
+                        <td class="p-4 text-slate-800 text-xs font-mono max-w-md truncate">{{ log.response_generated }}</td>
+                        <td class="p-4 text-slate-500 text-xs whitespace-nowrap">{{ log.created_at|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="p-8 text-center text-slate-500">No hay ejecuciones registradas. Haz clic en uno de los botones para probar la IA.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

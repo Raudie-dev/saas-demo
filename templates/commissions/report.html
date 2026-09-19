@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Comisiones de Personal - BusinessOS{% endblock %}
+{% block header_title %}Reporte y Liquidación de Comisiones por Empleado{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Unsettled Summary Card -->
+    <div class="glass-card bg-white p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 border border-slate-200 shadow-sm">
+        <div>
+            <h3 class="font-bold text-slate-900 text-lg font-display">Comisiones Pendientes de Liquidación</h3>
+            <p class="text-xs text-slate-500 mt-1">Monto generado acumulado por el personal en citas y ventas POS</p>
+        </div>
+        <div class="text-right">
+            <span class="text-xs text-slate-500 block uppercase tracking-wider font-semibold">Total Pendiente</span>
+            <span class="text-3xl font-extrabold text-rose-900 font-display">{{ business.currency }}{{ total_unsettled|floatformat:2 }}</span>
+        </div>
+    </div>
+
+    <!-- Settlement Generator Form per Staff -->
+    <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <h4 class="font-bold text-slate-900 text-base font-display">Liquidar Sueldo & Comisiones por Empleado</h4>
+        <form method="POST" autocomplete="off" class="flex flex-col sm:flex-row items-center gap-4">
+            {% csrf_token %}
+            <div class="flex-1 w-full">
+                <select name="staff_id" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
+                    {% for staff in staff_members %}
+                    <option value="{{ staff.id }}">{{ staff.full_name }} ({{ staff.role_title }}) - {{ staff.commission_rate }}% comisión</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-sm shadow-md transition whitespace-nowrap">
+                Generar Liquidación de Sueldo
+            </button>
+        </form>
+    </div>
+
+    <!-- Commissions Records Table -->
+    <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+        <div class="p-4 border-b border-slate-100 bg-slate-50">
+            <h4 class="font-bold text-slate-900 text-base font-display">Registro Detallado de Comisiones Generadas</h4>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold">
+                    <tr>
+                        <th class="p-4">Profesional</th>
+                        <th class="p-4">Concepto</th>
+                        <th class="p-4">Monto Comisión</th>
+                        <th class="p-4">Fecha</th>
+                        <th class="p-4">Estado Liquidación</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for rec in records %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-4 font-bold text-slate-900">{{ rec.staff.full_name }}</td>
+                        <td class="p-4 text-slate-600">{{ rec.concept }}</td>
+                        <td class="p-4 font-extrabold text-emerald-700">{{ business.currency }}{{ rec.amount }}</td>
+                        <td class="p-4 text-slate-500 text-xs">{{ rec.date|date:"Y-m-d" }}</td>
+                        <td class="p-4">
+                            {% if rec.is_settled %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">Liquidado</span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">Pendiente de Pago</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-500">No hay registros de comisiones aún.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

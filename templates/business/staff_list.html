@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Equipo de Trabajo - BusinessOS{% endblock %}
+{% block header_title %}Equipo de Trabajo & Horarios de Atención{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Action Banner -->
+    <div class="glass-card bg-white p-6 rounded-2xl flex items-center justify-between border border-slate-200 shadow-sm">
+        <div>
+            <h3 class="font-bold text-slate-900 text-lg font-display">Personal & Especialistas</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Gestión de profesionales, especialidades y esquemas de comisiones</p>
+        </div>
+        <a href="{% url 'staff_create' %}" class="px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            Agregar Nuevo Profesional
+        </a>
+    </div>
+
+    <!-- Staff List Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for staff in staff_members %}
+        <div class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-900 to-slate-950 text-white font-extrabold text-lg flex items-center justify-center shadow-md">
+                            {{ staff.first_name|slice:":1" }}{{ staff.last_name|slice:":1" }}
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-base font-display">{{ staff.full_name }}</h3>
+                            <p class="text-xs text-rose-900 font-semibold">{{ staff.role_title }}</p>
+                            <p class="text-xs text-slate-500 mt-0.5">{{ staff.email|default:"Sin email" }} • {{ staff.phone|default:"" }}</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'staff_edit' staff.id %}" class="px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold transition">
+                        Editar
+                    </a>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
+                    <span class="text-slate-500">Tasa de Comisión por Defecto:</span>
+                    <span class="font-extrabold text-rose-900 text-sm">{{ staff.commission_rate }}%</span>
+                </div>
+            </div>
+
+            <div class="space-y-1 pt-2">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Horarios de Atención Habidos</span>
+                <div class="grid grid-cols-2 gap-2 text-xs text-slate-700">
+                    {% for sched in staff.schedules.all %}
+                    <div class="p-2 rounded-lg bg-slate-50 border border-slate-200 flex justify-between">
+                        <span class="font-semibold text-slate-600">{{ sched.get_day_of_week_display }}:</span>
+                        <span class="text-rose-900 font-mono font-medium">{{ sched.start_time|time:"H:i" }} - {{ sched.end_time|time:"H:i" }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}
+

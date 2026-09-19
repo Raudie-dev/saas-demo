@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Agenda & Citas - BusinessOS{% endblock %}
+{% block header_title %}Agenda Interactiva de Citas{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Actions & Date / Staff Filter Bar -->
+    <div class="glass-card p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-200">
+        <form method="GET" class="flex flex-wrap items-center gap-3">
+            <div>
+                <label class="text-xs text-slate-500 font-semibold block mb-1">Fecha</label>
+                <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" onchange="this.form.submit()" class="bg-white border border-slate-300 text-slate-900 text-sm rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-rose-800">
+            </div>
+            <div>
+                <label class="text-xs text-slate-500 font-semibold block mb-1">Profesional</label>
+                <select name="staff" onchange="this.form.submit()" class="bg-white border border-slate-300 text-slate-900 text-sm rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-rose-800">
+                    <option value="">Todos los Profesionales</option>
+                    {% for staff in staff_members %}
+                    <option value="{{ staff.id }}" {% if selected_staff_id == staff.id|stringformat:"s" %}selected{% endif %}>{{ staff.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'appointment_calendar' %}" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm flex items-center gap-2 border border-slate-300 transition">
+                <i data-lucide="calendar" class="w-4 h-4 text-rose-900"></i>
+                Ver Calendario Interactivo
+            </a>
+            <a href="{% url 'appointment_create' %}" class="px-4 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm flex items-center gap-2 shadow-md shadow-rose-900/20 transition">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Agendar Nueva Cita
+            </a>
+        </div>
+    </div>
+
+    <!-- Calendar Timeline View -->
+    <div class="glass-card rounded-2xl overflow-hidden border border-slate-200">
+        <div class="p-4 border-b border-slate-200 bg-slate-100/80 flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 font-display">Citas para el {{ selected_date|date:"l d \d\e F, Y" }}</h3>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-rose-100 text-rose-900 font-bold border border-rose-200">
+                {{ appointments|length }} cita(s)
+            </span>
+        </div>
+
+        <div class="p-6 space-y-4">
+            {% for app in appointments %}
+            <div class="p-4 rounded-xl bg-white border border-slate-200 hover:border-rose-900/40 shadow-sm transition flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-start gap-4">
+                    <div class="px-3 py-2 rounded-xl bg-rose-900 text-white font-bold text-sm text-center shrink-0 shadow-sm">
+                        <div>{{ app.start_time }}</div>
+                        <div class="text-[10px] font-normal opacity-90">a {{ app.end_time }}</div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h4 class="font-bold text-slate-900 text-base">{{ app.client.full_name }}</h4>
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {{ app.get_status_display }}
+                            </span>
+                        </div>
+                        <p class="text-sm text-slate-700 mt-1 font-medium">{{ app.service.name }}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">Especialista: <span class="text-rose-900 font-bold">{{ app.staff.full_name }}</span> • Duración: {{ app.service.duration_minutes }} min</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 self-end sm:self-center">
+                    <div class="text-right">
+                        <span class="text-xs text-slate-500 block">Total</span>
+                        <span class="text-base font-extrabold text-slate-900">{{ business.currency }}{{ app.total_price }}</span>
+                    </div>
+                    <a href="{% url 'appointment_edit' app.id %}" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+                        Editar
+                    </a>
+                    <a href="{% url 'pos_terminal' %}?client_id={{ app.client.id }}&service_id={{ app.service.id }}&staff_id={{ app.staff.id }}" class="px-3.5 py-1.5 rounded-lg bg-slate-950 hover:bg-rose-900 text-white font-semibold text-xs transition flex items-center gap-1 shadow-sm">
+                        <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i> Cobrar POS
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-12">
+                <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="calendar-x" class="w-6 h-6"></i>
+                </div>
+                <h4 class="text-slate-700 font-semibold text-base">Sin citas para esta fecha</h4>
+                <p class="text-xs text-slate-500 mt-1">Haz clic en "Agendar Nueva Cita" para agregar un turno a la agenda.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

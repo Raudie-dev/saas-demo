@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}CRM & Clientes - BusinessOS{% endblock %}
+{% block header_title %}Directorio y Gestión de Clientes (CRM){% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Search & Filter Bar -->
+    <div class="glass-card p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-200">
+        <form method="GET" class="flex-1 w-full flex items-center gap-2">
+            <div class="relative flex-1">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                <input type="text" name="q" value="{{ query }}" placeholder="Buscar por nombre, apellido o WhatsApp..." class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-rose-800">
+            </div>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-slate-950 hover:bg-rose-900 text-white text-sm font-semibold transition">Buscar</button>
+        </form>
+        <a href="{% url 'client_create' %}" class="px-4 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm flex items-center gap-2 shadow-md shadow-rose-900/20 transition whitespace-nowrap">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> Crear Nuevo Cliente
+        </a>
+    </div>
+
+    <!-- Clients Table -->
+    <div class="glass-card rounded-2xl overflow-hidden border border-slate-200">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="p-4">Cliente</th>
+                        <th class="p-4">WhatsApp / Teléfono</th>
+                        <th class="p-4">Estado</th>
+                        <th class="p-4">Total Gastado</th>
+                        <th class="p-4">Última Visita</th>
+                        <th class="p-4 text-right">Acción</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for client in clients %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-bold text-slate-900 flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full bg-rose-100 text-rose-900 font-extrabold flex items-center justify-center text-xs border border-rose-200">
+                                {{ client.first_name|slice:":1" }}{{ client.last_name|slice:":1" }}
+                            </div>
+                            <div>
+                                <a href="{% url 'client_detail' client.id %}" class="hover:text-rose-900 transition">{{ client.full_name }}</a>
+                                <p class="text-xs text-slate-500 font-normal">{% if client.email %}{{ client.email }}{% else %}Sin email{% endif %}</p>
+                            </div>
+                        </td>
+                        <td class="p-4 text-slate-700 font-mono">{{ client.phone }}</td>
+                        <td class="p-4">
+                            {% if client.status == 'VIP' %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200">VIP / Frecuente</span>
+                            {% elif client.status == 'INACTIVE' %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-900 border border-rose-200">Inactivo (+60 días)</span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">Activo</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 font-extrabold text-slate-900">{{ business.currency }}{{ client.total_spent }}</td>
+                        <td class="p-4 text-slate-500 text-xs">{% if client.last_visit %}{{ client.last_visit|date:"Y-m-d" }}{% else %}Nunca{% endif %}</td>
+                        <td class="p-4 text-right flex items-center justify-end gap-2">
+                            <a href="{% url 'client_edit' client.id %}" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+                                Editar
+                            </a>
+                            <a href="{% url 'client_detail' client.id %}" class="px-3 py-1.5 rounded-lg bg-rose-900/10 hover:bg-rose-900 text-rose-900 hover:text-white text-xs font-semibold transition">
+                                Ver Ficha 360º
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-slate-500">No se encontraron clientes registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

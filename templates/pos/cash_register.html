@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Control de Caja - BusinessOS{% endblock %}
+{% block header_title %}Control de Apertura y Cierre de Caja{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Active Register Control -->
+    <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h3 class="font-bold text-slate-900 text-lg font-display">Caja del Día</h3>
+            {% if active_register %}
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Caja Abierta</span>
+            {% else %}
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200">Caja Cerrada</span>
+            {% endif %}
+        </div>
+
+        {% if active_register %}
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+                <p class="text-sm text-slate-600">Apertura: <strong class="text-slate-900">{{ active_register.opened_at|date:"Y-m-d H:i" }} hs</strong></p>
+                <p class="text-sm text-slate-600">Monto Inicial: <strong class="text-rose-900">{{ business.currency }}{{ active_register.initial_amount }}</strong></p>
+            </div>
+            <form method="POST" autocomplete="off">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="close">
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm shadow-md transition">
+                    Cerrar Caja del Día
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <form method="POST" autocomplete="off" class="flex items-center gap-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="open">
+            <div class="flex-1 max-w-xs">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Monto Inicial en Efectivo</label>
+                <input type="number" step="0.01" name="initial_amount" value="100.00" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-rose-900">
+            </div>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-semibold text-sm shadow-md transition self-end">
+                Abrir Caja Ahora
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Register History Table -->
+    <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+        <div class="p-4 border-b border-slate-100 bg-slate-50">
+            <h4 class="font-bold text-slate-900 text-base font-display">Historial de Turnos de Caja</h4>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold">
+                    <tr>
+                        <th class="p-4">ID</th>
+                        <th class="p-4">Apertura</th>
+                        <th class="p-4">Cierre</th>
+                        <th class="p-4">Monto Inicial</th>
+                        <th class="p-4">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for reg in registers %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-4 font-mono font-bold text-rose-900">#{{ reg.id|stringformat:".8s" }}</td>
+                        <td class="p-4 text-slate-900 font-medium">{{ reg.opened_at|date:"Y-m-d H:i" }}</td>
+                        <td class="p-4 text-slate-600">{% if reg.closed_at %}{{ reg.closed_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</td>
+                        <td class="p-4 font-bold text-slate-900">{{ business.currency }}{{ reg.initial_amount }}</td>
+                        <td class="p-4">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold {% if reg.status == 'OPEN' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
+                                {{ reg.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

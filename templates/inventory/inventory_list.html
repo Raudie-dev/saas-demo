@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventario & Stock - BusinessOS{% endblock %}
+{% block header_title %}Control de Productos e Inventario{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Action Banner -->
+    <div class="glass-card p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-200">
+        <div>
+            <h3 class="font-bold text-slate-900 text-lg font-display">Catálogo de Productos & Insumos</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Control de existencia en almacén, niveles mínimos y precios de venta</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'product_category_create' %}" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold flex items-center gap-2 border border-slate-300 transition">
+                <i data-lucide="folder-plus" class="w-4 h-4 text-rose-900"></i>
+                Agregar Categoría
+            </a>
+            <a href="{% url 'product_create' %}" class="px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm flex items-center gap-2 shadow-md shadow-rose-900/20 transition whitespace-nowrap">
+                <i data-lucide="plus" class="w-4 h-4"></i> Crear Nuevo Producto
+            </a>
+        </div>
+    </div>
+
+    <!-- Products Table -->
+    <div class="glass-card rounded-2xl overflow-hidden border border-slate-200">
+        <div class="p-4 border-b border-slate-200 bg-slate-100">
+            <h4 class="font-bold text-slate-900 text-base font-display">Inventario de Productos</h4>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="p-4">Producto</th>
+                        <th class="p-4">SKU</th>
+                        <th class="p-4">Costo / Venta</th>
+                        <th class="p-4">Stock Actual</th>
+                        <th class="p-4">Estado Stock</th>
+                        <th class="p-4 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for prod in products %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-4 font-bold text-slate-900">{{ prod.name }}</td>
+                        <td class="p-4 font-mono text-slate-500 text-xs">{{ prod.sku }}</td>
+                        <td class="p-4 font-medium text-slate-700">
+                            Costo: {{ business.currency }}{{ prod.cost_price }} • <strong class="text-rose-900">Venta: {{ business.currency }}{{ prod.sale_price }}</strong>
+                        </td>
+                        <td class="p-4 font-extrabold text-base text-slate-900">{{ prod.stock }} {{ prod.unit }}s</td>
+                        <td class="p-4">
+                            {% if prod.is_low_stock %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-900 border border-rose-200 flex items-center gap-1 w-fit">
+                                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Stock Bajo (Min: {{ prod.min_stock }})
+                            </span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">Normal</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-right flex items-center justify-end gap-2">
+                            <a href="{% url 'product_edit' prod.id %}" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+                                Editar
+                            </a>
+                            <form method="POST" class="inline-flex items-center gap-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="adjust_stock">
+                                <input type="hidden" name="product_id" value="{{ prod.id }}">
+                                <input type="number" name="new_stock" value="{{ prod.stock }}" class="w-16 bg-white border border-slate-300 text-slate-900 rounded-lg p-1 text-xs text-center">
+                                <button type="submit" class="px-2 py-1 rounded-lg bg-rose-900/10 text-rose-900 hover:bg-rose-900 hover:text-white text-xs font-bold transition">Stock</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-slate-500">No hay productos en inventario.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

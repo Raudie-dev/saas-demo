@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50 text-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BusinessOS - Sistema de Gestión Adaptativo para Agencias</title>
+    <!-- Google Fonts Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        rosebrand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .light-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        }
+        .light-card-hover:hover {
+            border-color: #f43f5e;
+            box-shadow: 0 20px 30px -10px rgba(225, 29, 72, 0.12), 0 10px 15px -5px rgba(0, 0, 0, 0.04);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="h-full font-sans antialiased bg-slate-50 text-slate-900 flex flex-col min-h-screen">
+
+    <!-- Top Navigation Header (Clean Light Theme) -->
+    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            
+            <!-- Logo -->
+            <a href="{% url 'landing' %}" class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-700 to-rose-900 flex items-center justify-center text-white font-extrabold font-display shadow-md shadow-rose-700/20">
+                    B
+                </div>
+                <div>
+                    <span class="font-display font-bold text-xl text-slate-900 tracking-tight leading-none block">BusinessOS</span>
+                    <span class="text-[11px] font-semibold text-rose-700 uppercase tracking-wider">Agencias & SaaS</span>
+                </div>
+            </a>
+
+            <!-- Navigation Center Links -->
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="#soluciones" class="text-sm font-semibold text-slate-600 hover:text-rose-700 transition">Soluciones por Agencia</a>
+                <a href="#modulos" class="text-sm font-semibold text-slate-600 hover:text-rose-700 transition">Módulos del Sistema</a>
+                <a href="#beneficios" class="text-sm font-semibold text-slate-600 hover:text-rose-700 transition">Beneficios</a>
+            </nav>
+
+            <!-- Authentication Actions -->
+            <div class="flex items-center gap-3">
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'dashboard' %}" class="px-4 py-2.5 rounded-xl text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition flex items-center gap-2">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Ir a Mi Panel</span>
+                </a>
+                {% else %}
+                <a href="{% url 'login' %}" class="px-4.5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition border border-slate-200">
+                    Iniciar Sesión
+                </a>
+                <a href="{% url 'register' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-rose-800 to-rose-700 hover:from-rose-700 hover:to-rose-600 shadow-md shadow-rose-900/20 transition flex items-center gap-2">
+                    <span>Registrar Agencia</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Landing Content -->
+    <main class="flex-1">
+
+        <!-- Hero Section (Light & Fresh Accent Colors) -->
+        <section class="relative py-16 lg:py-24 px-4 overflow-hidden bg-gradient-to-b from-white via-rose-50/40 to-slate-50">
+            <div class="max-w-5xl mx-auto text-center space-y-8 relative z-10">
+                
+                <!-- Badge -->
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold shadow-xs">
+                    <span class="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
+                    <span>Plataforma 100% Adaptable a tu Tipo de Negocio</span>
+                </div>
+
+                <!-- Main Title -->
+                <h1 class="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl text-slate-900 tracking-tight leading-tight">
+                    El Software de Gestión Creado para <span class="text-transparent bg-clip-text bg-gradient-to-r from-rose-700 to-rose-900">Impulsar tu Agencia</span>
+                </h1>
+
+                <!-- Subtitle -->
+                <p class="text-base sm:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+                    Administra tus clientes, agenda citas, emite facturas, controla comisiones y potencia tu negocio con Inteligencia Artificial. Todo adaptado al perfil exacto de tu empresa.
+                </p>
+
+                <!-- Hero Action Buttons -->
+                <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="{% url 'register' %}" class="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-rose-800 via-rose-700 to-rose-600 hover:from-rose-700 hover:to-rose-500 shadow-xl shadow-rose-900/25 transition duration-200 flex items-center justify-center gap-3">
+                        <i data-lucide="sparkles" class="w-5 h-5 text-rose-200"></i>
+                        <span>Crear mi Agencia Gratis</span>
+                    </a>
+                    
+                    <a href="{% url 'login' %}" class="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 shadow-sm transition duration-200 flex items-center justify-center gap-2">
+                        <i data-lucide="log-in" class="w-5 h-5 text-rose-700"></i>
+                        <span>Ya tengo una cuenta - Iniciar Sesión</span>
+                    </a>
+                </div>
+
+                <!-- Stats summary -->
+                <div class="pt-10 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto border-t border-slate-200/80 mt-10">
+                    <div>
+                        <p class="font-display font-extrabold text-2xl text-slate-900">+6 Tipos</p>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">Perfiles de Agencia</p>
+                    </div>
+                    <div>
+                        <p class="font-display font-extrabold text-2xl text-slate-900">9 Módulos</p>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">Herramientas Activas</p>
+                    </div>
+                    <div>
+                        <p class="font-display font-extrabold text-2xl text-slate-900">24/7</p>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">Portal de Reservas</p>
+                    </div>
+                    <div>
+                        <p class="font-display font-extrabold text-2xl text-slate-900">100% IA</p>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">Asistente Integrado</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Soluciones por Agencia Section -->
+        <section id="soluciones" class="py-16 px-4 bg-white border-y border-slate-200">
+            <div class="max-w-7xl mx-auto space-y-12">
+                <div class="text-center space-y-3">
+                    <span class="text-xs font-bold text-rose-700 uppercase tracking-widest">Adaptabilidad Total</span>
+                    <h2 class="font-display font-extrabold text-3xl sm:text-4xl text-slate-900">Elige tu Perfil de Agencia</h2>
+                    <p class="text-sm text-slate-600 max-w-xl mx-auto">Al registrarte, el sistema configura automáticamente las herramientas que tu negocio requiere.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Card 1: Marketing -->
+                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
+                        <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center justify-center font-bold">
+                            <i data-lucide="sparkles" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Agencia Digital & Marketing</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">Gestión de prospectos CRM, propuestas comerciales, facturación de servicios recurrentes y generación de contenido con IA.</p>
+                        <div class="pt-2">
+                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-rose-700 hover:text-rose-900">
+                                <span>Configurar como Agencia Digital</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Real Estate -->
+                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
+                        <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center font-bold">
+                            <i data-lucide="home" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Agencia Inmobiliaria</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">Agenda de visitas de propiedades, seguimiento de clientes compradores/vendedores, contratos y control de comisiones de agentes.</p>
+                        <div class="pt-2">
+                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-blue-700 hover:text-blue-900">
+                                <span>Configurar Inmobiliaria</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Travel -->
+                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center font-bold">
+                            <i data-lucide="plane" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Agencia de Viajes & Turismo</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">Reservas de paquetes de viaje, itinerarios de clientes, punto de venta de pasajes, facturación rápida y comisiones.</p>
+                        <div class="pt-2">
+                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-amber-700 hover:text-amber-900">
+                                <span>Configurar Agencia de Viajes</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: Consulting -->
+                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
+                        <div class="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200 text-purple-700 flex items-center justify-center font-bold">
+                            <i data-lucide="briefcase" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Consultoría & Servicios</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">Reserva en línea de sesiones de asesoría, calendario coordinado, envío de presupuestos e informes ejecutivos.</p>
+                        <div class="pt-2">
+                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-purple-700 hover:text-purple-900">
+                                <span>Configurar Consultoría</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Card 5: Health & Beauty -->
+                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold">
+                            <i data-lucide="heart-pulse" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Salud, Estética & Spa</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">Portal de reservas públicas 24/7 para clientes, agenda por especialista, caja registradora POS y control de comisiones.</p>
+                        <div class="pt-2">
+                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 hover:text-emerald-900">
+                                <span>Configurar Centro de Estética</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Card 6: Retail -->
+                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center font-bold">
+                            <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Comercio & Retail</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">Punto de venta físico y virtual, control de stock de productos, cuentas por cobrar y caja con cierre diario.</p>
+                        <div class="pt-2">
+                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-indigo-700 hover:text-indigo-900">
+                                <span>Configurar Comercio</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Modules Highlight Grid -->
+        <section id="modulos" class="py-16 px-4 bg-slate-50">
+            <div class="max-w-7xl mx-auto space-y-12">
+                <div class="text-center space-y-3">
+                    <span class="text-xs font-bold text-rose-700 uppercase tracking-widest">Módulos Potentes</span>
+                    <h2 class="font-display font-extrabold text-3xl sm:text-4xl text-slate-900">Todo en una Sola Plataforma</h2>
+                    <p class="text-sm text-slate-600 max-w-xl mx-auto">Elimina la dispersión de herramientas usando una suite unificada para tu empresa.</p>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="light-card p-5 rounded-2xl space-y-2">
+                        <i data-lucide="users" class="w-6 h-6 text-rose-700"></i>
+                        <h4 class="font-bold text-slate-900 text-sm">CRM & Clientes</h4>
+                        <p class="text-xs text-slate-500">Historial completo, estado de prospectos y notas.</p>
+                    </div>
+                    <div class="light-card p-5 rounded-2xl space-y-2">
+                        <i data-lucide="calendar" class="w-6 h-6 text-rose-700"></i>
+                        <h4 class="font-bold text-slate-900 text-sm">Agenda & Citas</h4>
+                        <p class="text-xs text-slate-500">Control de horarios de colaboradores e itinerarios.</p>
+                    </div>
+                    <div class="light-card p-5 rounded-2xl space-y-2">
+                        <i data-lucide="globe" class="w-6 h-6 text-rose-700"></i>
+                        <h4 class="font-bold text-slate-900 text-sm">Reservas 24/7</h4>
+                        <p class="text-xs text-slate-500">Portal público para que tus clientes agenden solos.</p>
+                    </div>
+                    <div class="light-card p-5 rounded-2xl space-y-2">
+                        <i data-lucide="file-text" class="w-6 h-6 text-rose-700"></i>
+                        <h4 class="font-bold text-slate-900 text-sm">Facturación & Gastos</h4>
+                        <p class="text-xs text-slate-500">Comprobantes, pagos pendientes y flujo de caja.</p>
+                    </div>
+                    <div class="light-card p-5 rounded-2xl space-y-2">
+                        <i data-lucide="shopping-bag" class="w-6 h-6 text-rose-700"></i>
+                        <h4 class="font-bold text-slate-900 text-sm">Ventas POS & Caja</h4>
+                        <p class="text-xs text-slate-500">Cobros ultrarrápidos y reporte de caja registradora.</p>
+                    </div>
+                    <div class="light-card p-5 rounded-2xl space-y-2">
+                        <i data-lucide="dollar-sign" class="w-6 h-6 text-rose-700"></i>
+                        <h4 class="font-bold text-slate-900 text-sm">Comisiones</h4>
+                        <p class="text-xs text-slate-500">Cálculo automatizado de comisiones para tu equipo.</p>
+                    </div>
+                    <div class="light-card p-5 rounded-2xl space-y-2">
+                        <i data-lucide="sparkles" class="w-6 h-6 text-rose-700"></i>
+                        <h4 class="font-bold text-slate-900 text-sm">Asistente IA</h4>
+                        <p class="text-xs text-slate-500">Generador de copies, resúmenes y automatización.</p>
+                    </div>
+                    <div class="light-card p-5 rounded-2xl space-y-2">
+                        <i data-lucide="tag" class="w-6 h-6 text-rose-700"></i>
+                        <h4 class="font-bold text-slate-900 text-sm">Marketing</h4>
+                        <p class="text-xs text-slate-500">Promociones, cupones y fidelización de clientes.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Bottom Banner (Light & Elegant) -->
+        <section class="py-16 px-4 bg-gradient-to-r from-rose-900 via-rose-800 to-slate-900 text-white">
+            <div class="max-w-4xl mx-auto text-center space-y-6">
+                <h2 class="font-display font-extrabold text-3xl sm:text-4xl">¿Listo para transformar la gestión de tu agencia?</h2>
+                <p class="text-sm text-rose-100 max-w-xl mx-auto">Regístrate hoy mismo y prueba la experiencia configurada específicamente para tu sector.</p>
+                <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="{% url 'register' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold bg-white text-rose-900 hover:bg-rose-50 shadow-lg transition">
+                        Crear Mi Agencia Ahora
+                    </a>
+                    <a href="{% url 'login' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-white border border-rose-400/40 hover:bg-rose-800 transition">
+                        Ingresar a Mi Cuenta
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-8 px-4 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-lg bg-rose-800 text-white font-bold flex items-center justify-center text-xs">B</div>
+                <span class="font-bold text-slate-800 font-display">BusinessOS</span>
+                <span>&copy; 2026 Todos los derechos reservados.</span>
+            </div>
+            <div class="flex items-center gap-4 text-slate-600">
+                <a href="{% url 'login' %}" class="hover:text-rose-700 transition">Iniciar Sesión</a>
+                <a href="{% url 'register' %}" class="hover:text-rose-700 transition">Registro de Agencia</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

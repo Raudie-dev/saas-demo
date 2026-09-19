@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - BusinessOS{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+
+    <div class="glass-card p-6 rounded-2xl flex items-center justify-between border border-slate-200">
+        <div>
+            <h3 class="font-bold text-slate-900 text-lg font-display">{{ title }}</h3>
+            <p class="text-xs text-slate-500 mt-1">Configura SKU, precios de compra/venta, stock y proveedor</p>
+        </div>
+        <a href="{% url 'inventory_list' %}" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+            ← Volver a Inventario
+        </a>
+    </div>
+
+    <div class="glass-card p-8 rounded-2xl border border-slate-200 space-y-6">
+        <form method="POST" autocomplete="off" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre del Producto</label>
+                    <input type="text" name="name" value="{{ product.name|default:'' }}" placeholder="Ej: Cera Modeladora Mate" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">SKU / Código de Barras</label>
+                    <input type="text" name="sku" value="{{ product.sku|default:'' }}" placeholder="Ej: CERA-001" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm font-mono focus:ring-2 focus:ring-rose-800">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Precio de Costo ({{ business.currency }})</label>
+                    <input type="number" step="0.01" name="cost_price" value="{% if product %}{{ product.cost_price }}{% endif %}" placeholder="6.00" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Precio de Venta ({{ business.currency }})</label>
+                    <input type="number" step="0.01" name="sale_price" value="{% if product %}{{ product.sale_price }}{% endif %}" placeholder="14.00" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Stock Actual</label>
+                    <input type="number" name="stock" value="{% if product %}{{ product.stock }}{% endif %}" placeholder="10" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Stock Mínimo (Alerta)</label>
+                    <input type="number" name="min_stock" value="{% if product %}{{ product.min_stock }}{% endif %}" placeholder="5" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Unidad de Medida</label>
+                    <input type="text" name="unit" value="{{ product.unit|default:'Unidad' }}" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-slate-700">Categoría</label>
+                        <a href="{% url 'product_category_create' %}" class="text-[11px] text-rose-900 hover:text-rose-950 font-bold">+ Crear Categoría</a>
+                    </div>
+                    <select name="category_id" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                        <option value="" {% if not product or not product.category %}selected{% endif %}>Seleccionar Categoría</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if product and product.category and product.category.id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-slate-700">Proveedor Habitual</label>
+                        <a href="{% url 'supplier_create' %}" class="text-[11px] text-rose-900 hover:text-rose-950 font-bold">+ Crear Proveedor</a>
+                    </div>
+                    <select name="supplier_id" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                        <option value="" {% if not product or not product.supplier %}selected{% endif %}>Sin Proveedor</option>
+                        {% for supp in suppliers %}
+                        <option value="{{ supp.id }}" {% if product and product.supplier and product.supplier.id == supp.id %}selected{% endif %}>{{ supp.company_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 flex justify-end gap-3">
+                <a href="{% url 'inventory_list' %}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-bold shadow-md shadow-rose-950/20 transition">Guardar Producto</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

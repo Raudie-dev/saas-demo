@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Calendario de Citas - BusinessOS{% endblock %}
+{% block header_title %}Calendario Interactivo de Citas{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Actions & Navigation -->
+    <div class="glass-card p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-200">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'agenda' %}" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+                <i data-lucide="list" class="w-4 h-4"></i> Vista Lista Diaria
+            </a>
+            <span class="px-3.5 py-2 rounded-xl bg-rose-100 text-rose-900 border border-rose-200 text-xs font-bold flex items-center gap-1.5">
+                <i data-lucide="calendar" class="w-4 h-4"></i> Vista Calendario Completo
+            </span>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div>
+                <select id="staffFilter" onchange="refetchCalendar()" class="bg-white border border-slate-300 text-slate-900 text-xs rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-800">
+                    <option value="">Todos los Profesionales</option>
+                    {% for staff in staff_members %}
+                    <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <a href="{% url 'appointment_create' %}" class="px-4 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-xs flex items-center gap-2 shadow-md shadow-rose-900/20 transition">
+                <i data-lucide="plus" class="w-4 h-4"></i> Agendar Cita
+            </a>
+        </div>
+    </div>
+
+    <!-- Calendar Container -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 shadow-md">
+        <div id="fullCalendar" class="text-sm"></div>
+    </div>
+
+</div>
+
+<!-- Include FullCalendar 6.1.10 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<style>
+    /* Custom Light Base Styling for FullCalendar with Vinotinto & Black Accents */
+    .fc {
+        --fc-border-color: #e2e8f0;
+        --fc-page-bg-color: #ffffff;
+        --fc-neutral-bg-color: #f8fafc;
+        --fc-list-event-hover-bg-color: rgba(112, 26, 43, 0.08);
+        --fc-today-bg-color: rgba(254, 242, 244, 0.8) !important;
+        color: #0f172a;
+        font-family: inherit;
+    }
+    .fc .fc-toolbar-title {
+        font-size: 1.125rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+    .fc .fc-button-primary {
+        background-color: #0f172a;
+        border-color: #0f172a;
+        color: #ffffff;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 0.75rem;
+        padding: 0.4rem 0.8rem;
+        text-transform: capitalize;
+    }
+    .fc .fc-button-primary:hover {
+        background-color: #701a2b;
+        border-color: #701a2b;
+        color: #ffffff;
+    }
+    .fc .fc-button-active {
+        background-color: #701a2b !important;
+        border-color: #701a2b !important;
+        color: #ffffff !important;
+    }
+    .fc .fc-col-header-cell {
+        padding: 0.75rem 0;
+        background-color: #f1f5f9;
+        color: #475569;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .fc-event {
+        border-radius: 0.5rem !important;
+        padding: 2px 5px !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+</style>
+
+<script>
+    let calendar;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('fullCalendar');
+        
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            buttonText: {
+                today:    'Hoy',
+                month:    'Mes',
+                week:     'Semana',
+                day:      'Día'
+            },
+            locale: 'es',
+            firstDay: 1,
+            slotMinTime: '08:00:00',
+            slotMaxTime: '21:00:00',
+            allDaySlot: false,
+            events: function(info, successCallback, failureCallback) {
+                const staffId = document.getElementById('staffFilter').value;
+                fetch(`{% url 'appointment_events_api' %}?staff_id=${staffId}`)
+                    .then(response => response.json())
+                    .then(data => successCallback(data))
+                    .catch(error => failureCallback(error));
+            },
+            dateClick: function(info) {
+                const dateStr = info.dateStr.split('T')[0];
+                const timeStr = info.dateStr.includes('T') ? info.dateStr.split('T')[1].substring(0, 5) : '';
+                window.location.href = `{% url 'appointment_create' %}?date=${dateStr}&start_time=${timeStr}`;
+            },
+            eventClick: function(info) {
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                    info.jsEvent.preventDefault();
+                }
+            }
+        });
+
+        calendar.render();
+    });
+
+    function refetchCalendar() {
+        if (calendar) {
+            calendar.refetchEvents();
+        }
+    }
+</script>
+{% endblock %}

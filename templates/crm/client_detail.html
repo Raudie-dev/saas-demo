@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Ficha 360 - {{ client.full_name }}{% endblock %}
+{% block header_title %}Ficha 360º del Cliente{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Client Profile Header Card -->
+    <div class="glass-card bg-white p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-5">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-900 to-slate-950 text-white font-extrabold text-2xl flex items-center justify-center shadow-md">
+                {{ client.first_name|slice:":1" }}{{ client.last_name|slice:":1" }}
+            </div>
+            <div>
+                <div class="flex items-center gap-3">
+                    <h2 class="text-2xl font-bold font-display text-slate-900">{{ client.full_name }}</h2>
+                    <span class="px-3 py-0.5 rounded-full text-xs font-bold {% if client.status == 'VIP' %}bg-rose-50 text-rose-900 border border-rose-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+                        {{ client.get_status_display }}
+                    </span>
+                </div>
+                <p class="text-sm text-slate-600 mt-1"><i data-lucide="phone" class="w-3.5 h-3.5 inline"></i> {{ client.phone }} • <i data-lucide="mail" class="w-3.5 h-3.5 inline"></i> {{ client.email|default:"Sin email" }}</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div>
+                <span class="text-xs text-slate-500 block">Total Histórico Gastado</span>
+                <span class="text-xl font-extrabold text-rose-900">{{ business.currency }}{{ client.total_spent }}</span>
+            </div>
+            <div class="border-l border-slate-200 pl-6">
+                <span class="text-xs text-slate-500 block">Citas Realizadas</span>
+                <span class="text-xl font-extrabold text-slate-900">{{ appointments|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 360 Tabs: Appointments History & Sales History & Notes -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Appointments History -->
+        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                <i data-lucide="calendar" class="w-4 h-4 text-rose-900"></i> Historial de Citas
+            </h3>
+            <div class="space-y-3">
+                {% for app in appointments %}
+                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-bold text-slate-900">{{ app.service.name }}</p>
+                        <p class="text-xs text-slate-500">{{ app.date }} a las {{ app.start_time }} hs con <span class="text-rose-900 font-semibold">{{ app.staff.full_name }}</span></p>
+                    </div>
+                    <span class="text-sm font-extrabold text-slate-900">{{ business.currency }}{{ app.total_price }}</span>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">No registra citas aún.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Notes & Preferences -->
+        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                <i data-lucide="notebook" class="w-4 h-4 text-amber-600"></i> Notas & Preferencias del Cliente
+            </h3>
+            <div class="space-y-3">
+                {% for note in notes %}
+                <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm">
+                    <p class="font-medium">{{ note.content }}</p>
+                    <span class="text-[11px] text-amber-700 mt-1 block">— {{ note.author }} ({{ note.created_at|date:"Y-m-d" }})</span>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-500">No hay notas registradas.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+

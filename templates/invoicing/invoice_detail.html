@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es" class="bg-slate-50 text-slate-800">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura {{ invoice.invoice_number }} - {{ business.name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; color: black; }
+        }
+    </style>
+</head>
+<body class="p-6 md:p-12 max-w-4xl mx-auto bg-slate-50">
+
+    <!-- Print button header -->
+    <div class="no-print flex justify-between items-center mb-8 bg-slate-950 text-white p-4 rounded-2xl shadow-lg">
+        <span class="text-sm font-semibold">Previsualización de Factura Oficial</span>
+        <button onclick="window.print()" class="px-5 py-2 bg-rose-900 hover:bg-rose-950 rounded-xl text-xs font-bold text-white shadow transition">
+            🖨️ Imprimir Factura / PDF
+        </button>
+    </div>
+
+    <div class="bg-white p-8 md:p-12 rounded-3xl border border-slate-200 shadow-xl space-y-8">
+        
+        <!-- Header: Business Info & Invoice Info -->
+        <div class="flex justify-between items-start border-b border-slate-200 pb-8">
+            <div>
+                <h1 class="text-2xl font-bold font-display text-slate-900">{{ business.name }}</h1>
+                <p class="text-xs text-slate-500 mt-1">RUT / RFC: {{ business.tax_id }}</p>
+                <p class="text-xs text-slate-500">{{ business.address }}</p>
+                <p class="text-xs text-slate-500">{{ business.phone }} • {{ business.email }}</p>
+            </div>
+            <div class="text-right">
+                <span class="px-3 py-1 bg-rose-50 text-rose-900 border border-rose-200 font-extrabold text-xs rounded-full uppercase tracking-wider">FACTURA B</span>
+                <h2 class="text-xl font-extrabold text-slate-900 mt-2">Nº {{ invoice.invoice_number }}</h2>
+                <p class="text-xs text-slate-500 mt-1">Fecha Emisión: <strong>{{ invoice.issue_date|date:"Y-m-d" }}</strong></p>
+                <p class="text-xs text-slate-500">Vencimiento: <strong>{{ invoice.due_date|date:"Y-m-d" }}</strong></p>
+            </div>
+        </div>
+
+        <!-- Client Info -->
+        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Facturado A:</span>
+            <h3 class="text-base font-bold text-slate-900">{{ invoice.client.full_name }}</h3>
+            <p class="text-xs text-slate-600 mt-0.5">RUT / Tax ID: {{ invoice.client.tax_id|default:"Consumidor Final" }}</p>
+            <p class="text-xs text-slate-600">Teléfono: {{ invoice.client.phone }}</p>
+        </div>
+
+        <!-- Items Table -->
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold">
+                <tr>
+                    <th class="p-3">Descripción</th>
+                    <th class="p-3 text-center">Cant.</th>
+                    <th class="p-3 text-right">Precio Unit.</th>
+                    <th class="p-3 text-right">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for item in items %}
+                <tr>
+                    <td class="p-3 font-semibold text-slate-800">{{ item.description }}</td>
+                    <td class="p-3 text-center">{{ item.quantity }}</td>
+                    <td class="p-3 text-right">{{ business.currency }}{{ item.unit_price }}</td>
+                    <td class="p-3 text-right font-bold text-slate-900">{{ business.currency }}{{ item.total_price }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td class="p-3 font-semibold text-slate-800">Servicio de Atención General & Productos</td>
+                    <td class="p-3 text-center">1</td>
+                    <td class="p-3 text-right">{{ business.currency }}{{ invoice.subtotal }}</td>
+                    <td class="p-3 text-right font-bold text-slate-900">{{ business.currency }}{{ invoice.subtotal }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="flex justify-end border-t border-slate-200 pt-6">
+            <div class="w-64 space-y-2 text-right">
+                <div class="flex justify-between text-sm text-slate-600">
+                    <span>Subtotal:</span>
+                    <span class="font-semibold">{{ business.currency }}{{ invoice.subtotal }}</span>
+                </div>
+                <div class="flex justify-between text-sm text-slate-600">
+                    <span>Impuestos (IVA 21%):</span>
+                    <span class="font-semibold">{{ business.currency }}{{ invoice.tax_amount }}</span>
+                </div>
+                <div class="flex justify-between text-lg font-extrabold text-slate-900 border-t border-slate-300 pt-2">
+                    <span>Total Factura:</span>
+                    <span class="text-rose-900">{{ business.currency }}{{ invoice.total_amount }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center text-xs text-slate-400 border-t border-slate-100 pt-6">
+            Gracias por su compra • Factura generada electrónicamente por BusinessOS SaaS
+        </div>
+    </div>
+</body>
+</html>
+
