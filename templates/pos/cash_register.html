@@ -6,40 +6,86 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- Active Register Control -->
+    {% if messages %}
+    <div class="space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl text-sm font-semibold flex items-center justify-between {% if message.tags == 'error' %}bg-rose-50 border border-rose-200 text-rose-900{% else %}bg-emerald-50 border border-emerald-200 text-emerald-900{% endif %}">
+            <div class="flex items-center gap-2">
+                <i data-lucide="{% if message.tags == 'error' %}alert-circle{% else %}check-circle-2{% endif %}" class="w-5 h-5"></i>
+                <span>{{ message }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Active Register Control & Summary -->
     <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-            <h3 class="font-bold text-slate-900 text-lg font-display">Caja del Día</h3>
-            {% if active_register %}
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Caja Abierta</span>
-            {% else %}
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200">Caja Cerrada</span>
-            {% endif %}
+            <div>
+                <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
+                    <i data-lucide="calculator" class="w-5 h-5 text-rose-900"></i>
+                    <span>Control de Caja del Día</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Apertura, arqueo y cierre de turnos de caja</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'export_sales_excel' %}" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition">
+                    <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Exportar Excel
+                </a>
+                <a href="{% url 'export_sales_pdf' %}" target="_blank" class="px-3 py-1.5 bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Exportar PDF
+                </a>
+                {% if active_register %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                    Caja ABIERTA
+                </span>
+                {% else %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200">
+                    Caja CERRADA
+                </span>
+                {% endif %}
+            </div>
+
         </div>
 
         {% if active_register %}
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
             <div>
-                <p class="text-sm text-slate-600">Apertura: <strong class="text-slate-900">{{ active_register.opened_at|date:"Y-m-d H:i" }} hs</strong></p>
-                <p class="text-sm text-slate-600">Monto Inicial: <strong class="text-rose-900">{{ business.currency }}{{ active_register.initial_amount }}</strong></p>
+                <span class="text-xs text-slate-500 font-semibold block mb-0.5">Apertura</span>
+                <span class="text-sm font-bold text-slate-900">{{ active_register.opened_at|date:"d/m/Y H:i" }} hs</span>
             </div>
-            <form method="POST" autocomplete="off">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="close">
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm shadow-md transition">
-                    Cerrar Caja del Día
-                </button>
-            </form>
+            <div>
+                <span class="text-xs text-slate-500 font-semibold block mb-0.5">Fondo Inicial</span>
+                <span class="text-sm font-bold text-rose-900">{{ business.currency }}{{ active_register.initial_amount }}</span>
+            </div>
+            <div>
+                <span class="text-xs text-slate-500 font-semibold block mb-0.5">Ventas del Turno</span>
+                <span class="text-sm font-bold text-emerald-700">{{ business.currency }}{{ active_register.total_sales|default:'0.00' }} ({{ active_register.sales_count }} ventas)</span>
+            </div>
+            <div>
+                <span class="text-xs text-slate-500 font-semibold block mb-0.5">Efectivo Esperado</span>
+                <span class="text-sm font-extrabold text-slate-900">{{ business.currency }}{{ active_register.expected_cash|default:active_register.initial_amount }}</span>
+            </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+            <button type="button" onclick="openShiftSalesModal('close-register-modal')" class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
+                <i data-lucide="lock" class="w-4 h-4"></i>
+                Cerrar y Arquear Caja del Día
+            </button>
         </div>
         {% else %}
-        <form method="POST" autocomplete="off" class="flex items-center gap-4">
+        <form method="POST" autocomplete="off" class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
             {% csrf_token %}
             <input type="hidden" name="action" value="open">
             <div class="flex-1 max-w-xs">
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Monto Inicial en Efectivo</label>
-                <input type="number" step="0.01" name="initial_amount" value="100.00" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-rose-900">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Monto Inicial en Efectivo (Fondo de Caja)</label>
+                <input type="number" step="0.01" name="initial_amount" value="100.00" required class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900">
             </div>
-            <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-semibold text-sm shadow-md transition self-end">
+            <button type="submit" class="px-6 py-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
+                <i data-lucide="unlock" class="w-4 h-4"></i>
                 Abrir Caja Ahora
             </button>
         </form>
@@ -47,39 +93,315 @@
     </div>
 
     <!-- Register History Table -->
-    <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-        <div class="p-4 border-b border-slate-100 bg-slate-50">
-            <h4 class="font-bold text-slate-900 text-base font-display">Historial de Turnos de Caja</h4>
+    <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm space-y-3">
+        <div class="p-5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+            <div>
+                <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                    <i data-lucide="history" class="w-5 h-5 text-rose-900"></i>
+                    <span>Historial de Turnos y Sesiones de Caja</span>
+                </h4>
+                <p class="text-xs text-slate-500 mt-0.5">Resumen acumulado de aperturas, cierres y desglose de recaudación</p>
+            </div>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 uppercase tracking-wider font-bold">
                     <tr>
-                        <th class="p-4">ID</th>
+                        <th class="p-4">Turno ID</th>
                         <th class="p-4">Apertura</th>
                         <th class="p-4">Cierre</th>
-                        <th class="p-4">Monto Inicial</th>
-                        <th class="p-4">Estado</th>
+                        <th class="p-4">Fondo Inicial</th>
+                        <th class="p-4">Total Recaudado</th>
+                        <th class="p-4">Ventas (#)</th>
+                        <th class="p-4">Desglose (Efec/Tarj)</th>
+                        <th class="p-4 text-center">Estado</th>
+                        <th class="p-4 text-right">Ventas del Turno</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-slate-100 font-medium">
                     {% for reg in registers %}
                     <tr class="hover:bg-slate-50/80 transition">
                         <td class="p-4 font-mono font-bold text-rose-900">#{{ reg.id|stringformat:".8s" }}</td>
-                        <td class="p-4 text-slate-900 font-medium">{{ reg.opened_at|date:"Y-m-d H:i" }}</td>
-                        <td class="p-4 text-slate-600">{% if reg.closed_at %}{{ reg.closed_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</td>
-                        <td class="p-4 font-bold text-slate-900">{{ business.currency }}{{ reg.initial_amount }}</td>
-                        <td class="p-4">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-bold {% if reg.status == 'OPEN' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
+                        <td class="p-4 text-slate-900">{{ reg.opened_at|date:"d/m/Y H:i" }} hs</td>
+                        <td class="p-4 text-slate-600">{% if reg.closed_at %}{{ reg.closed_at|date:"d/m/Y H:i" }} hs{% else %}<span class="text-emerald-600 font-bold">En curso</span>{% endif %}</td>
+                        <td class="p-4 font-bold text-slate-800">{{ business.currency }}{{ reg.initial_amount }}</td>
+                        <td class="p-4 font-extrabold text-emerald-700 text-sm">{{ business.currency }}{{ reg.total_sales|default:'0.00' }}</td>
+                        <td class="p-4 font-bold text-slate-900">{{ reg.sales_count }} venta(s)</td>
+                        <td class="p-4 space-y-0.5 text-[11px]">
+                            <div>💵 Efec: <strong class="text-slate-900">{{ business.currency }}{{ reg.cash_total|default:'0.00' }}</strong></div>
+                            <div>💳 Tarj/QR: <strong class="text-slate-900">{{ business.currency }}{{ reg.card_total|add:reg.qr_total|default:'0.00' }}</strong></div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold {% if reg.status == 'OPEN' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
                                 {{ reg.get_status_display }}
                             </span>
                         </td>
+                        <td class="p-4 text-right">
+                            <button type="button" onclick="openShiftSalesModal('modal-shift-sales-{{ reg.id }}')" class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer">
+                                <i data-lucide="receipt" class="w-3.5 h-3.5"></i> Ver Ventas ({{ reg.sales_count }})
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="p-8 text-center text-slate-400">No hay registradas sesiones de caja anteriores.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
+    <!-- Recent Sales History Log -->
+    <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm space-y-3">
+        <div class="p-5 border-b border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+                <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-5 h-5 text-rose-900"></i>
+                    <span>Historial de Ventas {% if selected_filter_register %}del Turno #{{ selected_filter_register.id|stringformat:".8s" }}{% else %}Generales (POS){% endif %}</span>
+                </h4>
+                <p class="text-xs text-slate-500 mt-0.5">Filtrar transacciones por turno de caja o ver el registro global</p>
+            </div>
+            
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <select onchange="location.href = this.value ? '?register_id=' + this.value : '?'" class="bg-white border border-slate-300 text-slate-900 text-xs rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-900 font-semibold w-full sm:w-auto">
+                    <option value="">Todas las Ventas (Todas las Cajas)</option>
+                    {% for reg in registers %}
+                    <option value="{{ reg.id }}" {% if filter_register_id == reg.id|stringformat:"s" %}selected{% endif %}>
+                        Turno #{{ reg.id|stringformat:".8s" }} ({{ reg.opened_at|date:"d/m/Y H:i" }}) - {{ business.currency }}{{ reg.total_sales }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                <a href="{% url 'pos_terminal' %}" class="px-3.5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-sm transition shrink-0">
+                    + Nueva Venta POS
+                </a>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 uppercase tracking-wider font-bold">
+                    <tr>
+                        <th class="p-4">Venta ID</th>
+                        <th class="p-4">Turno Caja</th>
+                        <th class="p-4">Fecha / Hora</th>
+                        <th class="p-4">Cliente</th>
+                        <th class="p-4">Profesional</th>
+                        <th class="p-4">Detalle / Ítems</th>
+                        <th class="p-4">Método de Pago</th>
+                        <th class="p-4 text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium">
+                    {% for sale in recent_sales %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-4 font-mono font-bold text-rose-900">#{{ sale.id|stringformat:".8s" }}</td>
+                        <td class="p-4 font-mono text-slate-600">{% if sale.cash_register %}#{{ sale.cash_register.id|stringformat:".8s" }}{% else %}-{% endif %}</td>
+                        <td class="p-4 text-slate-900 font-medium">{{ sale.created_at|date:"d/m/Y H:i" }} hs</td>
+                        <td class="p-4 font-bold text-slate-900">{% if sale.client %}{{ sale.client.full_name }}{% else %}<span class="text-slate-400 font-normal">Cliente Mostrador</span>{% endif %}</td>
+                        <td class="p-4 text-slate-700">{% if sale.staff %}{{ sale.staff.full_name }}{% else %}-{% endif %}</td>
+                        <td class="p-4 space-y-0.5">
+                            {% for item in sale.items.all %}
+                            <div class="text-[11px] text-slate-800 font-semibold">• {{ item.item_name }} ({{ business.currency }}{{ item.total_price }})</div>
+                            {% empty %}
+                            <span class="text-slate-400">Cobro de servicio</span>
+                            {% endfor %}
+                        </td>
+                        <td class="p-4">
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                {{ sale.payment_method }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-right font-extrabold text-sm text-slate-900">
+                            {{ business.currency }}{{ sale.total_amount }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="p-8 text-center text-slate-400">No se encontraron ventas para este turno de caja.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% if active_register %}
+<!-- MODAL DE CONFIRMACIÓN DE CIERRE DE CAJA -->
+<div id="close-register-modal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md p-6 sm:p-7 space-y-6 relative animate-in fade-in zoom-in-95 duration-200">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-base text-slate-900">¿Confirmar Cierre de Caja?</h3>
+                    <p class="text-xs text-slate-500">Se finalizará el turno actual de caja del día</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeShiftSalesModal('close-register-modal')" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <span class="text-slate-500 font-medium">Apertura del Turno:</span>
+                <span class="font-bold text-slate-900">{{ active_register.opened_at|date:"d/m/Y H:i" }} hs</span>
+            </div>
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <span class="text-slate-500 font-medium">Fondo Inicial:</span>
+                <span class="font-bold text-slate-900">{{ business.currency }}{{ active_register.initial_amount }}</span>
+            </div>
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <span class="text-slate-500 font-medium">Total Recaudado (Ventas):</span>
+                <span class="font-bold text-emerald-700">{{ business.currency }}{{ active_register.total_sales|default:'0.00' }} ({{ active_register.sales_count }} ventas)</span>
+            </div>
+            <div class="flex justify-between items-center pt-1">
+                <span class="text-slate-900 font-bold">Efectivo Esperado en Caja:</span>
+                <span class="font-extrabold text-sm text-rose-900">{{ business.currency }}{{ active_register.expected_cash|default:active_register.initial_amount }}</span>
+            </div>
+        </div>
+
+        <p class="text-xs text-slate-500 text-center">Una vez realizada esta acción, el turno quedará guardado en el historial y se requerirá un nuevo fondo de caja para reiniciar cobros.</p>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="button" onclick="closeShiftSalesModal('close-register-modal')" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition cursor-pointer">
+                Cancelar
+            </button>
+
+            <form method="POST" autocomplete="off" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="close">
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
+                    <i data-lucide="lock" class="w-4 h-4"></i>
+                    Confirmar y Cerrar Caja
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
+{% endif %}
+
+<!-- ============================================================== -->
+<!-- MODALES DETALLE DE VENTAS POR CADA TURNO DE CAJA               -->
+<!-- ============================================================== -->
+{% for reg in registers %}
+<div id="modal-shift-sales-{{ reg.id }}" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-4xl p-6 sm:p-8 space-y-6 relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-lg text-slate-900">Ventas del Turno de Caja #{{ reg.id|stringformat:".8s" }}</h3>
+                    <p class="text-xs text-slate-500">Apertura: {{ reg.opened_at|date:"d/m/Y H:i" }} hs • Cierre: {% if reg.closed_at %}{{ reg.closed_at|date:"d/m/Y H:i" }} hs{% else %}En curso{% endif %}</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeShiftSalesModal('modal-shift-sales-{{ reg.id }}')" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Shift Metrics summary badges -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+            <div>
+                <span class="text-slate-500 block mb-0.5">Fondo Inicial:</span>
+                <strong class="text-slate-900 text-sm">{{ business.currency }}{{ reg.initial_amount }}</strong>
+            </div>
+            <div>
+                <span class="text-slate-500 block mb-0.5">Total Recaudado:</span>
+                <strong class="text-emerald-700 text-sm">{{ business.currency }}{{ reg.total_sales|default:'0.00' }}</strong>
+            </div>
+            <div>
+                <span class="text-slate-500 block mb-0.5">En Efectivo:</span>
+                <strong class="text-slate-900 text-sm">{{ business.currency }}{{ reg.cash_total|default:'0.00' }}</strong>
+            </div>
+            <div>
+                <span class="text-slate-500 block mb-0.5">Tarjeta / QR / Transf:</span>
+                <strong class="text-slate-900 text-sm">{{ business.currency }}{{ reg.card_total|add:reg.qr_total|add:reg.transfer_total|default:'0.00' }}</strong>
+            </div>
+        </div>
+
+        <!-- Sales list table inside modal -->
+        <div class="space-y-3">
+            <h4 class="font-bold text-slate-900 text-sm">Ventas Cobradas en esta Sesión ({{ reg.sales_count }}):</h4>
+            <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-700 uppercase tracking-wider font-bold">
+                        <tr>
+                            <th class="p-3">ID Venta</th>
+                            <th class="p-3">Hora</th>
+                            <th class="p-3">Cliente</th>
+                            <th class="p-3">Profesional</th>
+                            <th class="p-3">Detalle / Servicios</th>
+                            <th class="p-3">Método Pago</th>
+                            <th class="p-3 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 font-medium">
+                        {% for sale in reg.sales_list %}
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-3 font-mono font-bold text-rose-900">#{{ sale.id|stringformat:".8s" }}</td>
+                            <td class="p-3 text-slate-900 font-semibold">{{ sale.created_at|date:"H:i" }} hs</td>
+                            <td class="p-3 font-bold text-slate-900">{% if sale.client %}{{ sale.client.full_name }}{% else %}<span class="text-slate-400 font-normal">Cliente Mostrador</span>{% endif %}</td>
+                            <td class="p-3 text-slate-700">{% if sale.staff %}{{ sale.staff.full_name }}{% else %}-{% endif %}</td>
+                            <td class="p-3 space-y-0.5">
+                                {% for item in sale.items.all %}
+                                <div class="text-[11px] text-slate-800 font-semibold">• {{ item.item_name }} ({{ business.currency }}{{ item.total_price }})</div>
+                                {% empty %}
+                                <span class="text-slate-400">Cobro de servicio</span>
+                                {% endfor %}
+                            </td>
+                            <td class="p-3">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                    {{ sale.payment_method }}
+                                </span>
+                            </td>
+                            <td class="p-3 text-right font-extrabold text-slate-900">
+                                {{ business.currency }}{{ sale.total_amount }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="p-6 text-center text-slate-400">No se registraron ventas en esta sesión de caja.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="pt-2 flex justify-end">
+            <button type="button" onclick="closeShiftSalesModal('modal-shift-sales-{{ reg.id }}')" class="px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition cursor-pointer">
+                Cerrar Detalle
+            </button>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+    function openShiftSalesModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeShiftSalesModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    }
+</script>
 {% endblock %}
 

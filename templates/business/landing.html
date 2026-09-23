@@ -1,14 +1,32 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-slate-50 text-slate-900">
+<html lang="es" class="h-full scroll-smooth bg-white text-slate-900">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusinessOS - Sistema de Gestión Adaptativo para Agencias</title>
-    <!-- Google Fonts Inter & Outfit -->
+    <script>
+        // Immediately redirect to dashboard if running inside PWA standalone mode
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true || window.location.search.includes('pwa=1')) {
+            window.location.replace('/dashboard/?pwa=1');
+        }
+    </script>
+    <title>RauDie OS - CRM, Facturación & Reservas de Citas 24/7</title>
+
+    <!-- PWA Manifest & Mobile App Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#881337">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RauDie OS">
+    <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+
+    <!-- Google Fonts: Plus Jakarta Sans & Outfit (Strict 2 Typography System) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
@@ -16,75 +34,223 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
                         display: ['Outfit', 'sans-serif'],
                     },
                     colors: {
-                        rosebrand: {
+                        brand: {
                             50: '#fff1f2',
                             100: '#ffe4e6',
                             200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
                             500: '#f43f5e',
                             600: '#e11d48',
                             700: '#be123c',
                             800: '#9f1239',
                             900: '#881337',
+                            950: '#4c0519',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-8px)' },
                         }
                     }
                 }
             }
         }
     </script>
+    
     <style>
+        /* Light Theme Design System Tokens */
+        .glass-panel-light {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        
         .light-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .light-card-hover:hover {
-            border-color: #f43f5e;
-            box-shadow: 0 20px 30px -10px rgba(225, 29, 72, 0.12), 0 10px 15px -5px rgba(0, 0, 0, 0.04);
-            transform: translateY(-2px);
+        
+        .light-card:hover {
+            background: #ffffff;
+            border-color: #fda4af;
+            box-shadow: 0 16px 32px -8px rgba(225, 29, 72, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+            transform: translateY(-3px);
+        }
+
+        .title-gradient-light {
+            background: linear-gradient(135deg, #0f172a 0%, #be123c 45%, #e11d48 70%, #f43f5e 100%);
+            background-size: 200% 200%;
+            animation: gradient-x 7s ease infinite;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @keyframes gradient-x {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.75; transform: scale(1.06); }
+        }
+
+        .animate-pulse-glow {
+            animation: pulse-glow 5s ease-in-out infinite;
+        }
+
+        .tech-card-glow {
+            box-shadow: 0 0 40px -10px rgba(225, 29, 72, 0.15), 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .accent-gradient-light {
+            background: linear-gradient(135deg, #e11d48 0%, #be123c 50%, #881337 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .bg-grid-pattern-light {
+            background-size: 44px 44px;
+            background-image: 
+                radial-gradient(circle at 1px 1px, rgba(225, 29, 72, 0.12) 1.5px, transparent 0),
+                linear-gradient(to right, rgba(203, 213, 225, 0.45) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(203, 213, 225, 0.45) 1px, transparent 1px);
+        }
+
+        .hero-vignette {
+            mask-image: radial-gradient(ellipse 85% 70% at 50% 20%, #000 65%, transparent 100%);
+            -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 20%, #000 65%, transparent 100%);
+        }
+
+        .glow-orb-light {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.85;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #e11d48, #be123c);
+            border-color: #be123c;
+            color: #ffffff;
+            box-shadow: 0 6px 20px -4px rgba(225, 29, 72, 0.35);
+        }
+
+        .tab-btn.active .tab-icon {
+            color: #ffffff;
+        }
+
+        /* Hide scrollbars for tab bar and horizontal scroll containers */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+        }
+
+        /* Custom Scrollbar for main window */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #e11d48;
         }
     </style>
 </head>
-<body class="h-full font-sans antialiased bg-slate-50 text-slate-900 flex flex-col min-h-screen">
+<body class="h-full font-sans antialiased bg-white text-slate-900 selection:bg-brand-600 selection:text-white flex flex-col min-h-screen relative overflow-x-hidden">
 
-    <!-- Top Navigation Header (Clean Light Theme) -->
-    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <!-- Floating Light Glassmorphism Navbar (Harmonized & Spacious) -->
+    <header class="sticky top-3 sm:top-5 z-50 px-2 sm:px-4 max-w-7xl mx-auto transition-all duration-300">
+        <div class="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-full px-4 sm:px-8 py-3 sm:py-4 shadow-lg shadow-slate-200/60 border border-slate-200/90 flex items-center justify-between">
             
-            <!-- Logo -->
-            <a href="{% url 'landing' %}" class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-700 to-rose-900 flex items-center justify-center text-white font-extrabold font-display shadow-md shadow-rose-700/20">
-                    B
-                </div>
-                <div>
-                    <span class="font-display font-bold text-xl text-slate-900 tracking-tight leading-none block">BusinessOS</span>
-                    <span class="text-[11px] font-semibold text-rose-700 uppercase tracking-wider">Agencias & SaaS</span>
-                </div>
+            <!-- Brand Logo -->
+            <a href="{% url 'landing' %}" class="flex items-center group font-display font-black text-xl sm:text-2xl text-slate-900 tracking-tight pr-3 sm:pr-8 md:border-r border-slate-200/80 shrink-0">
+                <span class="bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 bg-clip-text text-transparent">RauDie<span class="text-brand-700">OS</span></span>
             </a>
 
-            <!-- Navigation Center Links -->
-            <nav class="hidden md:flex items-center gap-8">
-                <a href="#soluciones" class="text-sm font-semibold text-slate-600 hover:text-rose-700 transition">Soluciones por Agencia</a>
-                <a href="#modulos" class="text-sm font-semibold text-slate-600 hover:text-rose-700 transition">Módulos del Sistema</a>
-                <a href="#beneficios" class="text-sm font-semibold text-slate-600 hover:text-rose-700 transition">Beneficios</a>
+            <!-- Navigation Center Links (Generous Spacing) -->
+            <nav class="hidden md:flex items-center gap-8 lg:gap-12 px-6">
+                <a href="#soluciones" class="text-xs sm:text-sm font-semibold text-slate-600 hover:text-brand-700 transition-colors duration-200">Soluciones</a>
+                <a href="#modulos" class="text-xs sm:text-sm font-semibold text-slate-600 hover:text-brand-700 transition-colors duration-200">Módulos</a>
+                <a href="#precios" class="text-xs sm:text-sm font-semibold text-slate-600 hover:text-brand-700 transition-colors duration-200">Planes</a>
+                <a href="#faq" class="text-xs sm:text-sm font-semibold text-slate-600 hover:text-brand-700 transition-colors duration-200">Preguntas</a>
             </nav>
 
-            <!-- Authentication Actions -->
-            <div class="flex items-center gap-3">
+            <!-- Right CTA Buttons -->
+            <div class="hidden sm:flex items-center gap-3 pl-4 shrink-0">
+                <!-- PWA Download App Button -->
+                <button id="pwa-install-nav-btn" class="px-4 py-2 rounded-full text-xs font-bold text-slate-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 shadow-sm flex items-center gap-1.5 transition">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-brand-700"></i>
+                    <span>Instalar App Móvil</span>
+                </button>
+
                 {% if request.user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="px-4 py-2.5 rounded-xl text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition flex items-center gap-2">
-                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                <a href="{% url 'dashboard' %}" class="px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-brand-700 via-brand-600 to-rose-600 hover:from-brand-600 hover:to-rose-500 shadow-md shadow-brand-700/20 transition-all duration-200 flex items-center gap-1.5">
                     <span>Ir a Mi Panel</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </a>
                 {% else %}
-                <a href="{% url 'login' %}" class="px-4.5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition border border-slate-200">
+                <a href="{% url 'login' %}" class="px-4 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-brand-700 transition-colors">
                     Iniciar Sesión
                 </a>
-                <a href="{% url 'register' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-rose-800 to-rose-700 hover:from-rose-700 hover:to-rose-600 shadow-md shadow-rose-900/20 transition flex items-center gap-2">
-                    <span>Registrar Agencia</span>
+                <a href="{% url 'register' %}" class="px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-brand-700 via-brand-600 to-rose-600 hover:from-brand-600 hover:to-rose-500 shadow-md shadow-brand-700/20 transition-all duration-200 flex items-center gap-1.5 group">
+                    <span>Probar Gratis</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-0.5 transition-transform"></i>
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Mobile Menu Toggle Button (Prominent & Easy to Tap) -->
+            <button id="mobile-menu-btn" class="md:hidden px-3 py-2 rounded-xl bg-rose-50 text-brand-900 border border-rose-200 font-bold text-xs flex items-center gap-1.5 focus:outline-none transition">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+                <span>Menú</span>
+            </button>
+        </div>
+
+
+        <!-- Mobile Navigation Menu Dropdown -->
+        <div id="mobile-menu" class="hidden md:hidden mt-3 bg-white/95 border border-slate-200/90 rounded-3xl px-6 pt-4 pb-6 space-y-3 shadow-2xl text-slate-800 backdrop-blur-xl">
+            <a href="#soluciones" class="block py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Soluciones por Sector</a>
+            <a href="#modulos" class="block py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Módulos del Sistema</a>
+            <a href="#precios" class="block py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Planes y Precios</a>
+            <a href="#faq" class="block py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Preguntas Frecuentes</a>
+            <div class="pt-4 border-t border-slate-100 flex flex-col gap-2">
+                <!-- PWA Mobile Install Button -->
+                <button id="pwa-install-mobile-btn" class="w-full text-center py-3 rounded-full text-xs font-bold text-brand-900 bg-rose-100 hover:bg-rose-200 border border-rose-300 flex items-center justify-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4 text-brand-700"></i>
+                    <span>Instalar App en el Celular</span>
+                </button>
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'dashboard' %}" class="w-full text-center py-3 rounded-full text-xs font-bold text-white bg-gradient-to-r from-brand-700 to-rose-600 shadow-md">Ir a Mi Panel</a>
+                {% else %}
+                <a href="{% url 'login' %}" class="w-full text-center py-2.5 rounded-full text-xs font-bold text-slate-700 border border-slate-200">Iniciar Sesión</a>
+                <a href="{% url 'register' %}" class="w-full text-center py-3 rounded-full text-xs font-bold text-white bg-gradient-to-r from-brand-700 to-rose-600 shadow-md flex items-center justify-center gap-1">
+                    <span>Probar Gratis</span>
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </a>
                 {% endif %}
@@ -92,235 +258,1120 @@
         </div>
     </header>
 
-    <!-- Main Landing Content -->
+    <!-- Main Content -->
     <main class="flex-1">
 
-        <!-- Hero Section (Light & Fresh Accent Colors) -->
-        <section class="relative py-16 lg:py-24 px-4 overflow-hidden bg-gradient-to-b from-white via-rose-50/40 to-slate-50">
-            <div class="max-w-5xl mx-auto text-center space-y-8 relative z-10">
+        <!-- Hero Section (Apple / Linear Minimalist Experience) -->
+        <section class="relative pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-16 lg:pb-24 px-4 bg-white overflow-hidden">
+            <!-- Vibrant Vinotinto Ambient Mesh Aura -->
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-4xl h-[480px] bg-gradient-to-tr from-brand-900/25 via-rose-600/20 to-rose-200/30 rounded-full blur-3xl pointer-events-none opacity-80"></div>
+            
+            <div class="max-w-7xl mx-auto space-y-8 sm:space-y-10 relative z-10">
                 
-                <!-- Badge -->
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold shadow-xs">
-                    <span class="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
-                    <span>Plataforma 100% Adaptable a tu Tipo de Negocio</span>
+                <div class="text-center space-y-4 sm:space-y-5 max-w-4xl mx-auto">
+                    <!-- Clean Pill Tagline -->
+                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-xs font-bold text-brand-800 tracking-wide uppercase">
+                        <span>CRM • Facturación • Reservas de Citas 24/7</span>
+                    </div>
+
+                    <!-- Main Hero Title (Pure Clean Sans Display) -->
+                    <h1 class="font-display font-black text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.08] text-slate-900">
+                        El CRM y Facturación que <br>
+                        <span class="title-gradient-light">Evoluciona con tu Agencia</span>
+                    </h1>
+
+                    <!-- Hero Subtitle -->
+                    <p class="text-sm sm:text-base lg:text-lg text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed">
+                        Toma el control total de tu tiempo con nuestra plataforma integral. Organiza prospectos, agenda citas 24/7 y factura sin estrés ni complicaciones.
+                    </p>
+
+                    <!-- Harmonized Action Buttons -->
+                    <div class="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 max-w-md mx-auto sm:max-w-none">
+                        <a href="{% url 'register' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-full text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-brand-800 via-brand-700 to-rose-600 hover:from-brand-700 hover:to-rose-500 shadow-xl shadow-brand-900/20 transition-all duration-300 flex items-center justify-center gap-2 group">
+                            <span>Probar Gratis</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+                        </a>
+
+                        <!-- Hero PWA Install Button -->
+                        <button id="pwa-install-hero-btn" class="w-full sm:w-auto px-7 py-3.5 rounded-full text-xs sm:text-sm font-bold text-slate-900 bg-rose-100 hover:bg-rose-200 border border-rose-300 shadow-sm transition-all duration-200 flex items-center justify-center gap-2">
+                            <i data-lucide="smartphone" class="w-4.5 h-4.5 text-brand-700"></i>
+                            <span>Descargar App en Móvil</span>
+                        </button>
+                        
+                        <a href="#soluciones" class="w-full sm:w-auto px-7 py-3.5 rounded-full text-xs sm:text-sm font-bold text-slate-800 bg-white/90 backdrop-blur-md hover:bg-slate-100 border border-slate-300/90 shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2">
+                            <i data-lucide="play-circle" class="w-4.5 h-4.5 text-slate-600"></i>
+                            <span>Ver Demostración</span>
+                        </a>
+                    </div>
                 </div>
 
-                <!-- Main Title -->
-                <h1 class="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl text-slate-900 tracking-tight leading-tight">
-                    El Software de Gestión Creado para <span class="text-transparent bg-clip-text bg-gradient-to-r from-rose-700 to-rose-900">Impulsar tu Agencia</span>
-                </h1>
 
-                <!-- Subtitle -->
-                <p class="text-base sm:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
-                    Administra tus clientes, agenda citas, emite facturas, controla comisiones y potencia tu negocio con Inteligencia Artificial. Todo adaptado al perfil exacto de tu empresa.
-                </p>
-
-                <!-- Hero Action Buttons -->
-                <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <a href="{% url 'register' %}" class="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-rose-800 via-rose-700 to-rose-600 hover:from-rose-700 hover:to-rose-500 shadow-xl shadow-rose-900/25 transition duration-200 flex items-center justify-center gap-3">
-                        <i data-lucide="sparkles" class="w-5 h-5 text-rose-200"></i>
-                        <span>Crear mi Agencia Gratis</span>
-                    </a>
+                <!-- macOS Light Window Frame Mockup with Floating Tech Badges -->
+                <div class="relative max-w-5xl mx-auto pt-2">
                     
-                    <a href="{% url 'login' %}" class="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 shadow-sm transition duration-200 flex items-center justify-center gap-2">
-                        <i data-lucide="log-in" class="w-5 h-5 text-rose-700"></i>
-                        <span>Ya tengo una cuenta - Iniciar Sesión</span>
-                    </a>
-                </div>
+                    <!-- Floating Tech Badge 1 (Top Left) -->
+                    <div class="hidden lg:flex absolute -left-10 top-16 z-30 items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200/90 shadow-2xl shadow-slate-400/20 animate-float">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                            <i data-lucide="zap" class="w-4.5 h-4.5"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-900">Sync CRM 24/7</div>
+                            <div class="text-[10px] text-slate-500 font-medium">Leads auto-asignados</div>
+                        </div>
+                    </div>
 
-                <!-- Stats summary -->
-                <div class="pt-10 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto border-t border-slate-200/80 mt-10">
-                    <div>
-                        <p class="font-display font-extrabold text-2xl text-slate-900">+6 Tipos</p>
-                        <p class="text-xs text-slate-500 font-medium mt-0.5">Perfiles de Agencia</p>
+                    <!-- Floating Tech Badge 2 (Top Right) -->
+                    <div class="hidden lg:flex absolute -right-10 top-10 z-30 items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/90 backdrop-blur-xl border border-rose-200/90 shadow-2xl shadow-rose-900/15 animate-float" style="animation-delay: 1.5s;">
+                        <div class="w-8 h-8 rounded-xl bg-rose-500/10 text-brand-700 flex items-center justify-center shrink-0">
+                            <i data-lucide="calendar" class="w-4.5 h-4.5"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-900">Agenda & Citas 24/7</div>
+                            <div class="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Sistema Sincronizado
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <p class="font-display font-extrabold text-2xl text-slate-900">9 Módulos</p>
-                        <p class="text-xs text-slate-500 font-medium mt-0.5">Herramientas Activas</p>
+
+                    <!-- Floating Tech Badge 3 (Bottom Right) -->
+                    <div class="hidden lg:flex absolute -right-8 bottom-28 z-30 items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200/90 shadow-2xl shadow-slate-400/20 animate-float" style="animation-delay: 3s;">
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                            <i data-lucide="shield-check" class="w-4.5 h-4.5"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-900">POS & Facturación</div>
+                            <div class="text-[10px] text-slate-500 font-medium">Cajas en tiempo real</div>
+                        </div>
                     </div>
-                    <div>
-                        <p class="font-display font-extrabold text-2xl text-slate-900">24/7</p>
-                        <p class="text-xs text-slate-500 font-medium mt-0.5">Portal de Reservas</p>
-                    </div>
-                    <div>
-                        <p class="font-display font-extrabold text-2xl text-slate-900">100% IA</p>
-                        <p class="text-xs text-slate-500 font-medium mt-0.5">Asistente Integrado</p>
+
+                    <!-- Ambient Soft Halo -->
+                    <div class="absolute -inset-1.5 bg-gradient-to-r from-rose-400 via-brand-300 to-indigo-300 rounded-[2.5rem] opacity-50 blur-2xl animate-pulse-glow"></div>
+                    
+                    <!-- macOS Window Container -->
+                    <div class="relative rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 shadow-2xl shadow-slate-300/80 overflow-hidden hover:scale-[1.01] transition-transform duration-500">
+                        
+                        <!-- Window Header Bar -->
+                        <div class="px-4 py-3 bg-slate-100/90 border-b border-slate-200 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                                <span class="ml-2 text-xs font-mono text-slate-500">https://raudieos.app/dashboard</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    En Vivo
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Inner SaaS Dashboard UI (Clean Light Theme) -->
+                        <div class="p-4 sm:p-6 bg-slate-50/70 space-y-6">
+                            
+                            <!-- Top Bar inside SaaS -->
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                        <span>Panel de Control - RauDie OS</span>
+                                        <span class="text-xs px-2.5 py-0.5 rounded-md bg-rose-100 text-brand-800 font-semibold border border-rose-200">Marketing Digital</span>
+                                    </h3>
+                                    <p class="text-xs text-slate-500">Resumen operativo general de la semana en curso</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-slate-500">Sede:</span>
+                                    <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-white text-slate-700 border border-slate-200 shadow-2xs">Central Principal</span>
+                                    <span class="px-3 py-1 text-xs font-bold bg-gradient-to-r from-brand-700 to-rose-600 text-white rounded-lg flex items-center gap-1 shadow-xs">
+                                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Nuevo Lead
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Live Metric Widgets Grid with Sparklines -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                                <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2 relative overflow-hidden group hover:border-emerald-300 transition-colors">
+                                    <div class="flex items-center justify-between text-xs text-slate-500">
+                                        <span>Ingresos Mensuales</span>
+                                        <i data-lucide="dollar-sign" class="w-4 h-4 text-emerald-600"></i>
+                                    </div>
+                                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 font-display">$28,450</p>
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                                            <i data-lucide="trending-up" class="w-3 h-3"></i> +18.4% este mes
+                                        </p>
+                                        <svg class="w-12 h-5 text-emerald-500 opacity-70" viewBox="0 0 50 20" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M0 15 Q 12 5, 25 10 T 50 2" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2 relative overflow-hidden group hover:border-brand-300 transition-colors">
+                                    <div class="flex items-center justify-between text-xs text-slate-500">
+                                        <span>Citas en Agenda</span>
+                                        <i data-lucide="calendar" class="w-4 h-4 text-brand-700"></i>
+                                    </div>
+                                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 font-display">42 Hoy</p>
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-[11px] text-slate-500 font-medium">98.5% Asistencia</p>
+                                        <svg class="w-12 h-5 text-brand-500 opacity-70" viewBox="0 0 50 20" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M0 12 Q 15 18, 30 6 T 50 4" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2 relative overflow-hidden group hover:border-blue-300 transition-colors">
+                                    <div class="flex items-center justify-between text-xs text-slate-500">
+                                        <span>Leads CRM</span>
+                                        <i data-lucide="users" class="w-4 h-4 text-blue-600"></i>
+                                    </div>
+                                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 font-display">158 Activos</p>
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-[11px] text-blue-600 font-semibold">34 en Cierre</p>
+                                        <svg class="w-12 h-5 text-blue-500 opacity-70" viewBox="0 0 50 20" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M0 16 Q 10 4, 25 12 T 50 3" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2 relative overflow-hidden group hover:border-amber-300 transition-colors">
+                                    <div class="flex items-center justify-between text-xs text-slate-500">
+                                        <span>Citas Confirmadas</span>
+                                        <i data-lucide="calendar-check" class="w-4 h-4 text-amber-600"></i>
+                                    </div>
+                                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 font-display">1,240</p>
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-[11px] text-amber-600 font-semibold">Tasa de Asistencia 98%</p>
+                                        <svg class="w-12 h-5 text-amber-500 opacity-70" viewBox="0 0 50 20" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M0 18 Q 15 2, 35 14 T 50 2" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Activity Feed & AI Assistant Widget -->
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                
+                                <!-- Recent Activity Feed -->
+                                <div class="lg:col-span-2 p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-3">
+                                    <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                                            <i data-lucide="activity" class="w-3.5 h-3.5 text-brand-700"></i>
+                                            <span>Actividad en Tiempo Real</span>
+                                        </h4>
+                                        <span class="text-[10px] text-slate-400">Actualizado hace instantes</span>
+                                    </div>
+                                    <div class="space-y-2 text-xs">
+                                        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-between hover:bg-rose-50/30 transition-colors">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-slate-800 font-semibold">Factura #F-2026-089 cobrada exitosamente</p>
+                                                    <p class="text-[10px] text-slate-500">Cliente: Empresa Alpha S.A. • $1,200.00</p>
+                                                </div>
+                                            </div>
+                                            <span class="text-[10px] text-slate-400">Hace 3 min</span>
+                                        </div>
+
+                                        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-between hover:bg-rose-50/30 transition-colors">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-7 h-7 rounded-full bg-rose-100 text-brand-700 flex items-center justify-center font-bold">
+                                                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-slate-800 font-semibold">Nueva Reserva agendada vía Portal Web 24/7</p>
+                                                    <p class="text-[10px] text-slate-500">Asesor: Carlos Mendoza • Mañana 15:00 hs</p>
+                                                </div>
+                                            </div>
+                                            <span class="text-[10px] text-slate-400">Hace 8 min</span>
+                                        </div>
+
+                                        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-between hover:bg-rose-50/30 transition-colors">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-7 h-7 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                                                    <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-slate-800 font-semibold">Propuesta comercial enviada en PDF</p>
+                                                    <p class="text-[10px] text-slate-500">Prospecto: Grupo Inmobiliario Sur</p>
+                                                </div>
+                                            </div>
+                                            <span class="text-[10px] text-slate-400">Hace 14 min</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Portal de Reservas Widget -->
+                                <div class="p-4 rounded-xl bg-gradient-to-b from-rose-50/80 via-white to-white border border-rose-200/90 shadow-xs space-y-3 flex flex-col justify-between relative overflow-hidden">
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-6 h-6 rounded-lg bg-brand-700 text-white flex items-center justify-center">
+                                                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                                </div>
+                                                <span class="text-xs font-bold text-slate-900">Portal de Citas 24/7</span>
+                                            </div>
+                                            <span class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 flex items-center gap-1">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> ACTIVO
+                                            </span>
+                                        </div>
+                                        <div class="p-3 rounded-lg bg-white border border-rose-100 text-[11px] text-slate-700 space-y-1.5 shadow-2xs">
+                                            <p class="text-brand-700 font-bold flex items-center gap-1.5">
+                                                <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                                                <span>Próxima cita confirmada:</span>
+                                            </p>
+                                            <p class="text-slate-600">Cliente Laura Giménez agendó consulta de servicios para mañana 10:00 hs con pago verificado.</p>
+                                        </div>
+                                    </div>
+                                    <a href="{% url 'register' %}" class="w-full py-2.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-brand-700 to-rose-600 hover:from-brand-600 hover:to-rose-500 shadow-md transition flex items-center justify-center gap-1.5 group text-center justify-center">
+                                        <span>Ver Portal de Clientes</span>
+                                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"></i>
+                                    </a>
+                                </div>
+
+                            </div>
+
+                        </div>
                     </div>
                 </div>
 
             </div>
         </section>
 
-        <!-- Soluciones por Agencia Section -->
-        <section id="soluciones" class="py-16 px-4 bg-white border-y border-slate-200">
+        <!-- PWA Mobile App Download Banner Section -->
+        <section id="descargar-app" class="py-10 px-4 bg-gradient-to-r from-slate-950 via-brand-950 to-slate-950 text-white relative overflow-hidden border-y border-rose-900/50 shadow-2xl">
+            <div class="absolute -top-20 -left-20 w-60 h-60 bg-rose-700/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -right-20 w-60 h-60 bg-brand-800/20 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                <div class="space-y-2 text-center md:text-left max-w-2xl">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950 text-rose-300 text-xs font-bold border border-rose-800/80">
+                        <i data-lucide="smartphone" class="w-4 h-4"></i> App Móvil Instalable para Celulares & Tablets
+                    </span>
+                    <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-white">Instala RauDie OS en tu Pantalla de Inicio</h2>
+                    <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        Accede a tu negocio con 1 solo toque desde iOS o Android. Funciona de manera nativa sin pasar por tiendas de aplicaciones y con soporte offline.
+                    </p>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 shrink-0 w-full sm:w-auto">
+                    <button id="pwa-banner-install-btn" class="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-brand-600 via-rose-600 to-rose-500 hover:from-brand-500 hover:to-rose-400 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-brand-900/50 flex items-center justify-center gap-2 transition">
+                        <i data-lucide="download" class="w-4.5 h-4.5"></i>
+                        <span>Instalar App Móvil Gratis</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Designed to Help You Do More With Less Stress (Matching Reference Image) -->
+        <section class="py-20 sm:py-28 px-4 bg-white border-t border-slate-100 relative overflow-hidden">
+
+            <!-- Vinotinto to Light Slate Bottom Mesh Aura -->
+            <div class="absolute bottom-0 left-0 right-0 h-56 bg-gradient-to-tr from-rose-100/40 via-slate-100/50 to-white blur-3xl pointer-events-none"></div>
+
+            <div class="max-w-5xl mx-auto space-y-12 relative z-10">
+                
+                <!-- Split Section Title (Tighter Proportional Columns) -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-end">
+                    <div class="lg:col-span-7 space-y-1">
+                        <h2 class="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-slate-900 tracking-tight leading-[1.05]">
+                            Diseñado para Ayudarte a <br>
+                            <span class="text-brand-700">Hacer Más Con Menos Estrés</span>
+                        </h2>
+                    </div>
+                    <div class="lg:col-span-5 pb-1">
+                        <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
+                            Nuestra plataforma está construida para profesionales y agencias modernas que buscan mantener el control total de sus clientes, cobros y agendamiento 24/7 de forma intuitiva.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 3 Column Features Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4 border-t border-slate-100">
+                    
+                    <div class="space-y-2.5">
+                        <h3 class="font-display font-bold text-lg text-slate-900">Gestión Inteligente de Prospectos</h3>
+                        <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                            Crea, categoriza y prioriza prospectos con un pipeline visual interactivo que se adapta perfectamente a tu flujo de trabajo.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <h3 class="font-display font-bold text-lg text-slate-900">Agenda & Citas Integradas</h3>
+                        <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                            Mantente al día con un calendario centralizado que se sincroniza entre dispositivos y notifica antes de los vencimientos.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <h3 class="font-display font-bold text-lg text-slate-900">Modo Enfoque & POS Ágil</h3>
+                        <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                            Elimina distracciones con un panel minimalista y herramientas ágiles para cobro en caja e impresión de comprobantes.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Soluciones por Agencia (Light Interactive Tabbed Experience) -->
+        <section id="soluciones" class="py-20 px-4 bg-white border-y border-slate-200 relative">
             <div class="max-w-7xl mx-auto space-y-12">
-                <div class="text-center space-y-3">
-                    <span class="text-xs font-bold text-rose-700 uppercase tracking-widest">Adaptabilidad Total</span>
-                    <h2 class="font-display font-extrabold text-3xl sm:text-4xl text-slate-900">Elige tu Perfil de Agencia</h2>
-                    <p class="text-sm text-slate-600 max-w-xl mx-auto">Al registrarte, el sistema configura automáticamente las herramientas que tu negocio requiere.</p>
+                
+                <div class="text-center space-y-4 max-w-3xl mx-auto">
+                    <span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-50 text-brand-800 border border-rose-200">
+                        Adaptabilidad Específica
+                    </span>
+                    <h2 class="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-slate-900 tracking-tight">
+                        Diseñado para el Flujo Exacto de <span class="text-brand-700">tu Industria</span>
+                    </h2>
+                    <p class="text-sm sm:text-base text-slate-600 font-normal">
+                        Selecciona tu tipo de empresa para descubrir cómo RauDie OS habilita los módulos y automatizaciones ideales para ti.
+                    </p>
+                </div>
+
+                <!-- Interactive Profile Navigation Tabs (Responsive Mobile Touch Carousel & Grid) -->
+                <div class="flex overflow-x-auto no-scrollbar gap-2.5 sm:grid sm:grid-cols-2 md:grid-cols-3 max-w-5xl mx-auto pt-2 pb-2 px-1">
+                    <button onclick="switchTab('marketing')" id="tab-marketing" class="tab-btn active shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
+                        <i data-lucide="cpu" class="w-4 h-4 tab-icon shrink-0"></i>
+                        <span>Agencia Digital & Marketing</span>
+                    </button>
+
+                    <button onclick="switchTab('realestate')" id="tab-realestate" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
+                        <i data-lucide="home" class="w-4 h-4 tab-icon shrink-0"></i>
+                        <span>Inmobiliaria & Bienes Raíces</span>
+                    </button>
+
+                    <button onclick="switchTab('travel')" id="tab-travel" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
+                        <i data-lucide="plane" class="w-4 h-4 tab-icon shrink-0"></i>
+                        <span>Agencia de Viajes & Turismo</span>
+                    </button>
+
+                    <button onclick="switchTab('consulting')" id="tab-consulting" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
+                        <i data-lucide="briefcase" class="w-4 h-4 tab-icon shrink-0"></i>
+                        <span>Consultoría & Servicios</span>
+                    </button>
+
+                    <button onclick="switchTab('health')" id="tab-health" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
+                        <i data-lucide="heart-pulse" class="w-4 h-4 tab-icon shrink-0"></i>
+                        <span>Salud, Estética & Spa</span>
+                    </button>
+
+                    <button onclick="switchTab('retail')" id="tab-retail" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
+                        <i data-lucide="shopping-bag" class="w-4 h-4 tab-icon shrink-0"></i>
+                        <span>Comercio & Retail</span>
+                    </button>
+                </div>
+
+                <!-- Tab Content Panel -->
+                <div class="light-card p-6 sm:p-10 rounded-3xl border border-slate-200 relative min-h-[380px] flex items-center bg-white shadow-xl shadow-slate-200/50">
+                    
+                    <!-- Content: Marketing -->
+                    <div id="content-marketing" class="tab-content grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                        <div class="space-y-5">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-rose-50 text-brand-700 border border-rose-200 text-xs font-bold">
+                                <i data-lucide="bot" class="w-4 h-4"></i>
+                                <span>Solución Especializada</span>
+                            </div>
+                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
+                                Gestiona Proyectos Recurrentes, Retainers y Clientes
+                            </h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                Optimiza la captación de clientes con un canal pipeline de leads visual, emite facturas periódicas automáticas y asigna comisiones por cierre a tus ejecutivos.
+                            </p>
+                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-brand-700"></i>
+                                    <span>Pipeline CRM visual para leads de agencias y retainers</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-brand-700"></i>
+                                    <span>Generación automática de presupuestos e informes</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-brand-700"></i>
+                                    <span>Emisión y cobro de facturas recurrentes automatizadas</span>
+                                </li>
+                            </ul>
+                            <div class="pt-2">
+                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-brand-700 hover:bg-brand-600 transition shadow-md">
+                                    <span>Configurar como Agencia Digital</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
+                                <span>Módulos Activos Recomendados</span>
+                                <span class="text-brand-700 font-bold">6 Módulos</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="users" class="w-4 h-4 text-brand-700"></i> CRM & Leads
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="file-text" class="w-4 h-4 text-brand-700"></i> Facturación
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="globe" class="w-4 h-4 text-brand-700"></i> Reservas 24/7
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="dollar-sign" class="w-4 h-4 text-brand-700"></i> Comisiones
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="calendar" class="w-4 h-4 text-brand-700"></i> Agenda
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="tag" class="w-4 h-4 text-brand-700"></i> Marketing
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content: Real Estate -->
+                    <div id="content-realestate" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                        <div class="space-y-5">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
+                                <i data-lucide="home" class="w-4 h-4"></i>
+                                <span>Solución Inmobiliaria</span>
+                            </div>
+                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
+                                Organiza Propiedades, Visitas de Campo y Comisiones de Agentes
+                            </h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                Coordina la agenda de tu equipo de asesores inmobiliarios, lleva el registro de prospectos compradores y vendedores, y calcula comisiones de forma transparente.
+                            </p>
+                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
+                                    <span>Agenda de visitas guiadas y asignación por corredor</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
+                                    <span>Inventario centralizado de inmuebles y estado comercial</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
+                                    <span>Cálculo automático de comisiones por venta/alquiler</span>
+                                </li>
+                            </ul>
+                            <div class="pt-2">
+                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-blue-700 hover:bg-blue-600 transition shadow-md">
+                                    <span>Configurar como Inmobiliaria</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
+                                <span>Módulos Activos Recomendados</span>
+                                <span class="text-blue-700 font-bold">5 Módulos</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="users" class="w-4 h-4 text-blue-600"></i> CRM Clientes
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i> Agenda Citas
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="dollar-sign" class="w-4 h-4 text-blue-600"></i> Comisiones
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i> Contratos
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
+                                    <i data-lucide="home" class="w-4 h-4 text-blue-600"></i> Fichas Inmobiliarias & Visitas
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content: Travel -->
+                    <div id="content-travel" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                        <div class="space-y-5">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
+                                <i data-lucide="plane" class="w-4 h-4"></i>
+                                <span>Solución Turismo & Viajes</span>
+                            </div>
+                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
+                                Controla Paquetes, Reservas de Clientes y Caja Registradora
+                            </h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                Administra itinerarios turísticos, venta directa en ventanilla o en línea, liquidación de operadores y reporte de cobros al instante.
+                            </p>
+                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-amber-600"></i>
+                                    <span>Gestión de itinerarios de viajes y documentos</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-amber-600"></i>
+                                    <span>Cobro en punto de venta (POS) y facturación rápida</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-amber-600"></i>
+                                    <span>Comisiones automáticas para asesores de viajes</span>
+                                </li>
+                            </ul>
+                            <div class="pt-2">
+                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-500 transition shadow-md">
+                                    <span>Configurar Agencia de Viajes</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
+                                <span>Módulos Activos Recomendados</span>
+                                <span class="text-amber-700 font-bold">6 Módulos</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="globe" class="w-4 h-4 text-amber-600"></i> Reservas 24/7
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-600"></i> Ventas POS
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="users" class="w-4 h-4 text-amber-600"></i> CRM Clientes
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="dollar-sign" class="w-4 h-4 text-amber-600"></i> Comisiones
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
+                                    <i data-lucide="file-text" class="w-4 h-4 text-amber-600"></i> Facturación & Vouchers
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content: Consulting -->
+                    <div id="content-consulting" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                        <div class="space-y-5">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold">
+                                <i data-lucide="briefcase" class="w-4 h-4"></i>
+                                <span>Solución Consultoría & Asesoría</span>
+                            </div>
+                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
+                                Portal de Agendamiento Online, Cobro Integrado e Historial
+                            </h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                Permite que tus clientes elijan fecha, hora y consultor desde tu sitio web, cobrando por adelantado o emitiendo comprobantes al instante.
+                            </p>
+                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-purple-600"></i>
+                                    <span>Portal público de agendamiento 24/7 sin intermediarios</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-purple-600"></i>
+                                    <span>Seguimiento de propuestas comerciales y cobros</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-purple-600"></i>
+                                    <span>Control de horarios de consultores y disponibilidad</span>
+                                </li>
+                            </ul>
+                            <div class="pt-2">
+                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-purple-700 hover:bg-purple-600 transition shadow-md">
+                                    <span>Configurar Consultoría</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
+                                <span>Módulos Activos Recomendados</span>
+                                <span class="text-purple-700 font-bold">5 Módulos</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="globe" class="w-4 h-4 text-purple-600"></i> Reservas Online
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="calendar" class="w-4 h-4 text-purple-600"></i> Agenda Pro
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="users" class="w-4 h-4 text-purple-600"></i> CRM Clientes
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="file-text" class="w-4 h-4 text-purple-600"></i> Facturación
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
+                                    <i data-lucide="credit-card" class="w-4 h-4 text-purple-600"></i> Portal de Pagos Integrado
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content: Health & Beauty -->
+                    <div id="content-health" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                        <div class="space-y-5">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                                <i data-lucide="heart-pulse" class="w-4 h-4"></i>
+                                <span>Solución Salud, Estética & Spa</span>
+                            </div>
+                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
+                                Turnos en Vivo, Punto de Venta POS y Control de Productos
+                            </h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                Administra múltiples especialistas, permite agendamiento 24/7 por tratamiento, lleva el control de insumos y liquida comisiones diarias.
+                            </p>
+                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                                    <span>Calendario visual por profesional y sala de atención</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                                    <span>Cobro rápido en caja registradora POS con impresoras</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                                    <span>Control de stock de productos y alertas de inventario</span>
+                                </li>
+                            </ul>
+                            <div class="pt-2">
+                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 transition shadow-md">
+                                    <span>Configurar Centro de Estética</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
+                                <span>Módulos Activos Recomendados</span>
+                                <span class="text-emerald-700 font-bold">6 Módulos</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Citas & Turnos
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="shopping-bag" class="w-4 h-4 text-emerald-600"></i> Caja POS
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="package" class="w-4 h-4 text-emerald-600"></i> Stock Productos
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="dollar-sign" class="w-4 h-4 text-emerald-600"></i> Comisiones
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
+                                    <i data-lucide="globe" class="w-4 h-4 text-emerald-600"></i> Portal de Reservas 24/7
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content: Retail -->
+                    <div id="content-retail" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                        <div class="space-y-5">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold">
+                                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                                <span>Solución Comercio & Retail</span>
+                            </div>
+                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
+                                Punto de Venta Ultra Rápido, Stock Real y Arqueo de Caja
+                            </h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                Realiza cobros ágiles en mostrador, emite comprobantes fiscales o digitales, gestiona variantes de productos y abre/cierra caja diariamente.
+                            </p>
+                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
+                                    <span>Punto de venta táctil con lector de código de barras</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
+                                    <span>Inventario multisede con control de faltantes</span>
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
+                                    <span>Fidelización de clientes y promociones de marketing</span>
+                                </li>
+                            </ul>
+                            <div class="pt-2">
+                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-600 transition shadow-md">
+                                    <span>Configurar Comercio</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
+                                <span>Módulos Activos Recomendados</span>
+                                <span class="text-indigo-700 font-bold">5 Módulos</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="shopping-bag" class="w-4 h-4 text-indigo-600"></i> Ventas POS
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="package" class="w-4 h-4 text-indigo-600"></i> Inventario Stock
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="file-text" class="w-4 h-4 text-indigo-600"></i> Facturación
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
+                                    <i data-lucide="tag" class="w-4 h-4 text-indigo-600"></i> Promociones
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
+                                    <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i> Historial de Clientes VIP
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- System Modules Suite Grid (Clean Light Cards) -->
+        <section id="modulos" class="py-20 px-4 bg-slate-50/80 border-b border-slate-200 relative">
+            <div class="max-w-7xl mx-auto space-y-12">
+                
+                <div class="text-center space-y-4 max-w-3xl mx-auto">
+                    <span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-50 text-brand-800 border border-rose-200">
+                        Suite Integral
+                    </span>
+                    <h2 class="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-slate-900 tracking-tight">
+                        9 Módulos Potentes. <span class="text-brand-700">Cero Dispersión.</span>
+                    </h2>
+                    <p class="text-sm sm:text-base text-slate-600 font-normal">
+                        Reemplaza múltiples suscripciones costosas por un ecosistema sincronizado en tiempo real.
+                    </p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     
-                    <!-- Card 1: Marketing -->
-                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
-                        <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center justify-center font-bold">
-                            <i data-lucide="sparkles" class="w-6 h-6"></i>
+                    <!-- Module 1: CRM -->
+                    <div class="light-card p-6 rounded-3xl space-y-4">
+                        <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-brand-700 flex items-center justify-center font-bold">
+                            <i data-lucide="users" class="w-6 h-6"></i>
                         </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Agencia Digital & Marketing</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">Gestión de prospectos CRM, propuestas comerciales, facturación de servicios recurrentes y generación de contenido con IA.</p>
-                        <div class="pt-2">
-                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-rose-700 hover:text-rose-900">
-                                <span>Configurar como Agencia Digital</span>
-                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                            </a>
-                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">CRM & Gestión de Prospectos</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Visualiza tus oportunidades de venta en etapas, guarda notas de seguimiento, registra clientes VIP e historial de interacciones.
+                        </p>
                     </div>
 
-                    <!-- Card 2: Real Estate -->
-                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
+                    <!-- Module 2: Agenda -->
+                    <div class="light-card p-6 rounded-3xl space-y-4">
                         <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center font-bold">
-                            <i data-lucide="home" class="w-6 h-6"></i>
+                            <i data-lucide="calendar" class="w-6 h-6"></i>
                         </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Agencia Inmobiliaria</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">Agenda de visitas de propiedades, seguimiento de clientes compradores/vendedores, contratos y control de comisiones de agentes.</p>
-                        <div class="pt-2">
-                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-blue-700 hover:text-blue-900">
-                                <span>Configurar Inmobiliaria</span>
-                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                            </a>
-                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Agenda & Control de Horarios</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Organiza el calendario de tus colaboradores por sede, evita duplicidades de turnos y sincroniza alertas de recordatorio.
+                        </p>
                     </div>
 
-                    <!-- Card 3: Travel -->
-                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
-                        <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center font-bold">
-                            <i data-lucide="plane" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Agencia de Viajes & Turismo</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">Reservas de paquetes de viaje, itinerarios de clientes, punto de venta de pasajes, facturación rápida y comisiones.</p>
-                        <div class="pt-2">
-                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-amber-700 hover:text-amber-900">
-                                <span>Configurar Agencia de Viajes</span>
-                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Card 4: Consulting -->
-                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
-                        <div class="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200 text-purple-700 flex items-center justify-center font-bold">
-                            <i data-lucide="briefcase" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Consultoría & Servicios</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">Reserva en línea de sesiones de asesoría, calendario coordinado, envío de presupuestos e informes ejecutivos.</p>
-                        <div class="pt-2">
-                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-purple-700 hover:text-purple-900">
-                                <span>Configurar Consultoría</span>
-                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Card 5: Health & Beauty -->
-                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
+                    <!-- Module 3: Booking -->
+                    <div class="light-card p-6 rounded-3xl space-y-4">
                         <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold">
-                            <i data-lucide="heart-pulse" class="w-6 h-6"></i>
+                            <i data-lucide="globe" class="w-6 h-6"></i>
                         </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Salud, Estética & Spa</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">Portal de reservas públicas 24/7 para clientes, agenda por especialista, caja registradora POS y control de comisiones.</p>
-                        <div class="pt-2">
-                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 hover:text-emerald-900">
-                                <span>Configurar Centro de Estética</span>
-                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                            </a>
-                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Portal de Reservas 24/7</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Entrega a tus clientes un enlace personalizado para que agenden sus citas o servicios automáticamente en cualquier momento.
+                        </p>
                     </div>
 
-                    <!-- Card 6: Retail -->
-                    <div class="light-card light-card-hover p-6 rounded-3xl space-y-4 transition duration-200">
-                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center font-bold">
+                    <!-- Module 4: Invoicing -->
+                    <div class="light-card p-6 rounded-3xl space-y-4">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center font-bold">
+                            <i data-lucide="file-text" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Facturación & Control de Gastos</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Emisión rápida de facturas, control de cuentas por cobrar, estados de cuenta de clientes y registro de egresos operativos.
+                        </p>
+                    </div>
+
+                    <!-- Module 5: POS -->
+                    <div class="light-card p-6 rounded-3xl space-y-4">
+                        <div class="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200 text-purple-700 flex items-center justify-center font-bold">
                             <i data-lucide="shopping-bag" class="w-6 h-6"></i>
                         </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Comercio & Retail</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">Punto de venta físico y virtual, control de stock de productos, cuentas por cobrar y caja con cierre diario.</p>
-                        <div class="pt-2">
-                            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 text-xs font-bold text-indigo-700 hover:text-indigo-900">
-                                <span>Configurar Comercio</span>
-                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Caja Registradora & POS</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Cobros presenciales ágiles, múltiples métodos de pago, impresión de ticket y arqueos de caja diaria al cerrar turno.
+                        </p>
+                    </div>
+
+                    <!-- Module 6: Inventory -->
+                    <div class="light-card p-6 rounded-3xl space-y-4">
+                        <div class="w-12 h-12 rounded-2xl bg-cyan-50 border border-cyan-200 text-cyan-700 flex items-center justify-center font-bold">
+                            <i data-lucide="package" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Inventario & Stock Bajo Control</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Catálogo completo de productos y servicios con alertas automáticas cuando el inventario alcance el nivel mínimo.
+                        </p>
+                    </div>
+
+                    <!-- Module 7: Commissions -->
+                    <div class="light-card p-6 rounded-3xl space-y-4">
+                        <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center justify-center font-bold">
+                            <i data-lucide="dollar-sign" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Comisiones de Equipo</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Asigna porcentajes de comisión por ventas o servicios realizados a cada miembro del staff sin cálculos manuales en Excel.
+                        </p>
+                    </div>
+
+                    <!-- Module 8: Chatbot 100% Personalizable -->
+                    <div class="light-card p-6 rounded-3xl space-y-4 relative overflow-hidden bg-gradient-to-br from-white to-rose-50/50">
+                        <div class="w-12 h-12 rounded-2xl bg-brand-100 border border-brand-200 text-brand-700 flex items-center justify-center font-bold">
+                            <i data-lucide="bot" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">
+                            Chatbot de Atención & Agendamiento
+                        </h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Configura un chatbot 100% personalizable para responder clientes, agendar citas automáticas y ver las reservas reflejadas al instante en tu Dashboard.
+                        </p>
+                    </div>
+
+                    <!-- Module 9: Marketing -->
+                    <div class="light-card p-6 rounded-3xl space-y-4">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center font-bold">
+                            <i data-lucide="tag" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-slate-900">Marketing & Promociones</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Crea códigos de descuento, campañas para reactivar clientes inactivos y programas de recompensas para tu audiencia.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="precios" class="py-20 px-4 bg-white border-t border-slate-200">
+            <div class="max-w-7xl mx-auto space-y-12">
+                
+                <div class="text-center space-y-4 max-w-3xl mx-auto">
+                    <span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-50 text-brand-800 border border-rose-200">
+                        Planes & Precios Transparentes
+                    </span>
+                    <h2 class="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-slate-900 tracking-tight">
+                        Planes Diseñados para <span class="text-brand-700">Tu Crecimiento.</span>
+                    </h2>
+                    <p class="text-sm sm:text-base text-slate-600 font-normal">
+                        Elige el plan ideal para tu negocio. Administra o escala módulos en cualquier momento.
+                    </p>
+
+                    <!-- Monthly/Annual Toggle -->
+                    <div class="pt-4 flex items-center justify-center gap-3 text-xs font-bold">
+                        <span id="label-monthly" class="text-slate-900 font-bold">Facturación Mensual</span>
+                        <button onclick="togglePricing()" id="pricing-toggle-btn" class="w-12 h-6 rounded-full bg-slate-200 p-1 relative transition-colors duration-200 focus:outline-none">
+                            <div id="pricing-toggle-circle" class="w-4 h-4 rounded-full bg-brand-700 transition-transform duration-200"></div>
+                        </button>
+                        <span id="label-yearly" class="text-slate-500 flex items-center gap-1.5">
+                            <span>Facturación Anual</span>
+                            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] border border-emerald-200">Ahorra hasta 20%</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Dynamic Grid for Database Subscription Plans -->
+                <div class="grid grid-cols-1 {% if plans|length == 1 %}max-w-xl mx-auto{% elif plans|length == 2 %}md:grid-cols-2 max-w-4xl mx-auto{% else %}md:grid-cols-3 max-w-6xl mx-auto{% endif %} gap-8 items-stretch">
+                    {% for plan in plans %}
+                    <div class="light-card p-5 sm:p-10 rounded-3xl border-2 {% if plan.code == 'PRO' or forloop.counter == 2 %}border-brand-600 shadow-2xl shadow-rose-900/10 bg-gradient-to-b from-white via-rose-50/20 to-white{% else %}border-slate-200 shadow-lg bg-white{% endif %} relative flex flex-col justify-between">
+                        {% if plan.code == 'PRO' or forloop.counter == 2 %}
+                        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-brand-700 to-rose-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-xs">
+                            Plan Destacado
+                        </div>
+                        {% endif %}
+
+                        <div class="space-y-6">
+                            <div class="text-center space-y-3 pt-2">
+                                <h3 class="font-display font-extrabold text-2xl text-slate-900">{{ plan.name }}</h3>
+                                <p class="text-xs sm:text-sm text-slate-600">
+                                    {% if plan.max_users == 0 %}Usuarios Ilimitados{% else %}Hasta {{ plan.max_users }} colaboradores{% endif %} • 
+                                    {% if plan.max_branches == 0 %}Sucursales Ilimitadas{% else %}{{ plan.max_branches }} sucursal(es){% endif %}
+                                </p>
+                                
+                                <div class="pt-4 flex items-baseline justify-center gap-2">
+                                    <span class="font-display font-black text-5xl sm:text-6xl text-slate-900 plan-price-display" data-monthly="${{ plan.monthly_price|floatformat:0 }}" data-yearly="${{ plan.annual_price|floatformat:0 }}">${{ plan.monthly_price|floatformat:0 }}</span>
+                                    <span class="text-sm text-slate-500 font-bold billing-period">USD / mes</span>
+                                </div>
+                            </div>
+
+                            <!-- Feature Checklist Grid -->
+                            <div class="space-y-3 text-xs sm:text-sm text-slate-800 pt-6 border-t border-slate-200">
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
+                                    <span class="font-semibold">{% if plan.max_users == 0 %}Usuarios e Integrantes Ilimitados{% else %}Hasta {{ plan.max_users }} Usuarios{% endif %}</span>
+                                </div>
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
+                                    <span class="font-semibold">{% if plan.max_branches == 0 %}Sucursales Ilimitadas{% else %}{{ plan.max_branches }} Sucursal(es){% endif %}</span>
+                                </div>
+                                {% if 'crm' in plan.included_modules %}
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
+                                    <span class="font-semibold">CRM & Gestión de Clientes</span>
+                                </div>
+                                {% endif %}
+                                {% if 'agenda' in plan.included_modules or 'booking' in plan.included_modules %}
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
+                                    <span class="font-semibold">Agenda 24/7 y Reservas Públicas</span>
+                                </div>
+                                {% endif %}
+                                {% if 'invoicing' in plan.included_modules or 'pos' in plan.included_modules %}
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
+                                    <span class="font-semibold">Facturación, Ventas POS & Gastos</span>
+                                </div>
+                                {% endif %}
+                                {% if 'commissions' in plan.included_modules %}
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
+                                    <span class="font-semibold">Cálculo de Comisiones de Equipo</span>
+                                </div>
+                                {% endif %}
+                                {% if 'ai_engine' in plan.included_modules %}
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
+                                    <span class="font-semibold">Chatbot de Atención IA 24/7</span>
+                                </div>
+                                {% endif %}
+                                {% if 'marketing' in plan.included_modules %}
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
+                                    <span class="font-semibold">Marketing & Campañas de Descuento</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- CTA Button -->
+                        <div class="pt-6 space-y-3 text-center mt-auto">
+                            <a href="{% url 'register' %}" class="w-full py-3.5 rounded-full text-xs font-bold text-slate-900 border-2 border-slate-900 hover:bg-slate-900 hover:text-white transition-all duration-300 tracking-wider uppercase shadow-md flex items-center justify-center gap-2 group">
+                                <span>PROBAR RAUDIE OS GRATIS</span>
+                                <span class="group-hover:translate-x-1 transition-transform text-sm">→</span>
                             </a>
+                            <p class="text-[11px] text-slate-500">15 días gratis • Sin tarjeta requerida</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-full text-center p-8 bg-slate-50 rounded-2xl border border-slate-200">
+                        <p class="text-sm text-slate-600">No hay planes de suscripción configurados en este momento.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq" class="py-20 px-4 bg-slate-50 border-t border-slate-200">
+            <div class="max-w-4xl mx-auto space-y-12">
+                
+                <div class="text-center space-y-4">
+                    <span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-50 text-brand-800 border border-rose-200">
+                        Dudas Frecuentes
+                    </span>
+                    <h2 class="font-display font-black text-3xl sm:text-4xl text-slate-900 tracking-tight">
+                        Preguntas Resueltas <span class="text-brand-700">al Instante</span>
+                    </h2>
+                </div>
+
+                <div class="space-y-4">
+                    
+                    <!-- FAQ Item 1 -->
+                    <div class="light-card rounded-2xl overflow-hidden">
+                        <button onclick="toggleFaq(1)" class="w-full p-5 text-left flex items-center justify-between font-bold text-sm text-slate-900 focus:outline-none">
+                            <span>¿Cómo se adapta el sistema a mi tipo de agencia?</span>
+                            <i id="faq-icon-1" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
+                        </button>
+                        <div id="faq-ans-1" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                            Durante el registro o en cualquier momento desde tu panel de configuración, puedes seleccionar el perfil de tu empresa (Marketing, Inmobiliaria, Viajes, Estética, Consultoría o Retail). El sistema activará automáticamente los módulos, nomenclaturas y flujos recomendados para tu negocio.
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 2 -->
+                    <div class="light-card rounded-2xl overflow-hidden">
+                        <button onclick="toggleFaq(2)" class="w-full p-5 text-left flex items-center justify-between font-bold text-sm text-slate-900 focus:outline-none">
+                            <span>¿Puedo probar la plataforma gratis sin ingresar tarjeta?</span>
+                            <i id="faq-icon-2" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
+                        </button>
+                        <div id="faq-ans-2" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                            Sí, totalmente. Al registrarte creas tu cuenta de prueba sin requerir datos de tarjeta de crédito. Tendrás acceso a las funciones completas para configurar tu agencia.
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 3 -->
+                    <div class="light-card rounded-2xl overflow-hidden">
+                        <button onclick="toggleFaq(3)" class="w-full p-5 text-left flex items-center justify-between font-bold text-sm text-slate-900 focus:outline-none">
+                            <span>¿Puedo gestionar múltiples calendarios y profesionales?</span>
+                            <i id="faq-icon-3" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
+                        </button>
+                        <div id="faq-ans-3" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                            Sí. Puedes agregar múltiples profesionales con sus propios horarios de trabajo, asignación de comisiones y agenda independiente.
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 4 -->
+                    <div class="light-card rounded-2xl overflow-hidden">
+                        <button onclick="toggleFaq(4)" class="w-full p-5 text-left flex items-center justify-between font-bold text-sm text-slate-900 focus:outline-none">
+                            <span>¿Es posible gestionar múltiples sucursales o colaboradores?</span>
+                            <i id="faq-icon-4" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
+                        </button>
+                        <div id="faq-ans-4" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                            Sí. Puedes agregar múltiples profesionales con sus propios horarios de trabajo, porcentaje de comisiones y sedes asignadas.
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 5 -->
+                    <div class="light-card rounded-2xl overflow-hidden">
+                        <button onclick="toggleFaq(5)" class="w-full p-5 text-left flex items-center justify-between font-bold text-sm text-slate-900 focus:outline-none">
+                            <span>¿Cómo funciona el Chatbot personalizable y el agendamiento?</span>
+                            <i id="faq-icon-5" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
+                        </button>
+                        <div id="faq-ans-5" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                            Puedes personalizar las respuestas, servicios y disponibilidad del Chatbot. Cuando un cliente conversa y reserva una cita, la información se sincroniza y muestra de forma automática e inmediata en tu Dashboard principal.
                         </div>
                     </div>
 
                 </div>
+
             </div>
         </section>
 
-        <!-- Modules Highlight Grid -->
-        <section id="modulos" class="py-16 px-4 bg-slate-50">
-            <div class="max-w-7xl mx-auto space-y-12">
-                <div class="text-center space-y-3">
-                    <span class="text-xs font-bold text-rose-700 uppercase tracking-widest">Módulos Potentes</span>
-                    <h2 class="font-display font-extrabold text-3xl sm:text-4xl text-slate-900">Todo en una Sola Plataforma</h2>
-                    <p class="text-sm text-slate-600 max-w-xl mx-auto">Elimina la dispersión de herramientas usando una suite unificada para tu empresa.</p>
-                </div>
+        <!-- Final Conversion CTA Section (Strict Vinotinto, Blanco & Negro) -->
+        <section class="py-24 px-4 bg-slate-950 text-white relative overflow-hidden">
+            <!-- Strict Vinotinto to Black Gradient Mesh Aura -->
+            <div class="absolute inset-0 bg-gradient-to-tr from-brand-950 via-brand-900/80 to-slate-950 pointer-events-none"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[450px] bg-gradient-to-tr from-brand-900/40 via-rose-700/30 to-transparent rounded-full blur-3xl pointer-events-none"></div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="light-card p-5 rounded-2xl space-y-2">
-                        <i data-lucide="users" class="w-6 h-6 text-rose-700"></i>
-                        <h4 class="font-bold text-slate-900 text-sm">CRM & Clientes</h4>
-                        <p class="text-xs text-slate-500">Historial completo, estado de prospectos y notas.</p>
-                    </div>
-                    <div class="light-card p-5 rounded-2xl space-y-2">
-                        <i data-lucide="calendar" class="w-6 h-6 text-rose-700"></i>
-                        <h4 class="font-bold text-slate-900 text-sm">Agenda & Citas</h4>
-                        <p class="text-xs text-slate-500">Control de horarios de colaboradores e itinerarios.</p>
-                    </div>
-                    <div class="light-card p-5 rounded-2xl space-y-2">
-                        <i data-lucide="globe" class="w-6 h-6 text-rose-700"></i>
-                        <h4 class="font-bold text-slate-900 text-sm">Reservas 24/7</h4>
-                        <p class="text-xs text-slate-500">Portal público para que tus clientes agenden solos.</p>
-                    </div>
-                    <div class="light-card p-5 rounded-2xl space-y-2">
-                        <i data-lucide="file-text" class="w-6 h-6 text-rose-700"></i>
-                        <h4 class="font-bold text-slate-900 text-sm">Facturación & Gastos</h4>
-                        <p class="text-xs text-slate-500">Comprobantes, pagos pendientes y flujo de caja.</p>
-                    </div>
-                    <div class="light-card p-5 rounded-2xl space-y-2">
-                        <i data-lucide="shopping-bag" class="w-6 h-6 text-rose-700"></i>
-                        <h4 class="font-bold text-slate-900 text-sm">Ventas POS & Caja</h4>
-                        <p class="text-xs text-slate-500">Cobros ultrarrápidos y reporte de caja registradora.</p>
-                    </div>
-                    <div class="light-card p-5 rounded-2xl space-y-2">
-                        <i data-lucide="dollar-sign" class="w-6 h-6 text-rose-700"></i>
-                        <h4 class="font-bold text-slate-900 text-sm">Comisiones</h4>
-                        <p class="text-xs text-slate-500">Cálculo automatizado de comisiones para tu equipo.</p>
-                    </div>
-                    <div class="light-card p-5 rounded-2xl space-y-2">
-                        <i data-lucide="sparkles" class="w-6 h-6 text-rose-700"></i>
-                        <h4 class="font-bold text-slate-900 text-sm">Asistente IA</h4>
-                        <p class="text-xs text-slate-500">Generador de copies, resúmenes y automatización.</p>
-                    </div>
-                    <div class="light-card p-5 rounded-2xl space-y-2">
-                        <i data-lucide="tag" class="w-6 h-6 text-rose-700"></i>
-                        <h4 class="font-bold text-slate-900 text-sm">Marketing</h4>
-                        <p class="text-xs text-slate-500">Promociones, cupones y fidelización de clientes.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
+            <div class="max-w-4xl mx-auto text-center space-y-8 relative z-10">
+                <span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/10 text-rose-200 border border-white/20">
+                    Empieza Hoy Mismo
+                </span>
 
-        <!-- CTA Bottom Banner (Light & Elegant) -->
-        <section class="py-16 px-4 bg-gradient-to-r from-rose-900 via-rose-800 to-slate-900 text-white">
-            <div class="max-w-4xl mx-auto text-center space-y-6">
-                <h2 class="font-display font-extrabold text-3xl sm:text-4xl">¿Listo para transformar la gestión de tu agencia?</h2>
-                <p class="text-sm text-rose-100 max-w-xl mx-auto">Regístrate hoy mismo y prueba la experiencia configurada específicamente para tu sector.</p>
-                <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <a href="{% url 'register' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold bg-white text-rose-900 hover:bg-rose-50 shadow-lg transition">
-                        Crear Mi Agencia Ahora
-                    </a>
-                    <a href="{% url 'login' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-white border border-rose-400/40 hover:bg-rose-800 transition">
-                        Ingresar a Mi Cuenta
+                <h2 class="font-display font-black text-3xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-[1.08]">
+                    Empieza a Operar tu Agencia <br>
+                    <span class="text-rose-300">Con la Mejor Eficiencia</span>
+                </h2>
+
+                <p class="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
+                    Únete a los negocios que ya automatizaron sus citas, clientes, comprobantes y comisiones con RauDie OS.
+                </p>
+
+                <div class="pt-4 flex justify-center">
+                    <a href="{% url 'register' %}" class="px-9 py-3.5 rounded-full text-xs sm:text-sm font-bold text-slate-950 bg-white hover:bg-slate-100 transition-all duration-300 tracking-wider uppercase shadow-2xl flex items-center justify-center gap-2 group">
+                        <span>PROBAR RAUDIE OS GRATIS</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
                     </a>
                 </div>
             </div>
@@ -328,23 +1379,281 @@
 
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 py-8 px-4 text-center text-xs text-slate-500">
-        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-rose-800 text-white font-bold flex items-center justify-center text-xs">B</div>
-                <span class="font-bold text-slate-800 font-display">BusinessOS</span>
-                <span>&copy; 2026 Todos los derechos reservados.</span>
+    <!-- Footer (Clean Light Theme) -->
+    <footer class="bg-white border-t border-slate-200 py-12 px-4 text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-900 text-base font-display">RauDie<span class="text-brand-700">OS</span></span>
+                </div>
+                <p class="text-slate-600 leading-relaxed text-xs">
+                    Plataforma Integral de CRM, Facturación Electrónica y Reserva de Citas 24/7.
+                </p>
+                <div class="flex items-center gap-2 text-[11px] text-emerald-700 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Todos los servicios operativos</span>
+                </div>
             </div>
+
+            <div class="space-y-2">
+                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Perfiles de Agencia</h4>
+                <ul class="space-y-1.5 text-slate-600">
+                    <li><a href="#soluciones" onclick="switchTab('marketing')" class="hover:text-brand-700 transition">Agencia Digital & Marketing</a></li>
+                    <li><a href="#soluciones" onclick="switchTab('realestate')" class="hover:text-brand-700 transition">Inmobiliaria & Bienes Raíces</a></li>
+                    <li><a href="#soluciones" onclick="switchTab('travel')" class="hover:text-brand-700 transition">Agencia de Viajes</a></li>
+                    <li><a href="#soluciones" onclick="switchTab('consulting')" class="hover:text-brand-700 transition">Consultoría & Asesorías</a></li>
+                    <li><a href="#soluciones" onclick="switchTab('health')" class="hover:text-brand-700 transition">Salud & Estética</a></li>
+                </ul>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Módulos</h4>
+                <ul class="space-y-1.5 text-slate-600">
+                    <li><a href="#modulos" class="hover:text-brand-700 transition">CRM & Leads</a></li>
+                    <li><a href="#modulos" class="hover:text-brand-700 transition">Agenda & Citas 24/7</a></li>
+                    <li><a href="#modulos" class="hover:text-brand-700 transition">Facturación & Gastos</a></li>
+                    <li><a href="#modulos" class="hover:text-brand-700 transition">Comisiones de Equipo</a></li>
+                    <li><a href="#modulos" class="hover:text-brand-700 transition">Portal de Reservas 24/7</a></li>
+                </ul>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Acceso Rápido</h4>
+                <ul class="space-y-1.5 text-slate-600">
+                    <li><a href="{% url 'login' %}" class="hover:text-brand-700 transition">Iniciar Sesión</a></li>
+                    <li><a href="{% url 'register' %}" class="hover:text-brand-700 transition">Registro de Agencia</a></li>
+                    <li><a href="#precios" class="hover:text-brand-700 transition">Planes & Tarifas</a></li>
+                    <li><a href="#faq" class="hover:text-brand-700 transition">Centro de Ayuda FAQ</a></li>
+                </ul>
+            </div>
+
+        </div>
+
+        <div class="max-w-7xl mx-auto pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>&copy; 2026 RauDie OS SaaS Platform. Todos los derechos reservados.</p>
             <div class="flex items-center gap-4 text-slate-600">
-                <a href="{% url 'login' %}" class="hover:text-rose-700 transition">Iniciar Sesión</a>
-                <a href="{% url 'register' %}" class="hover:text-rose-700 transition">Registro de Agencia</a>
+                <span>Español (Latam)</span>
+                <span>•</span>
+                <a href="#" class="hover:text-slate-900 transition">Privacidad</a>
+                <a href="#" class="hover:text-slate-900 transition">Términos</a>
             </div>
         </div>
     </footer>
 
+    <!-- Vanilla Javascript Interactive Controls -->
     <script>
+        // Initialize Lucide Icons
         lucide.createIcons();
+
+        // Mobile Menu Toggle
+        const mobileBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileBtn && mobileMenu) {
+            mobileBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        // Tab Switching for Soluciones por Agencia
+        function switchTab(tabId) {
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            // Hide all tab content elements
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+
+            // Activate chosen tab button
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            // Show chosen tab content
+            const activeContent = document.getElementById(`content-${tabId}`);
+            if (activeContent) activeContent.classList.remove('hidden');
+        }
+
+        // Pricing Toggle Switcher (Monthly vs Yearly)
+        let isYearly = false;
+        function togglePricing() {
+            isYearly = !isYearly;
+            const circle = document.getElementById('pricing-toggle-circle');
+            const labelMonthly = document.getElementById('label-monthly');
+            const labelYearly = document.getElementById('label-yearly');
+
+            const priceDisplays = document.querySelectorAll('.plan-price-display');
+            const periodDisplays = document.querySelectorAll('.billing-period');
+
+            if (isYearly) {
+                circle.style.transform = 'translateX(24px)';
+                labelMonthly.className = 'text-slate-500';
+                labelYearly.className = 'text-slate-900 font-bold flex items-center gap-1.5';
+                
+                priceDisplays.forEach(el => {
+                    const yearly = el.getAttribute('data-yearly');
+                    if (yearly) el.textContent = yearly;
+                });
+                periodDisplays.forEach(el => el.textContent = 'USD / año');
+            } else {
+                circle.style.transform = 'translateX(0px)';
+                labelMonthly.className = 'text-slate-900 font-bold';
+                labelYearly.className = 'text-slate-500 flex items-center gap-1.5';
+                
+                priceDisplays.forEach(el => {
+                    const monthly = el.getAttribute('data-monthly');
+                    if (monthly) el.textContent = monthly;
+                });
+                periodDisplays.forEach(el => el.textContent = 'USD / mes');
+            }
+        }
+
+        // Accordion FAQ Toggle
+        function toggleFaq(id) {
+            const answer = document.getElementById(`faq-ans-${id}`);
+            const icon = document.getElementById(`faq-icon-${id}`);
+
+            if (answer) {
+                answer.classList.toggle('hidden');
+                if (icon) {
+                    icon.style.transform = answer.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+                }
+            }
+        }
+    </script>
+
+    <!-- Universal Mobile PWA Installation Guide Modal for Landing -->
+    <div id="pwa-universal-modal-landing" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-5 text-center shadow-2xl relative border border-slate-100 animate-in fade-in zoom-in duration-200">
+            <button onclick="closeLandingUniversalModal()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-full">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-900 to-rose-700 text-white flex items-center justify-center mx-auto shadow-lg shadow-rose-900/30">
+                <i data-lucide="download" class="w-8 h-8"></i>
+            </div>
+
+            <div class="space-y-1">
+                <h3 class="font-display font-extrabold text-xl text-slate-900">Instalar RauDie OS en tu Celular</h3>
+                <p class="text-xs text-slate-500">Agrega la aplicación a tu pantalla de inicio en 1 minuto:</p>
+            </div>
+
+            <!-- Android / Chrome / Edge Instructions -->
+            <div id="landing-guide-android" class="space-y-3 text-left bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs">
+                <p class="font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-200 pb-2">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-emerald-600"></i> Guía Android / Chrome / Edge:
+                </p>
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">1</span>
+                    <p class="text-slate-700">Toca el botón de <strong>3 puntos (⋮)</strong> en la esquina superior del navegador.</p>
+                </div>
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
+                    <p class="text-slate-700">Toca en <strong>"Instalar aplicación"</strong> o <strong>"Agregar a la pantalla principal"</strong>.</p>
+                </div>
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">3</span>
+                    <p class="text-slate-700">Presiona <strong>"Instalar"</strong>. ¡El acceso aparecerá en tu teléfono!</p>
+                </div>
+            </div>
+
+            <!-- iOS / iPhone / Safari Instructions -->
+            <div id="landing-guide-ios" class="space-y-3 text-left bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs hidden">
+                <p class="font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-200 pb-2">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-brand-700"></i> Guía iPhone / iPad Safari:
+                </p>
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-brand-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">1</span>
+                    <p class="text-slate-700">Toca el botón <strong>Compartir</strong> <i data-lucide="share" class="w-4 h-4 text-brand-700 inline"></i> (en la barra inferior de Safari).</p>
+                </div>
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-brand-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
+                    <p class="text-slate-700">Desplázate y selecciona <strong>"Agregar a inicio"</strong> <i data-lucide="plus-square" class="w-4 h-4 text-brand-700 inline"></i>.</p>
+                </div>
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-brand-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">3</span>
+                    <p class="text-slate-700">Toca <strong>"Agregar"</strong> arriba a la derecha.</p>
+                </div>
+            </div>
+
+            <button onclick="closeLandingUniversalModal()" class="w-full py-3 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-md transition">
+                ¡Entendido, abriré el menú!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+
+        // PWA Service Worker Registration & Multi-Button Installation Handler for Landing Page
+        let pwaDeferredPrompt;
+        const pwaBtns = [
+            document.getElementById('pwa-install-nav-btn'),
+            document.getElementById('pwa-install-mobile-btn'),
+            document.getElementById('pwa-install-hero-btn'),
+            document.getElementById('pwa-banner-install-btn')
+        ].filter(Boolean);
+
+        function showLandingUniversalModal() {
+            const modal = document.getElementById('pwa-universal-modal-landing');
+            const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const androidGuide = document.getElementById('landing-guide-android');
+            const iosGuide = document.getElementById('landing-guide-ios');
+
+            if (isIos) {
+                androidGuide?.classList.add('hidden');
+                iosGuide?.classList.remove('hidden');
+            } else {
+                iosGuide?.classList.add('hidden');
+                androidGuide?.classList.remove('hidden');
+            }
+
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeLandingUniversalModal() {
+            const modal = document.getElementById('pwa-universal-modal-landing');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        // Ensure all PWA install buttons are always visible and active on mobile
+        pwaBtns.forEach(btn => {
+            btn.style.display = 'inline-flex';
+            btn.addEventListener('click', async () => {
+                if (pwaDeferredPrompt) {
+                    pwaDeferredPrompt.prompt();
+                    const { outcome } = await pwaDeferredPrompt.userChoice;
+                    console.log(`[PWA Landing] Resultado instalación: ${outcome}`);
+                    pwaDeferredPrompt = null;
+                } else {
+                    showLandingUniversalModal();
+                }
+            });
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => console.log('[PWA Landing] Service Worker activo:', reg.scope))
+                    .catch((err) => console.error('[PWA Landing] Error Service Worker:', err));
+            });
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            pwaDeferredPrompt = e;
+        });
     </script>
 </body>
 </html>
+
+
+
+
+

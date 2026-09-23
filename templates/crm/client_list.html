@@ -15,10 +15,19 @@
             </div>
             <button type="submit" class="px-4 py-2 rounded-xl bg-slate-950 hover:bg-rose-900 text-white text-sm font-semibold transition">Buscar</button>
         </form>
-        <a href="{% url 'client_create' %}" class="px-4 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm flex items-center gap-2 shadow-md shadow-rose-900/20 transition whitespace-nowrap">
-            <i data-lucide="user-plus" class="w-4 h-4"></i> Crear Nuevo Cliente
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'export_clients_excel' %}" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar Excel
+            </a>
+            <a href="{% url 'export_clients_pdf' %}" target="_blank" class="px-3.5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Exportar PDF
+            </a>
+            <a href="{% url 'client_create' %}" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white font-semibold text-xs flex items-center gap-2 shadow-md transition whitespace-nowrap">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Crear Nuevo Cliente
+            </a>
+        </div>
     </div>
+
 
     <!-- Clients Table -->
     <div class="glass-card rounded-2xl overflow-hidden border border-slate-200">

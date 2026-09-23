@@ -3,11 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}BusinessOS - Gestión, Administración y Crecimiento{% endblock %}</title>
+    <title>{% block title %}RauDie OS - Gestión, Administración y Crecimiento{% endblock %}</title>
+    <!-- PWA Manifest & Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#881337">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RauDie OS">
+    <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+
     <!-- Google Fonts Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -57,9 +67,16 @@
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="h-full font-sans antialiased bg-slate-50 text-slate-900 flex custom-scrollbar">
+<body class="h-full font-sans antialiased bg-slate-50 text-slate-900 flex flex-col md:flex-row custom-scrollbar">
+
+    <!-- Offline Alert Banner -->
+    <div id="pwa-offline-banner" class="hidden bg-amber-500 text-slate-950 text-xs font-bold px-4 py-2 text-center flex items-center justify-center gap-2 shadow-sm z-50 w-full fixed top-0 left-0">
+        <i data-lucide="wifi-off" class="w-4 h-4"></i>
+        <span>Estás trabajando en modo offline sin conexión. Los datos se cargarán desde el almacenamiento PWA.</span>
+    </div>
 
     <!-- Sidebar Navigation (Sleek Black & Vinotinto Sidebar) -->
+
     <aside class="w-64 h-screen sticky top-0 bg-slate-950 border-r border-slate-800 flex flex-col justify-between hidden md:flex shrink-0 overflow-hidden">
         <div class="flex flex-col flex-1 min-h-0">
             <!-- Brand Logo -->
@@ -69,7 +86,7 @@
                         B
                     </div>
                     <div>
-                        <h1 class="font-display font-bold text-lg text-white leading-none">BusinessOS</h1>
+                        <h1 class="font-display font-bold text-lg text-white leading-none">RauDie OS</h1>
                         <span class="text-xs text-rose-400 font-medium">Vinotinto Edition</span>
                     </div>
                 </div>
@@ -174,7 +191,7 @@
 
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Configuración</div>
 
-                <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'business' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'business' in request.path and not 'superadmin' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="settings" class="w-5 h-5"></i>
                     <span>Administración Agencia</span>
                 </a>
@@ -205,28 +222,126 @@
         </div>
     </aside>
 
+    <!-- Mobile Sidebar Drawer Backdrop & Aside -->
+    <div id="mobile-sidebar-drawer" class="fixed inset-0 z-50 flex md:hidden hidden">
+        <!-- Backdrop -->
+        <div id="mobile-sidebar-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"></div>
+        
+        <!-- Drawer Panel -->
+        <div class="relative flex-1 flex flex-col max-w-xs w-full bg-slate-950 text-white z-10 shadow-2xl">
+            <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-900 to-slate-900 flex items-center justify-center text-white font-extrabold font-display border border-rose-800/40">
+                        B
+                    </div>
+                    <span class="font-display font-bold text-base text-white">RauDie OS</span>
+                </div>
+                <button id="mobile-sidebar-close-btn" class="p-2 text-slate-400 hover:text-white rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            {% if current_business %}
+            <div class="p-3 mx-3 my-2 rounded-xl bg-rose-950/40 border border-rose-900/40">
+                <p class="text-[10px] font-bold text-rose-400 uppercase tracking-wider truncate">{{ business_type_display }}</p>
+                <p class="text-xs font-bold text-white truncate mt-0.5">{{ current_business.name }}</p>
+            </div>
+            {% endif %}
+            
+            <!-- Navigation Links in Drawer -->
+            <nav class="px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar py-3">
+                <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'dashboard' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard & KPIs</span>
+                </a>
+                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Gestionar</div>
+                {% if modules_enabled.agenda %}
+                <a href="{% url 'agenda' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'agenda' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="calendar" class="w-5 h-5"></i>
+                    <span>Agenda & Citas</span>
+                </a>
+                {% endif %}
+                {% if modules_enabled.crm %}
+                <a href="{% url 'client_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'crm' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>CRM & Clientes</span>
+                </a>
+                {% endif %}
+                <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'service_list' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="scissors" class="w-5 h-5"></i>
+                    <span>Servicios & Tarifas</span>
+                </a>
+                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Administrar</div>
+                {% if modules_enabled.pos %}
+                <a href="{% url 'pos_terminal' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'pos_terminal' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                    <span>Ventas POS & Caja</span>
+                </a>
+                {% endif %}
+                {% if modules_enabled.invoicing %}
+                <a href="{% url 'invoice_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'facturacion' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                    <span>Facturación & Gastos</span>
+                </a>
+                {% endif %}
+                {% if modules_enabled.inventory %}
+                <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'inventario' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="package" class="w-5 h-5"></i>
+                    <span>Inventario & Stock</span>
+                </a>
+                {% endif %}
+                {% if modules_enabled.commissions %}
+                <a href="{% url 'commission_report' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'commission_report' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+                    <span>Comisiones</span>
+                </a>
+                {% endif %}
+                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Configurar</div>
+                <a href="{% url 'reports' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'reportes' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    <span>Reportes & Indicadores</span>
+                </a>
+                <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'business' in request.path and not 'superadmin' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Administración Agencia</span>
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-slate-800">
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'logout' %}" class="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-rose-950 text-rose-400 font-bold text-xs text-center flex items-center justify-center gap-2 border border-slate-800 transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content Area (Light Slate Background) -->
-    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+    <div class="flex-1 flex flex-col min-w-0 min-h-screen md:h-screen overflow-x-hidden">
         <!-- Topbar Header (Clean White / Light Slate) -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-sm">
-            <div class="flex items-center gap-4">
-                <button class="md:hidden p-2 text-slate-600 hover:text-slate-900">
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 shrink-0 shadow-sm sticky top-0 z-30">
+            <div class="flex items-center gap-2 min-w-0 flex-1 mr-2">
+                <button id="mobile-menu-toggle-btn" class="md:hidden p-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition shrink-0">
                     <i data-lucide="menu" class="w-6 h-6"></i>
                 </button>
-                <h2 class="text-lg font-bold text-slate-900 font-display">{% block header_title %}Panel Principal{% endblock %}</h2>
+                <h2 class="text-xs sm:text-base font-bold text-slate-900 font-display truncate">{% block header_title %}Panel Principal{% endblock %}</h2>
             </div>
-            <div class="flex items-center gap-3">
+
+            <div class="flex items-center gap-2 shrink-0">
                 {% if current_business and modules_enabled.booking %}
-                <a href="{% url 'public_booking' current_business.slug %}" target="_blank" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-900 border border-rose-200 hover:bg-rose-100 transition">
+                <a href="{% url 'public_booking' current_business.slug %}" target="_blank" class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-900 border border-rose-200 hover:bg-rose-100 transition">
                     <span class="w-2 h-2 rounded-full bg-rose-700 animate-pulse"></span>
                     Portal Reservas 24/7
                 </a>
                 {% endif %}
 
                 {% if modules_enabled.pos %}
-                <a href="{% url 'pos_terminal' %}" class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-950 hover:bg-rose-900 text-white shadow-md transition">
+                <a href="{% url 'pos_terminal' %}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-950 hover:bg-rose-900 text-white shadow-md transition whitespace-nowrap">
                     <i data-lucide="plus" class="w-4 h-4"></i>
-                    Nueva Venta POS
+                    <span class="hidden sm:inline">Nueva Venta POS</span>
+                    <span class="sm:hidden text-[10px]">POS</span>
                 </a>
                 {% endif %}
 
@@ -245,14 +360,75 @@
         </header>
 
         <!-- Page Content Area (Light Base) -->
-        <main class="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50">
+        <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 custom-scrollbar bg-slate-50">
+            {% if messages %}
+            <div class="mb-4 space-y-2 max-w-7xl mx-auto">
+                {% for message in messages %}
+                <div class="p-4 rounded-2xl text-xs font-bold border flex items-center justify-between shadow-xs transition animate-in fade-in duration-200
+                    {% if message.tags == 'success' %}bg-emerald-50 text-emerald-950 border-emerald-200/90
+                    {% elif message.tags == 'error' %}bg-rose-50 text-rose-950 border-rose-200/90
+                    {% elif message.tags == 'warning' %}bg-amber-50 text-amber-950 border-amber-200/90
+                    {% else %}bg-blue-50 text-blue-950 border-blue-200/90{% endif %}">
+                    <div class="flex items-center gap-2.5">
+                        <i data-lucide="{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}alert-circle{% elif message.tags == 'warning' %}alert-triangle{% else %}info{% endif %}" class="w-4 h-4"></i>
+                        <span>{{ message.message }}</span>
+                    </div>
+                    <button onclick="this.parentElement.remove()" class="p-1 hover:opacity-75 rounded-lg">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             {% block content %}{% endblock %}
         </main>
     </div>
 
     <script>
         lucide.createIcons();
+
+        // Mobile Sidebar Drawer Controller
+        const mobileMenuToggleBtn = document.getElementById('mobile-menu-toggle-btn');
+        const mobileSidebarDrawer = document.getElementById('mobile-sidebar-drawer');
+        const mobileSidebarBackdrop = document.getElementById('mobile-sidebar-backdrop');
+        const mobileSidebarCloseBtn = document.getElementById('mobile-sidebar-close-btn');
+
+        function toggleMobileSidebar() {
+            if (mobileSidebarDrawer) {
+                mobileSidebarDrawer.classList.toggle('hidden');
+            }
+        }
+
+        mobileMenuToggleBtn?.addEventListener('click', toggleMobileSidebar);
+        mobileSidebarBackdrop?.addEventListener('click', toggleMobileSidebar);
+        mobileSidebarCloseBtn?.addEventListener('click', toggleMobileSidebar);
+
+        // Service Worker & Offline Banner
+        const offlineBanner = document.getElementById('pwa-offline-banner');
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => console.log('[PWA] Service Worker activo:', reg.scope))
+                    .catch((err) => console.error('[PWA] Error Service Worker:', err));
+            });
+        }
+
+        function updateOnlineStatus() {
+            if (!navigator.onLine) {
+                offlineBanner?.classList.remove('hidden');
+            } else {
+                offlineBanner?.classList.add('hidden');
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
     </script>
+
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>
+

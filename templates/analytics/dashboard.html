@@ -11,107 +11,125 @@
 {% block content %}
 <div class="space-y-6">
 
+    <!-- Export Header Bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 font-display">Métricas y Resumen Ejecutivo</h2>
+            <p class="text-xs text-slate-500">Descarga o exporta la información en Excel o PDF</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <a href="{% url 'export_analytics_excel' %}" class="flex-1 sm:flex-initial px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition whitespace-nowrap">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar Excel
+            </a>
+            <a href="{% url 'export_analytics_pdf' %}" target="_blank" class="flex-1 sm:flex-initial px-3.5 py-2 bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition whitespace-nowrap">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Exportar PDF
+            </a>
+        </div>
+    </div>
+
     <!-- Primary KPI Metric Cards Grid (8 Core Business Indicators) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+
         <!-- 1. Ingresos -->
-        <div class="glass-card bg-white p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
+        <div class="glass-card bg-white p-4 sm:p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Ingresos (Ventas POS)</span>
-                <div class="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl group-hover:scale-110 transition border border-emerald-200">
-                    <i data-lucide="trending-up" class="w-5 h-5"></i>
+                <div class="p-2 sm:p-2.5 bg-emerald-50 text-emerald-700 rounded-xl group-hover:scale-110 transition border border-emerald-200 shrink-0">
+                    <i data-lucide="trending-up" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                 </div>
             </div>
-            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ business.currency }}{{ total_sales|floatformat:2 }}</p>
+            <p class="text-xl sm:text-2xl font-extrabold font-display text-slate-900 mt-2 sm:mt-3 truncate">{{ business.currency }}{{ total_sales|floatformat:2 }}</p>
             <p class="text-xs text-emerald-700 mt-1 flex items-center gap-1 font-semibold">
                 <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> +14.2% este mes
             </p>
         </div>
 
         <!-- 2. Gastos Operativos -->
-        <div class="glass-card bg-white p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
+        <div class="glass-card bg-white p-4 sm:p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Gastos Operativos</span>
-                <div class="p-2.5 bg-rose-50 text-rose-900 rounded-xl group-hover:scale-110 transition border border-rose-200">
-                    <i data-lucide="trending-down" class="w-5 h-5"></i>
+                <div class="p-2 sm:p-2.5 bg-rose-50 text-rose-900 rounded-xl group-hover:scale-110 transition border border-rose-200 shrink-0">
+                    <i data-lucide="trending-down" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                 </div>
             </div>
-            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ business.currency }}{{ total_expenses|floatformat:2 }}</p>
-            <p class="text-xs text-slate-500 mt-1">Alquiler, sueldos e insumos</p>
+            <p class="text-xl sm:text-2xl font-extrabold font-display text-slate-900 mt-2 sm:mt-3 truncate">{{ business.currency }}{{ total_expenses|floatformat:2 }}</p>
+            <p class="text-xs text-slate-500 mt-1 truncate">Alquiler, sueldos e insumos</p>
         </div>
 
         <!-- 3. Utilidad Neta -->
-        <div class="glass-card bg-white p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
+        <div class="glass-card bg-white p-4 sm:p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Utilidad Neta</span>
-                <div class="p-2.5 bg-rose-900/10 text-rose-900 rounded-xl group-hover:scale-110 transition border border-rose-900/20">
-                    <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                <div class="p-2 sm:p-2.5 bg-rose-900/10 text-rose-900 rounded-xl group-hover:scale-110 transition border border-rose-900/20 shrink-0">
+                    <i data-lucide="pie-chart" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                 </div>
             </div>
-            <p class="text-2xl font-extrabold font-display {% if net_profit >= 0 %}text-emerald-700{% else %}text-amber-700{% endif %} mt-3">
+            <p class="text-xl sm:text-2xl font-extrabold font-display {% if net_profit >= 0 %}text-emerald-700{% else %}text-amber-700{% endif %} mt-2 sm:mt-3 truncate">
                 {{ business.currency }}{{ net_profit|floatformat:2 }}
             </p>
             <p class="text-xs text-slate-500 mt-1">Margen operativo neto</p>
         </div>
 
         <!-- 4. Ticket Promedio -->
-        <div class="glass-card bg-white p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
+        <div class="glass-card bg-white p-4 sm:p-5 rounded-2xl relative overflow-hidden group border border-slate-200 shadow-sm hover:border-rose-900/50 transition">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Ticket Promedio</span>
-                <div class="p-2.5 bg-slate-100 text-slate-900 rounded-xl group-hover:scale-110 transition border border-slate-200">
-                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                <div class="p-2 sm:p-2.5 bg-slate-100 text-slate-900 rounded-xl group-hover:scale-110 transition border border-slate-200 shrink-0">
+                    <i data-lucide="receipt" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                 </div>
             </div>
-            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ business.currency }}{{ avg_ticket|floatformat:2 }}</p>
+            <p class="text-xl sm:text-2xl font-extrabold font-display text-slate-900 mt-2 sm:mt-3 truncate">{{ business.currency }}{{ avg_ticket|floatformat:2 }}</p>
             <p class="text-xs text-rose-900 font-semibold mt-1">Promedio por cliente</p>
         </div>
 
         <!-- 5. Cuentas Por Cobrar -->
-        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+        <div class="glass-card bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Por Cobrar</span>
-                <div class="p-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-200">
+                <div class="p-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-200 shrink-0">
                     <i data-lucide="clock" class="w-4 h-4"></i>
                 </div>
             </div>
-            <p class="text-xl font-bold font-display text-slate-900 mt-2">{{ business.currency }}{{ accounts_receivable|floatformat:2 }}</p>
+            <p class="text-lg sm:text-xl font-bold font-display text-slate-900 mt-2 truncate">{{ business.currency }}{{ accounts_receivable|floatformat:2 }}</p>
         </div>
 
         <!-- 6. Cuentas Por Pagar -->
-        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+        <div class="glass-card bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Por Pagar</span>
-                <div class="p-2 bg-rose-50 text-rose-900 rounded-xl border border-rose-200">
+                <div class="p-2 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 shrink-0">
                     <i data-lucide="credit-card" class="w-4 h-4"></i>
                 </div>
             </div>
-            <p class="text-xl font-bold font-display text-slate-900 mt-2">{{ business.currency }}{{ accounts_payable|floatformat:2 }}</p>
+            <p class="text-lg sm:text-xl font-bold font-display text-slate-900 mt-2 truncate">{{ business.currency }}{{ accounts_payable|floatformat:2 }}</p>
         </div>
 
         <!-- 7. Ocupación de Agenda -->
-        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+        <div class="glass-card bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Ocupación Agenda</span>
-                <div class="p-2 bg-rose-900/10 text-rose-900 rounded-xl">
+                <div class="p-2 bg-rose-900/10 text-rose-900 rounded-xl shrink-0">
                     <i data-lucide="calendar" class="w-4 h-4"></i>
                 </div>
             </div>
-            <p class="text-xl font-bold font-display text-slate-900 mt-2">{{ agenda_occupancy_pct }}%</p>
+            <p class="text-lg sm:text-xl font-bold font-display text-slate-900 mt-2 truncate">{{ agenda_occupancy_pct }}%</p>
             <div class="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden border border-slate-200">
                 <div class="bg-rose-900 h-full" style="width: {{ agenda_occupancy_pct }}%;"></div>
             </div>
         </div>
 
         <!-- 8. Clientes Registrados -->
-        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+        <div class="glass-card bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Clientes Totales</span>
-                <div class="p-2 bg-slate-100 text-slate-900 rounded-xl">
+                <div class="p-2 bg-slate-100 text-slate-900 rounded-xl shrink-0">
                     <i data-lucide="users" class="w-4 h-4"></i>
                 </div>
             </div>
-            <p class="text-xl font-bold font-display text-slate-900 mt-2">{{ total_clients }}</p>
+            <p class="text-lg sm:text-xl font-bold font-display text-slate-900 mt-2 truncate">{{ total_clients }}</p>
         </div>
     </div>
+
 
     <!-- Chart Analytics Section (Sales vs Expenses Trend + Payment Methods Donut) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">

@@ -19,6 +19,12 @@
 
         <div class="flex items-center gap-3">
             <div>
+                <select id="timeFormatFilter" onchange="changeTimeFormat(this.value)" class="bg-white border border-slate-300 text-slate-900 text-xs rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-800">
+                    <option value="12h" {% if business.time_format == '12h' or not business.time_format %}selected{% endif %}>🕒 Formato 12 Horas (AM/PM)</option>
+                    <option value="24h" {% if business.time_format == '24h' %}selected{% endif %}>⏰ Formato 24 Horas</option>
+                </select>
+            </div>
+            <div>
                 <select id="staffFilter" onchange="refetchCalendar()" class="bg-white border border-slate-300 text-slate-900 text-xs rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-800">
                     <option value="">Todos los Profesionales</option>
                     {% for staff in staff_members %}
@@ -85,21 +91,66 @@
         font-weight: 700;
         text-transform: uppercase;
     }
-    .fc-event {
-        border-radius: 0.5rem !important;
-        padding: 2px 5px !important;
+    /* Cell and event height adjustments for clear, legible appointments */
+    .fc-timegrid-slot {
+        height: 48px !important;
+    }
+    .fc-timegrid-slot-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #475569;
+    }
+    .fc-v-event {
+        border-radius: 0.6rem !important;
+        padding: 4px 6px !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    }
+    .fc-v-event .fc-event-main {
+        color: #ffffff !important;
+        font-weight: 600;
+        line-height: 1.25;
+    }
+    .fc-v-event .fc-event-time {
         font-size: 0.75rem !important;
-        font-weight: 600 !important;
-        cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        font-weight: 800 !important;
+    }
+    .fc-daygrid-event {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin-top: 2px !important;
+    }
+    .fc-daygrid-event-dot {
+        display: none !important;
+    }
+    .fc-daygrid-event-hmain {
+        background: transparent !important;
+    }
+    .fc-h-event {
+        background: transparent !important;
+        border: none !important;
     }
 </style>
 
 <script>
     let calendar;
 
+    const timeFormats = {
+        '12h': {
+            slotLabelFormat: { hour: 'numeric', minute: '2-digit', meridiem: 'short', hour12: true },
+            eventTimeFormat: { hour: 'numeric', minute: '2-digit', meridiem: 'short', hour12: true }
+        },
+        '24h': {
+            slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+            eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false }
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', function() {
         const calendarEl = document.getElementById('fullCalendar');
+        const initialFormat = document.getElementById('timeFormatFilter').value || '12h';
+        const currentFormatObj = timeFormats[initialFormat] || timeFormats['12h'];
         
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'timeGridWeek',
@@ -116,9 +167,44 @@
             },
             locale: 'es',
             firstDay: 1,
-            slotMinTime: '08:00:00',
-            slotMaxTime: '21:00:00',
+            slotMinTime: '{{ slot_min_time|default:"00:00:00" }}',
+            slotMaxTime: '{{ slot_max_time|default:"24:00:00" }}',
+            scrollTime: '08:00:00',
+            slotDuration: '00:30:00',
+            slotLabelFormat: currentFormatObj.slotLabelFormat,
+            eventTimeFormat: currentFormatObj.eventTimeFormat,
             allDaySlot: false,
+            eventContent: function(arg) {
+                const client = arg.event.extendedProps.client || arg.event.title || 'Cliente';
+                const service = arg.event.extendedProps.service || '';
+                const staff = arg.event.extendedProps.staff || '';
+                const timeText = arg.timeText || '';
+                const bg = arg.event.backgroundColor || '#881337';
+
+                if (arg.view.type === 'dayGridMonth') {
+                    return {
+                        html: `
+                            <div class="px-2 py-0.5 rounded-md text-white text-[11px] font-bold truncate flex items-center gap-1 shadow-sm w-full" style="background-color: ${bg}; color: #ffffff !important;">
+                                ${timeText ? `<span class="opacity-90 text-[10px] shrink-0">${timeText}</span>` : ''}
+                                <span class="truncate">👤 ${client}</span>
+                            </div>
+                        `
+                    };
+                }
+
+                return {
+                    html: `
+                        <div class="fc-custom-card h-full flex flex-col justify-start p-1.5 text-white overflow-hidden leading-snug rounded-lg shadow-sm" style="background-color: ${bg}; color: #ffffff !important;">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="font-extrabold text-xs tracking-tight truncate">👤 ${client}</span>
+                                ${timeText ? `<span class="text-[10px] font-bold opacity-90 shrink-0 bg-black/25 px-1 rounded">${timeText}</span>` : ''}
+                            </div>
+                            ${service ? `<div class="text-[11px] font-semibold opacity-95 truncate mt-0.5">✂️ ${service}</div>` : ''}
+                            ${staff ? `<div class="text-[10px] font-normal opacity-85 truncate">👨‍💼 ${staff}</div>` : ''}
+                        </div>
+                    `
+                };
+            },
             events: function(info, successCallback, failureCallback) {
                 const staffId = document.getElementById('staffFilter').value;
                 fetch(`{% url 'appointment_events_api' %}?staff_id=${staffId}`)
@@ -145,6 +231,13 @@
     function refetchCalendar() {
         if (calendar) {
             calendar.refetchEvents();
+        }
+    }
+
+    function changeTimeFormat(formatKey) {
+        if (calendar && timeFormats[formatKey]) {
+            calendar.setOption('slotLabelFormat', timeFormats[formatKey].slotLabelFormat);
+            calendar.setOption('eventTimeFormat', timeFormats[formatKey].eventTimeFormat);
         }
     }
 </script>

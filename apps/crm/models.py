@@ -15,7 +15,7 @@ class Client(TimeStampedModel):
     last_name = models.CharField(max_length=100, verbose_name="Apellido")
     email = models.EmailField(blank=True, null=True, verbose_name="Email")
     phone = models.CharField(max_length=50, verbose_name="Teléfono / WhatsApp")
-    tax_id = models.CharField(max_length=50, blank=True, null=True, verbose_name="RUT / RFC / NIF")
+    tax_id = models.CharField(max_length=50, blank=True, null=True, verbose_name="DNI / Número de Identidad")
     address = models.TextField(blank=True, null=True, verbose_name="Dirección")
     birth_date = models.DateField(blank=True, null=True, verbose_name="Fecha de Nacimiento")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
@@ -42,6 +42,21 @@ class ClientNote(TimeStampedModel):
 
     def __str__(self):
         return f"Nota para {self.client.full_name} por {self.author}"
+
+class ServiceHistoryNote(TimeStampedModel):
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="service_notes")
+    appointment = models.ForeignKey('agenda.Appointment', on_delete=models.SET_NULL, null=True, blank=True, related_name="service_notes")
+    service_name = models.CharField(max_length=200, verbose_name="Servicio / Tratamiento")
+    author = models.CharField(max_length=100, default="Staff")
+    content = models.TextField(verbose_name="Anotación Técnica / Detalle del Servicio")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Anotación de Servicio"
+        verbose_name_plural = "Anotaciones de Servicios"
+
+    def __str__(self):
+        return f"Nota de Servicio '{self.service_name}' para {self.client.full_name}"
 
 class Supplier(TimeStampedModel):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="suppliers")

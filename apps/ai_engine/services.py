@@ -20,11 +20,11 @@ def generate_executive_financial_insight(business):
     top_service_name = top_service[0]['service__name'] if top_service and len(top_service) > 0 else "Corte & Barba Premium"
 
     summary = (
-        f"📊 **Resumen Ejecutivo por BusinessOS IA:**\n\n"
+        f"**Resumen Ejecutivo por RauDie OS IA:**\n\n"
         f"• Ingresos totales del periodo: {business.currency}{total_sales:,.2f}\n"
         f"• Gastos operativos: {business.currency}{total_expenses:,.2f}\n"
         f"• Utilidad Neta estimada: {business.currency}{net_profit:,.2f}\n\n"
-        f"💡 **Diagnóstico y Recomendaciones:**\n"
+        f"**Diagnóstico y Recomendaciones:**\n"
         f"1. El servicio con mayor rentabilidad y demanda actual es **{top_service_name}**.\n"
         f"2. Detectamos **{inactive_clients} clientes** que no registran visitas en los últimos 60 días.\n"
         f"3. Te sugerimos activar la campaña automática por WhatsApp para recuperar un est. 18% de clientes inactivos esta semana."
@@ -47,7 +47,7 @@ def detect_inactive_clients_and_draft_campaign(business):
     
     campaigns = []
     for client in inactive_clients:
-        msg = f"¡Hola {client.first_name}! 👋 Hace tiempo que no nos visitas en {business.name}. Tenemos un 15% de descuento especial en tu próximo servicio si reservas esta semana. 👉 Link de reserva: http://localhost:8000/reservas/{business.slug}/?promo=REGRESA15"
+        msg = f"¡Hola {client.first_name}! Hace tiempo que no nos visitas en {business.name}. Tenemos un 15% de descuento especial en tu próximo servicio si reservas esta semana. Link de reserva: http://localhost:8000/reservas/{business.slug}/?promo=REGRESA15"
         
         log = AIAutomationLog.objects.create(
             business=business,

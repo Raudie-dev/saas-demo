@@ -12,11 +12,22 @@
             <h3 class="font-bold text-slate-900 text-lg font-display">Comisiones Pendientes de Liquidación</h3>
             <p class="text-xs text-slate-500 mt-1">Monto generado acumulado por el personal en citas y ventas POS</p>
         </div>
-        <div class="text-right">
-            <span class="text-xs text-slate-500 block uppercase tracking-wider font-semibold">Total Pendiente</span>
-            <span class="text-3xl font-extrabold text-rose-900 font-display">{{ business.currency }}{{ total_unsettled|floatformat:2 }}</span>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+                <a href="{% url 'export_commissions_excel' %}?staff_id={{ selected_staff_id }}" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar Excel
+                </a>
+                <a href="{% url 'export_commissions_pdf' %}?staff_id={{ selected_staff_id }}" target="_blank" class="px-3.5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> Exportar PDF
+                </a>
+            </div>
+            <div class="text-right">
+                <span class="text-xs text-slate-500 block uppercase tracking-wider font-semibold">Total Pendiente</span>
+                <span class="text-3xl font-extrabold text-rose-900 font-display">{{ business.currency }}{{ total_unsettled|floatformat:2 }}</span>
+            </div>
         </div>
     </div>
+
 
     <!-- Settlement Generator Form per Staff -->
     <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">

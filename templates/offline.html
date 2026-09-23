@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sin Conexión - RauDie OS</title>
+    <!-- Google Fonts Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+    </style>
+</head>
+<body class="h-full flex items-center justify-center p-4 bg-slate-950">
+    <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center shadow-2xl space-y-6 relative overflow-hidden">
+        <div class="absolute -top-24 -left-24 w-48 h-48 bg-rose-900/30 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-rose-950/40 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative inline-flex items-center justify-center w-20 h-20 bg-rose-950/60 text-rose-500 border border-rose-800/50 rounded-3xl shadow-inner">
+            <i data-lucide="wifi-off" class="w-10 h-10 animate-pulse"></i>
+        </div>
+
+        <div class="space-y-2">
+            <h1 class="text-2xl font-extrabold font-display text-white">Sin Conexión a Internet</h1>
+            <p class="text-sm text-slate-400">
+                Estás navegando en modo offline. RauDie OS ha guardado la estructura de la aplicación para que puedas acceder cuando recuperes la señal.
+            </p>
+        </div>
+
+        <div class="pt-2 flex flex-col gap-3">
+            <button onclick="window.location.reload()" class="w-full py-3.5 px-4 bg-rose-900 hover:bg-rose-800 text-white font-bold rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Reintentar Conexión
+            </button>
+            <a href="/dashboard/" class="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm rounded-2xl transition flex items-center justify-center gap-2">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Ir al Dashboard Almacenado
+            </a>
+        </div>
+
+        <div class="border-t border-slate-800 pt-4 text-xs text-slate-500 flex items-center justify-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span>RauDie OS - Modo PWA Offline</span>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        window.addEventListener('online', () => {
+            window.location.reload();
+        });
+    </script>
+</body>
+</html>

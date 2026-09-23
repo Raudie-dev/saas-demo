@@ -65,17 +65,89 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 self-end sm:self-center">
-                    <div class="text-right">
+                <div class="flex items-center gap-2 flex-wrap justify-end self-end sm:self-center">
+                    <div class="text-right mr-2">
                         <span class="text-xs text-slate-500 block">Total</span>
                         <span class="text-base font-extrabold text-slate-900">{{ business.currency }}{{ app.total_price }}</span>
                     </div>
+
+                    <!-- WhatsApp Reminder Button -->
+                    <button type="button"
+                            onclick="sendWhatsappReminder(
+                                '{{ app.client.phone|escapejs }}',
+                                '{{ app.client.first_name|escapejs }}',
+                                '{{ app.client.full_name|escapejs }}',
+                                '{{ app.service.name|escapejs }}',
+                                '{{ app.date|date:'d/m/Y' }}',
+                                '{{ app.start_time }}',
+                                '{{ app.staff.full_name|escapejs }}',
+                                '{{ business.name|escapejs }}'
+                            )"
+                            title="Enviar recordatorio de cita por WhatsApp"
+                            class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition border border-emerald-500 flex items-center gap-1.5 cursor-pointer shadow-xs">
+                        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                        <span>Recordatorio</span>
+                    </button>
+
+                    <!-- Calendar Unified Export Dropdown -->
+                    <div class="relative inline-block text-left export-dropdown-container">
+                        <button type="button"
+                                onclick="toggleExportDropdown('export-menu-{{ app.id }}', event)"
+                                title="Exportar cita a calendario externo"
+                                class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold transition border border-slate-300 flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-slate-600"></i>
+                            <span>Exportar</span>
+                            <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+                        </button>
+                        
+                        <div id="export-menu-{{ app.id }}" class="hidden absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 z-30 py-1 font-medium text-xs">
+                            <button type="button"
+                                    onclick="exportToGoogleCalendar(
+                                        'Cita: {{ app.service.name|escapejs }} - {{ app.client.full_name|escapejs }}',
+                                        '{{ app.date|date:'Y-m-d'|default:app.date }}',
+                                        '{{ app.start_time }}',
+                                        '{{ app.end_time }}',
+                                        'Cliente: {{ app.client.full_name|escapejs }} ({{ app.client.phone }}). Especialista: {{ app.staff.full_name|escapejs }}',
+                                        '{{ business.address|escapejs }}'
+                                    )"
+                                    class="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 cursor-pointer">
+                                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                                </svg>
+                                <span>Google Calendar</span>
+                            </button>
+                            <button type="button"
+                                    onclick="exportToAppleCalendar(
+                                        'Cita: {{ app.service.name|escapejs }} - {{ app.client.full_name|escapejs }}',
+                                        '{{ app.date|date:'Y-m-d'|default:app.date }}',
+                                        '{{ app.start_time }}',
+                                        '{{ app.end_time }}',
+                                        'Cliente: {{ app.client.full_name|escapejs }} ({{ app.client.phone }}). Especialista: {{ app.staff.full_name|escapejs }}',
+                                        '{{ business.address|escapejs }}'
+                                    )"
+                                    class="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 border-t border-slate-100 cursor-pointer">
+                                <i data-lucide="apple" class="w-3.5 h-3.5 text-slate-900 shrink-0"></i>
+                                <span>Apple / iCal (.ics)</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <a href="{% url 'appointment_edit' app.id %}" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
                         Editar
                     </a>
-                    <a href="{% url 'pos_terminal' %}?client_id={{ app.client.id }}&service_id={{ app.service.id }}&staff_id={{ app.staff.id }}" class="px-3.5 py-1.5 rounded-lg bg-slate-950 hover:bg-rose-900 text-white font-semibold text-xs transition flex items-center gap-1 shadow-sm">
-                        <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i> Cobrar POS
+
+                    {% if app.status == 'COMPLETED' %}
+                    <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs flex items-center gap-1 shrink-0">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i> Cobrado
+                    </span>
+                    {% else %}
+                    <a href="{% url 'pos_terminal' %}?appointment_id={{ app.id }}" class="px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-rose-900 text-white font-semibold text-xs transition flex items-center gap-1 shadow-sm shrink-0">
+                        <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i> Cobrar
                     </a>
+                    {% endif %}
                 </div>
             </div>
             {% empty %}
@@ -90,4 +162,120 @@
         </div>
     </div>
 </div>
+
+<script>
+    function formatIsoForCalendar(dateStr, timeStr) {
+        if (!dateStr) return '';
+        const cleanDate = dateStr.replace(/-/g, '');
+        let cleanTime = '100000';
+        if (timeStr) {
+            const parts = timeStr.split(':');
+            if (parts.length >= 2) {
+                cleanTime = parts[0].padStart(2, '0') + parts[1].padStart(2, '0') + '00';
+            }
+        }
+        return `${cleanDate}T${cleanTime}`;
+    }
+
+    function toggleExportDropdown(menuId, event) {
+        if (event) event.stopPropagation();
+        document.querySelectorAll('[id^="export-menu-"]').forEach(el => {
+            if (el.id !== menuId) el.classList.add('hidden');
+        });
+        const menu = document.getElementById(menuId);
+        if (menu) {
+            menu.classList.toggle('hidden');
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.export-dropdown-container')) {
+            document.querySelectorAll('[id^="export-menu-"]').forEach(el => el.classList.add('hidden'));
+        }
+    });
+
+    function sendWhatsappReminder(phone, clientFirstName, clientFullName, serviceName, dateStr, timeStr, staffName, businessName) {
+        if (!phone || phone === 'Sin teléfono' || phone.trim() === '') {
+            alert('El cliente no cuenta con un número de teléfono registrado.');
+            return;
+        }
+
+        let cleanPhone = phone.replace(/[^\d+]/g, '');
+        const clientDisplayName = clientFirstName || clientFullName || 'Cliente';
+        const message = `Hola ${clientDisplayName}, te recordamos tu cita de *${serviceName}* en *${businessName}* para el día *${dateStr}* a las *${timeStr} hs* con *${staffName}*. ¡Te esperamos!`;
+        
+        const formData = new FormData();
+        formData.append('phone', cleanPhone);
+        formData.append('message', message);
+
+        fetch('{% url "whatsapp_gateway_send_reminder" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.sent_direct) {
+                alert(`¡Recordatorio enviado directamente por WhatsApp a ${clientDisplayName}!`);
+            } else if (data.fallback_url) {
+                window.open(data.fallback_url, '_blank');
+            } else {
+                const whatsappUrl = `https://api.whatsapp.com/send?phone=${encodeURIComponent(cleanPhone)}&text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+            }
+        })
+        .catch(err => {
+            const whatsappUrl = `https://api.whatsapp.com/send?phone=${encodeURIComponent(cleanPhone)}&text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        });
+    }
+
+    function exportToGoogleCalendar(title, dateStr, startTimeStr, endTimeStr, details, location) {
+        document.querySelectorAll('[id^="export-menu-"]').forEach(el => el.classList.add('hidden'));
+        const startIso = formatIsoForCalendar(dateStr, startTimeStr);
+        const endIso = formatIsoForCalendar(dateStr, endTimeStr || startTimeStr);
+
+        const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+            `&text=${encodeURIComponent(title)}` +
+            `&dates=${startIso}/${endIso}` +
+            `&details=${encodeURIComponent(details)}` +
+            `&location=${encodeURIComponent(location)}`;
+
+        window.open(googleUrl, '_blank');
+    }
+
+    function exportToAppleCalendar(title, dateStr, startTimeStr, endTimeStr, details, location) {
+        document.querySelectorAll('[id^="export-menu-"]').forEach(el => el.classList.add('hidden'));
+        const startIso = formatIsoForCalendar(dateStr, startTimeStr);
+        const endIso = formatIsoForCalendar(dateStr, endTimeStr || startTimeStr);
+
+        const icsData = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//RauDie OS//Appointment Calendar//ES',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
+            `SUMMARY:${title}`,
+            `DESCRIPTION:${details}`,
+            `LOCATION:${location}`,
+            `DTSTART:${startIso}`,
+            `DTEND:${endIso}`,
+            'STATUS:CONFIRMED',
+            'END:VEVENT',
+            'END:VCALENDAR'
+        ].join('\r\n');
+
+        const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.setAttribute('download', `cita_${dateStr}.ics`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
 {% endblock %}

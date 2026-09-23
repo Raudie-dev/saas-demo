@@ -35,8 +35,31 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">WhatsApp / Teléfono</label>
-                    <input type="tel" name="phone" value="{{ client.phone|default:'' }}" placeholder="+5491133221100" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">WhatsApp / Teléfono *</label>
+                    <div class="flex rounded-xl overflow-hidden border border-slate-300 focus-within:ring-2 focus-within:ring-rose-800 bg-white">
+                        <select name="phone_prefix" class="bg-slate-100 text-slate-800 text-xs font-bold px-2.5 py-3 border-r border-slate-300 focus:outline-none cursor-pointer shrink-0">
+                            <option value="+54" {% if phone_prefix == '+54' or not phone_prefix %}selected{% endif %}>Argentina (+54)</option>
+                            <option value="+56" {% if phone_prefix == '+56' %}selected{% endif %}>Chile (+56)</option>
+                            <option value="+598" {% if phone_prefix == '+598' %}selected{% endif %}>Uruguay (+598)</option>
+                            <option value="+595" {% if phone_prefix == '+595' %}selected{% endif %}>Paraguay (+595)</option>
+                            <option value="+51" {% if phone_prefix == '+51' %}selected{% endif %}>Perú (+51)</option>
+                            <option value="+57" {% if phone_prefix == '+57' %}selected{% endif %}>Colombia (+57)</option>
+                            <option value="+52" {% if phone_prefix == '+52' %}selected{% endif %}>México (+52)</option>
+                            <option value="+58" {% if phone_prefix == '+58' %}selected{% endif %}>Venezuela (+58)</option>
+                            <option value="+34" {% if phone_prefix == '+34' %}selected{% endif %}>España (+34)</option>
+                            <option value="+1" {% if phone_prefix == '+1' %}selected{% endif %}>EE.UU. (+1)</option>
+                            <option value="+55" {% if phone_prefix == '+55' %}selected{% endif %}>Brasil (+55)</option>
+                            <option value="+591" {% if phone_prefix == '+591' %}selected{% endif %}>Bolivia (+591)</option>
+                            <option value="+593" {% if phone_prefix == '+593' %}selected{% endif %}>Ecuador (+593)</option>
+                            <option value="+507" {% if phone_prefix == '+507' %}selected{% endif %}>Panamá (+507)</option>
+                            <option value="+506" {% if phone_prefix == '+506' %}selected{% endif %}>Costa Rica (+506)</option>
+                            <option value="+502" {% if phone_prefix == '+502' %}selected{% endif %}>Guatemala (+502)</option>
+                            <option value="+503" {% if phone_prefix == '+503' %}selected{% endif %}>El Salvador (+503)</option>
+                            <option value="+504" {% if phone_prefix == '+504' %}selected{% endif %}>Honduras (+504)</option>
+                            <option value="+505" {% if phone_prefix == '+505' %}selected{% endif %}>Nicaragua (+505)</option>
+                        </select>
+                        <input type="tel" name="phone_number" value="{{ phone_number|default:'' }}" placeholder="91133221100" required class="w-full bg-white text-slate-900 px-3 py-3 text-sm focus:outline-none">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Correo Electrónico</label>
@@ -46,8 +69,8 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">RUT / RFC / NIF Fiscal</label>
-                    <input type="text" name="tax_id" value="{{ client.tax_id|default:'' }}" placeholder="Ej: 20-33445566-9" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">DNI / Número de Identidad</label>
+                    <input type="text" name="tax_id" value="{{ client.tax_id|default:'' }}" placeholder="Ej: 12345678" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Estado del Cliente</label>

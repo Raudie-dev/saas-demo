@@ -12,10 +12,19 @@
             <h3 class="font-bold text-slate-900 text-lg font-display">Egresos & Gastos Operativos</h3>
             <p class="text-xs text-slate-500 mt-0.5">Control de gastos fijos, insumos y pagos a proveedores</p>
         </div>
-        <a href="{% url 'expense_create' %}" class="px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition whitespace-nowrap">
-            <i data-lucide="plus" class="w-4 h-4"></i> Registrar Nuevo Gasto
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'export_expenses_excel' %}" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar Excel
+            </a>
+            <a href="{% url 'export_expenses_pdf' %}" target="_blank" class="px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Exportar PDF
+            </a>
+            <a href="{% url 'expense_create' %}" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap">
+                <i data-lucide="plus" class="w-4 h-4"></i> Registrar Nuevo Gasto
+            </a>
+        </div>
     </div>
+
 
     <!-- Expenses Table -->
     <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">

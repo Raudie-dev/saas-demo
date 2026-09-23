@@ -1,3 +1,5 @@
+import csv
+from django.http import HttpResponse
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from apps.business.models import Business
@@ -127,3 +129,56 @@ def product_category_create_view(request):
         'business': business,
         'title': 'Crear Nueva Categoría de Producto'
     })
+
+def export_inventory_excel(request):
+    business = getattr(request, 'current_business', None) or Business.objects.first()
+    products = Product.objects.filter(business=business) if business else []
+    
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="inventario_reporte.csv"'
+    
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow(['Producto', 'SKU', 'Categoría', 'Precio Costo', 'Precio Venta', 'Stock Actual', 'Stock Mínimo', 'Estado Stock'])
+    
+    for p in products:
+        status_stock = 'BAJO STOCK' if p.stock <= p.min_stock else 'OK'
+        writer.writerow([
+            p.name,
+            p.sku or '',
+            p.category.name if p.category else 'Sin categoría',
+            f"${p.cost_price:,.2f}",
+            f"${p.sale_price:,.2f}",
+            p.stock,
+            p.min_stock,
+            status_stock
+        ])
+        
+    return response
+
+def export_inventory_pdf(request):
+    business = getattr(request, 'current_business', None) or Business.objects.first()
+    products = Product.objects.filter(business=business) if business else []
+    
+    rows = []
+    total_val = Decimal('0.00')
+    for p in products:
+        val = p.sale_price * p.stock
+        total_val += val
+        rows.append({
+            'col1': p.name,
+            'col2': p.category.name if p.category else 'General',
+            'col3': f"${p.sale_price:,.2f}",
+            'col4': str(p.stock),
+            'col5': f"${val:,.2f}"
+        })
+        
+    return render(request, 'analytics/pdf_report.html', {
+        'title': 'Reporte de Inventario y Stock',
+        'subtitle': f'Stock de Productos - {business.name if business else ""}',
+        'business': business,
+        'headers': ['Producto', 'Categoría', 'Precio Venta', 'Stock', 'Valor Total'],
+        'rows': rows,
+        'summary': f'Valor Total Estimado en Stock: ${total_val:,.2f}'
+    })
+

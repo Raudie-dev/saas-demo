@@ -24,8 +24,15 @@ class Business(TimeStampedModel):
     branding_color = models.CharField(max_length=20, default="#881337", verbose_name="Color de Marca (Hex)")
     business_type = models.CharField(max_length=30, choices=BUSINESS_TYPE_CHOICES, default='MARKETING', verbose_name="Tipo de Agencia / Negocio")
     primary_goal = models.CharField(max_length=255, default="Captar clientes y automatizar ventas", verbose_name="Objetivo Principal")
+    TIME_FORMAT_CHOICES = [
+        ('12h', '12 Horas (ej: 09:00 AM / 09:00 PM)'),
+        ('24h', '24 Horas (ej: 09:00 / 21:00)'),
+    ]
+
     enabled_modules = models.JSONField(default=list, blank=True, verbose_name="Módulos Habilitados")
     onboarding_completed = models.BooleanField(default=False, verbose_name="Onboarding Completado")
+    time_format = models.CharField(max_length=10, choices=TIME_FORMAT_CHOICES, default='12h', verbose_name="Formato de Hora")
+    allow_editing_client_history = models.BooleanField(default=True, verbose_name="Permitir editar el historial de servicios de clientes")
 
     class Meta:
         verbose_name = "Negocio"

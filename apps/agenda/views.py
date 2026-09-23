@@ -46,6 +46,14 @@ def appointment_create_view(request):
     selected_date = request.GET.get('date', datetime.date.today().isoformat())
     selected_time = request.GET.get('start_time', '')
 
+    days_param = request.GET.get('days')
+    rebook_info = None
+    if days_param and days_param.isdigit():
+        num_days = int(days_param)
+        calc_date = datetime.date.today() + datetime.timedelta(days=num_days)
+        selected_date = calc_date.isoformat()
+        rebook_info = f"Reagendando cita en {num_days} días (Fecha calculada: {calc_date.strftime('%d/%m/%Y')})"
+
     if request.method == 'POST':
         client_id = request.POST.get('client_id')
         staff_id = request.POST.get('staff_id')
@@ -88,6 +96,7 @@ def appointment_create_view(request):
         'selected_staff_id': selected_staff_id,
         'selected_service_id': selected_service_id,
         'selected_time': selected_time,
+        'rebook_info': rebook_info,
         'title': 'Agendar Nueva Cita'
     })
 
@@ -211,13 +220,20 @@ def service_category_create_view(request):
         'title': 'Crear Nueva Categoría de Servicio'
     })
 
+from apps.business.models import Business, StaffMember, WorkSchedule
+
 def appointment_calendar_view(request):
     business = getattr(request, 'current_business', None) or Business.objects.first()
     staff_members = StaffMember.objects.filter(business=business, is_active=True) if business else []
 
+    slot_min_time = "00:00:00"
+    slot_max_time = "24:00:00"
+
     return render(request, 'agenda/calendar.html', {
         'business': business,
         'staff_members': staff_members,
+        'slot_min_time': slot_min_time,
+        'slot_max_time': slot_max_time,
     })
 
 def appointment_events_api(request):

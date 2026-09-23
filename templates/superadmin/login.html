@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-white">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperAdmin Login - BusinessOS Platform Root</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+    </style>
+</head>
+<body class="h-full flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-950 via-slate-950 to-black text-white relative overflow-hidden">
+
+    <!-- Background Subtle Glowing Accents -->
+    <div class="absolute -top-32 -left-32 w-96 h-96 bg-rose-900/30 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-rose-950/40 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="w-full max-w-md relative z-10 space-y-6">
+
+        <!-- Header Branding -->
+        <div class="text-center space-y-2">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-900 to-rose-950 border border-rose-700/60 flex items-center justify-center text-white font-extrabold font-display text-2xl mx-auto shadow-xl shadow-rose-950/50">
+                <i data-lucide="shield-check" class="w-9 h-9 text-rose-200"></i>
+            </div>
+            <h1 class="text-2xl font-extrabold font-display text-white tracking-tight">RauDie OS</h1>
+            <p class="text-xs text-rose-300/80 font-medium uppercase tracking-widest">Control Center SuperAdmin</p>
+        </div>
+
+        <!-- Login Form Card -->
+        <div class="bg-slate-900/90 border border-rose-900/40 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-5">
+            <div>
+                <h2 class="text-lg font-bold font-display text-white">Acceso Exclusivo de Plataforma</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Ingresa con tus credenciales de superusuario o administrador root.</p>
+            </div>
+
+            {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                <div class="p-3.5 rounded-xl text-xs font-bold bg-rose-950/80 border border-rose-800 text-rose-200 flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 text-rose-400"></i>
+                    <span>{{ message }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="POST" class="space-y-4 text-xs">
+                {% csrf_token %}
+
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1.5">Usuario o Correo Electrónico Admin</label>
+                    <div class="relative">
+                        <input type="text" name="username" required placeholder="admin@businessos.com" class="w-full bg-slate-950/80 border border-slate-800 text-white rounded-xl p-3 pl-10 text-xs font-semibold focus:outline-none focus:border-rose-600 transition">
+                        <i data-lucide="user" class="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1.5">Contraseña Root / Admin</label>
+                    <div class="relative">
+                        <input type="password" name="password" required placeholder="••••••••••••" class="w-full bg-slate-950/80 border border-slate-800 text-white rounded-xl p-3 pl-10 text-xs font-semibold focus:outline-none focus:border-rose-600 transition">
+                        <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5"></i>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-rose-900 to-rose-950 hover:from-rose-800 hover:to-rose-900 text-white font-extrabold text-sm shadow-lg shadow-rose-900/30 transition flex items-center justify-center gap-2 border border-rose-700/60 mt-2">
+                    <i data-lucide="key-round" class="w-4 h-4"></i>
+                    <span>Ingresar al Control Center</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-[11px] text-slate-500 font-medium">
+            Entorno Seguro • <strong class="text-slate-400 font-display">BusinessOS SuperAdmin</strong>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte {{ report_title }} - {{ business.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #ffffff !important; color: #000000 !important; }
+            .page-card { border: none !important; box-shadow: none !important; padding: 0 !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans p-4 sm:p-8">
+
+    <!-- Action Bar for Printing / Downloading PDF -->
+    <div class="no-print max-w-4xl mx-auto mb-6 flex items-center justify-between bg-slate-950 text-white p-4 rounded-2xl shadow-lg border border-slate-800">
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="font-bold text-sm">Vista Previa para Exportar en PDF / Imprimir</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs shadow transition flex items-center gap-2 cursor-pointer">
+                🖨️ Imprimir / Guardar como PDF
+            </button>
+            <button onclick="window.close(); history.back();" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                Volver
+            </button>
+        </div>
+    </div>
+
+    <!-- Printable Report Document -->
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 page-card">
+        
+        <!-- Header -->
+        <div class="flex items-start justify-between border-b border-slate-200 pb-6">
+            <div class="space-y-1">
+                <span class="text-xs font-bold text-rose-900 tracking-wider uppercase">RauDie OS • Sistema Operativo SaaS</span>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight font-display">{{ business.name }}</h1>
+                <p class="text-xs text-slate-500">{{ business.address|default:'Sucursal Principal' }} • Tel: {{ business.phone|default:'Sin teléfono' }} • Email: {{ business.email }}</p>
+                <p class="text-xs font-bold text-slate-700 pt-1">Período de Análisis: <span class="text-brand-900">{{ start_date|date:"d/m/Y" }} al {{ end_date|date:"d/m/Y" }}</span></p>
+            </div>
+            <div class="text-right space-y-1">
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200 inline-block uppercase">
+                    {{ report_title }}
+                </span>
+                <p class="text-[11px] text-slate-400 font-mono">Generado: {{ generated_at|date:"d/m/Y H:i" }} hs</p>
+            </div>
+        </div>
+
+        <!-- KPI Summary Cards -->
+        <div class="grid grid-cols-4 gap-3">
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <span class="text-[10px] text-slate-500 font-bold block uppercase tracking-wider">Ventas Totales</span>
+                <strong class="text-lg font-extrabold text-slate-900 mt-1 block">{{ business.currency }}{{ total_sales|floatformat:2 }}</strong>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <span class="text-[10px] text-slate-500 font-bold block uppercase tracking-wider">Gastos Operativos</span>
+                <strong class="text-lg font-extrabold text-slate-900 mt-1 block">{{ business.currency }}{{ total_expenses|floatformat:2 }}</strong>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <span class="text-[10px] text-slate-500 font-bold block uppercase tracking-wider">Utilidad Neta</span>
+                <strong class="text-lg font-extrabold {% if net_profit >= 0 %}text-emerald-700{% else %}text-rose-900{% endif %} mt-1 block">
+                    {{ business.currency }}{{ net_profit|floatformat:2 }}
+                </strong>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <span class="text-[10px] text-slate-500 font-bold block uppercase tracking-wider">Cuentas por Cobrar</span>
+                <strong class="text-lg font-extrabold text-amber-700 mt-1 block">{{ business.currency }}{{ accounts_receivable|floatformat:2 }}</strong>
+            </div>
+        </div>
+
+        <!-- PROYECCIONES FINANCIERAS Y RESERVAS -->
+        <div class="p-5 rounded-2xl bg-slate-900 text-white space-y-3">
+            <h3 class="font-bold text-xs uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+                <span>🔮 Proyecciones Financieras y Reservas Futuras</span>
+            </h3>
+            <div class="grid grid-cols-3 gap-4 text-xs border-t border-slate-800 pt-3">
+                <div>
+                    <span class="text-slate-400 block">Reservas 7 Días:</span>
+                    <strong class="text-emerald-400 text-sm font-black">{{ business.currency }}{{ upcoming_7d_revenue|floatformat:2 }}</strong>
+                    <span class="text-[10px] text-slate-400 block">({{ upcoming_7d_count }} citas confirmadas)</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Reservas 30 Días:</span>
+                    <strong class="text-emerald-400 text-sm font-black">{{ business.currency }}{{ upcoming_30d_revenue|floatformat:2 }}</strong>
+                    <span class="text-[10px] text-slate-400 block">({{ upcoming_30d_count }} citas confirmadas)</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Proyección Fin de Mes (Run-Rate):</span>
+                    <strong class="text-amber-300 text-sm font-black">{{ business.currency }}{{ projected_monthly_sales|floatformat:2 }}</strong>
+                    <span class="text-[10px] text-slate-400 block">(Venta prom. {{ business.currency }}{{ daily_avg_sales|floatformat:0 }}/día)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CRM Clients Overview -->
+        {% if clients_active is not None %}
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <h3 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Resumen de Cartera de Clientes (CRM)</h3>
+            <div class="grid grid-cols-3 gap-3 text-xs">
+                <div>Clientes Activos: <strong class="text-slate-900">{{ clients_active }}</strong></div>
+                <div>Clientes VIP / Frecuentes: <strong class="text-rose-900">{{ clients_vip }}</strong></div>
+                <div>Clientes Inactivos (+60d): <strong class="text-slate-600">{{ clients_inactive }}</strong></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Staff Performance Table -->
+        {% if staff_reports %}
+        <div class="space-y-3 pt-2">
+            <h3 class="font-bold text-slate-900 text-sm border-b border-slate-200 pb-2 font-display">Desempeño y Producción por Colaborador</h3>
+            <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-bold tracking-wider">
+                        <tr>
+                            <th class="p-3">Profesional</th>
+                            <th class="p-3">Especialidad</th>
+                            <th class="p-3 text-center">Citas Atendidas</th>
+                            <th class="p-3 text-right">Total Generado</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 font-medium">
+                        {% for st in staff_reports %}
+                        <tr>
+                            <td class="p-3 font-bold text-slate-900">{{ st.full_name }}</td>
+                            <td class="p-3 text-slate-600">{{ st.role_title }}</td>
+                            <td class="p-3 text-center font-bold text-slate-800">{{ st.appointments_completed }}</td>
+                            <td class="p-3 text-right font-extrabold text-emerald-700">{{ business.currency }}{{ st.total_sales_amount|default:"0.00" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Transactions -->
+        {% if recent_sales %}
+        <div class="space-y-3 pt-2">
+            <h3 class="font-bold text-slate-900 text-sm border-b border-slate-200 pb-2 font-display">Registro de Ventas Recientes</h3>
+            <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-bold tracking-wider">
+                        <tr>
+                            <th class="p-3">ID Venta</th>
+                            <th class="p-3">Fecha / Hora</th>
+                            <th class="p-3">Cliente</th>
+                            <th class="p-3">Profesional</th>
+                            <th class="p-3">Medio de Pago</th>
+                            <th class="p-3 text-right">Monto Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 font-medium">
+                        {% for sale in recent_sales %}
+                        <tr>
+                            <td class="p-3 font-mono font-bold text-rose-900">#{{ sale.id|stringformat:".8s" }}</td>
+                            <td class="p-3 text-slate-900">{{ sale.created_at|date:"d/m/Y H:i" }} hs</td>
+                            <td class="p-3 font-bold text-slate-900">{% if sale.client %}{{ sale.client.full_name }}{% else %}Cliente Mostrador{% endif %}</td>
+                            <td class="p-3 text-slate-700">{% if sale.staff %}{{ sale.staff.full_name }}{% else %}-{% endif %}</td>
+                            <td class="p-3 font-semibold text-slate-800">{{ sale.payment_method }}</td>
+                            <td class="p-3 text-right font-extrabold text-slate-900">{{ business.currency }}{{ sale.total_amount }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="pt-6 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400 font-mono">
+            <span>RauDie OS • Reporte Generado Oficial</span>
+            <span>Página 1 de 1</span>
+        </div>
+    </div>
+
+</body>
+</html>

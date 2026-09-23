@@ -16,16 +16,52 @@
         </a>
     </div>
 
+    {% if rebook_info %}
+    <div class="p-4 rounded-2xl bg-rose-900 text-white shadow-md border border-rose-800 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+            <i data-lucide="repeat" class="w-5 h-5 text-rose-200"></i>
+            <span class="text-xs font-bold">{{ rebook_info }}</span>
+        </div>
+        <span class="text-[11px] font-semibold bg-white/20 px-2.5 py-0.5 rounded-full">Fecha Auto-Calculada</span>
+    </div>
+    {% endif %}
+
+    {% if appointment %}
+    <div class="p-4 rounded-2xl bg-slate-900 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="space-y-0.5">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-rose-300">Modificación de Cita</span>
+            <h4 class="text-xs font-bold">Cita de {{ appointment.client.full_name }} — {{ appointment.service.name }}</h4>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            {% if appointment.status == 'COMPLETED' %}
+            <span class="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm flex items-center gap-1.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4"></i> Cita Ya Cobrada
+            </span>
+            {% else %}
+            <a href="{% url 'pos_terminal' %}?appointment_id={{ appointment.id }}" class="px-3.5 py-1.5 rounded-xl bg-rose-900 hover:bg-rose-800 text-white text-xs font-bold shadow-sm transition flex items-center gap-1">
+                <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i> Cobrar esta Cita
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="glass-card p-8 rounded-2xl border border-slate-200 space-y-6">
         <form method="POST" autocomplete="off" class="space-y-6">
             {% csrf_token %}
 
             <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Cliente</label>
-                <select name="client_id" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-semibold text-slate-700">Cliente *</label>
+                    <button type="button" onclick="openQuickClientModal()" class="px-3 py-1 bg-rose-900 hover:bg-rose-950 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                        <span>+ Nuevo Cliente</span>
+                    </button>
+                </div>
+                <select id="client_id_select" name="client_id" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
                     <option value="" disabled {% if not appointment and not selected_client_id %}selected{% endif %}>Seleccionar Cliente</option>
                     {% for client in clients %}
-                    <option value="{{ client.id }}" {% if appointment and appointment.client.id == client.id or selected_client_id == client.id|stringformat:"s" %}selected{% endif %}>{{ client.full_name }} ({{ client.phone }})</option>
+                    <option value="{{ client.id }}" {% if appointment and appointment.client.id == client.id or selected_client_id == client.id|stringformat:"s" %}selected{% endif %}>{{ client.full_name }} {% if client.phone %}({{ client.phone }}){% endif %}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -53,8 +89,16 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha</label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-slate-700">Fecha</label>
+                        <span class="text-[10px] text-slate-400">Reagendar:</span>
+                    </div>
                     <input type="date" name="date" value="{% if appointment %}{{ appointment.date|date:'Y-m-d' }}{% else %}{{ today_date }}{% endif %}" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                    <div class="flex items-center gap-1.5 mt-1.5">
+                        <button type="button" onclick="addDaysToDateField(7)" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition">+7d</button>
+                        <button type="button" onclick="addDaysToDateField(15)" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition">+15d</button>
+                        <button type="button" onclick="addDaysToDateField(30)" class="px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 text-[11px] font-bold transition">+1 Mes</button>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Hora Inicio</label>
@@ -83,4 +127,187 @@
         </form>
     </div>
 </div>
+
+<!-- ========================================== -->
+<!-- MODAL: CREAR CLIENTE RÁPIDO AGENDA         -->
+<!-- ========================================== -->
+<div id="quick-client-modal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-8 space-y-5 relative animate-in fade-in zoom-in-95 duration-200">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-base text-slate-900">Registrar Nuevo Cliente</h3>
+                    <p class="text-xs text-slate-500">Se agregará al CRM y se seleccionará para esta cita.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeQuickClientModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form id="quick-client-form" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <div id="quick-client-error" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 font-semibold text-xs"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nombre *</label>
+                    <input type="text" id="qc-first-name" required placeholder="Ej: María" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Apellido</label>
+                    <input type="text" id="qc-last-name" placeholder="Ej: Pérez" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Teléfono / WhatsApp *</label>
+                    <div class="flex rounded-xl overflow-hidden border border-slate-300 focus-within:ring-2 focus-within:ring-rose-800 bg-slate-50">
+                        <select id="qc-phone-prefix" class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-2.5 border-r border-slate-300 focus:outline-none cursor-pointer shrink-0">
+                            <option value="+54" selected>Argentina (+54)</option>
+                            <option value="+56">Chile (+56)</option>
+                            <option value="+598">Uruguay (+598)</option>
+                            <option value="+595">Paraguay (+595)</option>
+                            <option value="+51">Perú (+51)</option>
+                            <option value="+57">Colombia (+57)</option>
+                            <option value="+52">México (+52)</option>
+                            <option value="+58">Venezuela (+58)</option>
+                            <option value="+34">España (+34)</option>
+                            <option value="+1">EE.UU. (+1)</option>
+                            <option value="+55">Brasil (+55)</option>
+                            <option value="+591">Bolivia (+591)</option>
+                            <option value="+593">Ecuador (+593)</option>
+                            <option value="+507">Panamá (+507)</option>
+                            <option value="+506">Costa Rica (+506)</option>
+                            <option value="+502">Guatemala (+502)</option>
+                            <option value="+503">El Salvador (+503)</option>
+                            <option value="+504">Honduras (+504)</option>
+                            <option value="+505">Nicaragua (+505)</option>
+                        </select>
+                        <input type="text" id="qc-phone" placeholder="91133221100" class="w-full bg-slate-50 text-slate-900 rounded-r-xl p-2.5 font-bold focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">DNI / Número de Identidad</label>
+                    <input type="text" id="qc-tax-id" placeholder="Ej: 12345678" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Correo Electrónico (Opcional)</label>
+                <input type="email" id="qc-email" placeholder="cliente@email.com" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+            </div>
+
+            <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeQuickClientModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" id="qc-submit-btn" class="px-5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openQuickClientModal() {
+        document.getElementById('quick-client-modal').classList.remove('hidden');
+        document.getElementById('qc-first-name').focus();
+    }
+
+    function closeQuickClientModal() {
+        document.getElementById('quick-client-modal').classList.add('hidden');
+        document.getElementById('quick-client-error').classList.add('hidden');
+    }
+
+    document.getElementById('quick-client-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const firstName = document.getElementById('qc-first-name').value.trim();
+        const lastName = document.getElementById('qc-last-name').value.trim();
+        const phonePrefix = document.getElementById('qc-phone-prefix').value.trim();
+        const phoneNumber = document.getElementById('qc-phone').value.trim();
+        const taxId = document.getElementById('qc-tax-id').value.trim();
+        const email = document.getElementById('qc-email').value.trim();
+        const errorDiv = document.getElementById('quick-client-error');
+        const submitBtn = document.getElementById('qc-submit-btn');
+
+        if (!firstName) {
+            errorDiv.textContent = 'El nombre del cliente es obligatorio.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('first_name', firstName);
+        formData.append('last_name', lastName);
+        formData.append('phone_prefix', phonePrefix);
+        formData.append('phone_number', phoneNumber);
+        formData.append('tax_id', taxId);
+        formData.append('email', email);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Guardando...';
+
+        fetch('{% url "pos_quick_client" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar';
+
+            if (data.success) {
+                const select = document.getElementById('client_id_select');
+                const phoneText = data.phone ? ` (${data.phone})` : '';
+                const newOption = new Option(`${data.full_name}${phoneText}`, data.client_id, true, true);
+                select.add(newOption);
+                select.value = data.client_id;
+
+                document.getElementById('qc-first-name').value = '';
+                document.getElementById('qc-last-name').value = '';
+                document.getElementById('qc-phone').value = '';
+                document.getElementById('qc-tax-id').value = '';
+                document.getElementById('qc-email').value = '';
+
+                closeQuickClientModal();
+                if (window.lucide) lucide.createIcons();
+            } else {
+                errorDiv.textContent = data.error || 'Error al registrar el cliente.';
+                errorDiv.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar';
+            errorDiv.textContent = 'Error de conexión. Intenta nuevamente.';
+            errorDiv.classList.remove('hidden');
+        });
+    });
+
+    function addDaysToDateField(daysToAdd) {
+        const dateInput = document.querySelector('input[name="date"]');
+        if (!dateInput) return;
+        let baseDate = dateInput.value ? new Date(dateInput.value + 'T00:00:00') : new Date();
+        if (isNaN(baseDate.getTime())) baseDate = new Date();
+        baseDate.setDate(baseDate.getDate() + daysToAdd);
+        const yyyy = baseDate.getFullYear();
+        const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(baseDate.getDate()).padStart(2, '0');
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+</script>
 {% endblock %}

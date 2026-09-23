@@ -1,16 +1,32 @@
 import uuid
+import datetime
+import json
+import urllib.request
+import urllib.parse
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib import messages
 from django.utils.text import slugify
+from django.utils import timezone
 from apps.business.models import Business, Branch, StaffMember, WorkSchedule, PaymentMethodConfig, User
 from apps.core.utils import parse_decimal, parse_int
 
+@ensure_csrf_cookie
 def landing_view(request):
-    return render(request, 'business/landing.html')
+    if request.user.is_authenticated or request.GET.get('pwa') == '1' or request.GET.get('mode') == 'pwa':
+        return redirect('dashboard')
+    from apps.superadmin.models import SubscriptionPlan
+    from apps.superadmin.views import _ensure_default_plans
+    _ensure_default_plans()
+    plans = SubscriptionPlan.objects.filter(is_active=True, show_on_landing=True).order_by('monthly_price')
+    return render(request, 'business/landing.html', {'plans': plans})
 
+
+@ensure_csrf_cookie
 def login_view(request):
     if request.user.is_authenticated:
         if hasattr(request.user, 'business') and request.user.business and not request.user.business.onboarding_completed:
@@ -37,6 +53,7 @@ def login_view(request):
 
     return render(request, 'business/login.html')
 
+@ensure_csrf_cookie
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -121,11 +138,15 @@ def register_view(request):
     return render(request, 'business/register.html')
 
 def logout_view(request):
+    storage = messages.get_messages(request)
+    for _ in storage:
+        pass
     logout(request)
     messages.info(request, "Has cerrado sesión correctamente.")
     return redirect('login')
 
 @login_required(login_url='login')
+@ensure_csrf_cookie
 def onboarding_view(request):
     user = request.user
     business = getattr(user, 'business', None) or Business.objects.first()
@@ -255,6 +276,7 @@ def onboarding_view(request):
     })
 
 @login_required(login_url='login')
+@ensure_csrf_cookie
 def business_config_view(request):
     business = getattr(request, 'current_business', None)
     if not business and hasattr(request.user, 'business') and request.user.business:
@@ -276,6 +298,8 @@ def business_config_view(request):
         business.branding_color = request.POST.get('branding_color', business.branding_color).strip()
         business.business_type = request.POST.get('business_type', business.business_type)
         business.primary_goal = request.POST.get('primary_goal', business.primary_goal).strip()
+        business.time_format = request.POST.get('time_format', getattr(business, 'time_format', '12h'))
+        business.allow_editing_client_history = (request.POST.get('allow_editing_client_history') == 'on' or request.POST.get('allow_editing_client_history') == 'true')
         
         selected_modules = request.POST.getlist('enabled_modules')
         if selected_modules:
@@ -301,12 +325,88 @@ def business_config_view(request):
             request.user.phone = user_phone
         request.user.save()
 
+        # Save agency working hours schedule
+        primary_staff = StaffMember.objects.filter(business=business).first()
+        if primary_staff:
+            for day in range(7):
+                is_working = request.POST.get(f'schedule_active_{day}') == 'on'
+                start_time = request.POST.get(f'schedule_start_{day}', '09:00')
+                end_time = request.POST.get(f'schedule_end_{day}', '19:00')
+                WorkSchedule.objects.update_or_create(
+                    staff=primary_staff,
+                    day_of_week=day,
+                    defaults={
+                        'start_time': start_time,
+                        'end_time': end_time,
+                        'is_working_day': is_working
+                    }
+                )
+
+        # Update Subscription Plan if selected
+        selected_plan_id = request.POST.get('selected_plan_id')
+        if selected_plan_id:
+            from apps.superadmin.models import SubscriptionPlan, BusinessSubscription
+            new_plan = SubscriptionPlan.objects.filter(id=selected_plan_id).first()
+            if new_plan:
+                sub, _ = BusinessSubscription.objects.get_or_create(
+                    business=business,
+                    defaults={'status': 'ACTIVE', 'expiration_date': timezone.now().date() + datetime.timedelta(days=30)}
+                )
+                sub.plan = new_plan
+                sub.save()
+
         business.save()
         messages.success(request, f"¡Configuración de {business.name} actualizada correctamente!")
         return redirect('business_config')
 
     branches = Branch.objects.filter(business=business) if business else []
     payment_methods = PaymentMethodConfig.objects.filter(business=business) if business else []
+
+    # Load subscription and available plans
+    from apps.superadmin.models import SubscriptionPlan, BusinessSubscription
+    subscription = getattr(business, 'subscription', None) if business else None
+    available_plans = SubscriptionPlan.objects.filter(is_active=True)
+
+    # Load working hours schedule
+    primary_staff = StaffMember.objects.filter(business=business).first() if business else None
+    schedules = []
+    days_label = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+    if primary_staff:
+        existing_schedules = {s.day_of_week: s for s in WorkSchedule.objects.filter(staff=primary_staff)}
+        for day_code in range(7):
+            sched = existing_schedules.get(day_code)
+            default_start = "09:00"
+            default_end = "14:00" if day_code == 5 else "19:00"
+            default_active = (day_code < 6)
+
+            start_val = default_start
+            end_val = default_end
+            is_active = default_active
+
+            if sched:
+                is_active = sched.is_working_day
+                start_val = sched.start_time.strftime('%H:%M') if hasattr(sched.start_time, 'strftime') else str(sched.start_time)[:5]
+                end_val = sched.end_time.strftime('%H:%M') if hasattr(sched.end_time, 'strftime') else str(sched.end_time)[:5]
+
+            def to_12h(t_str):
+                try:
+                    parts = t_str.split(':')
+                    h, m = int(parts[0]), int(parts[1])
+                    ampm = 'PM' if h >= 12 else 'AM'
+                    h12 = h % 12 or 12
+                    return f"{h12:02d}:{m:02d} {ampm}"
+                except Exception:
+                    return t_str
+
+            schedules.append({
+                'day_code': day_code,
+                'day_name': days_label[day_code],
+                'is_working_day': is_active,
+                'start_time': start_val,
+                'end_time': end_val,
+                'start_12h': to_12h(start_val),
+                'end_12h': to_12h(end_val),
+            })
 
     all_modules = [
         {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users'},
@@ -320,12 +420,28 @@ def business_config_view(request):
         {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag'},
     ]
 
+    session_user = str(business.id) if business else "default"
+    gw_status = {'online': False, 'status': 'offline'}
+    try:
+        url = f"http://127.0.0.1:3000/status?user={session_user}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            gw_status = {'online': True, 'status': data.get('status', 'disconnected')}
+    except Exception:
+        gw_status = {'online': False, 'status': 'offline'}
+
     return render(request, 'business/config.html', {
         'business': business,
         'branches': branches,
         'payment_methods': payment_methods,
         'all_modules': all_modules,
+        'schedules': schedules,
+        'subscription': subscription,
+        'available_plans': available_plans,
         'business_types': Business.BUSINESS_TYPE_CHOICES,
+        'time_format_choices': getattr(Business, 'TIME_FORMAT_CHOICES', [('12h', '12 Horas'), ('24h', '24 Horas')]),
+        'gw_status': gw_status,
     })
 
 def staff_list_view(request):
@@ -405,4 +521,129 @@ def staff_edit_view(request, staff_id):
         'branches': branches,
         'title': f'Editar Profesional: {staff.full_name}'
     })
+
+# ==============================================================================
+# WHATSAPP GATEWAY API PROXY VIEWS (Node.js microservice integration)
+# ==============================================================================
+
+GATEWAY_BASE_URL = "http://127.0.0.1:3000"
+
+def _gw_user(business):
+    return str(business.id) if business else "default"
+
+@ensure_csrf_cookie
+def whatsapp_gateway_status_api(request):
+    business = getattr(request, 'current_business', None) or Business.objects.first()
+    session_user = _gw_user(business)
+    try:
+        url = f"{GATEWAY_BASE_URL}/status?user={session_user}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            return JsonResponse({'online': True, 'status': data.get('status', 'disconnected')})
+    except Exception as e:
+        return JsonResponse({'online': False, 'status': 'offline', 'error': str(e)})
+
+@ensure_csrf_cookie
+def whatsapp_gateway_qr_api(request):
+    business = getattr(request, 'current_business', None) or Business.objects.first()
+    session_user = _gw_user(business)
+    try:
+        url = f"{GATEWAY_BASE_URL}/qr?user={session_user}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            return JsonResponse({'online': True, 'qr': data.get('qr'), 'status': data.get('status', 'disconnected')})
+    except Exception as e:
+        return JsonResponse({'online': False, 'qr': None, 'status': 'offline', 'error': str(e)})
+
+@ensure_csrf_cookie
+def whatsapp_gateway_generate_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+    business = getattr(request, 'current_business', None) or Business.objects.first()
+    session_user = _gw_user(business)
+    try:
+        url = f"{GATEWAY_BASE_URL}/generate?user={session_user}"
+        req = urllib.request.Request(url, data=b'{}', headers={'Content-Type': 'application/json', 'User-Agent': 'Django-RauDieOS'})
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            return JsonResponse({'success': True, 'qr': data.get('qr'), 'status': 'initializing'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f"Microservicio no responde en {GATEWAY_BASE_URL}. Inicia el gateway ejecutando 'npm start' dentro de la carpeta whatsapp-gateway."})
+
+@ensure_csrf_cookie
+def whatsapp_gateway_unlink_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+    business = getattr(request, 'current_business', None) or Business.objects.first()
+    session_user = _gw_user(business)
+    try:
+        url = f"{GATEWAY_BASE_URL}/unlink?user={session_user}"
+        req = urllib.request.Request(url, data=b'{}', headers={'Content-Type': 'application/json', 'User-Agent': 'Django-RauDieOS'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            return JsonResponse({'success': True, 'status': 'unlinked'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@ensure_csrf_cookie
+def whatsapp_gateway_send_reminder_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+    business = getattr(request, 'current_business', None) or Business.objects.first()
+    session_user = _gw_user(business)
+
+    phone = request.POST.get('phone', '').strip()
+    message = request.POST.get('message', '').strip()
+
+    if not phone or not message:
+        return JsonResponse({'success': False, 'error': 'Faltan parámetros requeridos (phone, message)'}, status=400)
+
+    clean_phone = ''.join(filter(str.isdigit, phone))
+    
+    # Check if gateway is active and connected
+    try:
+        status_url = f"{GATEWAY_BASE_URL}/status?user={session_user}"
+        st_req = urllib.request.Request(status_url, headers={'User-Agent': 'Django-RauDieOS'})
+        with urllib.request.urlopen(st_req, timeout=2) as st_resp:
+            st_data = json.loads(st_resp.read().decode('utf-8'))
+            if st_data.get('status') == 'connected':
+                send_url = f"{GATEWAY_BASE_URL}/send?user={session_user}"
+                payload = json.dumps({'number': clean_phone, 'message': message}).encode('utf-8')
+                send_req = urllib.request.Request(send_url, data=payload, headers={'Content-Type': 'application/json', 'User-Agent': 'Django-RauDieOS'})
+                with urllib.request.urlopen(send_req, timeout=6) as send_resp:
+                    send_data = json.loads(send_resp.read().decode('utf-8'))
+                    if send_data.get('ok'):
+                        return JsonResponse({'success': True, 'sent_direct': True, 'message': 'Mensaje enviado directamente por WhatsApp Gateway'})
+    except Exception as e:
+        pass
+
+    fallback_url = f"https://api.whatsapp.com/send?phone={urllib.parse.quote(clean_phone)}&text={urllib.parse.quote(message)}"
+    return JsonResponse({'success': True, 'sent_direct': False, 'fallback_url': fallback_url})
+
+def manifest_view(request):
+    from django.conf import settings
+    from django.http import HttpResponse
+    manifest_path = settings.BASE_DIR / 'static' / 'manifest.json'
+    if manifest_path.exists():
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return HttpResponse(content, content_type='application/manifest+json')
+    return HttpResponse('{}', content_type='application/manifest+json')
+
+def service_worker_view(request):
+    from django.conf import settings
+    from django.http import HttpResponse
+    sw_path = settings.BASE_DIR / 'static' / 'sw.js'
+    if sw_path.exists():
+        with open(sw_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return HttpResponse(content, content_type='application/javascript')
+    return HttpResponse('console.log("No sw found");', content_type='application/javascript')
+
+def offline_view(request):
+    return render(request, 'offline.html')
+
+
 

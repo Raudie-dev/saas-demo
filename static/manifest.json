@@ -1,0 +1,87 @@
+{
+  "name": "RauDie OS - Sistema de Gestión y Administración",
+  "short_name": "RauDie OS",
+  "description": "Plataforma SaaS de gestión integral de negocios, agenda de citas, terminal POS, control de caja y clientes.",
+  "start_url": "/dashboard/?pwa=1",
+
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#881337",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/static/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Agenda & Citas",
+      "short_name": "Agenda",
+      "description": "Ver turnos y calendario de citas",
+      "url": "/agenda/",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Terminal POS",
+      "short_name": "Terminal POS",
+      "description": "Abrir punto de venta y cobro rápido",
+      "url": "/pos/terminal/",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Control de Caja",
+      "short_name": "Caja",
+      "description": "Arqueo y cierre de turno de caja",
+      "url": "/pos/caja/",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Directorio Clientes",
+      "short_name": "Clientes",
+      "description": "Gestión de clientes y contactos CRM",
+      "url": "/crm/clientes/",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

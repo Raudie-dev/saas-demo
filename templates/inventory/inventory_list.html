@@ -12,16 +12,23 @@
             <h3 class="font-bold text-slate-900 text-lg font-display">Catálogo de Productos & Insumos</h3>
             <p class="text-xs text-slate-500 mt-0.5">Control de existencia en almacén, niveles mínimos y precios de venta</p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{% url 'product_category_create' %}" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold flex items-center gap-2 border border-slate-300 transition">
+        <div class="flex items-center gap-2">
+            <a href="{% url 'export_inventory_excel' %}" class="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar Excel
+            </a>
+            <a href="{% url 'export_inventory_pdf' %}" target="_blank" class="px-3.5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition whitespace-nowrap">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Exportar PDF
+            </a>
+            <a href="{% url 'product_category_create' %}" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold flex items-center gap-1.5 border border-slate-300 transition">
                 <i data-lucide="folder-plus" class="w-4 h-4 text-rose-900"></i>
                 Agregar Categoría
             </a>
-            <a href="{% url 'product_create' %}" class="px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm flex items-center gap-2 shadow-md shadow-rose-900/20 transition whitespace-nowrap">
-                <i data-lucide="plus" class="w-4 h-4"></i> Crear Nuevo Producto
+            <a href="{% url 'product_create' %}" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-semibold text-xs flex items-center gap-1.5 shadow-md transition whitespace-nowrap">
+                <i data-lucide="plus" class="w-4 h-4"></i> Crear Producto
             </a>
         </div>
     </div>
+
 
     <!-- Products Table -->
     <div class="glass-card rounded-2xl overflow-hidden border border-slate-200">

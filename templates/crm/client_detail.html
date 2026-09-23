@@ -1,81 +1,292 @@
 {% extends 'base.html' %}
 
-{% block title %}Ficha 360 - {{ client.full_name }}{% endblock %}
-{% block header_title %}Ficha 360º del Cliente{% endblock %}
+{% block title %}Ficha 360º - {{ client.full_name }} - RauDie OS{% endblock %}
+{% block header_title %}Ficha 360º del Cliente & Historial de Atención{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 pb-12 max-w-7xl mx-auto">
 
-    <!-- Client Profile Header Card -->
-    <div class="glass-card bg-white p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-200 shadow-sm">
-        <div class="flex items-center gap-5">
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-900 to-slate-950 text-white font-extrabold text-2xl flex items-center justify-center shadow-md">
+    <!-- Client Profile Main Header Card -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/90 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5 min-w-0 flex-1">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-brand-900 via-brand-800 to-rose-700 text-white font-black text-2xl sm:text-3xl flex items-center justify-center shadow-lg shadow-rose-900/20 shrink-0">
                 {{ client.first_name|slice:":1" }}{{ client.last_name|slice:":1" }}
             </div>
-            <div>
-                <div class="flex items-center gap-3">
-                    <h2 class="text-2xl font-bold font-display text-slate-900">{{ client.full_name }}</h2>
-                    <span class="px-3 py-0.5 rounded-full text-xs font-bold {% if client.status == 'VIP' %}bg-rose-50 text-rose-900 border border-rose-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+            <div class="space-y-1.5 min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-3">
+                    <h2 class="text-2xl sm:text-3xl font-black font-display text-slate-900 tracking-tight break-words">{{ client.full_name }}</h2>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold shrink-0 {% if client.status == 'VIP' %}bg-rose-100 text-brand-900 border border-rose-200{% elif client.status == 'ACTIVE' %}bg-emerald-100 text-emerald-900 border border-emerald-200{% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
                         {{ client.get_status_display }}
                     </span>
                 </div>
-                <p class="text-sm text-slate-600 mt-1"><i data-lucide="phone" class="w-3.5 h-3.5 inline"></i> {{ client.phone }} • <i data-lucide="mail" class="w-3.5 h-3.5 inline"></i> {{ client.email|default:"Sin email" }}</p>
+                <div class="flex flex-wrap items-center gap-4 text-xs text-slate-600 font-medium">
+                    <a href="https://wa.me/{{ client.phone|cut:'+'|cut:' ' }}" target="_blank" class="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="phone" class="w-4 h-4"></i> {{ client.phone }}
+                    </a>
+                    {% if client.email %}
+                    <span class="flex items-center gap-1.5 text-slate-600 truncate">
+                        <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i> {{ client.email }}
+                    </span>
+                    {% endif %}
+                    {% if client.tax_id %}
+                    <span class="flex items-center gap-1.5 text-slate-500 font-mono">
+                        <i data-lucide="file-badge" class="w-4 h-4 text-slate-400"></i> DNI: {{ client.tax_id }}
+                    </span>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
-        <div class="flex items-center gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <!-- Action Buttons & Quick KPIs -->
+        <div class="flex flex-wrap items-center gap-4 shrink-0 border-t lg:border-t-0 border-slate-100 pt-4 lg:pt-0">
+            <div class="flex items-center gap-5 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                <div>
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Total Gastado</span>
+                    <span class="text-xl font-black text-brand-900 font-display block">{{ business.currency }}{{ client.total_spent|floatformat:2 }}</span>
+                </div>
+                <div class="border-l border-slate-200 pl-5">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Citas</span>
+                    <span class="text-xl font-black text-slate-900 font-display block">{{ appointments|length }}</span>
+                </div>
+                <div class="border-l border-slate-200 pl-5">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Anotaciones</span>
+                    <span class="text-xl font-black text-slate-900 font-display block">{{ service_notes|length }}</span>
+                </div>
+            </div>
+
+            <a href="{% url 'client_edit' client.id %}" class="px-5 py-3 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2">
+                <i data-lucide="edit-3" class="w-4 h-4"></i> Editar Datos
+            </a>
+        </div>
+    </div>
+
+    <!-- Spacious Tabbed Navigation Header (No Amontonado) -->
+    <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
+        <button onclick="switchClientTab('notes')" id="client-tab-notes" class="client-tab-btn active px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="file-text" class="w-4 h-4 text-brand-700"></i>
+            <span>Anotaciones por Servicio</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-brand-900 text-[10px] font-bold">{{ service_notes|length }}</span>
+        </button>
+
+        <button onclick="switchClientTab('appointments')" id="client-tab-appointments" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="calendar" class="w-4 h-4 text-brand-700"></i>
+            <span>Historial de Citas & Servicios</span>
+            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold">{{ appointments|length }}</span>
+        </button>
+
+        <button onclick="switchClientTab('sales')" id="client-tab-sales" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-700"></i>
+            <span>Ventas POS & Facturación</span>
+            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold">{{ sales|length }}</span>
+        </button>
+
+        <button onclick="switchClientTab('prefs')" id="client-tab-prefs" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="bookmark" class="w-4 h-4 text-amber-600"></i>
+            <span>Notas & Preferencias Generales</span>
+        </button>
+    </div>
+
+    <!-- TAB CONTENT 1: Anotaciones por Servicio / Tratamiento (Full Width & Spacious) -->
+    <div id="client-content-notes" class="client-content bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
-                <span class="text-xs text-slate-500 block">Total Histórico Gastado</span>
-                <span class="text-xl font-extrabold text-rose-900">{{ business.currency }}{{ client.total_spent }}</span>
+                <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-5 h-5 text-brand-700"></i>
+                    <span>Anotaciones por Servicio / Tratamiento</span>
+                </h3>
+                <p class="text-xs text-slate-500">Fórmulas técnicas, observaciones de atención y detalles registrados por sesión</p>
             </div>
-            <div class="border-l border-slate-200 pl-6">
-                <span class="text-xs text-slate-500 block">Citas Realizadas</span>
-                <span class="text-xl font-extrabold text-slate-900">{{ appointments|length }}</span>
+            {% if allow_editing_history %}
+            <button onclick="document.getElementById('service-note-form-modal').classList.toggle('hidden')" class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-brand-900 border border-rose-200 text-xs font-bold flex items-center gap-2 transition">
+                <i data-lucide="plus" class="w-4 h-4"></i> Agregar Anotación
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- Add Note Form -->
+        {% if allow_editing_history %}
+        <form id="service-note-form-modal" method="POST" action="{% url 'add_client_service_note' client.id %}" class="hidden p-5 rounded-2xl bg-rose-50/60 border border-rose-200/90 space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-700 uppercase">Servicio / Tratamiento Realizado</label>
+                    <input type="text" name="service_name" placeholder="Ej: Consultoría Digital / Corte & Peinado / Tratamiento Facial" required class="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-700 uppercase">Vincular a Cita (Opcional)</label>
+                    <select name="appointment_id" class="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white">
+                        <option value="">Sin vinculación específica</option>
+                        {% for app in appointments %}
+                        <option value="{{ app.id }}">Cita el {{ app.date|date:"d/m/Y" }} - {{ app.service.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
+            <div class="space-y-1">
+                <label class="text-[11px] font-bold text-slate-700 uppercase">Detalle y Anotaciones Técnicas</label>
+                <textarea name="content" rows="4" placeholder="Registra fórmulas técnicas, avances del proyecto, observaciones de la sesión o recomendaciones para el cliente..." required class="w-full text-xs p-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-1">
+                <button type="button" onclick="document.getElementById('service-note-form-modal').classList.add('hidden')" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 bg-brand-900 hover:bg-brand-950 text-white text-xs font-bold rounded-xl shadow-md transition">
+                    Guardar Anotación
+                </button>
+            </div>
+        </form>
+        {% endif %}
+
+        <!-- Service Notes Feed (Full Width with Auto Word Wrap Fix) -->
+        <div class="space-y-4">
+            {% for note in service_notes %}
+            <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3 relative group hover:border-rose-300 transition overflow-hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+                    <span class="font-bold text-sm text-brand-900 flex items-center gap-2">
+                        <i data-lucide="scissors" class="w-4 h-4 text-rose-700"></i>
+                        <span>{{ note.service_name }}</span>
+                    </span>
+                    <span class="text-xs text-slate-400 font-mono">{{ note.created_at|date:"d/m/Y H:i" }} hs</span>
+                </div>
+                <!-- Word Wrap Fix applied here: break-words overflow-hidden -->
+                <div class="text-xs sm:text-sm text-slate-800 leading-relaxed font-normal whitespace-pre-wrap break-words overflow-hidden max-w-full">
+                    {{ note.content }}
+                </div>
+                <div class="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200/50">
+                    <span>Registrado por: <strong class="text-slate-700">{{ note.author }}</strong></span>
+                    {% if allow_editing_history %}
+                    <a href="{% url 'delete_client_service_note' note.id %}" onclick="return confirm('¿Eliminar esta anotación?')" class="text-rose-700 hover:text-rose-900 font-bold opacity-0 group-hover:opacity-100 transition">
+                        Eliminar
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                <i data-lucide="notebook-pen" class="w-10 h-10 text-slate-300 mx-auto"></i>
+                <p class="text-xs sm:text-sm text-slate-500 font-medium">No hay anotaciones registradas para los servicios de este cliente.</p>
+            </div>
+            {% endfor %}
         </div>
     </div>
 
-    <!-- 360 Tabs: Appointments History & Sales History & Notes -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- TAB CONTENT 2: Historial Cronológico de Citas & Servicios (Full Width) -->
+    <div id="client-content-appointments" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-5 h-5 text-brand-700"></i>
+                    <span>Historial Cronológico de Citas & Reservas</span>
+                </h3>
+                <p class="text-xs text-slate-500">Listado de turnos programados, realizados y cancelados</p>
+            </div>
+            <span class="text-xs font-bold text-slate-700 bg-slate-100 px-3.5 py-1 rounded-full border border-slate-200">
+                {{ appointments|length }} Registros
+            </span>
+        </div>
 
-        <!-- Appointments History -->
-        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
-                <i data-lucide="calendar" class="w-4 h-4 text-rose-900"></i> Historial de Citas
-            </h3>
-            <div class="space-y-3">
-                {% for app in appointments %}
-                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-bold text-slate-900">{{ app.service.name }}</p>
-                        <p class="text-xs text-slate-500">{{ app.date }} a las {{ app.start_time }} hs con <span class="text-rose-900 font-semibold">{{ app.staff.full_name }}</span></p>
+        <div class="space-y-3">
+            {% for app in appointments %}
+            <div class="p-5 rounded-2xl border border-slate-200/90 bg-slate-50 hover:bg-white transition space-y-2">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="space-y-1">
+                        <h4 class="font-extrabold text-base text-slate-900">{{ app.service.name }}</h4>
+                        <p class="text-xs text-slate-600 flex flex-wrap items-center gap-3">
+                            <span>📅 {{ app.date|date:"d/m/Y" }} • {{ app.start_time|time:"H:i" }} hs</span>
+                            <span>• Profesional: <strong class="text-brand-900">{{ app.staff.full_name }}</strong></span>
+                        </p>
                     </div>
-                    <span class="text-sm font-extrabold text-slate-900">{{ business.currency }}{{ app.total_price }}</span>
+                    <div class="flex items-center gap-4 justify-between sm:justify-end">
+                        <span class="font-black text-lg text-slate-900 font-display">{{ business.currency }}{{ app.total_price|floatformat:2 }}</span>
+                        <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase
+                            {% if app.status == 'COMPLETED' %}bg-emerald-100 text-emerald-900 border border-emerald-200
+                            {% elif app.status == 'CONFIRMED' %}bg-blue-100 text-blue-900 border border-blue-200
+                            {% elif app.status == 'PENDING' %}bg-amber-100 text-amber-900 border border-amber-200
+                            {% else %}bg-slate-200 text-slate-700{% endif %}">
+                            {{ app.get_status_display }}
+                        </span>
+                    </div>
                 </div>
-                {% empty %}
-                <p class="text-sm text-slate-500">No registra citas aún.</p>
-                {% endfor %}
-            </div>
-        </div>
 
-        <!-- Notes & Preferences -->
-        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
-                <i data-lucide="notebook" class="w-4 h-4 text-amber-600"></i> Notas & Preferencias del Cliente
-            </h3>
-            <div class="space-y-3">
-                {% for note in notes %}
-                <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm">
-                    <p class="font-medium">{{ note.content }}</p>
-                    <span class="text-[11px] text-amber-700 mt-1 block">— {{ note.author }} ({{ note.created_at|date:"Y-m-d" }})</span>
+                {% if app.notes %}
+                <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-600 leading-relaxed font-normal whitespace-pre-wrap break-words overflow-hidden">
+                    <strong>Nota de Cita:</strong> {{ app.notes }}
                 </div>
-                {% empty %}
-                <p class="text-sm text-slate-500">No hay notas registradas.</p>
-                {% endfor %}
+                {% endif %}
             </div>
+            {% empty %}
+            <div class="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                <i data-lucide="calendar-x" class="w-10 h-10 text-slate-300 mx-auto"></i>
+                <p class="text-xs sm:text-sm text-slate-500 font-medium">Este cliente no registra citas aún en la agenda.</p>
+            </div>
+            {% endfor %}
         </div>
-
     </div>
-</div>
-{% endblock %}
 
+    <!-- TAB CONTENT 3: Historial de Ventas POS & Facturación (Full Width) -->
+    <div id="client-content-sales" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 text-brand-700"></i>
+                    <span>Historial de Ventas POS & Comprobantes</span>
+                </h3>
+                <p class="text-xs text-slate-500">Transacciones cobradas en mostrador y facturas emitidas</p>
+            </div>
+            <span class="text-xs font-bold text-slate-700 bg-slate-100 px-3.5 py-1 rounded-full border border-slate-200">
+                {{ sales|length }} Ventas
+            </span>
+        </div>
+
+        <div class="space-y-3">
+            {% for s in sales %}
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs sm:text-sm">
+                <div class="space-y-0.5">
+                    <span class="font-extrabold text-slate-900">Venta #{{ s.id|stringformat:".8s" }}</span>
+                    <p class="text-xs text-slate-500">{{ s.created_at|date:"d/m/Y H:i" }} hs • Medio de Pago: {{ s.get_payment_method_display }}</p>
+                </div>
+                <span class="font-black text-slate-900 text-base font-display">{{ business.currency }}{{ s.total_amount|floatformat:2 }}</span>
+            </div>
+            {% empty %}
+            <div class="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                <i data-lucide="receipt" class="w-10 h-10 text-slate-300 mx-auto"></i>
+                <p class="text-xs sm:text-sm text-slate-500 font-medium">No registra compras directas en el punto de venta.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- TAB CONTENT 4: Notas & Preferencias Generales -->
+    <div id="client-content-prefs" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2 border-b border-slate-100 pb-3">
+            <i data-lucide="bookmark" class="w-5 h-5 text-amber-600"></i>
+            <span>Notas & Preferencias Generales del Cliente</span>
+        </h3>
+        <div class="p-5 rounded-2xl bg-amber-50/80 border border-amber-200/90 text-xs sm:text-sm text-amber-950 leading-relaxed whitespace-pre-wrap break-words overflow-hidden">
+            {{ client.notes|default:"Sin notas generales o preferencias registradas." }}
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .client-tab-btn.active {
+        background-color: #fff1f2;
+        color: #881337;
+        border-color: #fecdd3;
+    }
+</style>
+
+<script>
+    function switchClientTab(tabName) {
+        document.querySelectorAll('.client-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.client-content').forEach(content => content.classList.add('hidden'));
+
+        const activeBtn = document.getElementById(`client-tab-${tabName}`);
+        const activeContent = document.getElementById(`client-content-${tabName}`);
+
+        if (activeBtn) activeBtn.classList.add('active');
+        if (activeContent) activeContent.classList.remove('hidden');
+    }
+</script>
+{% endblock %}

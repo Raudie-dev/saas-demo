@@ -66,6 +66,50 @@
                 </div>
             </div>
 
+            <!-- Calendar Export Section -->
+            <div class="bg-rose-50/60 border border-rose-200 p-5 rounded-2xl max-w-md mx-auto space-y-3">
+                <span class="text-xs font-bold text-rose-900 uppercase tracking-wider block flex items-center justify-center gap-1.5">
+                    <i data-lucide="calendar-plus" class="w-4 h-4"></i> Guardar Cita en tu Calendario
+                </span>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <!-- Google Calendar Button -->
+                    <button type="button" 
+                            onclick="exportToGoogleCalendar(
+                                'Cita: {{ appointment.service.name|escapejs }} - {{ business.name|escapejs }}',
+                                '{{ appointment.date|date:'Y-m-d'|default:appointment.date }}',
+                                '{{ appointment.start_time }}',
+                                '{{ appointment.end_time }}',
+                                'Reserva confirmada en {{ business.name|escapejs }}. Especialista: {{ appointment.staff.full_name|escapejs }}',
+                                '{{ business.address|escapejs }}'
+                            )"
+                            class="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer">
+                        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        <span>Google Calendar</span>
+                    </button>
+
+                    <!-- Apple Calendar / iCal Button -->
+                    <button type="button"
+                            onclick="exportToAppleCalendar(
+                                'Cita: {{ appointment.service.name|escapejs }} - {{ business.name|escapejs }}',
+                                '{{ appointment.date|date:'Y-m-d'|default:appointment.date }}',
+                                '{{ appointment.start_time }}',
+                                '{{ appointment.end_time }}',
+                                'Reserva confirmada en {{ business.name|escapejs }}. Especialista: {{ appointment.staff.full_name|escapejs }}',
+                                '{{ business.address|escapejs }}'
+                            )"
+                            class="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-950 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer">
+                        <i data-lucide="apple" class="w-4 h-4 shrink-0"></i>
+                        <span>Apple Calendar (.ics)</span>
+                    </button>
+                </div>
+            </div>
+
             <a href="{% url 'public_booking' business.slug %}" class="inline-block px-6 py-3 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm shadow-md transition">
                 Hacer Otra Reserva
             </a>
@@ -90,7 +134,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {% for service in services %}
                         <label class="relative flex items-center p-4 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer hover:border-rose-900 transition group">
-                            <input type="radio" name="service_id" value="{{ service.id }}" required class="text-rose-900 focus:ring-rose-900">
+                            <input type="radio" name="service_id" value="{{ service.id }}" {% if forloop.first %}checked{% endif %} required class="text-rose-900 focus:ring-rose-900">
                             <div class="ml-3">
                                 <span class="block text-sm font-bold text-slate-900 group-hover:text-rose-900 transition">{{ service.name }}</span>
                                 <span class="block text-xs text-slate-500 mt-0.5">{{ service.duration_minutes }} min • <strong class="text-rose-900">{{ business.currency }}{{ service.price }}</strong></span>
@@ -109,7 +153,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {% for staff in staff_members %}
                         <label class="relative flex items-center p-4 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer hover:border-rose-900 transition group">
-                            <input type="radio" name="staff_id" value="{{ staff.id }}" required class="text-rose-900 focus:ring-rose-900">
+                            <input type="radio" name="staff_id" value="{{ staff.id }}" {% if forloop.first %}checked{% endif %} required class="text-rose-900 focus:ring-rose-900">
                             <div class="ml-3">
                                 <span class="block text-sm font-bold text-slate-900 group-hover:text-rose-900 transition">{{ staff.full_name }}</span>
                                 <span class="block text-xs text-slate-500 mt-0.5">{{ staff.role_title }}</span>
@@ -119,28 +163,206 @@
                     </div>
                 </div>
 
-                <!-- Step 3: Date and Time -->
-                <div class="space-y-3">
-                    <label class="block text-sm font-bold text-rose-900 flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-full bg-rose-900 text-white text-xs flex items-center justify-center font-extrabold">3</span>
-                        Fecha y Hora deseada
+                <!-- Step 3: Working Hours, Visual Calendar & Available Slots -->
+                <div class="space-y-4">
+                    <label class="block text-sm font-bold text-slate-900 flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-rose-900 text-white text-xs flex items-center justify-center font-extrabold">3</span>
+                            <span>Selecciona Fecha y Hora</span>
+                        </span>
+                        <span class="text-xs text-rose-900 font-semibold flex items-center gap-1">
+                            <i data-lucide="clock" class="w-3.5 h-3.5"></i> Horarios Configurados
+                        </span>
                     </label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <input type="date" name="date" value="{{ today_date }}" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
+
+                    <!-- Salon / Agency Working Hours Schedule Banner -->
+                    <div class="p-4 rounded-2xl bg-rose-50/70 border border-rose-200/80 space-y-2">
+                        <div class="flex items-center justify-between text-xs font-bold text-slate-900">
+                            <span class="flex items-center gap-1.5">
+                                <i data-lucide="calendar-range" class="w-4 h-4 text-rose-900"></i>
+                                <span>Horario de Atención de la Agencia / Salón</span>
+                            </span>
+                            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">Turnos Activos</span>
                         </div>
-                        <div>
-                            <select name="time" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
-                                <option value="10:00">10:00 hs</option>
-                                <option value="11:30">11:30 hs</option>
-                                <option value="14:00">14:00 hs</option>
-                                <option value="15:30">15:30 hs</option>
-                                <option value="17:00">17:00 hs</option>
-                                <option value="18:30">18:30 hs</option>
-                            </select>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-700 font-medium pt-1">
+                            <div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-rose-900"></span> Lun - Vie: 09:00 - 19:00 hs</div>
+                            <div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-rose-900"></span> Sábados: 09:00 - 14:00 hs</div>
+                            <div class="flex items-center gap-1.5 text-slate-400"><span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Domingos: Cerrado</div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Date Picker Input & Quick Day Selector -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                            <span>Selecciona la Fecha en el Calendario:</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="sm:col-span-1">
+                                <input type="date" id="booking_date_input" name="date" value="{{ today_date }}" required class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs font-semibold focus:ring-2 focus:ring-rose-900 focus:border-rose-900 shadow-2xs">
+                            </div>
+                            <div class="sm:col-span-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                                <button type="button" onclick="selectQuickDay(0)" id="quick-day-0" class="quick-day-btn active px-3 py-2 rounded-xl text-xs font-bold border border-rose-900 bg-rose-900 text-white shadow-xs shrink-0 flex flex-col items-center">
+                                    <span class="text-[9px] uppercase opacity-80">Hoy</span>
+                                    <span>20 Sep</span>
+                                </button>
+                                <button type="button" onclick="selectQuickDay(1)" id="quick-day-1" class="quick-day-btn px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:border-rose-900 shrink-0 flex flex-col items-center">
+                                    <span class="text-[9px] uppercase opacity-70">Lun</span>
+                                    <span>21 Sep</span>
+                                </button>
+                                <button type="button" onclick="selectQuickDay(2)" id="quick-day-2" class="quick-day-btn px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:border-rose-900 shrink-0 flex flex-col items-center">
+                                    <span class="text-[9px] uppercase opacity-70">Mar</span>
+                                    <span>22 Sep</span>
+                                </button>
+                                <button type="button" onclick="selectQuickDay(3)" id="quick-day-3" class="quick-day-btn px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:border-rose-900 shrink-0 flex flex-col items-center">
+                                    <span class="text-[9px] uppercase opacity-70">Mié</span>
+                                    <span>23 Sep</span>
+                                </button>
+                                <button type="button" onclick="selectQuickDay(4)" id="quick-day-4" class="quick-day-btn px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:border-rose-900 shrink-0 flex flex-col items-center">
+                                    <span class="text-[9px] uppercase opacity-70">Jue</span>
+                                    <span>24 Sep</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Available Time Slots -->
+                    <div class="space-y-2 pt-1">
+                        <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                            <span id="slots_label_title">Horarios Disponibles:</span>
+                            <span class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1" id="live-indicator">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Disponibilidad activa
+                            </span>
+                        </div>
+                        <input type="hidden" name="time" id="selected_time_input" value="" required>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="time_slots_grid">
+                            <!-- Skeleton loader -->
+                            <div class="p-3 rounded-xl border border-slate-200 bg-slate-100 animate-pulse h-11"></div>
+                            <div class="p-3 rounded-xl border border-slate-200 bg-slate-100 animate-pulse h-11"></div>
+                            <div class="p-3 rounded-xl border border-slate-200 bg-slate-100 animate-pulse h-11"></div>
+                            <div class="p-3 rounded-xl border border-slate-200 bg-slate-100 animate-pulse h-11"></div>
                         </div>
                     </div>
                 </div>
+
+                <script>
+                    function selectTimeSlot(timeStr, btnEl) {
+                        document.getElementById('selected_time_input').value = timeStr;
+                        document.querySelectorAll('.slot-btn').forEach(b => {
+                            b.classList.remove('border-rose-900', 'bg-rose-50', 'ring-2', 'ring-rose-900/20', 'text-rose-900');
+                            if(!b.disabled) {
+                                b.classList.add('border-slate-200', 'bg-white', 'text-slate-900');
+                            }
+                        });
+                        btnEl.classList.remove('border-slate-200', 'bg-white', 'text-slate-900');
+                        btnEl.classList.add('border-rose-900', 'bg-rose-50', 'ring-2', 'ring-rose-900/20', 'text-rose-900');
+                    }
+
+                    function selectQuickDay(offset) {
+                        const today = new Date();
+                        today.setDate(today.getDate() + offset);
+                        const isoDate = today.toISOString().split('T')[0];
+                        document.getElementById('booking_date_input').value = isoDate;
+                        
+                        document.querySelectorAll('.quick-day-btn').forEach((btn, idx) => {
+                            if(idx === offset) {
+                                btn.className = 'quick-day-btn active px-3 py-2 rounded-xl text-xs font-bold border border-rose-900 bg-rose-900 text-white shadow-xs shrink-0 flex flex-col items-center';
+                            } else {
+                                btn.className = 'quick-day-btn px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:border-rose-900 shrink-0 flex flex-col items-center';
+                            }
+                        });
+                        loadDynamicSlots();
+                    }
+
+                    async function loadDynamicSlots() {
+                        const gridEl = document.getElementById('time_slots_grid');
+                        const dateVal = document.getElementById('booking_date_input').value;
+                        const staffRadio = document.querySelector('input[name="staff_id"]:checked');
+                        const staffVal = staffRadio ? staffRadio.value : '';
+                        const labelTitleEl = document.getElementById('slots_label_title');
+
+                        gridEl.innerHTML = `
+                            <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-100 animate-pulse h-11 flex items-center justify-center text-xs text-slate-400">Cargando...</div>
+                            <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-100 animate-pulse h-11 flex items-center justify-center text-xs text-slate-400">Cargando...</div>
+                            <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-100 animate-pulse h-11 flex items-center justify-center text-xs text-slate-400">Cargando...</div>
+                            <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-100 animate-pulse h-11 flex items-center justify-center text-xs text-slate-400">Cargando...</div>
+                        `;
+
+                        try {
+                            const res = await fetch(`/reservas/{{ business.slug }}/api/slots/?date=${dateVal}&staff_id=${staffVal}`);
+                            const data = await res.json();
+
+                            if (data.staff_name && labelTitleEl) {
+                                labelTitleEl.textContent = `Horarios Disponibles (${data.staff_name}):`;
+                            }
+
+                            if (!data.is_open) {
+                                gridEl.innerHTML = `
+                                    <div class="col-span-2 sm:col-span-4 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs font-bold flex items-center gap-2">
+                                        <i data-lucide="alert-circle" class="w-4 h-4 text-amber-700"></i>
+                                        <span>${data.message || 'El especialista no atiende en la fecha seleccionada.'}</span>
+                                    </div>
+                                `;
+                                if(window.lucide) lucide.createIcons();
+                                return;
+                            }
+
+                            if (!data.slots || data.slots.length === 0) {
+                                gridEl.innerHTML = `
+                                    <div class="col-span-2 sm:col-span-4 p-4 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 text-xs font-semibold text-center">
+                                        No hay turnos disponibles para esta fecha.
+                                    </div>
+                                `;
+                                return;
+                            }
+
+                            let html = '';
+                            let selectedFirst = false;
+
+                            data.slots.forEach((slot) => {
+                                if (slot.disabled) {
+                                    html += `
+                                        <button type="button" disabled class="slot-btn opacity-50 cursor-not-allowed p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-center font-bold text-xs text-slate-400 line-through">
+                                            ${slot.time} hs
+                                        </button>
+                                    `;
+                                } else {
+                                    const isFirst = !selectedFirst;
+                                    if (isFirst) {
+                                        selectedFirst = true;
+                                        document.getElementById('selected_time_input').value = slot.time;
+                                    }
+
+                                    const activeClasses = isFirst ? 'border-rose-900 bg-rose-50 ring-2 ring-rose-900/20 text-rose-900 font-extrabold' : 'border-slate-200 bg-white hover:border-rose-900 text-slate-900 font-bold';
+                                    html += `
+                                        <button type="button" onclick="selectTimeSlot('${slot.time}', this)" class="slot-btn p-2.5 rounded-xl border text-center transition shadow-2xs text-xs ${activeClasses}">
+                                            ${slot.time} hs
+                                        </button>
+                                    `;
+                                }
+                            });
+
+                            gridEl.innerHTML = html;
+                        } catch (err) {
+                            gridEl.innerHTML = `
+                                <div class="col-span-2 sm:col-span-4 p-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-900 text-xs font-semibold">
+                                    Error consultando disponibilidad.
+                                </div>
+                            `;
+                        }
+                    }
+
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const dateInput = document.getElementById('booking_date_input');
+                        if (dateInput) {
+                            dateInput.addEventListener('change', loadDynamicSlots);
+                        }
+                        document.querySelectorAll('input[name="staff_id"]').forEach(radio => {
+                            radio.addEventListener('change', loadDynamicSlots);
+                        });
+                        loadDynamicSlots();
+                    });
+                </script>
 
                 <!-- Step 4: Personal Info -->
                 <div class="space-y-3 pt-2">
@@ -157,7 +379,7 @@
 
                 <div class="pt-4 border-t border-slate-100">
                     <button type="submit" class="w-full py-3.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-extrabold text-base shadow-md transition">
-                        Confirmar y Reservar Cita 24/7
+                        Confirmar y Reservar Cita
                     </button>
                 </div>
             </form>
@@ -173,6 +395,62 @@
 
     <script>
         lucide.createIcons();
+
+        function formatIsoForCalendar(dateStr, timeStr) {
+            if (!dateStr) return '';
+            const cleanDate = dateStr.replace(/-/g, '');
+            let cleanTime = '100000';
+            if (timeStr) {
+                const parts = timeStr.split(':');
+                if (parts.length >= 2) {
+                    cleanTime = parts[0].padStart(2, '0') + parts[1].padStart(2, '0') + '00';
+                }
+            }
+            return `${cleanDate}T${cleanTime}`;
+        }
+
+        function exportToGoogleCalendar(title, dateStr, startTimeStr, endTimeStr, details, location) {
+            const startIso = formatIsoForCalendar(dateStr, startTimeStr);
+            const endIso = formatIsoForCalendar(dateStr, endTimeStr || startTimeStr);
+
+            const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+                `&text=${encodeURIComponent(title)}` +
+                `&dates=${startIso}/${endIso}` +
+                `&details=${encodeURIComponent(details)}` +
+                `&location=${encodeURIComponent(location)}`;
+
+            window.open(googleUrl, '_blank');
+        }
+
+        function exportToAppleCalendar(title, dateStr, startTimeStr, endTimeStr, details, location) {
+            const startIso = formatIsoForCalendar(dateStr, startTimeStr);
+            const endIso = formatIsoForCalendar(dateStr, endTimeStr || startTimeStr);
+
+            const icsData = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//RauDie OS//Appointment Calendar//ES',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
+                'BEGIN:VEVENT',
+                `SUMMARY:${title}`,
+                `DESCRIPTION:${details}`,
+                `LOCATION:${location}`,
+                `DTSTART:${startIso}`,
+                `DTEND:${endIso}`,
+                'STATUS:CONFIRMED',
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ].join('\r\n');
+
+            const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', `cita_${dateStr}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>

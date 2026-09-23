@@ -6,6 +6,19 @@
 {% block content %}
 <div class="space-y-6">
 
+    {% if messages %}
+    <div class="space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl text-sm font-semibold flex items-center justify-between {% if message.tags == 'error' %}bg-rose-50 border border-rose-200 text-rose-900{% else %}bg-emerald-50 border border-emerald-200 text-emerald-900{% endif %}">
+            <div class="flex items-center gap-2">
+                <i data-lucide="{% if message.tags == 'error' %}alert-circle{% else %}check-circle-2{% endif %}" class="w-5 h-5"></i>
+                <span>{{ message }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Active Cash Register Banner -->
     <div class="glass-card bg-white p-4 rounded-2xl flex items-center justify-between border border-slate-200 shadow-sm">
         <div class="flex items-center gap-3">
@@ -20,31 +33,93 @@
                     Caja ABIERTA (Abierta a las {{ active_register.opened_at|date:"H:i" }} hs con {{ business.currency }}{{ active_register.initial_amount }})
                 </p>
                 {% else %}
-                <p class="text-xs text-rose-900 font-semibold">Caja CERRADA. Abre la caja antes de cobrar.</p>
+                <p class="text-xs text-amber-700 font-semibold">Caja Lista para Operar (Se iniciará automáticamente con tu primera venta).</p>
                 {% endif %}
             </div>
         </div>
 
-        <a href="{% url 'cash_register' %}" class="px-3.5 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold shadow transition">
-            Administrar Caja
-        </a>
+        <div class="flex items-center gap-2">
+            {% if active_register %}
+            <button type="button" onclick="openTerminalCloseModal()" class="px-3.5 py-1.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="lock" class="w-3.5 h-3.5"></i> Cerrar Caja
+            </button>
+            {% endif %}
+            <a href="{% url 'cash_register' %}" class="px-3.5 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold shadow transition">
+                Administrar Caja & Historial
+            </a>
+        </div>
     </div>
+
+    {% if completed_rebook_client %}
+    <!-- Post Sale Quick Rebooking Prompt -->
+    <div id="rebook-prompt-card" class="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 text-white shadow-lg border border-rose-900/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in duration-300 relative pr-12">
+        <div class="space-y-1">
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase">
+                    Venta Finalizada con Éxito
+                </span>
+            </div>
+            <h3 class="text-base font-bold">¿Deseas agendar la próxima cita de {{ completed_rebook_client.client_name }}?</h3>
+            <p class="text-xs text-slate-300">Selecciona el intervalo para pre-cargar automáticamente la fecha futura de atención:</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap shrink-0">
+            <a href="{% url 'appointment_create' %}?client_id={{ completed_rebook_client.client_id }}&service_id={{ completed_rebook_client.service_id }}&staff_id={{ completed_rebook_client.staff_id }}&days=15" class="px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition flex items-center gap-1">
+                <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> En 15 días
+            </a>
+            <a href="{% url 'appointment_create' %}?client_id={{ completed_rebook_client.client_id }}&service_id={{ completed_rebook_client.service_id }}&staff_id={{ completed_rebook_client.staff_id }}&days=30" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-800 hover:bg-rose-700 text-white shadow-md border border-rose-600 transition flex items-center gap-1">
+                <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> En 1 Mes (30 días)
+            </a>
+            <a href="{% url 'appointment_create' %}?client_id={{ completed_rebook_client.client_id }}&service_id={{ completed_rebook_client.service_id }}&staff_id={{ completed_rebook_client.staff_id }}&days=60" class="px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition flex items-center gap-1">
+                <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> En 2 Meses
+            </a>
+        </div>
+        <button type="button" onclick="document.getElementById('rebook-prompt-card').style.display='none';" class="absolute top-4 right-4 p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition cursor-pointer flex items-center justify-center" title="Descartar y cerrar aviso">
+            <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+    </div>
+    {% endif %}
+
+    {% if appointment %}
+    <!-- Appointment Pre-fill Banner -->
+    <div class="p-4 rounded-2xl bg-rose-900 text-white shadow-md border border-rose-800 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+                <i data-lucide="scissors" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-rose-200">Cobrando Cita Agendada</span>
+                <h4 class="font-extrabold text-sm">{{ appointment.client.full_name }} — {{ appointment.service.name }}</h4>
+                <p class="text-xs text-rose-100">Fecha: {{ appointment.date }} • Hora: {{ appointment.start_time }} • Importe: {{ business.currency }}{{ appointment.total_price }}</p>
+            </div>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-white/20 text-xs font-bold shrink-0">Mano de Obra / Servicio</span>
+    </div>
+    {% endif %}
 
     <!-- POS Layout: 2 Columns (Checkout Form + Fast Selection) -->
     <form method="POST" autocomplete="off" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {% csrf_token %}
+        {% if appointment %}
+        <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
+        {% endif %}
 
         <!-- Left Column: Item Selection -->
         <div class="lg:col-span-7 space-y-5">
             <!-- Select Client -->
             <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
-                    <i data-lucide="user" class="w-4 h-4 text-rose-900"></i> Cliente
-                </h4>
-                <select name="client_id" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
+                        <i data-lucide="user" class="w-4 h-4 text-rose-900"></i> Cliente
+                    </h4>
+                    <button type="button" onclick="openQuickClientModal()" class="px-3 py-1 bg-rose-900 hover:bg-rose-950 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                        <span>+ Nuevo Cliente</span>
+                    </button>
+                </div>
+                <select id="client_id_select" name="client_id" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
                     <option value="">Cliente General (Mostrador)</option>
                     {% for client in clients %}
-                    <option value="{{ client.id }}">{{ client.full_name }} ({{ client.phone }})</option>
+                    <option value="{{ client.id }}" {% if selected_client_id == client.id|stringformat:"s" %}selected{% endif %}>{{ client.full_name }} {% if client.phone %}({{ client.phone }}){% endif %}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -56,7 +131,7 @@
                 </h4>
                 <select name="staff_id" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
                     {% for staff in staff_members %}
-                    <option value="{{ staff.id }}">{{ staff.full_name }} ({{ staff.role_title }})</option>
+                    <option value="{{ staff.id }}" {% if selected_staff_id == staff.id|stringformat:"s" %}selected{% endif %}>{{ staff.full_name }} ({{ staff.role_title }})</option>
                     {% endfor %}
                 </select>
             </div>
@@ -64,12 +139,12 @@
             <!-- Select Services -->
             <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                 <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
-                    <i data-lucide="scissors" class="w-4 h-4 text-rose-900"></i> Agregar Servicio
+                    <i data-lucide="scissors" class="w-4 h-4 text-rose-900"></i> Agregar Servicio (Mano de Obra)
                 </h4>
                 <select name="service_id" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
                     <option value="">Seleccionar Servicio (Opcional)</option>
                     {% for srv in services %}
-                    <option value="{{ srv.id }}">{{ srv.name }} - {{ business.currency }}{{ srv.price }}</option>
+                    <option value="{{ srv.id }}" {% if selected_service_id == srv.id|stringformat:"s" %}selected{% endif %}>{{ srv.name }} - {{ business.currency }}{{ srv.price }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -77,10 +152,10 @@
             <!-- Select Products from Inventory -->
             <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                 <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
-                    <i data-lucide="package" class="w-4 h-4 text-rose-900"></i> Agregar Producto del Inventario
+                    <i data-lucide="package" class="w-4 h-4 text-rose-900"></i> Agregar Producto del Inventario (Opcional - Solo si aplica)
                 </h4>
                 <select name="product_id" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
-                    <option value="">Seleccionar Producto (Opcional)</option>
+                    <option value="">Ningún Producto / Solo Mano de Obra</option>
                     {% for prod in products %}
                     <option value="{{ prod.id }}">{{ prod.name }} (Stock: {{ prod.stock }}) - {{ business.currency }}{{ prod.sale_price }}</option>
                     {% endfor %}
@@ -125,7 +200,7 @@
                 </div>
 
                 <!-- Complete Charge Button -->
-                <button type="submit" {% if not active_register %}disabled{% endif %} class="w-full py-4 rounded-xl bg-rose-900 hover:bg-rose-950 disabled:opacity-50 text-white font-extrabold text-base shadow-md transition flex items-center justify-center gap-2">
+                <button type="submit" class="w-full py-4 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-extrabold text-base shadow-md shadow-rose-950/20 transition flex items-center justify-center gap-2 cursor-pointer">
                     <i data-lucide="check-circle" class="w-5 h-5"></i>
                     Finalizar Venta POS
                 </button>
@@ -133,6 +208,314 @@
         </div>
 
     </form>
+
+    <!-- Recent Sales History Table -->
+    <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm mt-8">
+        <div class="p-5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+            <div>
+                <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-5 h-5 text-rose-900"></i>
+                    <span>Ventas Recientes Registradas en este Terminal</span>
+                </h4>
+                <p class="text-xs text-slate-500 mt-0.5">Historial inmediato de cobros procesados</p>
+            </div>
+            <a href="{% url 'cash_register' %}" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition">
+                Ver Control de Caja →
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 uppercase tracking-wider font-bold">
+                    <tr>
+                        <th class="p-4">Venta ID</th>
+                        <th class="p-4">Fecha / Hora</th>
+                        <th class="p-4">Cliente</th>
+                        <th class="p-4">Profesional</th>
+                        <th class="p-4">Detalle / Ítems</th>
+                        <th class="p-4">Método de Pago</th>
+                        <th class="p-4 text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium">
+                    {% for sale in recent_sales %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-4 font-mono font-bold text-rose-900">#{{ sale.id|stringformat:".8s" }}</td>
+                        <td class="p-4 text-slate-900 font-medium">{{ sale.created_at|date:"d/m/Y H:i" }} hs</td>
+                        <td class="p-4 font-bold text-slate-900">{% if sale.client %}{{ sale.client.full_name }}{% else %}<span class="text-slate-400 font-normal">Cliente Mostrador</span>{% endif %}</td>
+                        <td class="p-4 text-slate-700">{% if sale.staff %}{{ sale.staff.full_name }}{% else %}-{% endif %}</td>
+                        <td class="p-4 space-y-0.5">
+                            {% for item in sale.items.all %}
+                            <div class="text-[11px] text-slate-800 font-semibold">• {{ item.item_name }} ({{ business.currency }}{{ item.total_price }})</div>
+                            {% empty %}
+                            <span class="text-slate-400">Cobro de servicio</span>
+                            {% endfor %}
+                        </td>
+                        <td class="p-4">
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                {{ sale.payment_method }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-right font-extrabold text-sm text-slate-900">
+                            {{ business.currency }}{{ sale.total_amount }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-400">Aún no se han registrado ventas en este turno.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
+<!-- ========================================== -->
+<!-- MODAL: CREAR CLIENTE RÁPIDO POS            -->
+<!-- ========================================== -->
+<div id="quick-client-modal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-8 space-y-5 relative animate-in fade-in zoom-in-95 duration-200">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-base text-slate-900">Registrar Nuevo Cliente</h3>
+                    <p class="text-xs text-slate-500">Se agregará al CRM y se seleccionará para esta venta.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeQuickClientModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form id="quick-client-form" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <div id="quick-client-error" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 font-semibold text-xs"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nombre *</label>
+                    <input type="text" id="qc-first-name" required placeholder="Ej: María" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Apellido</label>
+                    <input type="text" id="qc-last-name" placeholder="Ej: Pérez" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Teléfono / WhatsApp *</label>
+                    <div class="flex rounded-xl overflow-hidden border border-slate-300 focus-within:ring-2 focus-within:ring-rose-800 bg-slate-50">
+                        <select id="qc-phone-prefix" class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-2.5 border-r border-slate-300 focus:outline-none cursor-pointer shrink-0">
+                            <option value="+54" selected>Argentina (+54)</option>
+                            <option value="+56">Chile (+56)</option>
+                            <option value="+598">Uruguay (+598)</option>
+                            <option value="+595">Paraguay (+595)</option>
+                            <option value="+51">Perú (+51)</option>
+                            <option value="+57">Colombia (+57)</option>
+                            <option value="+52">México (+52)</option>
+                            <option value="+58">Venezuela (+58)</option>
+                            <option value="+34">España (+34)</option>
+                            <option value="+1">EE.UU. (+1)</option>
+                            <option value="+55">Brasil (+55)</option>
+                            <option value="+591">Bolivia (+591)</option>
+                            <option value="+593">Ecuador (+593)</option>
+                            <option value="+507">Panamá (+507)</option>
+                            <option value="+506">Costa Rica (+506)</option>
+                            <option value="+502">Guatemala (+502)</option>
+                            <option value="+503">El Salvador (+503)</option>
+                            <option value="+504">Honduras (+504)</option>
+                            <option value="+505">Nicaragua (+505)</option>
+                        </select>
+                        <input type="text" id="qc-phone" placeholder="91133221100" class="w-full bg-slate-50 text-slate-900 rounded-r-xl p-2.5 font-bold focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">DNI / Número de Identidad</label>
+                    <input type="text" id="qc-tax-id" placeholder="Ej: 12345678" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Correo Electrónico (Opcional)</label>
+                <input type="email" id="qc-email" placeholder="cliente@email.com" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+            </div>
+
+            <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeQuickClientModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" id="qc-submit-btn" class="px-5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openQuickClientModal() {
+        document.getElementById('quick-client-modal').classList.remove('hidden');
+        document.getElementById('qc-first-name').focus();
+    }
+
+    function closeQuickClientModal() {
+        document.getElementById('quick-client-modal').classList.add('hidden');
+        document.getElementById('quick-client-error').classList.add('hidden');
+    }
+
+    document.getElementById('quick-client-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const firstName = document.getElementById('qc-first-name').value.trim();
+        const lastName = document.getElementById('qc-last-name').value.trim();
+        const phonePrefix = document.getElementById('qc-phone-prefix').value.trim();
+        const phoneNumber = document.getElementById('qc-phone').value.trim();
+        const taxId = document.getElementById('qc-tax-id').value.trim();
+        const email = document.getElementById('qc-email').value.trim();
+        const errorDiv = document.getElementById('quick-client-error');
+        const submitBtn = document.getElementById('qc-submit-btn');
+
+        if (!firstName) {
+            errorDiv.textContent = 'El nombre del cliente es obligatorio.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('first_name', firstName);
+        formData.append('last_name', lastName);
+        formData.append('phone_prefix', phonePrefix);
+        formData.append('phone_number', phoneNumber);
+        formData.append('tax_id', taxId);
+        formData.append('email', email);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Guardando...';
+
+        fetch('{% url "pos_quick_client" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar';
+
+            if (data.success) {
+                // Create option and add to select dropdown
+                const select = document.getElementById('client_id_select');
+                const phoneText = data.phone ? ` (${data.phone})` : '';
+                const newOption = new Option(`${data.full_name}${phoneText}`, data.client_id, true, true);
+                select.add(newOption);
+                select.value = data.client_id;
+
+                // Clear form inputs
+                document.getElementById('qc-first-name').value = '';
+                document.getElementById('qc-last-name').value = '';
+                document.getElementById('qc-phone').value = '';
+                document.getElementById('qc-tax-id').value = '';
+                document.getElementById('qc-email').value = '';
+
+                closeQuickClientModal();
+                if (window.lucide) lucide.createIcons();
+            } else {
+                errorDiv.textContent = data.error || 'Error al registrar el cliente.';
+                errorDiv.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar';
+            errorDiv.textContent = 'Error de conexión. Intenta nuevamente.';
+            errorDiv.classList.remove('hidden');
+        });
+    });
+
+    function openTerminalCloseModal() {
+        const modal = document.getElementById('terminal-close-register-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeTerminalCloseModal() {
+        const modal = document.getElementById('terminal-close-register-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    }
+</script>
+
+{% if active_register %}
+<!-- MODAL CONFIRMAR CIERRE DE CAJA EN POS -->
+<div id="terminal-close-register-modal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md p-6 sm:p-7 space-y-6 relative animate-in fade-in zoom-in-95 duration-200">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-base text-slate-900">¿Confirmar Cierre de Caja?</h3>
+                    <p class="text-xs text-slate-500">Se finalizará el turno actual de caja</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeTerminalCloseModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <span class="text-slate-500 font-medium">Apertura del Turno:</span>
+                <span class="font-bold text-slate-900">{{ active_register.opened_at|date:"d/m/Y H:i" }} hs</span>
+            </div>
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <span class="text-slate-500 font-medium">Fondo Inicial:</span>
+                <span class="font-bold text-slate-900">{{ business.currency }}{{ active_register.initial_amount }}</span>
+            </div>
+            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                <span class="text-slate-500 font-medium">Total Recaudado:</span>
+                <span class="font-bold text-emerald-700">{{ business.currency }}{{ active_register.total_sales|default:'0.00' }} ({{ active_register.sales_count }} ventas)</span>
+            </div>
+            <div class="flex justify-between items-center pt-1">
+                <span class="text-slate-900 font-bold">Efectivo Esperado en Caja:</span>
+                <span class="font-extrabold text-sm text-rose-900">{{ business.currency }}{{ active_register.expected_cash|default:active_register.initial_amount }}</span>
+            </div>
+        </div>
+
+        <p class="text-xs text-slate-500 text-center">Una vez cerrada la caja, se requerirá una nueva apertura para continuar procesando ventas en la terminal POS.</p>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="button" onclick="closeTerminalCloseModal()" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition cursor-pointer">
+                Cancelar
+            </button>
+
+            <form method="POST" autocomplete="off" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="close_register">
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
+                    <i data-lucide="lock" class="w-4 h-4"></i>
+                    Confirmar y Cerrar Caja
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 

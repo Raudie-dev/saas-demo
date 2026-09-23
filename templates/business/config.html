@@ -83,6 +83,15 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Formato de Hora Preferido</label>
+                    <select name="time_format" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                        {% for code, label in time_format_choices %}
+                        <option value="{{ code }}" {% if business.time_format == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Email de Contacto</label>
                     <input type="email" name="email" value="{{ business.email }}" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
                 </div>
@@ -115,6 +124,30 @@
                     <input type="text" name="address" value="{{ business.address }}" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
                 </div>
             </div>
+        </div>
+
+        <!-- Client History Permission Settings -->
+        <div class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm">
+            <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-brand-700"></i>
+                        <span>Permisos de Ficha e Historial de Clientes</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Controla si los colaboradores o administradores pueden modificar o agregar notas e historial de servicio.</p>
+                </div>
+            </div>
+
+            <label class="flex items-start gap-3.5 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white cursor-pointer transition">
+                <input type="checkbox" name="allow_editing_client_history" {% if business.allow_editing_client_history %}checked{% endif %} class="w-5 h-5 accent-rose-700 rounded border-slate-300 mt-0.5">
+                <div>
+                    <span class="text-xs font-bold text-slate-900 block">Permitir editar e ingresar anotaciones en el Historial de Servicios de Clientes</span>
+                    <span class="text-[11px] text-slate-500 block mt-0.5">
+                        Si esta opción está activada, los profesionales pueden registrar y modificar anotaciones de tratamiento y notas técnicas en la ficha del cliente. 
+                        Si se desactiva, el historial queda en modo <strong>Solo Lectura (Bloqueado)</strong> para proteger la integridad de los registros de atención pasados.
+                    </span>
+                </div>
+            </label>
         </div>
 
         <!-- User Profile Details Card -->
@@ -172,6 +205,89 @@
             </div>
         </div>
 
+        <!-- Working Hours Schedule Configuration Card -->
+        <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="clock" class="w-5 h-5 text-rose-900"></i>
+                        <span>Horario de Trabajo & Atención de la Agencia / Salón</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Define los días laborables y rangos horarios para las reservas públicas y la agenda.</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200">
+                    Configuración Semanal
+                </span>
+            </div>
+
+            <div class="space-y-3">
+                {% for sched in schedules %}
+                <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-slate-50 transition">
+                    <div class="flex items-center gap-3 min-w-[140px]">
+                        <input type="checkbox" name="schedule_active_{{ sched.day_code }}" id="day_active_{{ sched.day_code }}" {% if sched.is_working_day %}checked{% endif %} class="w-4 h-4 accent-rose-900 rounded border-slate-300 cursor-pointer">
+                        <label for="day_active_{{ sched.day_code }}" class="text-sm font-bold text-slate-900 cursor-pointer">
+                            {{ sched.day_name }}
+                        </label>
+                    </div>
+
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <div class="flex items-center gap-1.5 w-full sm:w-auto">
+                            <span class="text-xs font-semibold text-slate-500">Apertura:</span>
+                            <input type="time" name="schedule_start_{{ sched.day_code }}" value="{{ sched.start_time }}" class="bg-white border border-slate-300 text-slate-900 rounded-lg p-1.5 text-xs font-mono focus:outline-none focus:border-rose-900 transition">
+                            {% if business.time_format == '12h' or not business.time_format %}
+                            <span class="text-[11px] font-bold text-rose-900 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 shrink-0">{{ sched.start_12h }}</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-slate-400 font-bold">-</span>
+                        <div class="flex items-center gap-1.5 w-full sm:w-auto">
+                            <span class="text-xs font-semibold text-slate-500">Cierre:</span>
+                            <input type="time" name="schedule_end_{{ sched.day_code }}" value="{{ sched.end_time }}" class="bg-white border border-slate-300 text-slate-900 rounded-lg p-1.5 text-xs font-mono focus:outline-none focus:border-rose-900 transition">
+                            {% if business.time_format == '12h' or not business.time_format %}
+                            <span class="text-[11px] font-bold text-rose-900 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 shrink-0">{{ sched.end_12h }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Subscription Plan & License Selector Card -->
+        <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="key" class="w-5 h-5 text-rose-900"></i>
+                        <span>Plan de Suscripción & Licencia Activa</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Selecciona el nivel de servicio para habilitar límites de usuarios y sucursales.</p>
+                </div>
+                {% if subscription %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold {% if subscription.status == 'ACTIVE' %}bg-emerald-50 text-emerald-900 border border-emerald-200{% elif subscription.status == 'TRIAL' %}bg-amber-50 text-amber-900 border border-amber-200{% else %}bg-rose-50 text-rose-900 border border-rose-200{% endif %}">
+                    {{ subscription.get_status_display }} ({{ subscription.days_remaining }} días rest.)
+                </span>
+                {% else %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">Licencia Estándar</span>
+                {% endif %}
+            </div>
+
+            <div class="space-y-4">
+                <label class="block text-xs font-bold text-slate-700">Seleccionar / Cambiar Plan de la Agencia:</label>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {% for plan in available_plans %}
+                    <label class="relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition {% if subscription and subscription.plan.id == plan.id %}border-rose-900 bg-rose-50/50 shadow-sm{% else %}border-slate-200 bg-slate-50/50 hover:border-slate-300{% endif %}">
+                        <div class="flex items-center justify-between mb-2">
+                            <input type="radio" name="selected_plan_id" value="{{ plan.id }}" {% if subscription and subscription.plan.id == plan.id %}checked{% endif %} class="w-4 h-4 accent-rose-900">
+                            <span class="text-xs font-extrabold text-rose-900 font-display">${{ plan.monthly_price }}/mes</span>
+                        </div>
+                        <span class="font-bold text-slate-900 text-sm font-display">{{ plan.name }}</span>
+                        <span class="text-[11px] text-slate-500 mt-1">Hasta {{ plan.max_users }} usuarios • {{ plan.max_branches }} sucursal{% if plan.max_branches > 1 %}es{% endif %}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
         <div class="flex justify-end">
             <button type="submit" class="px-6 py-3 rounded-xl text-sm font-bold text-white bg-rose-900 hover:bg-rose-800 shadow-lg shadow-rose-900/30 transition flex items-center gap-2">
                 <i data-lucide="save" class="w-4 h-4"></i>
@@ -179,6 +295,97 @@
             </button>
         </div>
     </form>
+
+    <!-- WhatsApp Gateway Integration Card -->
+    <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                    <i data-lucide="message-square" class="w-5 h-5 text-emerald-600"></i>
+                    <span>Conexión de WhatsApp Gateway (Escáner QR)</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Vincular la cuenta de WhatsApp de la agencia para enviar recordatorios de citas automáticamente</p>
+            </div>
+            
+            <div id="wa-status-badge">
+                {% if gw_status.online and gw_status.status == 'connected' %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                    WhatsApp Vinculado y Activo
+                </span>
+                {% elif gw_status.online %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1.5 shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    Desconectado / Pendiente Escáner
+                </span>
+                {% else %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1.5 shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                    Microservicio Gateway Offline (Puerto 3000)
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            {% if not gw_status.online %}
+            <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
+                <div class="flex items-center gap-2 font-bold text-sm">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-700"></i>
+                    <span>Microservicio whatsapp-gateway no detectado en ejecución</span>
+                </div>
+                <p>El servicio Node.js en la carpeta <code>whatsapp-gateway</code> no se encuentra respondiendo en <code>http://127.0.0.1:3000</code>.</p>
+                <div class="bg-amber-100 p-2.5 rounded-lg font-mono text-[11px] text-amber-950 border border-amber-300">
+                    cd whatsapp-gateway && npm start
+                </div>
+                <p class="text-[11px] text-amber-800">Mientras el servicio no esté encendido, el sistema automáticamente enviará los recordatorios abriendo la aplicación de WhatsApp del dispositivo del operador.</p>
+            </div>
+            {% else %}
+            
+            <div id="wa-connected-state" class="{% if gw_status.status != 'connected' %}hidden{% endif %} space-y-4">
+                <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
+                            <i data-lucide="check" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-emerald-900 text-sm">WhatsApp vinculado con éxito</h4>
+                            <p class="text-xs text-emerald-700 mt-0.5">Los recordatorios de citas se enviarán de forma transparente desde la cuenta conectada.</p>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="unlinkWhatsApp()" class="px-4 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> Desvincular WhatsApp
+                    </button>
+                </div>
+            </div>
+
+            <div id="wa-disconnected-state" class="{% if gw_status.status == 'connected' %}hidden{% endif %} space-y-4">
+                <p class="text-xs text-slate-600">Haz clic en <strong>Generar Código QR</strong> para vincular la cuenta de WhatsApp de la agencia mediante el escáner de dispositivos vinculados.</p>
+
+                <div class="flex items-center gap-3">
+                    <button type="button" id="wa-gen-btn" onclick="generateWhatsAppQR()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i> Generar Código QR de WhatsApp
+                    </button>
+                </div>
+
+                <div id="wa-qr-container" class="hidden p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-4 max-w-sm mx-auto animate-in fade-in">
+                    <h4 class="font-bold text-slate-900 text-sm">Escanea este código QR con WhatsApp</h4>
+                    <p class="text-xs text-slate-500">1. Abre WhatsApp en tu celular<br>2. Menú / Configuración -> <strong>Dispositivos vinculados</strong><br>3. Toca <strong>Vincular un dispositivo</strong> y apunta la cámara:</p>
+                    
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 inline-block shadow-sm">
+                        <img id="wa-qr-img" src="" alt="Código QR WhatsApp" class="w-60 h-60 mx-auto">
+                    </div>
+
+                    <p class="text-[11px] text-emerald-700 font-semibold animate-pulse flex items-center justify-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span> Esperando escáner...
+                    </p>
+                </div>
+            </div>
+
+            {% endif %}
+        </div>
+    </div>
 
     <!-- Branches List -->
     <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -199,4 +406,103 @@
     </div>
 
 </div>
+
+<script>
+    let waPollInterval = null;
+
+    function generateWhatsAppQR() {
+        const genBtn = document.getElementById('wa-gen-btn');
+        const qrContainer = document.getElementById('wa-qr-container');
+
+        if (genBtn) {
+            genBtn.disabled = true;
+            genBtn.innerText = 'Generando QR...';
+        }
+
+        fetch('{% url "whatsapp_gateway_generate" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (genBtn) {
+                genBtn.disabled = false;
+                genBtn.innerHTML = '<i data-lucide="qr-code" class="w-4 h-4"></i> Regenerar Código QR';
+                if (window.lucide) lucide.createIcons();
+            }
+
+            if (data.success && data.qr) {
+                renderQRImage(data.qr);
+                if (qrContainer) qrContainer.classList.remove('hidden');
+                startWAPolling();
+            } else {
+                fetchQRDirect();
+            }
+        })
+        .catch(err => {
+            if (genBtn) {
+                genBtn.disabled = false;
+                genBtn.innerHTML = '<i data-lucide="qr-code" class="w-4 h-4"></i> Generar Código QR de WhatsApp';
+            }
+            alert('Error conectando con el microservicio WhatsApp Gateway en el puerto 3000.');
+        });
+    }
+
+    function fetchQRDirect() {
+        fetch('{% url "whatsapp_gateway_qr" %}')
+        .then(res => res.json())
+        .then(data => {
+            if (data.qr) {
+                renderQRImage(data.qr);
+                document.getElementById('wa-qr-container').classList.remove('hidden');
+                startWAPolling();
+            } else {
+                setTimeout(fetchQRDirect, 1500);
+            }
+        });
+    }
+
+    function renderQRImage(qrString) {
+        const qrImg = document.getElementById('wa-qr-img');
+        if (qrImg) {
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrString)}`;
+        }
+    }
+
+    function startWAPolling() {
+        if (waPollInterval) clearInterval(waPollInterval);
+        waPollInterval = setInterval(() => {
+            fetch('{% url "whatsapp_gateway_status" %}')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'connected') {
+                    clearInterval(waPollInterval);
+                    location.reload();
+                } else {
+                    fetch('{% url "whatsapp_gateway_qr" %}')
+                    .then(r => r.json())
+                    .then(qData => {
+                        if (qData.qr) renderQRImage(qData.qr);
+                    });
+                }
+            });
+        }, 3000);
+    }
+
+    function unlinkWhatsApp() {
+        if (!confirm('¿Seguro que deseas desvincular la cuenta de WhatsApp de la agencia?')) return;
+        fetch('{% url "whatsapp_gateway_unlink" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            location.reload();
+        });
+    }
+</script>
 {% endblock %}

@@ -1,3 +1,5 @@
+import csv
+from django.http import HttpResponse
 from decimal import Decimal
 import datetime
 from django.shortcuts import render, redirect, get_object_or_404
@@ -46,3 +48,60 @@ def commission_report_view(request):
         'settlements': settlements,
         'selected_staff_id': selected_staff_id,
     })
+
+def export_commissions_excel(request):
+    business = getattr(request, 'current_business', None) or Business.objects.first()
+    selected_staff_id = request.GET.get('staff_id', '')
+    records = CommissionRecord.objects.filter(business=business).select_related('staff')
+    if selected_staff_id:
+        records = records.filter(staff_id=selected_staff_id)
+        
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="comisiones_reporte.csv"'
+    
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow(['Profesional', 'Concepto / Servicio', 'Monto Venta', 'Comisión %', 'Comisión $', 'Estado', 'Fecha'])
+    
+    for r in records:
+        writer.writerow([
+            r.staff.user.get_full_name() if r.staff and r.staff.user else (r.staff.display_name if r.staff else 'Desconocido'),
+            r.notes or 'Comisión por venta/servicio',
+            f"${r.sale_amount:,.2f}" if hasattr(r, 'sale_amount') and r.sale_amount else "$0.00",
+            f"{r.commission_rate}%" if hasattr(r, 'commission_rate') and r.commission_rate else "-",
+            f"${r.amount:,.2f}",
+            'LIQUIDADO' if r.is_settled else 'PENDIENTE',
+            r.created_at.strftime('%Y-%m-%d %H:%M') if hasattr(r, 'created_at') and r.created_at else ''
+        ])
+        
+    return response
+
+def export_commissions_pdf(request):
+    business = getattr(request, 'current_business', None) or Business.objects.first()
+    selected_staff_id = request.GET.get('staff_id', '')
+    records = CommissionRecord.objects.filter(business=business).select_related('staff')
+    if selected_staff_id:
+        records = records.filter(staff_id=selected_staff_id)
+        
+    rows = []
+    total_amt = Decimal('0.00')
+    for r in records:
+        total_amt += r.amount
+        staff_name = r.staff.user.get_full_name() if r.staff and r.staff.user else (r.staff.display_name if r.staff else 'Desconocido')
+        rows.append({
+            'col1': staff_name,
+            'col2': r.notes or 'Comisión de servicio',
+            'col3': f"${r.amount:,.2f}",
+            'col4': 'Liquidado' if r.is_settled else 'Pendiente',
+            'col5': r.created_at.strftime('%Y-%m-%d') if hasattr(r, 'created_at') and r.created_at else '-'
+        })
+        
+    return render(request, 'analytics/pdf_report.html', {
+        'title': 'Reporte de Comisiones de Equipo',
+        'subtitle': f'Comisiones y Liquidaciones - {business.name if business else ""}',
+        'business': business,
+        'headers': ['Profesional', 'Concepto', 'Comisión ($)', 'Estado', 'Fecha'],
+        'rows': rows,
+        'summary': f'Total Comisiones Registradas: ${total_amt:,.2f}'
+    })
+
