@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}Reportes Financieros, Métricas & Proyecciones - RauDie OS{% endblock %}
+{% block title %}Finanzas, Métricas & Proyecciones - RauDie OS{% endblock %}
 {% block header_title %}Módulo Financiero, Métricas de Ventas & Proyecciones{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN for dynamic visual analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
 
 {% block content %}
 <div class="space-y-6 pb-12">
@@ -29,15 +34,45 @@
         </div>
     </div>
 
-    <!-- Interactive Filter Toolbar -->
-    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-        <form method="GET" action="{% url 'reports' %}" class="space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                    <i data-lucide="filter" class="w-4 h-4 text-brand-700"></i>
-                    <span>Filtros de Análisis Financiero</span>
+    <!-- Tabbed Navigation Bar (Idéntica a la ficha de clientes) -->
+    <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
+        <button type="button" onclick="switchFinanceTab('kpis')" id="finance-tab-kpis" class="finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-100 text-rose-900 shadow-sm font-semibold">
+            <i data-lucide="layout-grid" class="w-4 h-4 text-rose-900"></i>
+            <span>Resumen & KPIs Principales</span>
+        </button>
+
+        <button type="button" onclick="switchFinanceTab('charts')" id="finance-tab-charts" class="finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2">
+            <i data-lucide="line-chart" class="w-4 h-4 text-rose-900"></i>
+            <span>Flujo Financiero & Métodos de Pago</span>
+        </button>
+
+        <button type="button" onclick="switchFinanceTab('projections')" id="finance-tab-projections" class="finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
+            <span>Proyecciones Dinámicas</span>
+        </button>
+
+        <button type="button" onclick="switchFinanceTab('top')" id="finance-tab-top" class="finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2">
+            <i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i>
+            <span>Más Vendidos por Rango</span>
+        </button>
+
+        <button type="button" onclick="switchFinanceTab('staff')" id="finance-tab-staff" class="finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4 text-rose-900"></i>
+            <span>Desempeño Equipo & Retención CRM</span>
+        </button>
+    </div>
+
+    <!-- Context-Aware Dynamic Filter Bar (Debajo de la barra de pestañas) -->
+    <div class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm">
+        <form method="GET" action="{% url 'reports' %}" id="finance-filter-form" class="space-y-3">
+            <input type="hidden" name="active_tab" id="active_tab_input" value="kpis">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2" id="filter-title">
+                    <i data-lucide="filter" class="w-4 h-4 text-rose-900"></i>
+                    <span>Filtros de Análisis para Resumen & KPIs</span>
                 </span>
-                <span class="text-xs text-slate-400">Rango seleccionado: {{ start_date|date:"d/m/Y" }} al {{ end_date|date:"d/m/Y" }}</span>
+                <span class="text-xs text-slate-400 font-medium">Rango: {{ start_date|date:"d/m/Y" }} al {{ end_date|date:"d/m/Y" }}</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
@@ -54,19 +89,19 @@
                 </div>
 
                 <!-- Custom Start Date -->
-                <div id="custom-start-box" class="space-y-1 {% if preset != 'custom' %}hidden{% endif %}">
+                <div id="custom-start-box" class="space-y-1">
                     <label class="text-[11px] font-bold text-slate-600 uppercase">Fecha Desde</label>
-                    <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none">
+                    <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" onchange="setPresetToCustom()" class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
                 </div>
 
                 <!-- Custom End Date -->
-                <div id="custom-end-box" class="space-y-1 {% if preset != 'custom' %}hidden{% endif %}">
+                <div id="custom-end-box" class="space-y-1">
                     <label class="text-[11px] font-bold text-slate-600 uppercase">Fecha Hasta</label>
-                    <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none">
+                    <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" onchange="setPresetToCustom()" class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
                 </div>
 
-                <!-- Staff Filter -->
-                <div class="space-y-1">
+                <!-- Staff Filter (Contextual) -->
+                <div class="space-y-1" id="filter-box-staff">
                     <label class="text-[11px] font-bold text-slate-600 uppercase">Colaborador / Vendedor</label>
                     <select name="staff_id" class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
                         <option value="">Todos los Colaboradores</option>
@@ -76,8 +111,8 @@
                     </select>
                 </div>
 
-                <!-- Status Filter -->
-                <div class="space-y-1">
+                <!-- Status Filter (Contextual) -->
+                <div class="space-y-1" id="filter-box-status">
                     <label class="text-[11px] font-bold text-slate-600 uppercase">Estado Venta / Factura</label>
                     <select name="status" class="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
                         <option value="ALL" {% if status_filter == 'ALL' %}selected{% endif %}>Todos los Estados</option>
@@ -98,8 +133,8 @@
         </form>
     </div>
 
-    <!-- Financial KPI Highlights -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- TAB CONTENT 1: Financial KPI Highlights -->
+    <div id="finance-content-kpis" class="finance-tab-content grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Card 1: Total Sales -->
         <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2 relative overflow-hidden">
             <div class="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase">
@@ -163,67 +198,39 @@
         </div>
     </div>
 
-    <!-- MOTOR DE PROYECCIONES FINANCIERAS Y RESERVAS FUTURAS -->
-    <div class="bg-gradient-to-br from-slate-950 via-brand-950 to-slate-950 rounded-3xl p-6 sm:p-8 text-white shadow-2xl space-y-6 border border-rose-900/40 relative overflow-hidden">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-rose-900/60 pb-4">
-            <div>
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-900/80 text-rose-200 border border-rose-700/60 text-xs font-bold mb-2">
-                    <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
-                    <span>Motor Predictivo & Proyección de Citas</span>
+    <!-- TAB CONTENT 2: Visual Financial Charts & Methods -->
+    <div id="finance-content-charts" class="finance-tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Chart 1: Sales vs Expenses Trend -->
+            <div class="lg:col-span-8 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base font-display">Flujo Financiero: Ingresos vs Gastos</h3>
+                        <p class="text-xs text-slate-500">Evolución mensual comparativa durante el año</p>
+                    </div>
+                    <span class="text-xs font-bold text-rose-900 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+                        Año {% now "Y" %}
+                    </span>
                 </div>
-                <h3 class="font-display font-extrabold text-2xl text-white">Proyecciones Financieras & Reservas de Agenda</h3>
-                <p class="text-xs text-slate-300">Cálculo de facturación futura basado en turnos agendados y tendencia de ritmo diario (Run-Rate)</p>
+                <div class="h-64">
+                    <canvas id="financialTrendChart"></canvas>
+                </div>
             </div>
-            <span class="text-xs px-3 py-1.5 rounded-xl bg-white/10 text-white font-bold border border-white/20">
-                Próximos 30 días
-            </span>
+
+            <!-- Chart 2: Payment Methods Distribution Donut -->
+            <div class="lg:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base font-display">Distribución Métodos de Pago</h3>
+                    <p class="text-xs text-slate-500">Porcentaje de cobros por vía de pago</p>
+                </div>
+                <div class="h-64 relative flex items-center justify-center">
+                    <canvas id="financialPaymentChart"></canvas>
+                </div>
+            </div>
+
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <!-- Projection 1: 7-Day Appointments Revenue -->
-            <div class="p-5 rounded-2xl bg-white/10 border border-white/15 space-y-2 backdrop-blur-md">
-                <div class="flex items-center justify-between text-xs text-rose-200 font-bold uppercase tracking-wider">
-                    <span>Próximos 7 Días (Citas)</span>
-                    <i data-lucide="calendar" class="w-4 h-4 text-rose-400"></i>
-                </div>
-                <p class="text-3xl font-black font-display text-white">{{ business.currency }}{{ upcoming_7d_revenue|floatformat:2 }}</p>
-                <div class="flex items-center justify-between text-xs text-slate-300 pt-2 border-t border-white/10">
-                    <span>Citas Agendadas:</span>
-                    <span class="font-extrabold text-emerald-400">{{ upcoming_7d_count }} Turnos</span>
-                </div>
-            </div>
-
-            <!-- Projection 2: 30-Day Appointments Revenue -->
-            <div class="p-5 rounded-2xl bg-white/10 border border-white/15 space-y-2 backdrop-blur-md">
-                <div class="flex items-center justify-between text-xs text-rose-200 font-bold uppercase tracking-wider">
-                    <span>Próximos 30 Días (Citas)</span>
-                    <i data-lucide="calendar-range" class="w-4 h-4 text-rose-400"></i>
-                </div>
-                <p class="text-3xl font-black font-display text-white">{{ business.currency }}{{ upcoming_30d_revenue|floatformat:2 }}</p>
-                <div class="flex items-center justify-between text-xs text-slate-300 pt-2 border-t border-white/10">
-                    <span>Citas Agendadas:</span>
-                    <span class="font-extrabold text-emerald-400">{{ upcoming_30d_count }} Turnos</span>
-                </div>
-            </div>
-
-            <!-- Projection 3: Run-Rate End of Month Estimate -->
-            <div class="p-5 rounded-2xl bg-gradient-to-br from-rose-900/60 to-brand-900/80 border border-rose-500/40 space-y-2 backdrop-blur-md">
-                <div class="flex items-center justify-between text-xs text-rose-200 font-bold uppercase tracking-wider">
-                    <span>Proyección Cierre de Mes (Run-Rate)</span>
-                    <i data-lucide="trending-up" class="w-4 h-4 text-amber-400"></i>
-                </div>
-                <p class="text-3xl font-black font-display text-amber-300">{{ business.currency }}{{ projected_monthly_sales|floatformat:2 }}</p>
-                <div class="flex items-center justify-between text-xs text-slate-200 pt-2 border-t border-rose-800/60">
-                    <span>Venta Diaria Promedio:</span>
-                    <span class="font-bold text-white">{{ business.currency }}{{ daily_avg_sales|floatformat:0 }} / día</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Breakdown Grid: Payment Methods & CRM Indicators -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
         <!-- Desglose por Métodos de Pago -->
         <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
             <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
@@ -231,9 +238,8 @@
                 <span>Desglose por Método de Pago</span>
             </h3>
             
-            <div class="space-y-3 text-xs">
-                <!-- MercadoPago / QR -->
-                <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
                         <span class="w-3 h-3 rounded-full bg-blue-500"></span>
                         <span class="font-semibold text-slate-800">MercadoPago / QR</span>
@@ -241,8 +247,7 @@
                     <span class="font-extrabold text-slate-900">{{ business.currency }}{{ payment_methods_breakdown.MERCADOPAGO|floatformat:2 }}</span>
                 </div>
 
-                <!-- Efectivo -->
-                <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
                         <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
                         <span class="font-semibold text-slate-800">Efectivo en Caja</span>
@@ -250,8 +255,7 @@
                     <span class="font-extrabold text-slate-900">{{ business.currency }}{{ payment_methods_breakdown.CASH|floatformat:2 }}</span>
                 </div>
 
-                <!-- Tarjeta de Débito / Crédito -->
-                <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
                         <span class="w-3 h-3 rounded-full bg-purple-500"></span>
                         <span class="font-semibold text-slate-800">Tarjeta Débito / Crédito</span>
@@ -259,8 +263,7 @@
                     <span class="font-extrabold text-slate-900">{{ business.currency }}{{ payment_methods_breakdown.CARD|floatformat:2 }}</span>
                 </div>
 
-                <!-- Transferencia Bancaria -->
-                <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
                         <span class="w-3 h-3 rounded-full bg-amber-500"></span>
                         <span class="font-semibold text-slate-800">Transferencia Bancaria</span>
@@ -269,9 +272,82 @@
                 </div>
             </div>
         </div>
+    </div>
 
+    <!-- TAB CONTENT 3: Dynamic Projections (Pie Charts & Range Estimates) -->
+    <div id="finance-content-projections" class="finance-tab-content hidden space-y-6">
+
+        <!-- Top Overview Header for Projections -->
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold mb-1">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i>
+                    <span>Motor Predictivo de Agenda</span>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900 font-display">Proyección de Ingresos por Servicio y Profesional</h3>
+                <p class="text-xs text-slate-500">Distribución estimada según citas agendadas y estimación de venta diaria del período</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-right">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Proyectado Citas</span>
+                    <span class="text-lg font-black text-rose-900 font-display">{{ business.currency }}{{ upcoming_appointments_revenue|floatformat:2 }}</span>
+                </div>
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-right">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Run-Rate Est. Período</span>
+                    <span class="text-lg font-black text-emerald-700 font-display">{{ business.currency }}{{ projected_period_sales|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Pie Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Pie Chart 1: Proyección por Servicio / Producto -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                            <i data-lucide="scissors" class="w-4 h-4 text-rose-900"></i>
+                            <span>Ingresos Est. por Servicio / Producto</span>
+                        </h4>
+                        <p class="text-xs text-slate-500">Distribución de facturación proyectada según citas registradas</p>
+                    </div>
+                    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                        {{ upcoming_appointments_count }} Turnos
+                    </span>
+                </div>
+                <div class="h-64 relative flex items-center justify-center">
+                    <canvas id="serviceProjectionPieChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Pie Chart 2: Proyección por Profesional / Colaborador -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                            <i data-lucide="user-check" class="w-4 h-4 text-rose-900"></i>
+                            <span>Ingresos Est. por Profesional</span>
+                        </h4>
+                        <p class="text-xs text-slate-500">Estimación de recaudación futura por integrante del equipo</p>
+                    </div>
+                    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-900 border border-rose-200">
+                        {{ start_date|date:"d/m" }} al {{ end_date|date:"d/m" }}
+                    </span>
+                </div>
+                <div class="h-64 relative flex items-center justify-center">
+                    <canvas id="staffProjectionPieChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- TAB CONTENT 4: Staff Performance & CRM Retention -->
+    <div id="finance-content-staff" class="finance-tab-content hidden space-y-6">
         <!-- Indicadores de Clientes CRM -->
-        <div class="lg:col-span-2 p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+        <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
             <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
                 <i data-lucide="users" class="w-4 h-4 text-brand-700"></i>
                 <span>Indicadores de Clientes & Retención (CRM)</span>
@@ -294,55 +370,260 @@
                 </div>
             </div>
         </div>
+
+        <!-- Staff Performance Table -->
+        <div class="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
+            <div class="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold text-slate-900 text-base font-display">Desempeño & Facturación por Colaborador</h4>
+                    <p class="text-xs text-slate-500">Métricas acumuladas de citas atendidas y ventas generadas en el período seleccionado</p>
+                </div>
+                <span class="text-xs font-bold text-brand-900 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+                    {{ staff_reports|length }} Colaboradores
+                </span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold">
+                        <tr>
+                            <th class="p-4">Profesional</th>
+                            <th class="p-4">Rol / Especialidad</th>
+                            <th class="p-4 text-center">Citas Atendidas</th>
+                            <th class="p-4 text-right">Ventas Generadas</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for st in staff_reports %}
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="p-4 font-bold text-slate-900 flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-rose-900 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                                    {{ st.full_name|slice:":2"|upper }}
+                                </div>
+                                <span>{{ st.full_name }}</span>
+                            </td>
+                            <td class="p-4 text-rose-900 font-semibold">{{ st.role_title }}</td>
+                            <td class="p-4 text-center font-bold text-slate-700">{{ st.appointments_completed }}</td>
+                            <td class="p-4 text-right font-black text-emerald-700">{{ business.currency }}{{ st.total_sales_amount|default:"0.00" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="p-8 text-center text-slate-500">No se encontraron registros de colaboradores para este filtro.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <!-- Staff Performance Table -->
-    <div class="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
-        <div class="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+    <!-- TAB CONTENT 5: Top Performers per Date Range (Productos, Servicios y Profesionales) -->
+    <div id="finance-content-top" class="finance-tab-content hidden space-y-6">
+
+        <!-- Top Header for Rankings -->
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-                <h4 class="font-bold text-slate-900 text-base font-display">Desempeño & Facturación por Colaborador</h4>
-                <p class="text-xs text-slate-500">Métricas acumuladas de citas atendidas y ventas generadas en el período seleccionado</p>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold mb-1">
+                    <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-600"></i>
+                    <span>Ranking de Ventas Efectivas</span>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900 font-display">Lo Más Vendido en el Rango Seleccionado</h3>
+                <p class="text-xs text-slate-500">Listado de productos, servicios y profesionales con mayor volumen de venta facturada</p>
             </div>
-            <span class="text-xs font-bold text-brand-900 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
-                {{ staff_reports|length }} Colaboradores
+            <span class="text-xs px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-bold shadow-sm">
+                Filtro: {{ start_date|date:"d/m/Y" }} al {{ end_date|date:"d/m/Y" }}
             </span>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold">
-                    <tr>
-                        <th class="p-4">Profesional</th>
-                        <th class="p-4">Rol / Especialidad</th>
-                        <th class="p-4 text-center">Citas Atendidas</th>
-                        <th class="p-4 text-right">Ventas Generadas</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    {% for st in staff_reports %}
-                    <tr class="hover:bg-slate-50/80 transition">
-                        <td class="p-4 font-bold text-slate-900 flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-rose-900 text-white font-bold flex items-center justify-center text-xs shrink-0">
-                                {{ st.full_name|slice:":2"|upper }}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- 1. Top Servicios Más Vendidos -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-rose-100 text-rose-900 flex items-center justify-center font-bold text-xs">
+                            <i data-lucide="scissors" class="w-4 h-4"></i>
+                        </div>
+                        <span>Top Servicios (Facturación)</span>
+                    </h4>
+                </div>
+
+                <!-- Pie Chart Top Servicios -->
+                <div class="h-56 relative flex items-center justify-center border-b border-slate-100 pb-4">
+                    <canvas id="topServicesPieChart"></canvas>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    {% for srv in top_services %}
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="w-6 h-6 rounded-full bg-rose-900 text-white font-black text-[11px] flex items-center justify-center shrink-0">
+                                {{ forloop.counter }}
+                            </span>
+                            <div class="truncate">
+                                <p class="text-xs font-bold text-slate-900 truncate">{{ srv.service__name }}</p>
+                                <p class="text-[10px] text-slate-500">{{ srv.total_qty }} unidades vendidas</p>
                             </div>
-                            <span>{{ st.full_name }}</span>
-                        </td>
-                        <td class="p-4 text-rose-900 font-semibold">{{ st.role_title }}</td>
-                        <td class="p-4 text-center font-bold text-slate-700">{{ st.appointments_completed }}</td>
-                        <td class="p-4 text-right font-black text-emerald-700">{{ business.currency }}{{ st.total_sales_amount|default:"0.00" }}</td>
-                    </tr>
+                        </div>
+                        <span class="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shrink-0">
+                            {{ business.currency }}{{ srv.total_revenue|floatformat:2 }}
+                        </span>
+                    </div>
                     {% empty %}
-                    <tr>
-                        <td colspan="4" class="p-8 text-center text-slate-500">No se encontraron registros de colaboradores para este filtro.</td>
-                    </tr>
+                    <p class="py-4 text-center text-xs text-slate-400">No hay servicios registrados en este rango.</p>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+            </div>
+
+            <!-- 2. Top Productos Más Vendidos -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center font-bold text-xs">
+                            <i data-lucide="package" class="w-4 h-4"></i>
+                        </div>
+                        <span>Top Productos (Facturación)</span>
+                    </h4>
+                </div>
+
+                <!-- Pie Chart Top Productos -->
+                <div class="h-56 relative flex items-center justify-center border-b border-slate-100 pb-4">
+                    <canvas id="topProductsPieChart"></canvas>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    {% for prod in top_products %}
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="w-6 h-6 rounded-full bg-amber-600 text-white font-black text-[11px] flex items-center justify-center shrink-0">
+                                {{ forloop.counter }}
+                            </span>
+                            <div class="truncate">
+                                <p class="text-xs font-bold text-slate-900 truncate">{{ prod.product__name }}</p>
+                                <p class="text-[10px] text-slate-500">{{ prod.total_qty }} unidades vendidas</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shrink-0">
+                            {{ business.currency }}{{ prod.total_revenue|floatformat:2 }}
+                        </span>
+                    </div>
+                    {% empty %}
+                    <p class="py-4 text-center text-xs text-slate-400">No hay productos vendidos en este rango.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 3. Top Profesionales que Más Venden -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-900 flex items-center justify-center font-bold text-xs">
+                            <i data-lucide="award" class="w-4 h-4"></i>
+                        </div>
+                        <span>Top Profesionales (Facturación)</span>
+                    </h4>
+                </div>
+
+                <!-- Pie Chart Top Profesionales -->
+                <div class="h-56 relative flex items-center justify-center border-b border-slate-100 pb-4">
+                    <canvas id="topStaffPieChart"></canvas>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    {% for stf in top_staff %}
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="w-6 h-6 rounded-full bg-slate-900 text-white font-black text-[11px] flex items-center justify-center shrink-0">
+                                {{ forloop.counter }}
+                            </span>
+                            <div class="truncate">
+                                <p class="text-xs font-bold text-slate-900 truncate">{{ stf.staff__user__first_name }} {{ stf.staff__user__last_name }}</p>
+                                <p class="text-[10px] text-slate-500">{{ stf.total_items }} ventas registradas</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shrink-0">
+                            {{ business.currency }}{{ stf.total_revenue|floatformat:2 }}
+                        </span>
+                    </div>
+                    {% empty %}
+                    <p class="py-4 text-center text-xs text-slate-400">Sin ventas asociadas a profesionales en este rango.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
         </div>
+
     </div>
 
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
 <script>
+    function switchFinanceTab(tabId) {
+        // Hide all tab contents
+        document.querySelectorAll('.finance-tab-content').forEach(el => {
+            el.classList.add('hidden');
+        });
+
+        // Reset all tab button styles
+        document.querySelectorAll('.finance-tab-btn').forEach(btn => {
+            btn.className = 'finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2';
+        });
+
+        // Show active content
+        const targetContent = document.getElementById('finance-content-' + tabId);
+        if (targetContent) {
+            targetContent.classList.remove('hidden');
+        }
+
+        // Highlight active tab button
+        const activeBtn = document.getElementById('finance-tab-' + tabId);
+        if (activeBtn) {
+            activeBtn.className = 'finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-100 text-rose-900 shadow-sm font-semibold';
+        }
+
+        // Update hidden input for active tab persistence
+        const tabInput = document.getElementById('active_tab_input');
+        if (tabInput) tabInput.value = tabId;
+
+        // Customize filter header title & contextual labels based on section
+        const filterTitle = document.getElementById('filter-title');
+        const staffBox = document.getElementById('filter-box-staff');
+        const statusBox = document.getElementById('filter-box-status');
+
+        if (filterTitle) {
+            if (tabId === 'kpis') {
+                filterTitle.innerHTML = `<i data-lucide="filter" class="w-4 h-4 text-rose-900"></i><span>Filtros de Análisis para Resumen & KPIs</span>`;
+                if (staffBox) staffBox.classList.remove('hidden');
+                if (statusBox) statusBox.classList.remove('hidden');
+            } else if (tabId === 'charts') {
+                filterTitle.innerHTML = `<i data-lucide="filter" class="w-4 h-4 text-rose-900"></i><span>Filtros para Flujo Financiero & Métodos de Pago</span>`;
+                if (staffBox) staffBox.classList.remove('hidden');
+                if (statusBox) statusBox.classList.remove('hidden');
+            } else if (tabId === 'projections') {
+                filterTitle.innerHTML = `<i data-lucide="filter" class="w-4 h-4 text-rose-900"></i><span>Filtros de Período y Profesional para Proyecciones</span>`;
+                if (staffBox) staffBox.classList.remove('hidden');
+                if (statusBox) statusBox.classList.add('hidden'); // Projections are appointment-based
+            } else if (tabId === 'top') {
+                filterTitle.innerHTML = `<i data-lucide="filter" class="w-4 h-4 text-rose-900"></i><span>Filtros para Ranking de Más Vendidos por Rango</span>`;
+                if (staffBox) staffBox.classList.remove('hidden');
+                if (statusBox) statusBox.classList.remove('hidden');
+            } else if (tabId === 'staff') {
+                filterTitle.innerHTML = `<i data-lucide="filter" class="w-4 h-4 text-rose-900"></i><span>Filtros de Rendimiento de Equipo & Retención CRM</span>`;
+                if (staffBox) staffBox.classList.remove('hidden');
+                if (statusBox) statusBox.classList.remove('hidden');
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function setPresetToCustom() {
+        const presetSelect = document.querySelector('select[name="preset"]');
+        if (presetSelect) {
+            presetSelect.value = 'custom';
+        }
+    }
+
     function toggleCustomDates(val) {
         const startBox = document.getElementById('custom-start-box');
         const endBox = document.getElementById('custom-end-box');
@@ -353,6 +634,206 @@
             startBox?.classList.add('hidden');
             endBox?.classList.add('hidden');
         }
+    }
+
+    // Render Financial Trend Chart (Sales vs Expenses)
+    const trendEl = document.getElementById('financialTrendChart');
+    if (trendEl) {
+        new Chart(trendEl.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                datasets: [
+                    {
+                        label: 'Ventas ({{ business.currency }})',
+                        data: {{ monthly_sales_data|safe }},
+                        borderColor: '#701a2b',
+                        backgroundColor: 'rgba(112, 26, 43, 0.08)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Gastos ({{ business.currency }})',
+                        data: {{ monthly_expenses_data|safe }},
+                        borderColor: '#0f172a',
+                        backgroundColor: 'rgba(15, 23, 42, 0.05)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#334155', font: { family: 'Inter' } } }
+                },
+                scales: {
+                    x: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { color: '#64748b' } },
+                    y: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { color: '#64748b' } }
+                }
+            }
+        });
+    }
+
+    // Render Payment Methods Donut Chart
+    const payEl = document.getElementById('financialPaymentChart');
+    if (payEl) {
+        new Chart(payEl.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['MercadoPago QR', 'Efectivo', 'Tarjeta', 'Transferencia'],
+                datasets: [{
+                    data: {{ payment_methods_chart_data|safe }},
+                    backgroundColor: ['#3b82f6', '#10b981', '#a855f7', '#f59e0b'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // Pie Chart 1: Proyección por Servicio / Producto
+    const srvPieEl = document.getElementById('serviceProjectionPieChart');
+    if (srvPieEl) {
+        const srvLabels = {{ service_proj_labels|safe }};
+        const srvData = {{ service_proj_data|safe }};
+        new Chart(srvPieEl.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: srvLabels.length ? srvLabels : ['Sin citas en rango'],
+                datasets: [{
+                    data: srvData.length ? srvData : [0],
+                    backgroundColor: ['#701a2b', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'],
+                    borderWidth: 1,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // Pie Chart 2: Proyección por Profesional / Colaborador
+    const stfPieEl = document.getElementById('staffProjectionPieChart');
+    if (stfPieEl) {
+        const stfLabels = {{ staff_proj_labels|safe }};
+        const stfData = {{ staff_proj_data|safe }};
+        new Chart(stfPieEl.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: stfLabels.length ? stfLabels : ['Sin citas en rango'],
+                datasets: [{
+                    data: stfData.length ? stfData : [0],
+                    backgroundColor: ['#0f172a', '#701a2b', '#10b981', '#f59e0b', '#6366f1', '#14b8a6'],
+                    borderWidth: 1,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // Pie Chart Top 1: Servicios Más Vendidos
+    const topSrvPieEl = document.getElementById('topServicesPieChart');
+    if (topSrvPieEl) {
+        const topSrvLabels = {{ top_services_labels|safe }};
+        const topSrvData = {{ top_services_data|safe }};
+        new Chart(topSrvPieEl.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: topSrvLabels.length ? topSrvLabels : ['Sin datos'],
+                datasets: [{
+                    data: topSrvData.length ? topSrvData : [0],
+                    backgroundColor: ['#701a2b', '#e11d48', '#f43f5e', '#fb7185', '#fda4af'],
+                    borderWidth: 1,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 10 } } }
+                }
+            }
+        });
+    }
+
+    // Pie Chart Top 2: Productos Más Vendidos
+    const topProdPieEl = document.getElementById('topProductsPieChart');
+    if (topProdPieEl) {
+        const topProdLabels = {{ top_products_labels|safe }};
+        const topProdData = {{ top_products_data|safe }};
+        new Chart(topProdPieEl.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: topProdLabels.length ? topProdLabels : ['Sin datos'],
+                datasets: [{
+                    data: topProdData.length ? topProdData : [0],
+                    backgroundColor: ['#d97706', '#f59e0b', '#fbbf24', '#fde047', '#fef08a'],
+                    borderWidth: 1,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 10 } } }
+                }
+            }
+        });
+    }
+
+    // Pie Chart Top 3: Profesionales que Más Venden
+    const topStaffPieEl = document.getElementById('topStaffPieChart');
+    if (topStaffPieEl) {
+        const topStaffLabels = {{ top_staff_labels|safe }};
+        const topStaffData = {{ top_staff_data|safe }};
+        new Chart(topStaffPieEl.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: topStaffLabels.length ? topStaffLabels : ['Sin datos'],
+                datasets: [{
+                    data: topStaffData.length ? topStaffData : [0],
+                    backgroundColor: ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'],
+                    borderWidth: 1,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 10 } } }
+                }
+            }
+        });
+    }
+
+    // Auto-restore active tab after GET filter submission
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTabParam = urlParams.get('active_tab');
+    if (activeTabParam && ['kpis', 'charts', 'projections', 'top', 'staff'].includes(activeTabParam)) {
+        switchFinanceTab(activeTabParam);
     }
 </script>
 {% endblock %}

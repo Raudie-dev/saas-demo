@@ -178,8 +178,8 @@
                 {% endif %}
 
                 <a href="{% url 'reports' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'reportes' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
-                    <span>Reportes & Indicadores</span>
+                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                    <span>Finanzas</span>
                 </a>
 
                 {% if modules_enabled.ai_engine %}
@@ -298,8 +298,8 @@
                 {% endif %}
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Configurar</div>
                 <a href="{% url 'reports' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'reportes' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
-                    <span>Reportes & Indicadores</span>
+                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                    <span>Finanzas</span>
                 </a>
                 <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'business' in request.path and not 'superadmin' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="settings" class="w-5 h-5"></i>

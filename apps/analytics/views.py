@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.db.models import Sum, Count, Avg
 from apps.business.models import Business, StaffMember
-from apps.pos.models import Sale
+from apps.pos.models import Sale, SaleItem
 from apps.invoicing.models import Expense, Invoice, AccountReceivable
 from apps.crm.models import Client
 from apps.agenda.models import Appointment
@@ -18,89 +18,37 @@ def dashboard_view(request):
     if not business:
         return render(request, 'analytics/dashboard.html', {'business': None})
         
-    # KPI Financial Metrics
-    completed_sales = Sale.objects.filter(business=business, status='COMPLETED')
-    total_sales = completed_sales.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-    total_expenses = Expense.objects.filter(business=business).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    net_profit = total_sales - total_expenses
-    
-    accounts_receivable = AccountReceivable.objects.filter(business=business, status='PENDING').aggregate(total=Sum('amount_due'))['total'] or Decimal('0.00')
-    accounts_payable = Expense.objects.filter(business=business, status='PENDING').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    
-    sales_count = completed_sales.count()
-    avg_ticket = (total_sales / sales_count) if sales_count > 0 else Decimal('0.00')
-    
-    # Operational KPIs
     today = datetime.date.today()
-    today_appointments = Appointment.objects.filter(business=business, date=today)
+    
+    # Facturación del día (Ventas POS del día de hoy)
+    today_sales_qs = Sale.objects.filter(business=business, status='COMPLETED', created_at__date=today)
+    today_sales = today_sales_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    today_sales_count = today_sales_qs.count()
+    
+    # Citas del día y próximas citas
+    today_appointments = Appointment.objects.filter(business=business, date=today).select_related('client', 'staff', 'service')
+    upcoming_appointments = today_appointments.order_by('start_time')
+    
+    # Clientes totales y Alertas de Stock
     total_clients = Client.objects.filter(business=business).count()
     low_stock_products = Product.objects.filter(business=business, stock__lte=5)
     
-    # Calculate Agenda Occupancy %
+    # Ocupación de Agenda %
     total_staff_count = StaffMember.objects.filter(business=business, is_active=True).count()
     max_daily_capacity = (total_staff_count * 8) if total_staff_count > 0 else 1
     agenda_occupancy_pct = min(100, int((today_appointments.count() / max_daily_capacity) * 100)) if total_staff_count > 0 else 0
 
-    # Calculate REAL Monthly Sales & Expenses for Current Year (Jan to Dec)
-    current_year = today.year
-    monthly_sales_data = []
-    monthly_expenses_data = []
-    
-    for month in range(1, 13):
-        # Monthly sales
-        m_sales = Sale.objects.filter(
-            business=business, 
-            status='COMPLETED', 
-            created_at__year=current_year, 
-            created_at__month=month
-        ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-        monthly_sales_data.append(float(m_sales))
-
-        # Monthly expenses
-        m_exp = Expense.objects.filter(
-            business=business, 
-            created_at__year=current_year, 
-            created_at__month=month
-        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        monthly_expenses_data.append(float(m_exp))
-
-    # Calculate REAL Payment Methods Distribution
-    pm_qr = completed_sales.filter(payment_method='MERCADOPAGO').count()
-    pm_cash = completed_sales.filter(payment_method='CASH').count()
-    pm_card = completed_sales.filter(payment_method='CARD').count()
-    pm_transfer = completed_sales.filter(payment_method='TRANSFER').count()
-    
-    payment_methods_data = [pm_qr, pm_cash, pm_card, pm_transfer]
-
-    # Recent Sales and Appointments
-    recent_sales = Sale.objects.filter(business=business).select_related('client', 'staff')[:5]
-    recent_appointments = Appointment.objects.filter(business=business).select_related('client', 'staff', 'service')[:6]
-    
-    # Staff performance
-    staff_performance = StaffMember.objects.filter(business=business).annotate(
-        sales_total=Sum('sales__total_amount'),
-        appointments_count=Count('appointments')
-    )
-
     context = {
         'business': business,
-        'total_sales': total_sales,
-        'total_expenses': total_expenses,
-        'net_profit': net_profit,
-        'accounts_receivable': accounts_receivable,
-        'accounts_payable': accounts_payable,
-        'avg_ticket': avg_ticket,
+        'today_sales': today_sales,
+        'today_sales_count': today_sales_count,
+        'today_appointments': today_appointments,
         'today_appointments_count': today_appointments.count(),
+        'recent_appointments': upcoming_appointments,
         'total_clients': total_clients,
         'low_stock_count': low_stock_products.count(),
         'low_stock_products': low_stock_products,
-        'recent_sales': recent_sales,
-        'recent_appointments': recent_appointments,
-        'staff_performance': staff_performance,
         'agenda_occupancy_pct': agenda_occupancy_pct,
-        'monthly_sales_data': monthly_sales_data,
-        'monthly_expenses_data': monthly_expenses_data,
-        'payment_methods_data': payment_methods_data,
     }
     
     return render(request, 'analytics/dashboard.html', context)
@@ -203,39 +151,104 @@ def get_filtered_analytics_data(business, request):
     clients_vip = Client.objects.filter(business=business, status='VIP').count()
     clients_inactive = Client.objects.filter(business=business, status='INACTIVE').count()
 
-    # FINANCIAL PROJECTIONS (Proyecciones de Ventas y Reservas)
-    # 1. Confirmed upcoming appointments revenue pipeline
-    upcoming_7d_appointments = Appointment.objects.filter(
+    # FINANCIAL PROJECTIONS (Dinámicas por Filtro Seleccionado)
+    # Citas agendadas dentro del rango filtrado (o fechas futuras asociadas al período)
+    upcoming_appointments_qs = Appointment.objects.filter(
         business=business,
-        date__gte=today,
-        date__lte=today + datetime.timedelta(days=7),
         status__in=['CONFIRMED', 'PENDING']
     )
-    upcoming_7d_revenue = upcoming_7d_appointments.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
-    upcoming_7d_count = upcoming_7d_appointments.count()
+    if start_date and end_date:
+        upcoming_appointments_qs = upcoming_appointments_qs.filter(date__gte=start_date, date__lte=end_date)
+    if staff_id:
+        upcoming_appointments_qs = upcoming_appointments_qs.filter(staff_id=staff_id)
 
-    upcoming_30d_appointments = Appointment.objects.filter(
-        business=business,
-        date__gte=today,
-        date__lte=today + datetime.timedelta(days=30),
-        status__in=['CONFIRMED', 'PENDING']
-    )
-    upcoming_30d_revenue = upcoming_30d_appointments.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
-    upcoming_30d_count = upcoming_30d_appointments.count()
+    upcoming_appointments_revenue = upcoming_appointments_qs.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
+    upcoming_appointments_count = upcoming_appointments_qs.count()
 
-    # 2. Run-rate projection for current month
-    first_day_of_month = today.replace(day=1)
-    mtd_sales = Sale.objects.filter(
-        business=business,
-        status='COMPLETED',
-        created_at__date__gte=first_day_of_month,
-        created_at__date__lte=today
-    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    # Cálculo de Run-Rate y Proyección según el período de días filtrado
+    period_days = max(1, (end_date - start_date).days + 1) if (start_date and end_date) else 30
+    daily_avg_sales = (total_sales / Decimal(str(period_days))) if total_sales > 0 else Decimal('0.00')
+    projected_period_sales = daily_avg_sales * Decimal(str(period_days))
 
-    days_passed = max(1, today.day)
-    num_days_in_month = calendar.monthrange(today.year, today.month)[1]
-    daily_avg_sales = mtd_sales / Decimal(str(days_passed))
-    projected_monthly_sales = daily_avg_sales * Decimal(str(num_days_in_month))
+    # Pie Chart 1: Proyección por Servicio/Producto (Estimación de Ingresos según Citas Filtradas)
+    services_proj_qs = upcoming_appointments_qs.values('service__name').annotate(total_est=Sum('total_price'), count=Count('id')).order_by('-total_est')
+    service_proj_labels = [item['service__name'] or 'Servicio General' for item in services_proj_qs]
+    service_proj_data = [float(item['total_est'] or 0) for item in services_proj_qs]
+
+    # Pie Chart 2: Proyección por Profesional (Estimación de Ingresos a Generar)
+    staff_proj_qs = upcoming_appointments_qs.values('staff__first_name', 'staff__last_name').annotate(total_est=Sum('total_price'), count=Count('id')).order_by('-total_est')
+    staff_proj_labels = [f"{item['staff__first_name'] or ''} {item['staff__last_name'] or ''}".strip() or 'Sin Asignar' for item in staff_proj_qs]
+    staff_proj_data = [float(item['total_est'] or 0) for item in staff_proj_qs]
+
+    # SECCIÓN MÁS VENDIDOS POR RANGO DE FECHAS (Productos, Servicios y Profesionales)
+    completed_sales_ids = completed_sales.values_list('id', flat=True)
+    
+    # 1. Top Servicios más vendidos en el rango de fechas
+    top_services = list(SaleItem.objects.filter(
+        sale_id__in=completed_sales_ids,
+        item_type='SERVICE',
+        service__isnull=False
+    ).values('service__name').annotate(
+        total_revenue=Sum('total_price'),
+        total_qty=Sum('quantity')
+    ).order_by('-total_revenue')[:5])
+
+    top_services_labels = [item['service__name'] for item in top_services]
+    top_services_data = [float(item['total_revenue'] or 0) for item in top_services]
+
+    # 2. Top Productos más vendidos en el rango de fechas
+    top_products = list(SaleItem.objects.filter(
+        sale_id__in=completed_sales_ids,
+        item_type='PRODUCT',
+        product__isnull=False
+    ).values('product__name').annotate(
+        total_revenue=Sum('total_price'),
+        total_qty=Sum('quantity')
+    ).order_by('-total_revenue')[:5])
+
+    top_products_labels = [item['product__name'] for item in top_products]
+    top_products_data = [float(item['total_revenue'] or 0) for item in top_products]
+
+    # 3. Top Profesionales que más venden en el rango de fechas
+    top_staff = list(completed_sales.values(
+        'staff__first_name', 
+        'staff__last_name', 
+        'staff__role_title'
+    ).annotate(
+        total_revenue=Sum('total_amount'),
+        total_sales_count=Count('id')
+    ).order_by('-total_revenue')[:5])
+
+    top_staff_labels = [f"{item['staff__first_name'] or ''} {item['staff__last_name'] or ''}".strip() or 'Sin Asignar' for item in top_staff]
+    top_staff_data = [float(item['total_revenue'] or 0) for item in top_staff]
+
+    # Calculate Monthly Sales & Expenses for Current Year (Jan to Dec) for Financial Charts
+    current_year = today.year
+    monthly_sales_data = []
+    monthly_expenses_data = []
+    
+    for month in range(1, 13):
+        m_sales = Sale.objects.filter(
+            business=business, 
+            status='COMPLETED', 
+            created_at__year=current_year, 
+            created_at__month=month
+        ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+        monthly_sales_data.append(float(m_sales))
+
+        m_exp = Expense.objects.filter(
+            business=business, 
+            created_at__year=current_year, 
+            created_at__month=month
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        monthly_expenses_data.append(float(m_exp))
+
+    payment_methods_chart_data = [
+        float(pm_qr),
+        float(pm_cash),
+        float(pm_card),
+        float(pm_transfer)
+    ]
 
     all_staff = StaffMember.objects.filter(business=business, is_active=True)
 
@@ -257,19 +270,36 @@ def get_filtered_analytics_data(business, request):
         'accounts_receivable': accounts_receivable,
         'accounts_payable': accounts_payable,
         'payment_methods_breakdown': payment_methods_breakdown,
+        'payment_methods_chart_data': payment_methods_chart_data,
+        'monthly_sales_data': monthly_sales_data,
+        'monthly_expenses_data': monthly_expenses_data,
         'staff_reports': staff_reports,
         'all_staff': all_staff,
         'clients_active': clients_active,
         'clients_vip': clients_vip,
         'clients_inactive': clients_inactive,
-        # Projections
-        'upcoming_7d_revenue': upcoming_7d_revenue,
-        'upcoming_7d_count': upcoming_7d_count,
-        'upcoming_30d_revenue': upcoming_30d_revenue,
-        'upcoming_30d_count': upcoming_30d_count,
-        'mtd_sales': mtd_sales,
+        # Dynamic Projections by Filter
+        'upcoming_appointments_revenue': upcoming_appointments_revenue,
+        'upcoming_appointments_count': upcoming_appointments_count,
+        'period_days': period_days,
         'daily_avg_sales': daily_avg_sales,
-        'projected_monthly_sales': projected_monthly_sales,
+        'projected_period_sales': projected_period_sales,
+        # Pie Chart Projections Data
+        'service_proj_labels': service_proj_labels,
+        'service_proj_data': service_proj_data,
+        'staff_proj_labels': staff_proj_labels,
+        'staff_proj_data': staff_proj_data,
+        # Top Performers per Date Range
+        'top_services': top_services,
+        'top_products': top_products,
+        'top_staff': top_staff,
+        # Pie Chart Top Performers Datasets
+        'top_services_labels': top_services_labels,
+        'top_services_data': top_services_data,
+        'top_products_labels': top_products_labels,
+        'top_products_data': top_products_data,
+        'top_staff_labels': top_staff_labels,
+        'top_staff_data': top_staff_data,
     }
 
 
