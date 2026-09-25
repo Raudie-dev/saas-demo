@@ -6,149 +6,349 @@
 {% block content %}
 <div class="space-y-6 max-w-7xl mx-auto">
 
-    {% if messages %}
-    <div class="space-y-2">
-        {% for message in messages %}
-        <div class="p-4 rounded-xl text-sm font-semibold flex items-center justify-between {% if message.tags == 'warning' or message.tags == 'error' %}bg-rose-50 border border-rose-200 text-rose-900{% else %}bg-emerald-50 border border-emerald-200 text-emerald-900{% endif %}">
-            <div class="flex items-center gap-2">
-                <i data-lucide="info" class="w-5 h-5"></i>
-                <span>{{ message }}</span>
+    <!-- Top Action & Filter Header Card -->
+    <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-bold font-display text-slate-900">Licencias y Suscripciones de Agencias</h2>
+                <p class="text-xs text-slate-500">Administra los accesos, licencias de prueba, personalizadas, renovaciones y suspensiones.</p>
+            </div>
+
+            <!-- New / Custom License Button -->
+            <button type="button" onclick="openCustomLicenseModal()" class="px-4 py-2 bg-rose-900 hover:bg-rose-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs cursor-pointer whitespace-nowrap">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Crear / Asignar Licencia</span>
+            </button>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100">
+            <!-- Filter & Search Bar -->
+            <form method="GET" class="flex flex-wrap items-center gap-2">
+                <div class="relative flex-1 min-w-[200px]">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" name="q" value="{{ query }}" placeholder="Buscar agencia..." class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:border-rose-900 focus:bg-white transition">
+                </div>
+
+                <select name="status" onchange="this.form.submit()" class="bg-slate-50 border border-slate-200 text-slate-900 text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-rose-900 cursor-pointer">
+                    <option value="ALL" {% if status_filter == 'ALL' %}selected{% endif %}>Todos los Estados</option>
+                    <option value="ACTIVE" {% if status_filter == 'ACTIVE' %}selected{% endif %}>Licencias Activas</option>
+                    <option value="TRIAL" {% if status_filter == 'TRIAL' %}selected{% endif %}>En Período de Prueba</option>
+                    <option value="EXPIRED" {% if status_filter == 'EXPIRED' %}selected{% endif %}>Licencias Vencidas</option>
+                    <option value="SUSPENDED" {% if status_filter == 'SUSPENDED' %}selected{% endif %}>Cuentas Suspendidas</option>
+                </select>
+
+                <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition cursor-pointer">
+                    Filtrar
+                </button>
+                
+                {% if query or status_filter != 'ALL' %}
+                <a href="{% url 'superadmin_subscriptions' %}" class="px-3 py-2 bg-slate-100 text-slate-600 hover:text-slate-900 rounded-xl text-xs font-semibold transition">
+                    Limpiar
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Subscriptions Table (100% fluid) -->
+    <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <table class="w-full text-left border-collapse text-xs table-auto">
+            <thead>
+                <tr class="bg-slate-950 text-white uppercase font-bold text-[10px] tracking-wider">
+                    <th class="py-3 px-4">Agencia / Negocio</th>
+                    <th class="py-3 px-4">Plan Actual</th>
+                    <th class="py-3 px-4">Estado</th>
+                    <th class="py-3 px-4">Vencimiento</th>
+                    <th class="py-3 px-4 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for sub in subscriptions %}
+                <tr class="hover:bg-slate-50/70 transition">
+                    <!-- Agencia / Negocio & Token -->
+                    <td class="py-3 px-4">
+                        <div class="font-bold text-slate-900 text-xs font-display">{{ sub.business.name }}</div>
+                        <div class="text-[11px] text-slate-500 font-mono mt-0.5">{{ sub.business.email }} • /reservas/{{ sub.business.slug }}</div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 select-all" title="Token: {{ sub.license_key }}">
+                                🔑 {{ sub.license_key|slice:":13" }}...
+                            </span>
+                            {% if sub.notes %}
+                            <span class="text-[10px] text-rose-900 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-medium">
+                                📝 {{ sub.notes|truncatechars:30 }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    <!-- Plan Actual -->
+                    <td class="py-3 px-4">
+                        {% if sub.plan %}
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-900 border border-rose-200 inline-block">
+                            {{ sub.plan.name }} (${{ sub.plan.monthly_price }}/m)
+                        </span>
+                        {% else %}
+                        <span class="text-slate-400 italic">Sin plan</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Estado de Licencia -->
+                    <td class="py-3 px-4">
+                        {% if sub.status == 'ACTIVE' %}
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span> ACTIVA
+                        </span>
+                        {% elif sub.status == 'TRIAL' %}
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i> PRUEBA ({{ sub.days_remaining }}d)
+                        </span>
+                        {% elif sub.status == 'EXPIRED' %}
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-900 border border-rose-300 inline-flex items-center">
+                            VENCIDA
+                        </span>
+                        {% else %}
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-200 text-slate-700 border border-slate-300 inline-flex items-center">
+                            SUSPENDIDA
+                        </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Vencimiento -->
+                    <td class="py-3 px-4">
+                        <div class="font-semibold text-slate-900 text-xs">{{ sub.expiration_date|date:"d M Y" }}</div>
+                        <div class="text-[10px] text-slate-500">{{ sub.days_remaining }}d restantes</div>
+                    </td>
+
+                    <!-- Acciones -->
+                    <td class="py-3 px-4 text-right">
+                        <button type="button" onclick="openEditLicenseModal('{{ sub.id }}', '{{ sub.business.id }}', '{{ sub.business.name|escapejs }}', '{{ sub.status }}', '{{ sub.plan.id|default:'' }}', '{{ sub.expiration_date|date:'Y-m-d' }}', '{{ sub.notes|default:''|escapejs }}')" class="px-3 py-1.5 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-bold text-xs transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs">
+                            <i data-lucide="key" class="w-3.5 h-3.5"></i> Ver Licencia
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="p-8 text-center text-slate-400 italic">No se encontraron suscripciones registradas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if page_obj and page_obj.has_other_pages %}
+        <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div class="text-slate-500 font-medium">
+                Mostrando <span class="font-bold text-slate-900">{{ page_obj.start_index }}</span> a <span class="font-bold text-slate-900">{{ page_obj.end_index }}</span> de <span class="font-bold text-slate-900">{{ page_obj.paginator.count }}</span> suscripciones
+            </div>
+            
+            <div class="flex items-center gap-1.5">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                   class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                    <i data-lucide="chevron-left" class="w-4 h-4 text-slate-500"></i> Anterior
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+                </span>
+                {% endif %}
+
+                <div class="flex items-center gap-1">
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <span class="w-8 h-8 rounded-xl bg-brand-900 text-white font-extrabold flex items-center justify-center shadow-xs text-xs">
+                            {{ num }}
+                        </span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                           class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold flex items-center justify-center transition text-xs shadow-2xs">
+                            {{ num }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                   class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                    Siguiente <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                    Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </span>
+                {% endif %}
             </div>
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Top Action & Filter Header -->
-    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        <div>
-            <h2 class="text-xl font-bold font-display text-slate-900">Licencias y Suscripciones de Agencias</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Administra los accesos, renovaciones, suspensiones y períodos de prueba.</p>
-        </div>
-
-        <!-- Filter & Search Bar -->
-        <form method="GET" class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <input type="text" name="q" value="{{ query }}" placeholder="Buscar agencia..." class="bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl p-2.5 w-48 focus:outline-none focus:border-rose-900">
-
-            <select name="status" onchange="this.form.submit()" class="bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl p-2.5 focus:outline-none focus:border-rose-900">
-                <option value="ALL" {% if status_filter == 'ALL' %}selected{% endif %}>Todos los Estados</option>
-                <option value="ACTIVE" {% if status_filter == 'ACTIVE' %}selected{% endif %}>Licencias Activas</option>
-                <option value="TRIAL" {% if status_filter == 'TRIAL' %}selected{% endif %}>En Período de Prueba</option>
-                <option value="EXPIRED" {% if status_filter == 'EXPIRED' %}selected{% endif %}>Licencias Vencidas</option>
-                <option value="SUSPENDED" {% if status_filter == 'SUSPENDED' %}selected{% endif %}>Cuentas Suspendidas</option>
-            </select>
-
-            <button type="submit" class="px-4 py-2.5 bg-rose-900 text-white rounded-xl text-xs font-bold hover:bg-rose-800 transition">
-                Filtrar
-            </button>
-        </form>
-    </div>
-
-    <!-- Subscriptions Table -->
-    <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                    <tr class="bg-slate-950 text-white uppercase font-bold text-[10px] tracking-wider">
-                        <th class="p-4">Agencia / Negocio</th>
-                        <th class="p-4">Plan Actual</th>
-                        <th class="p-4">Estado de Licencia</th>
-                        <th class="p-4">Vencimiento</th>
-                        <th class="p-4">Token Licencia</th>
-                        <th class="p-4 text-right">Acciones de Control</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    {% for sub in subscriptions %}
-                    <tr class="hover:bg-slate-50/60 transition">
-                        <td class="p-4">
-                            <div class="font-bold text-slate-900 text-sm font-display">{{ sub.business.name }}</div>
-                            <div class="text-[11px] text-slate-500 font-mono mt-0.5">{{ sub.business.email }} • /reservas/{{ sub.business.slug }}</div>
-                        </td>
-
-                        <td class="p-4">
-                            {% if sub.plan %}
-                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200">
-                                {{ sub.plan.name }} (${{ sub.plan.monthly_price }}/mes)
-                            </span>
-                            {% else %}
-                            <span class="text-slate-400 italic">Sin plan asignado</span>
-                            {% endif %}
-                        </td>
-
-                        <td class="p-4">
-                            {% if sub.status == 'ACTIVE' %}
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1 w-fit">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span> ACTIVA
-                            </span>
-                            {% elif sub.status == 'TRIAL' %}
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1 w-fit">
-                                <i data-lucide="clock" class="w-3 h-3"></i> EN PRUEBA ({{ sub.days_remaining }}d)
-                            </span>
-                            {% elif sub.status == 'EXPIRED' %}
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-900 border border-rose-300 w-fit">
-                                VENCIDA
-                            </span>
-                            {% else %}
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-slate-200 text-slate-700 border border-slate-300 w-fit">
-                                SUSPENDIDA
-                            </span>
-                            {% endif %}
-                        </td>
-
-                        <td class="p-4">
-                            <div class="font-semibold text-slate-900">{{ sub.expiration_date|date:"d M Y" }}</div>
-                            <div class="text-[10px] text-slate-500 mt-0.5">{{ sub.days_remaining }} días restantes</div>
-                        </td>
-
-                        <td class="p-4 font-mono text-[10px] text-slate-400 select-all">
-                            {{ sub.license_key|slice:":13" }}...
-                        </td>
-
-                        <td class="p-4 text-right space-x-1">
-                            <!-- Activate / Renew License Form -->
-                            <form method="POST" class="inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="subscription_id" value="{{ sub.id }}">
-                                <input type="hidden" name="action" value="ACTIVATE">
-                                <button type="submit" title="Activar / Renovar 30 Días" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] transition inline-flex items-center gap-1">
-                                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Activar
-                                </button>
-                            </form>
-
-                            <!-- Extend Trial Form -->
-                            <form method="POST" class="inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="subscription_id" value="{{ sub.id }}">
-                                <input type="hidden" name="action" value="EXTEND_TRIAL">
-                                <input type="hidden" name="days" value="15">
-                                <button type="submit" title="Extender prueba +15 días" class="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] transition inline-flex items-center gap-1">
-                                    <i data-lucide="clock" class="w-3.5 h-3.5"></i> +15 Días
-                                </button>
-                            </form>
-
-                            <!-- Suspend Form -->
-                            {% if sub.status != 'SUSPENDED' %}
-                            <form method="POST" class="inline" onsubmit="return confirm('¿Seguro que deseas suspender la cuenta de {{ sub.business.name }}?')">
-                                {% csrf_token %}
-                                <input type="hidden" name="subscription_id" value="{{ sub.id }}">
-                                <input type="hidden" name="action" value="SUSPEND">
-                                <button type="submit" title="Suspender acceso" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-900 text-slate-200 font-bold text-[11px] transition">
-                                    Suspender
-                                </button>
-                            </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="p-8 text-center text-slate-400 italic">No se encontraron suscripciones registradas.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        {% endif %}
     </div>
 
 </div>
+
+<!-- Modal para Crear / Personalizar Licencia -->
+<div id="customLicenseModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transition-all transform scale-100">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="key-round" class="w-5 h-5 text-rose-400"></i>
+                <h3 id="modalTitle" class="text-base font-bold font-display">Configurar Licencia de Agencia</h3>
+            </div>
+            <button type="button" onclick="closeCustomLicenseModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body & Form -->
+        <form method="POST" action="{% url 'superadmin_subscriptions' %}" class="p-6 space-y-4 text-xs">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="CREATE_CUSTOM">
+            <input type="hidden" id="modal_subscription_id" name="subscription_id" value="">
+
+            <!-- Seleccionar Agencia -->
+            <div>
+                <label class="block font-bold text-slate-800 mb-1.5">Agencia / Negocio</label>
+                <select id="modal_business_id" name="business_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-rose-900">
+                    <option value="">-- Seleccionar Agencia --</option>
+                    {% for biz in all_businesses %}
+                    <option value="{{ biz.id }}">{{ biz.name }} ({{ biz.email }})</option>
+                    {% endfor %}
+                </select>
+                <p id="businessNotice" class="text-[10px] text-slate-500 mt-1 hidden">Configurando licencia existente.</p>
+            </div>
+
+            <!-- Estado de Licencia & Plan -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1.5">Estado de Licencia</label>
+                    <select id="modal_status" name="status" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-rose-900">
+                        <option value="TRIAL">En Período de Prueba</option>
+                        <option value="ACTIVE">Licencia Activa</option>
+                        <option value="EXPIRED">Licencia Vencida</option>
+                        <option value="SUSPENDED">Cuenta Suspendida</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1.5">Plan Asignado</label>
+                    <select id="modal_plan_id" name="plan_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-rose-900">
+                        <option value="">Sin Plan Específico</option>
+                        {% for p in plans %}
+                        <option value="{{ p.id }}">{{ p.name }} (${{ p.monthly_price }}/mes)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Modalidad de Vencimiento -->
+            <div>
+                <label class="block font-bold text-slate-800 mb-1.5">Duración / Período de Validez</label>
+                <select id="modal_duration_preset" name="duration_type_preset" onchange="handleDurationChange(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-rose-900">
+                    <option value="7">7 Días (Prueba Express)</option>
+                    <option value="15">15 Días (Prueba Estándar)</option>
+                    <option value="30" selected>30 Días (1 Mes)</option>
+                    <option value="90">90 Días (3 Meses)</option>
+                    <option value="180">180 Días (6 Meses)</option>
+                    <option value="365">365 Días (1 Año Anual)</option>
+                    <option value="3650">10 Años (Licencia Vitalicia)</option>
+                    <option value="CUSTOM_DAYS">Días Personalizados</option>
+                    <option value="SPECIFIC_DATE">Fecha Exacta de Expiración</option>
+                </select>
+            </div>
+
+            <input type="hidden" id="modal_duration_type" name="duration_type" value="DAYS">
+
+            <!-- Campo Días Personalizados -->
+            <div id="customDaysContainer" class="hidden">
+                <label class="block font-bold text-slate-800 mb-1.5">Cantidad de Días a partir de Hoy</label>
+                <input type="number" min="1" max="10000" id="modal_custom_days" name="custom_days" value="30" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-rose-900" placeholder="Ej: 45">
+            </div>
+
+            <!-- Campo Fecha Exacta -->
+            <div id="specificDateContainer" class="hidden">
+                <label class="block font-bold text-slate-800 mb-1.5">Fecha de Vencimiento Exacta</label>
+                <input type="date" id="modal_expiration_date" name="expiration_date" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-rose-900">
+            </div>
+
+            <!-- Notas Internas -->
+            <div>
+                <label class="block font-bold text-slate-800 mb-1.5">Notas de Administración (Opcional)</label>
+                <textarea id="modal_notes" name="notes" rows="2" placeholder="Ej: Prueba especial concedida por soporte comercial, cliente VIP." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-rose-900"></textarea>
+            </div>
+
+            <!-- Modal Footer Buttons -->
+            <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeCustomLicenseModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 bg-rose-900 hover:bg-rose-800 text-white font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i> Guardar Licencia
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openCustomLicenseModal() {
+    document.getElementById('modalTitle').innerText = 'Crear / Asignar Nueva Licencia';
+    document.getElementById('modal_subscription_id').value = '';
+    const bizSelect = document.getElementById('modal_business_id');
+    bizSelect.disabled = false;
+    bizSelect.value = '';
+    document.getElementById('businessNotice').classList.add('hidden');
+    document.getElementById('modal_status').value = 'TRIAL';
+    document.getElementById('modal_plan_id').value = '{{ plans.0.id|default:"" }}';
+    document.getElementById('modal_duration_preset').value = '30';
+    document.getElementById('modal_notes').value = '';
+    handleDurationChange('30');
+
+    document.getElementById('customLicenseModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function openEditLicenseModal(subId, bizId, bizName, status, planId, expDate, notes) {
+    document.getElementById('modalTitle').innerText = 'Configurar Licencia de ' + bizName;
+    document.getElementById('modal_subscription_id').value = subId;
+    const bizSelect = document.getElementById('modal_business_id');
+    bizSelect.value = bizId;
+    bizSelect.disabled = false;
+    document.getElementById('businessNotice').classList.remove('hidden');
+    document.getElementById('modal_status').value = status;
+    document.getElementById('modal_plan_id').value = planId;
+    document.getElementById('modal_expiration_date').value = expDate;
+    document.getElementById('modal_notes').value = notes;
+
+    document.getElementById('modal_duration_preset').value = 'SPECIFIC_DATE';
+    handleDurationChange('SPECIFIC_DATE');
+
+    document.getElementById('customLicenseModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeCustomLicenseModal() {
+    document.getElementById('customLicenseModal').classList.add('hidden');
+}
+
+function handleDurationChange(val) {
+    const customDaysContainer = document.getElementById('customDaysContainer');
+    const specificDateContainer = document.getElementById('specificDateContainer');
+    const durationType = document.getElementById('modal_duration_type');
+    const customDaysInput = document.getElementById('modal_custom_days');
+
+    if (val === 'CUSTOM_DAYS') {
+        durationType.value = 'DAYS';
+        customDaysContainer.classList.remove('hidden');
+        specificDateContainer.classList.add('hidden');
+    } else if (val === 'SPECIFIC_DATE') {
+        durationType.value = 'DATE';
+        customDaysContainer.classList.add('hidden');
+        specificDateContainer.classList.remove('hidden');
+    } else {
+        durationType.value = 'DAYS';
+        customDaysInput.value = val;
+        customDaysContainer.classList.add('hidden');
+        specificDateContainer.classList.add('hidden');
+    }
+}
+</script>
 {% endblock %}

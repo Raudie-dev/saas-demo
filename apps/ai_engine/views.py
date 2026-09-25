@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 from apps.business.models import Business, StaffMember
 from apps.agenda.models import Appointment
 from apps.pos.models import Sale
@@ -8,8 +9,11 @@ from apps.invoicing.models import Expense
 from apps.ai_engine.models import AIAutomationLog
 from apps.ai_engine.services import generate_executive_financial_insight, detect_inactive_clients_and_draft_campaign
 
+@login_required
 def ai_dashboard_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     logs = AIAutomationLog.objects.filter(business=business) if business else []
     
     financial_insight = None
@@ -29,12 +33,14 @@ def ai_dashboard_view(request):
         'whatsapp_campaigns': whatsapp_campaigns,
     })
 
-@csrf_exempt
+@login_required
 def ai_chat_api(request):
     """API en tiempo real para el Chatbot de IA Asistente."""
     if request.method == 'POST':
         user_prompt = request.POST.get('prompt', '').strip()
-        business = getattr(request, 'current_business', None) or Business.objects.first()
+        business = getattr(request, 'current_business', None) or request.user.business
+        if not business:
+            return JsonResponse({'status': 'error', 'message': 'Negocio no encontrado'}, status=400)
         
         prompt_lower = user_prompt.lower()
         

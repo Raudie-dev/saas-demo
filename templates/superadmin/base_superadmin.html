@@ -59,9 +59,7 @@
         <!-- Platform Branding Header -->
         <div class="p-5 border-b border-slate-800 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-xl bg-brand-900 flex items-center justify-center text-white font-extrabold font-display text-sm border border-brand-700/60 shadow-md">
-                    S
-                </div>
+                <img src="/static/images/logo.png" alt="RauDie OS Logo" class="w-8 h-8 drop-shadow-md object-contain shrink-0">
                 <div>
                     <h1 class="font-display font-extrabold text-base tracking-tight text-white leading-none">RauDie OS</h1>
                     <span class="text-[10px] text-brand-400 font-bold uppercase tracking-wider block mt-0.5">Platform Control</span>
@@ -91,7 +89,7 @@
 
             <a href="{% url 'superadmin_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_dashboard' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i data-lucide="layout-dashboard" class="w-4 h-4 text-rose-400"></i>
-                <span>Dashboard Global</span>
+                <span>Panel Global</span>
             </a>
 
             <a href="{% url 'superadmin_businesses' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_businesses' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
@@ -109,17 +107,6 @@
                 <span>Planes & Tarifas SaaS</span>
             </a>
 
-            <div class="pt-4 px-3 pb-1 text-[10px] font-bold text-rose-400/80 uppercase tracking-wider">Infraestructura</div>
-
-            <a href="{% url 'superadmin_dashboard' %}#logs" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-900 transition">
-                <i data-lucide="shield-check" class="w-4 h-4 text-rose-400"></i>
-                <span>Auditoría & Logs</span>
-            </a>
-
-            <a href="{% url 'superadmin_dashboard' %}#server" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-900 transition">
-                <i data-lucide="server" class="w-4 h-4 text-rose-400"></i>
-                <span>Salud del Servidor</span>
-            </a>
         </nav>
 
     </aside>
@@ -152,6 +139,26 @@
 
         <!-- Main Workspace -->
         <main class="flex-1 overflow-y-auto p-6 space-y-6">
+            {% if messages %}
+            <div class="space-y-2 max-w-7xl mx-auto">
+                {% for message in messages %}
+                <div class="p-4 rounded-2xl text-xs font-bold border flex items-center justify-between shadow-xs transition animate-in fade-in duration-200
+                    {% if message.tags == 'success' %}bg-emerald-50 text-emerald-950 border-emerald-200/90
+                    {% elif message.tags == 'error' %}bg-rose-50 text-rose-950 border-rose-200/90
+                    {% elif message.tags == 'warning' %}bg-amber-50 text-amber-950 border-amber-200/90
+                    {% else %}bg-blue-50 text-blue-950 border-blue-200/90{% endif %}">
+                    <div class="flex items-center gap-2.5">
+                        <i data-lucide="{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}alert-circle{% elif message.tags == 'warning' %}alert-triangle{% else %}info{% endif %}" class="w-4 h-4"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                    <button onclick="this.parentElement.remove()" class="p-1 hover:opacity-75 rounded-lg">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             {% block content %}{% endblock %}
         </main>
 

@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -129,9 +130,80 @@ def subscriptions_list_view(request):
         subscriptions = subscriptions.filter(business__name__icontains=query)
 
     plans = SubscriptionPlan.objects.filter(is_active=True)
+    all_businesses = Business.objects.all().order_by('name')
 
     if request.method == 'POST':
         action = request.POST.get('action')
+
+        if action == 'CREATE_CUSTOM':
+            biz_id = request.POST.get('business_id')
+            sub_id = request.POST.get('subscription_id')
+            status = request.POST.get('status', 'TRIAL')
+            plan_id = request.POST.get('plan_id')
+            duration_type = request.POST.get('duration_type', 'DAYS')
+            custom_days = request.POST.get('custom_days')
+            expiration_date_str = request.POST.get('expiration_date')
+            notes = request.POST.get('notes', '').strip()
+
+            sub = None
+            if sub_id:
+                sub = get_object_or_404(BusinessSubscription, id=sub_id)
+            elif biz_id:
+                biz = get_object_or_404(Business, id=biz_id)
+                sub = getattr(biz, 'subscription', None)
+                if not sub:
+                    sub = BusinessSubscription.objects.create(
+                        business=biz,
+                        start_date=timezone.now().date(),
+                        expiration_date=timezone.now().date() + datetime.timedelta(days=14)
+                    )
+
+            if not sub:
+                messages.error(request, "Debe seleccionar una agencia o suscripción válida.")
+                return redirect('superadmin_subscriptions')
+
+            sub.status = status
+            if plan_id:
+                sub.plan = SubscriptionPlan.objects.filter(id=plan_id).first()
+            else:
+                sub.plan = None
+
+            if duration_type == 'DATE' and expiration_date_str:
+                try:
+                    sub.expiration_date = datetime.datetime.strptime(expiration_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            elif duration_type == 'DAYS' and custom_days:
+                days_int = int(custom_days)
+                sub.expiration_date = timezone.now().date() + datetime.timedelta(days=days_int)
+
+            if notes:
+                sub.notes = notes
+
+            sub.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.user.email or request.user.username,
+                action="GESTION_LICENCIA",
+                details=f"Licencia configurada para {sub.business.name} (Estado: {sub.get_status_display()}, Vence: {sub.expiration_date})"
+            )
+            messages.success(request, f"¡Licencia configurada exitosamente para {sub.business.name}!")
+            return redirect('superadmin_subscriptions')
+
+        elif action == 'REGENERATE_TOKEN':
+            sub_id = request.POST.get('subscription_id')
+            sub = get_object_or_404(BusinessSubscription, id=sub_id)
+            sub.license_key = uuid.uuid4()
+            sub.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.user.email or request.user.username,
+                action="REGENERAR_TOKEN",
+                details=f"Token de licencia regenerado para {sub.business.name}"
+            )
+            messages.success(request, f"¡Nuevo Token de Licencia generado para {sub.business.name}!")
+            return redirect('superadmin_subscriptions')
+
         sub_id = request.POST.get('subscription_id')
         sub = get_object_or_404(BusinessSubscription, id=sub_id)
 
@@ -191,18 +263,96 @@ def subscriptions_list_view(request):
 
         return redirect('superadmin_subscriptions')
 
+    from django.core.paginator import Paginator
+    paginator = Paginator(subscriptions.order_by('-updated_at'), 10)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
     return render(request, 'superadmin/subscriptions.html', {
-        'subscriptions': subscriptions,
+        'subscriptions': page_obj,
+        'page_obj': page_obj,
         'plans': plans,
+        'all_businesses': all_businesses,
         'status_filter': status_filter,
         'query': query,
     })
 
 @login_required(login_url='superadmin_login')
 @user_passes_test(is_super_admin, login_url='superadmin_login')
+@ensure_csrf_cookie
 def businesses_list_view(request):
     _ensure_default_plans()
     _sync_business_subscriptions()
+
+    plans = SubscriptionPlan.objects.filter(is_active=True)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'CREATE_CUSTOM':
+            biz_id = request.POST.get('business_id')
+            sub_id = request.POST.get('subscription_id')
+            status = request.POST.get('status', 'TRIAL')
+            plan_id = request.POST.get('plan_id')
+            duration_type = request.POST.get('duration_type', 'DAYS')
+            custom_days = request.POST.get('custom_days')
+            expiration_date_str = request.POST.get('expiration_date')
+            notes = request.POST.get('notes', '').strip()
+
+            sub = None
+            if sub_id:
+                sub = BusinessSubscription.objects.filter(id=sub_id).first()
+            if not sub and biz_id:
+                biz = get_object_or_404(Business, id=biz_id)
+                sub = getattr(biz, 'subscription', None)
+                if not sub:
+                    sub = BusinessSubscription.objects.create(
+                        business=biz,
+                        start_date=timezone.now().date(),
+                        expiration_date=timezone.now().date() + datetime.timedelta(days=14)
+                    )
+
+            if sub:
+                sub.status = status
+                if plan_id:
+                    sub.plan = SubscriptionPlan.objects.filter(id=plan_id).first()
+                else:
+                    sub.plan = None
+
+                if duration_type == 'DATE' and expiration_date_str:
+                    try:
+                        sub.expiration_date = datetime.datetime.strptime(expiration_date_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        pass
+                elif duration_type == 'DAYS' and custom_days:
+                    days_int = int(custom_days)
+                    sub.expiration_date = timezone.now().date() + datetime.timedelta(days=days_int)
+
+                if notes:
+                    sub.notes = notes
+
+                sub.save()
+
+                SystemAuditLog.objects.create(
+                    actor_email=request.user.email or request.user.username,
+                    action="GESTION_LICENCIA",
+                    details=f"Licencia actualizada para {sub.business.name} (Estado: {sub.get_status_display()}, Vence: {sub.expiration_date})"
+                )
+                messages.success(request, f"¡Licencia actualizada exitosamente para {sub.business.name}!")
+                return redirect('superadmin_businesses')
+
+        elif action == 'REGENERATE_TOKEN':
+            sub_id = request.POST.get('subscription_id')
+            sub = get_object_or_404(BusinessSubscription, id=sub_id)
+            sub.license_key = uuid.uuid4()
+            sub.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.user.email or request.user.username,
+                action="REGENERAR_TOKEN",
+                details=f"Token de licencia regenerado para {sub.business.name}"
+            )
+            messages.success(request, f"¡Nuevo Token de Licencia generado para {sub.business.name}!")
+            return redirect('superadmin_businesses')
 
     query = request.GET.get('q', '').strip()
     businesses = Business.objects.prefetch_related('subscription', 'branches', 'users').all()
@@ -210,9 +360,15 @@ def businesses_list_view(request):
     if query:
         businesses = businesses.filter(name__icontains=query)
 
+    from django.core.paginator import Paginator
+    paginator = Paginator(businesses.order_by('-created_at'), 10)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
     return render(request, 'superadmin/businesses.html', {
-        'businesses': businesses,
+        'businesses': page_obj,
+        'page_obj': page_obj,
         'query': query,
+        'plans': plans,
     })
 
 @login_required(login_url='superadmin_login')

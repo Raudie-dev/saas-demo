@@ -65,6 +65,53 @@
                 </tbody>
             </table>
         </div>
+
+        {% if page_obj and page_obj.has_other_pages %}
+        <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div class="text-slate-500 font-medium">
+                Mostrando <span class="font-bold text-slate-900">{{ page_obj.start_index }}</span> a <span class="font-bold text-slate-900">{{ page_obj.end_index }}</span> de <span class="font-bold text-slate-900">{{ page_obj.paginator.count }}</span> gastos
+            </div>
+            
+            <div class="flex items-center gap-1.5">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}"
+                   class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                    <i data-lucide="chevron-left" class="w-4 h-4 text-slate-500"></i> Anterior
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+                </span>
+                {% endif %}
+
+                <div class="flex items-center gap-1">
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <span class="w-8 h-8 rounded-xl bg-rose-900 text-white font-extrabold flex items-center justify-center shadow-xs text-xs">
+                            {{ num }}
+                        </span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}"
+                           class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold flex items-center justify-center transition text-xs shadow-2xs">
+                            {{ num }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}"
+                   class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                    Siguiente <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                    Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

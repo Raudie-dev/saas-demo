@@ -15,16 +15,37 @@ from apps.commissions.models import CommissionRecord
 from apps.core.utils import parse_decimal
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from apps.business.models import Business, StaffMember
 
+@login_required
 @ensure_csrf_cookie
 def pos_terminal_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
-    active_register = CashRegister.objects.filter(business=business, status='OPEN').first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    current_branch = getattr(request, 'current_branch', None)
+    if not business:
+        return redirect('onboarding')
+    
+    register_qs = CashRegister.objects.filter(business=business, status='OPEN')
+    if current_branch:
+        register_qs = register_qs.filter(branch=current_branch)
+    active_register = register_qs.first()
     
     clients = Client.objects.filter(business=business)
     staff_members = StaffMember.objects.filter(business=business, is_active=True)
+    if current_branch:
+        from django.db.models import Q
+        staff_in_branch = staff_members.filter(Q(branch=current_branch) | Q(branches=current_branch)).distinct()
+        if staff_in_branch.exists():
+            staff_members = staff_in_branch
+
     services = Service.objects.filter(business=business, is_active=True)
     products = Product.objects.filter(business=business, is_active=True, stock__gt=0)
+    if current_branch:
+        prod_in_branch = products.filter(branch=current_branch)
+        if prod_in_branch.exists():
+            products = prod_in_branch
+
     pending_appointments = Appointment.objects.filter(business=business, status='CONFIRMED')
     
     appointment_id = request.GET.get('appointment_id', '')
@@ -76,8 +97,8 @@ def pos_terminal_view(request):
             messages.error(request, "Debes seleccionar al menos un Servicio o un Producto para procesar la venta.")
             return redirect('pos_terminal')
         
-        client = Client.objects.filter(id=client_id).first() if client_id else None
-        staff = StaffMember.objects.filter(id=staff_id).first() if staff_id else None
+        client = Client.objects.filter(id=client_id, business=business).first() if client_id else None
+        staff = StaffMember.objects.filter(id=staff_id, business=business).first() if staff_id else None
         
         with transaction.atomic():
             # Auto-open cash register if none is active
@@ -85,6 +106,7 @@ def pos_terminal_view(request):
                 default_user = request.user if (request.user and request.user.is_authenticated) else (business.users.first() if business else None)
                 active_register = CashRegister.objects.create(
                     business=business,
+                    branch=current_branch,
                     opened_by=default_user,
                     initial_amount=Decimal('0.00'),
                     status='OPEN'
@@ -93,6 +115,7 @@ def pos_terminal_view(request):
             subtotal = Decimal('0.00')
             sale = Sale.objects.create(
                 business=business,
+                branch=current_branch,
                 cash_register=active_register,
                 client=client,
                 staff=staff,
@@ -103,7 +126,7 @@ def pos_terminal_view(request):
             )
             
             if service_id:
-                srv = Service.objects.filter(id=service_id).first()
+                srv = Service.objects.filter(id=service_id, business=business).first()
                 if srv:
                     subtotal += srv.price
                     SaleItem.objects.create(
@@ -127,7 +150,7 @@ def pos_terminal_view(request):
                             )
                         
             if product_id:
-                prod = Product.objects.filter(id=product_id).first()
+                prod = Product.objects.filter(id=product_id, business=business).first()
                 if prod:
                     subtotal += prod.sale_price
                     SaleItem.objects.create(
@@ -199,10 +222,14 @@ def pos_terminal_view(request):
         active_register.cash_total = sum(s.total_amount for s in completed_sales if s.payment_method == 'Efectivo')
         active_register.expected_cash = active_register.initial_amount + active_register.cash_total
 
-    recent_sales = Sale.objects.filter(business=business).select_related('client', 'staff', 'cash_register').prefetch_related('items', 'items__service', 'items__product')[:15]
+    sales_qs = Sale.objects.filter(business=business)
+    if current_branch:
+        sales_qs = sales_qs.filter(branch=current_branch)
+    recent_sales = sales_qs.select_related('client', 'staff', 'cash_register', 'branch').prefetch_related('items', 'items__service', 'items__product')[:15]
 
     return render(request, 'pos/terminal.html', {
         'business': business,
+        'current_branch': current_branch,
         'active_register': active_register,
         'clients': clients,
         'staff_members': staff_members,
@@ -217,10 +244,18 @@ def pos_terminal_view(request):
         'recent_sales': recent_sales,
     })
 
+@login_required
 @ensure_csrf_cookie
 def cash_register_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
-    registers = list(CashRegister.objects.filter(business=business).order_by('-opened_at'))
+    business = getattr(request, 'current_business', None) or request.user.business
+    current_branch = getattr(request, 'current_branch', None)
+    if not business:
+        return redirect('onboarding')
+
+    register_qs = CashRegister.objects.filter(business=business)
+    if current_branch:
+        register_qs = register_qs.filter(branch=current_branch)
+    registers = list(register_qs.order_by('-opened_at'))
     active_register = next((r for r in registers if r.status == 'OPEN'), None)
     
     if request.method == 'POST':
@@ -229,6 +264,7 @@ def cash_register_view(request):
             initial = parse_decimal(request.POST.get('initial_amount'), '0.00')
             CashRegister.objects.create(
                 business=business,
+                branch=current_branch,
                 opened_by=request.user if (request.user and request.user.is_authenticated) else (business.users.first() if business else None),
                 initial_amount=initial,
                 status='OPEN'
@@ -268,23 +304,35 @@ def cash_register_view(request):
     if selected_filter_register:
         sales_query = sales_query.filter(cash_register=selected_filter_register)
 
-    recent_sales = sales_query.select_related('client', 'staff', 'cash_register').prefetch_related('items', 'items__service', 'items__product')[:50]
+    recent_sales = sales_query.select_related('client', 'staff', 'cash_register').prefetch_related('items', 'items__service', 'items__product').order_by('-created_at')
+
+    from django.core.paginator import Paginator
+    reg_paginator = Paginator(registers, 10)
+    registers_page_obj = reg_paginator.get_page(request.GET.get('reg_page', 1))
+
+    sales_paginator = Paginator(recent_sales, 10)
+    sales_page_obj = sales_paginator.get_page(request.GET.get('sales_page', 1))
 
     return render(request, 'pos/cash_register.html', {
         'business': business,
-        'registers': registers,
+        'registers': registers_page_obj,
+        'registers_page_obj': registers_page_obj,
         'active_register': active_register,
-        'recent_sales': recent_sales,
+        'recent_sales': sales_page_obj,
+        'sales_page_obj': sales_page_obj,
         'filter_register_id': filter_register_id,
         'selected_filter_register': selected_filter_register,
     })
 
+@login_required
 @ensure_csrf_cookie
 def api_quick_create_client_view(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
 
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'success': False, 'error': 'Negocio no encontrado'}, status=400)
     first_name = request.POST.get('first_name', '').strip()
     last_name = request.POST.get('last_name', '').strip()
     phone_prefix = request.POST.get('phone_prefix', '+54').strip()
@@ -320,8 +368,11 @@ def api_quick_create_client_view(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+@login_required
 def export_sales_excel(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     sales = Sale.objects.filter(business=business, status='COMPLETED').select_related('client', 'staff', 'cash_register').prefetch_related('items')
     
     filter_reg_id = request.GET.get('register_id')
@@ -356,15 +407,18 @@ def export_sales_excel(request):
         
     return response
 
+@login_required
 def export_sales_pdf(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     sales = Sale.objects.filter(business=business, status='COMPLETED').select_related('client', 'staff', 'cash_register').prefetch_related('items')[:100]
     
     filter_reg_id = request.GET.get('register_id')
     selected_reg = None
     if filter_reg_id:
         sales = sales.filter(cash_register_id=filter_reg_id)
-        selected_reg = CashRegister.objects.filter(id=filter_reg_id).first()
+        selected_reg = CashRegister.objects.filter(id=filter_reg_id, business=business).first()
         
     total_sales = sum(s.total_amount for s in sales)
 

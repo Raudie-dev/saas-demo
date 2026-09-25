@@ -6,19 +6,6 @@
 {% block content %}
 <div class="space-y-6">
 
-    {% if messages %}
-    <div class="space-y-2">
-        {% for message in messages %}
-        <div class="p-4 rounded-xl text-sm font-semibold flex items-center justify-between {% if message.tags == 'error' %}bg-rose-50 border border-rose-200 text-rose-900{% else %}bg-emerald-50 border border-emerald-200 text-emerald-900{% endif %}">
-            <div class="flex items-center gap-2">
-                <i data-lucide="{% if message.tags == 'error' %}alert-circle{% else %}check-circle-2{% endif %}" class="w-5 h-5"></i>
-                <span>{{ message }}</span>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
     <!-- Active Cash Register Banner -->
     <div class="glass-card bg-white p-4 rounded-2xl flex items-center justify-between border border-slate-200 shadow-sm">
         <div class="flex items-center gap-3">

@@ -2,17 +2,19 @@ import csv
 from django.http import HttpResponse
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
-from apps.business.models import Business
+from django.contrib.auth.decorators import login_required
+from django.db import models
+from apps.business.models import Business, Branch
 from apps.inventory.models import Product, ProductCategory, StockMovement
 from apps.crm.models import Supplier
 from apps.core.utils import parse_decimal, parse_int
 
+@login_required
 def inventory_list_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
-    products = Product.objects.filter(business=business) if business else []
-    categories = ProductCategory.objects.filter(business=business) if business else []
-    suppliers = Supplier.objects.filter(business=business) if business else []
-    
+    business = getattr(request, 'current_business', None) or request.user.business
+    current_branch = getattr(request, 'current_branch', None)
+    if not business:
+        return redirect('onboarding')
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'adjust_stock':
@@ -34,15 +36,34 @@ def inventory_list_view(request):
             )
         return redirect('inventory_list')
 
+    product_qs = Product.objects.filter(business=business).select_related('branch', 'category', 'supplier')
+    if current_branch:
+        product_qs = product_qs.filter(models.Q(branch=current_branch) | models.Q(branch__isnull=True))
+    products = product_qs.order_by('name') if business else []
+
+    categories = ProductCategory.objects.filter(business=business) if business else []
+    suppliers = Supplier.objects.filter(business=business) if business else []
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(products, 10)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
     return render(request, 'inventory/inventory_list.html', {
         'business': business,
-        'products': products,
+        'current_branch': current_branch,
+        'products': page_obj,
+        'page_obj': page_obj,
         'categories': categories,
         'suppliers': suppliers,
     })
 
+@login_required
 def product_create_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    current_branch = getattr(request, 'current_branch', None)
+    if not business:
+        return redirect('onboarding')
+    branches = Branch.objects.filter(business=business) if business else []
     categories = ProductCategory.objects.filter(business=business) if business else []
     suppliers = Supplier.objects.filter(business=business) if business else []
     
@@ -56,12 +77,15 @@ def product_create_view(request):
         unit = request.POST.get('unit', 'Unidad')
         category_id = request.POST.get('category_id')
         supplier_id = request.POST.get('supplier_id')
+        branch_id = request.POST.get('branch_id')
         
-        category = ProductCategory.objects.filter(id=category_id).first() if category_id else None
-        supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
+        category = ProductCategory.objects.filter(id=category_id, business=business).first() if category_id else None
+        supplier = Supplier.objects.filter(id=supplier_id, business=business).first() if supplier_id else None
+        branch = Branch.objects.filter(id=branch_id, business=business).first() if branch_id else current_branch
         
         Product.objects.create(
             business=business,
+            branch=branch,
             name=name,
             sku=sku,
             cost_price=cost_price,
@@ -77,15 +101,22 @@ def product_create_view(request):
 
     return render(request, 'inventory/product_form.html', {
         'business': business,
+        'branches': branches,
+        'current_branch': current_branch,
         'product': None,
         'categories': categories,
         'suppliers': suppliers,
         'title': 'Crear Nuevo Producto en Inventario'
     })
 
+@login_required
 def product_edit_view(request, product_id):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    current_branch = getattr(request, 'current_branch', None)
+    if not business:
+        return redirect('onboarding')
     product = get_object_or_404(Product, id=product_id, business=business)
+    branches = Branch.objects.filter(business=business)
     categories = ProductCategory.objects.filter(business=business)
     suppliers = Supplier.objects.filter(business=business)
 
@@ -99,22 +130,29 @@ def product_edit_view(request, product_id):
         product.unit = request.POST.get('unit', 'Unidad')
         category_id = request.POST.get('category_id')
         supplier_id = request.POST.get('supplier_id')
+        branch_id = request.POST.get('branch_id')
         
-        product.category = ProductCategory.objects.filter(id=category_id).first() if category_id else None
-        product.supplier = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
+        product.category = ProductCategory.objects.filter(id=category_id, business=business).first() if category_id else None
+        product.supplier = Supplier.objects.filter(id=supplier_id, business=business).first() if supplier_id else None
+        product.branch = Branch.objects.filter(id=branch_id, business=business).first() if branch_id else None
         product.save()
         return redirect('inventory_list')
 
     return render(request, 'inventory/product_form.html', {
         'business': business,
+        'branches': branches,
+        'current_branch': current_branch,
         'product': product,
         'categories': categories,
         'suppliers': suppliers,
         'title': f'Editar Producto: {product.name}'
     })
 
+@login_required
 def product_category_create_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
 
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -130,8 +168,11 @@ def product_category_create_view(request):
         'title': 'Crear Nueva Categoría de Producto'
     })
 
+@login_required
 def export_inventory_excel(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     products = Product.objects.filter(business=business) if business else []
     
     response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -156,8 +197,11 @@ def export_inventory_excel(request):
         
     return response
 
+@login_required
 def export_inventory_pdf(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     products = Product.objects.filter(business=business) if business else []
     
     rows = []

@@ -1,0 +1,525 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuración de Empresa - BusinessOS{% endblock %}
+{% block header_title %}Administración & Configuración de la Empresa{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl mx-auto">
+
+    <!-- Subheader Module Tabs -->
+    <div class="glass-card bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
+        <a href="{% url 'business_config' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-900 text-white shadow-md">
+            <i data-lucide="building-2" class="w-4 h-4"></i>
+            <span>Empresa, Sucursales & Módulos</span>
+        </a>
+        <a href="{% url 'user_profile_config' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50">
+            <i data-lucide="shield-check" class="w-4 h-4 text-slate-500"></i>
+            <span>Mi Cuenta & Seguridad</span>
+        </a>
+    </div>
+
+    <!-- Top Banner Card -->
+    <div class="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 text-white shadow-lg border border-rose-900/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="space-y-1">
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-900 text-rose-200 border border-rose-700/60 uppercase tracking-wider">
+                    {{ business_type_display }}
+                </span>
+                <span class="text-xs text-rose-300 font-medium">• Negocio Activo</span>
+            </div>
+            <h2 class="text-2xl font-extrabold font-display">{{ business.name }}</h2>
+            <p class="text-xs text-slate-300">Objetivo actual: {{ business.primary_goal }}</p>
+        </div>
+        <a href="{% url 'onboarding' %}" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-900 hover:bg-rose-800 text-white border border-rose-700/60 shadow-md transition flex items-center gap-2 shrink-0">
+            <i data-lucide="sliders" class="w-4 h-4"></i>
+            <span>Volver a Asistente Onboarding</span>
+        </a>
+    </div>
+
+    <!-- Edit Form Card -->
+    <form method="POST" action="{% url 'business_config' %}" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-900 text-lg font-display">Datos de la Empresa & Branding</h3>
+                <span class="text-xs text-slate-400">Edita los parámetros de tu negocio</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre Comercial de Agencia</label>
+                    <input type="text" name="name" value="{{ business.name }}" required class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Tipo de Agencia / Perfil</label>
+                    <select name="business_type" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                        {% for type_code, type_name in business_types %}
+                        <option value="{{ type_code }}" {% if business.business_type == type_code %}selected{% endif %}>{{ type_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Slug URL de Portal de Reservas</label>
+                    <div class="flex items-center">
+                        <span class="bg-slate-100 border border-r-0 border-slate-300 text-slate-500 rounded-l-xl p-3 text-xs font-mono">/reservas/</span>
+                        <input type="text" name="slug" value="{{ business.slug }}" required class="w-full bg-slate-50 border border-slate-300 text-rose-900 font-mono font-bold rounded-r-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Símbolo de Moneda</label>
+                    <select name="currency" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                        <option value="$" {% if business.currency == '$' %}selected{% endif %}>$ (Dólares / Pesos)</option>
+                        <option value="€" {% if business.currency == '€' %}selected{% endif %}>€ (Euros)</option>
+                        <option value="MXN $" {% if business.currency == 'MXN $' %}selected{% endif %}>MXN $ (Pesos Mexicanos)</option>
+                        <option value="S/" {% if business.currency == 'S/' %}selected{% endif %}>S/ (Soles Peruanos)</option>
+                        <option value="CLP $" {% if business.currency == 'CLP $' %}selected{% endif %}>CLP $ (Pesos Chilenos)</option>
+                        <option value="R$" {% if business.currency == 'R$' %}selected{% endif %}>R$ (Reales Brasileños)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Formato de Hora Preferido</label>
+                    <select name="time_format" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                        {% for code, label in time_format_choices %}
+                        <option value="{{ code }}" {% if business.time_format == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email de Contacto</label>
+                    <input type="email" name="email" value="{{ business.email }}" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Teléfono / WhatsApp</label>
+                    <input type="text" name="phone" value="{{ business.phone }}" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">RUT / RFC / Tax ID</label>
+                    <input type="text" name="tax_id" value="{{ business.tax_id|default:'' }}" placeholder="Ej: 20-12345678-9" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Color Distintivo de Marca</label>
+                    <div class="flex items-center gap-3">
+                        <input type="color" name="branding_color" value="{{ business.branding_color|default:'#881337' }}" class="w-12 h-11 rounded-xl border border-slate-300 cursor-pointer p-1 bg-white">
+                        <span class="text-xs text-slate-500 font-mono">{{ business.branding_color }}</span>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Objetivo Principal del Negocio</label>
+                    <input type="text" name="primary_goal" value="{{ business.primary_goal }}" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Dirección Principal</label>
+                    <input type="text" name="address" value="{{ business.address }}" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Modules Toggle Card -->
+        <div class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm">
+            <div class="border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-900 text-base font-display">Módulos Activos en el Sistema</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Activa o desactiva las secciones según las necesidades operativas de tu equipo.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {% for mod in all_modules %}
+                <label class="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+                    <input type="checkbox" name="enabled_modules" value="{{ mod.code }}" {% if not business.enabled_modules or mod.code in business.enabled_modules %}checked{% endif %} class="w-4 h-4 accent-rose-700 rounded border-slate-300">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="{{ mod.icon }}" class="w-4 h-4 text-rose-700"></i>
+                        <span class="text-xs font-bold text-slate-800">{{ mod.name }}</span>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Working Hours Schedule Configuration Card -->
+        <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="clock" class="w-5 h-5 text-rose-900"></i>
+                        <span>Horario de Trabajo & Atención de la Agencia / Salón</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Define los días laborables y rangos horarios para las reservas públicas y la agenda.</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200">
+                    Configuración Semanal
+                </span>
+            </div>
+
+            <div class="space-y-3">
+                {% for sched in schedules %}
+                <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-slate-50 transition">
+                    <div class="flex items-center gap-3 min-w-[140px]">
+                        <input type="checkbox" name="schedule_active_{{ sched.day_code }}" id="day_active_{{ sched.day_code }}" {% if sched.is_working_day %}checked{% endif %} class="w-4 h-4 accent-rose-900 rounded border-slate-300 cursor-pointer">
+                        <label for="day_active_{{ sched.day_code }}" class="text-sm font-bold text-slate-900 cursor-pointer">
+                            {{ sched.day_name }}
+                        </label>
+                    </div>
+
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <div class="flex items-center gap-1.5 w-full sm:w-auto">
+                            <span class="text-xs font-semibold text-slate-500">Apertura:</span>
+                            <input type="time" name="schedule_start_{{ sched.day_code }}" value="{{ sched.start_time }}" class="bg-white border border-slate-300 text-slate-900 rounded-lg p-1.5 text-xs font-mono focus:outline-none focus:border-rose-900 transition">
+                            {% if business.time_format == '12h' or not business.time_format %}
+                            <span class="text-[11px] font-bold text-rose-900 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 shrink-0">{{ sched.start_12h }}</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-slate-400 font-bold">-</span>
+                        <div class="flex items-center gap-1.5 w-full sm:w-auto">
+                            <span class="text-xs font-semibold text-slate-500">Cierre:</span>
+                            <input type="time" name="schedule_end_{{ sched.day_code }}" value="{{ sched.end_time }}" class="bg-white border border-slate-300 text-slate-900 rounded-lg p-1.5 text-xs font-mono focus:outline-none focus:border-rose-900 transition">
+                            {% if business.time_format == '12h' or not business.time_format %}
+                            <span class="text-[11px] font-bold text-rose-900 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 shrink-0">{{ sched.end_12h }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="px-6 py-3 rounded-xl text-sm font-bold text-white bg-rose-900 hover:bg-rose-800 shadow-lg shadow-rose-900/30 transition flex items-center gap-2 cursor-pointer">
+                <i data-lucide="save" class="w-4 h-4"></i>
+                <span>Guardar Cambios de Agencia</span>
+            </button>
+        </div>
+    </form>
+
+    <!-- Branch Management Card -->
+    <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                    <i data-lucide="building-2" class="w-5 h-5 text-rose-900"></i>
+                    <span>Sucursales & Sedes del Negocio</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Administra las sucursales, direcciones físicas y ubicación en Google Maps.</p>
+            </div>
+            <button type="button" onclick="openAddBranchModal()" class="px-3.5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0">
+                <i data-lucide="plus" class="w-4 h-4"></i> Añadir Nueva Sucursal
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for br in branches %}
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between gap-2">
+                        <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-1.5">
+                            📍 {{ br.name }}
+                        </h4>
+                        {% if br.is_main %}
+                        <span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-100 text-rose-900 border border-rose-200">PRINCIPAL</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-slate-600 mt-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 inline text-slate-400"></i> {{ br.address }}</p>
+                    {% if br.phone %}
+                    <p class="text-xs text-slate-500 mt-0.5"><i data-lucide="phone" class="w-3.5 h-3.5 inline text-slate-400"></i> {{ br.phone }}</p>
+                    {% endif %}
+                    {% if br.google_maps_url %}
+                    <a href="{{ br.google_maps_url }}" target="_blank" class="text-[11px] text-rose-900 hover:underline font-semibold mt-1 inline-flex items-center gap-1">
+                        <i data-lucide="map" class="w-3 h-3"></i> Ver en Google Maps ↗
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                    <button type="button" onclick="openEditBranchModal('{{ br.id }}', '{{ br.name|escapejs }}', '{{ br.address|escapejs }}', '{{ br.phone|default:''|escapejs }}', '{{ br.google_maps_url|default:''|escapejs }}', {% if br.is_main %}true{% else %}false{% endif %})" class="px-3 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer">
+                        Editar
+                    </button>
+
+                    {% if branches|length > 1 %}
+                    <form method="POST" action="{% url 'business_config' %}" onsubmit="return confirm('¿Seguro que deseas eliminar la sucursal {{ br.name }}?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="DELETE_BRANCH">
+                        <input type="hidden" name="branch_id" value="{{ br.id }}">
+                        <button type="submit" class="px-3 py-1 rounded-lg bg-rose-50 text-rose-900 border border-rose-200 hover:bg-rose-100 font-bold text-xs transition cursor-pointer">
+                            Eliminar
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- WhatsApp Gateway Integration Card -->
+    <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                    <i data-lucide="message-square" class="w-5 h-5 text-emerald-600"></i>
+                    <span>Conexión de WhatsApp Gateway (Escáner QR)</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Vincular la cuenta de WhatsApp de la agencia para enviar recordatorios de citas automáticamente</p>
+            </div>
+            
+            <div id="wa-status-badge">
+                {% if gw_status.online and gw_status.status == 'connected' %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                    WhatsApp Vinculado y Activo
+                </span>
+                {% elif gw_status.online %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1.5 shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    Desconectado / Pendiente Escáner
+                </span>
+                {% else %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1.5 shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                    Microservicio Gateway Offline (Puerto 3000)
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            {% if not gw_status.online %}
+            <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
+                <div class="flex items-center gap-2 font-bold text-sm">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-700"></i>
+                    <span>Microservicio whatsapp-gateway no detectado en ejecución</span>
+                </div>
+                <p>El servicio Node.js en la carpeta <code>whatsapp-gateway</code> no se encuentra respondiendo en <code>http://127.0.0.1:3000</code>.</p>
+                <div class="bg-amber-100 p-2.5 rounded-lg font-mono text-[11px] text-amber-950 border border-amber-300">
+                    cd whatsapp-gateway && npm start
+                </div>
+                <p class="text-[11px] text-amber-800">Mientras el servicio no esté encendido, el sistema automáticamente enviará los recordatorios abriendo la aplicación de WhatsApp del dispositivo del operador.</p>
+            </div>
+            {% else %}
+            
+            <div id="wa-connected-state" class="{% if gw_status.status != 'connected' %}hidden{% endif %} space-y-4">
+                <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
+                            <i data-lucide="check" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-emerald-900 text-sm">WhatsApp vinculado con éxito</h4>
+                            <p class="text-xs text-emerald-700 mt-0.5">Los recordatorios de citas se enviarán de forma transparente desde la cuenta conectada.</p>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="unlinkWhatsApp()" class="px-4 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> Desvincular WhatsApp
+                    </button>
+                </div>
+            </div>
+
+            <div id="wa-disconnected-state" class="{% if gw_status.status == 'connected' %}hidden{% endif %} space-y-4">
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+                    <p class="text-xs text-slate-600">Presiona el botón para generar el código QR y escanéalo con la cámara de tu teléfono móvil en <strong>WhatsApp > Dispositivos Vinculados > Vincular un dispositivo</strong>.</p>
+                    
+                    <button type="button" id="btn-generate-wa-qr" onclick="generateWhatsAppQR()" class="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i>
+                        <span>Generar Código QR de WhatsApp</span>
+                    </button>
+
+                    <div id="wa-qr-container" class="hidden p-6 bg-white rounded-2xl border border-slate-200 max-w-xs mx-auto text-center space-y-3">
+                        <img id="wa-qr-img" src="" alt="Código QR WhatsApp" class="w-48 h-48 mx-auto border border-slate-200 rounded-xl shadow-xs">
+                        <p class="text-[11px] text-slate-500 font-semibold animate-pulse">Esperando escáner desde tu celular...</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal para Crear / Editar Sucursal -->
+<div id="branchModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transition-all">
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="building-2" class="w-5 h-5 text-rose-400"></i>
+                <h3 id="branchModalTitle" class="text-base font-bold font-display">Añadir Sucursal</h3>
+            </div>
+            <button type="button" onclick="closeBranchModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'business_config' %}" class="p-6 space-y-4 text-xs">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="SAVE_BRANCH">
+            <input type="hidden" id="modal_branch_id" name="branch_id" value="">
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Nombre de la Sucursal</label>
+                <input type="text" id="modal_branch_name" name="branch_name" required placeholder="Ej: Sede Belgrano / Sucursal Norte" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-rose-900">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Dirección Física</label>
+                <input type="text" id="modal_branch_address" name="branch_address" required placeholder="Ej: Av. Cabildo 1420, CABA" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-rose-900">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Teléfono de Sucursal (Opcional)</label>
+                <input type="text" id="modal_branch_phone" name="branch_phone" placeholder="+54 11 4455-6677" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-rose-900">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Enlace / URL Google Maps (Opcional)</label>
+                <input type="url" id="modal_google_maps_url" name="google_maps_url" placeholder="https://maps.google.com/..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-rose-900">
+                <p class="text-[10px] text-slate-500 mt-1">Permite a los clientes ubicarse fácilmente en la página de reservas.</p>
+            </div>
+
+            <label class="flex items-center gap-2 cursor-pointer pt-1">
+                <input type="checkbox" id="modal_is_main" name="is_main" class="w-4 h-4 accent-rose-900 rounded border-slate-300">
+                <span class="font-bold text-slate-800">Establecer como Sucursal Principal</span>
+            </label>
+
+            <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeBranchModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl">Cancelar</button>
+                <button type="submit" class="px-5 py-2 bg-rose-900 hover:bg-rose-800 text-white font-bold rounded-xl shadow-xs">Guardar Sucursal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openAddBranchModal() {
+        document.getElementById('branchModalTitle').innerText = 'Añadir Nueva Sucursal';
+        document.getElementById('modal_branch_id').value = '';
+        document.getElementById('modal_branch_name').value = '';
+        document.getElementById('modal_branch_address').value = '';
+        document.getElementById('modal_branch_phone').value = '';
+        document.getElementById('modal_google_maps_url').value = '';
+        document.getElementById('modal_is_main').checked = false;
+        document.getElementById('branchModal').classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function openEditBranchModal(id, name, address, phone, mapsUrl, isMain) {
+        document.getElementById('branchModalTitle').innerText = 'Editar Sucursal - ' + name;
+        document.getElementById('modal_branch_id').value = id;
+        document.getElementById('modal_branch_name').value = name;
+        document.getElementById('modal_branch_address').value = address;
+        document.getElementById('modal_branch_phone').value = phone;
+        document.getElementById('modal_google_maps_url').value = mapsUrl;
+        document.getElementById('modal_is_main').checked = isMain;
+        document.getElementById('branchModal').classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeBranchModal() {
+        document.getElementById('branchModal').classList.add('hidden');
+    }
+
+    let waPollInterval = null;
+
+    function generateWhatsAppQR() {
+        const genBtn = document.getElementById('btn-generate-wa-qr');
+        const qrContainer = document.getElementById('wa-qr-container');
+        if (genBtn) {
+            genBtn.disabled = true;
+            genBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Conectando...';
+            if (window.lucide) lucide.createIcons();
+        }
+
+        fetch('{% url "whatsapp_gateway_generate" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (genBtn) {
+                genBtn.disabled = false;
+                genBtn.innerHTML = '<i data-lucide="qr-code" class="w-4 h-4"></i> Regenerar Código QR';
+                if (window.lucide) lucide.createIcons();
+            }
+
+            if (data.success && data.qr) {
+                renderQRImage(data.qr);
+                if (qrContainer) qrContainer.classList.remove('hidden');
+                startWAPolling();
+            } else {
+                fetchQRDirect();
+            }
+        })
+        .catch(err => {
+            if (genBtn) {
+                genBtn.disabled = false;
+                genBtn.innerHTML = '<i data-lucide="qr-code" class="w-4 h-4"></i> Generar Código QR de WhatsApp';
+            }
+            alert('Error conectando con el microservicio WhatsApp Gateway en el puerto 3000.');
+        });
+    }
+
+    function fetchQRDirect() {
+        fetch('{% url "whatsapp_gateway_qr" %}')
+        .then(res => res.json())
+        .then(data => {
+            if (data.qr) {
+                renderQRImage(data.qr);
+                document.getElementById('wa-qr-container').classList.remove('hidden');
+                startWAPolling();
+            } else {
+                setTimeout(fetchQRDirect, 1500);
+            }
+        });
+    }
+
+    function renderQRImage(qrString) {
+        const qrImg = document.getElementById('wa-qr-img');
+        if (qrImg) {
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrString)}`;
+        }
+    }
+
+    function startWAPolling() {
+        if (waPollInterval) clearInterval(waPollInterval);
+        waPollInterval = setInterval(() => {
+            fetch('{% url "whatsapp_gateway_status" %}')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'connected') {
+                    clearInterval(waPollInterval);
+                    location.reload();
+                } else {
+                    fetch('{% url "whatsapp_gateway_qr" %}')
+                    .then(r => r.json())
+                    .then(qData => {
+                        if (qData.qr) renderQRImage(qData.qr);
+                    });
+                }
+            });
+        }, 3000);
+    }
+
+    function unlinkWhatsApp() {
+        if (!confirm('¿Seguro que deseas desvincular la cuenta de WhatsApp de la agencia?')) return;
+        fetch('{% url "whatsapp_gateway_unlink" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            location.reload();
+        });
+    }
+</script>
+{% endblock %}

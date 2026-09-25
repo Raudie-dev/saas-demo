@@ -1,20 +1,29 @@
 import csv
 from django.http import HttpResponse
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from apps.business.models import Business
 from apps.crm.models import Client, ClientNote, Supplier
 
+@login_required
 def client_list_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     query = request.GET.get('q', '')
     
-    clients = Client.objects.filter(business=business) if business else []
+    clients = Client.objects.filter(business=business).order_by('-created_at') if business else []
     if query:
         clients = clients.filter(first_name__icontains=query) | clients.filter(last_name__icontains=query) | clients.filter(phone__icontains=query)
-        
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(clients, 10)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
     return render(request, 'crm/client_list.html', {
         'business': business,
-        'clients': clients,
+        'clients': page_obj,
+        'page_obj': page_obj,
         'query': query
     })
 
@@ -27,8 +36,11 @@ def split_phone_number(phone_str):
             return p, phone_str[len(p):]
     return '+54', phone_str
 
+@login_required
 def client_create_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     
     if request.method == 'POST':
         first_name = request.POST.get('first_name', '').strip()
@@ -69,8 +81,11 @@ def client_create_view(request):
         'title': 'Crear Nuevo Cliente'
     })
 
+@login_required
 def client_edit_view(request, client_id):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     client = get_object_or_404(Client, id=client_id, business=business)
     
     if request.method == 'POST':
@@ -106,8 +121,11 @@ def client_edit_view(request, client_id):
 from apps.crm.models import Client, ClientNote, Supplier, ServiceHistoryNote
 from django.contrib import messages
 
+@login_required
 def client_detail_view(request, client_id):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     client = get_object_or_404(Client, id=client_id, business=business)
     
     appointments = client.appointments.select_related('staff', 'service').order_by('-date', '-start_time')
@@ -129,8 +147,11 @@ def client_detail_view(request, client_id):
         'allow_editing_history': allow_editing_history,
     })
 
+@login_required
 def add_client_service_note_view(request, client_id):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     client = get_object_or_404(Client, id=client_id, business=business)
     
     if not getattr(business, 'allow_editing_client_history', True):
@@ -157,8 +178,11 @@ def add_client_service_note_view(request, client_id):
             
     return redirect('client_detail', client_id=client.id)
 
+@login_required
 def delete_client_service_note_view(request, note_id):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     note = get_object_or_404(ServiceHistoryNote, id=note_id, client__business=business)
     client_id = note.client.id
     
@@ -170,17 +194,28 @@ def delete_client_service_note_view(request, note_id):
     messages.success(request, "Anotación de servicio eliminada.")
     return redirect('client_detail', client_id=client_id)
 
+@login_required
 def supplier_list_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
-    suppliers = Supplier.objects.filter(business=business) if business else []
-    
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    suppliers = Supplier.objects.filter(business=business).order_by('-created_at') if business else []
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(suppliers, 10)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
     return render(request, 'crm/supplier_list.html', {
         'business': business,
-        'suppliers': suppliers
+        'suppliers': page_obj,
+        'page_obj': page_obj,
     })
 
+@login_required
 def supplier_create_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     
     if request.method == 'POST':
         company_name = request.POST.get('company_name')
@@ -209,8 +244,11 @@ def supplier_create_view(request):
         'title': 'Crear Nuevo Proveedor'
     })
 
+@login_required
 def supplier_edit_view(request, supplier_id):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     supplier = get_object_or_404(Supplier, id=supplier_id, business=business)
     
     if request.method == 'POST':
@@ -224,9 +262,17 @@ def supplier_edit_view(request, supplier_id):
         supplier.save()
         return redirect('supplier_list')
         
+    return render(request, 'crm/supplier_form.html', {
+        'business': business,
+        'supplier': supplier,
+        'title': 'Editar Proveedor'
+    })
 
+@login_required
 def export_clients_excel(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     clients = Client.objects.filter(business=business) if business else []
     
     response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -250,8 +296,11 @@ def export_clients_excel(request):
         
     return response
 
+@login_required
 def export_clients_pdf(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     clients = Client.objects.filter(business=business) if business else []
     
     rows = []

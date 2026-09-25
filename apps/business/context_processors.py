@@ -2,11 +2,9 @@ from apps.business.models import Business
 
 def business_context(request):
     """Proporciona el negocio activo y la configuración de módulos a todas las plantillas HTML."""
-    business = None
-    if request.user.is_authenticated and hasattr(request.user, 'business') and request.user.business:
+    business = getattr(request, 'current_business', None)
+    if not business and request.user.is_authenticated and getattr(request.user, 'business', None):
         business = request.user.business
-    else:
-        business = Business.objects.first()
 
     all_module_keys = ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
     modules_enabled = {}

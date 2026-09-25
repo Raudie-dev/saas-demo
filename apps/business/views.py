@@ -149,10 +149,9 @@ def logout_view(request):
 @ensure_csrf_cookie
 def onboarding_view(request):
     user = request.user
-    business = getattr(user, 'business', None) or Business.objects.first()
-
+    business = getattr(user, 'business', None)
     if not business:
-        # Create a emergency business if none linked
+        agency_name = f"Agencia {user.first_name or user.username}".strip()
         business = Business.objects.create(
             name=f"Agencia de {user.first_name or user.username}",
             slug=f"agencia-{user.username}-{uuid.uuid4().hex[:4]}",
@@ -277,15 +276,79 @@ def onboarding_view(request):
 
 @login_required(login_url='login')
 @ensure_csrf_cookie
-def business_config_view(request):
-    business = getattr(request, 'current_business', None)
-    if not business and hasattr(request.user, 'business') and request.user.business:
-        business = request.user.business
+@login_required
+@login_required(login_url='login')
+def switch_branch_view(request):
+    if request.method == 'POST':
+        branch_id = request.POST.get('branch_id')
+        business = getattr(request, 'current_business', None) or request.user.business
+        if branch_id and business:
+            branch = Branch.objects.filter(id=branch_id, business=business).first()
+            if branch:
+                request.session['active_branch_id'] = str(branch.id)
+                messages.success(request, f"¡Sucursal activa cambiada a: {branch.name}!")
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or 'dashboard')
 
+@login_required(login_url='login')
+@ensure_csrf_cookie
+@login_required(login_url='login')
+@ensure_csrf_cookie
+def business_config_view(request):
+    business = getattr(request, 'current_business', None) or request.user.business
     if not business:
-        business = Business.objects.first()
+        return redirect('onboarding')
 
     if request.method == 'POST' and business:
+        action = request.POST.get('action')
+
+        if action == 'SAVE_BRANCH':
+            branch_id = request.POST.get('branch_id')
+            b_name = request.POST.get('branch_name', '').strip()
+            b_address = request.POST.get('branch_address', '').strip()
+            b_phone = request.POST.get('branch_phone', '').strip()
+            b_maps_url = request.POST.get('google_maps_url', '').strip()
+            is_main = request.POST.get('is_main') in ['on', 'true', '1']
+
+            if b_name and b_address:
+                if is_main:
+                    Branch.objects.filter(business=business).update(is_main=False)
+
+                if branch_id:
+                    br = get_object_or_404(Branch, id=branch_id, business=business)
+                    br.name = b_name
+                    br.address = b_address
+                    br.phone = b_phone
+                    br.google_maps_url = b_maps_url
+                    br.is_main = is_main
+                    br.save()
+                    messages.success(request, f"¡Sucursal '{b_name}' actualizada correctamente!")
+                else:
+                    Branch.objects.create(
+                        business=business,
+                        name=b_name,
+                        address=b_address,
+                        phone=b_phone,
+                        google_maps_url=b_maps_url,
+                        is_main=is_main
+                    )
+                    messages.success(request, f"¡Sucursal '{b_name}' creada exitosamente!")
+            else:
+                messages.error(request, "El nombre y dirección de la sucursal son obligatorios.")
+            return redirect('business_config')
+
+        elif action == 'DELETE_BRANCH':
+            branch_id = request.POST.get('branch_id')
+            if Branch.objects.filter(business=business).count() > 1:
+                br = Branch.objects.filter(id=branch_id, business=business).first()
+                if br:
+                    name_del = br.name
+                    br.delete()
+                    messages.warning(request, f"Sucursal '{name_del}' eliminada.")
+            else:
+                messages.error(request, "No puedes eliminar la única sucursal de tu negocio.")
+            return redirect('business_config')
+
         agency_name = request.POST.get('name', '').strip()
         if agency_name:
             business.name = agency_name
@@ -312,18 +375,6 @@ def business_config_view(request):
                 business.slug = new_slug
             else:
                 messages.warning(request, "El slug ingresado ya está en uso. Se mantuvo el anterior.")
-
-        # Update User Profile info if provided
-        user_first_name = request.POST.get('user_first_name', '').strip()
-        user_last_name = request.POST.get('user_last_name', '').strip()
-        user_phone = request.POST.get('user_phone', '').strip()
-        if user_first_name:
-            request.user.first_name = user_first_name
-        if user_last_name:
-            request.user.last_name = user_last_name
-        if user_phone:
-            request.user.phone = user_phone
-        request.user.save()
 
         # Save agency working hours schedule
         primary_staff = StaffMember.objects.filter(business=business).first()
@@ -431,7 +482,7 @@ def business_config_view(request):
     except Exception:
         gw_status = {'online': False, 'status': 'offline'}
 
-    return render(request, 'business/config.html', {
+    return render(request, 'business/config_company.html', {
         'business': business,
         'branches': branches,
         'payment_methods': payment_methods,
@@ -444,17 +495,73 @@ def business_config_view(request):
         'gw_status': gw_status,
     })
 
-def staff_list_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
-    staff_members = StaffMember.objects.filter(business=business).prefetch_related('schedules') if business else []
-    
-    return render(request, 'business/staff_list.html', {
+@login_required(login_url='login')
+@ensure_csrf_cookie
+def user_profile_config_view(request):
+    business = getattr(request, 'current_business', None) or request.user.business
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'CHANGE_PASSWORD':
+            old_password = request.POST.get('old_password', '')
+            new_password = request.POST.get('new_password', '')
+            confirm_password = request.POST.get('confirm_password', '')
+
+            if not request.user.check_password(old_password):
+                messages.error(request, "La contraseña actual no es correcta.")
+            elif new_password != confirm_password:
+                messages.error(request, "Las nuevas contraseñas no coinciden.")
+            elif len(new_password) < 6:
+                messages.error(request, "La nueva contraseña debe tener al menos 6 caracteres.")
+            else:
+                request.user.set_password(new_password)
+                request.user.save()
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, request.user)
+                messages.success(request, "¡Tu contraseña se ha actualizado correctamente!")
+            return redirect('user_profile_config')
+
+        elif action == 'UPDATE_PROFILE':
+            user_first_name = request.POST.get('user_first_name', '').strip()
+            user_last_name = request.POST.get('user_last_name', '').strip()
+            user_phone = request.POST.get('user_phone', '').strip()
+            if user_first_name:
+                request.user.first_name = user_first_name
+            if user_last_name:
+                request.user.last_name = user_last_name
+            if user_phone:
+                request.user.phone = user_phone
+            request.user.save()
+            messages.success(request, "¡Información de tu perfil actualizada correctamente!")
+            return redirect('user_profile_config')
+
+    return render(request, 'business/config_user.html', {
         'business': business,
-        'staff_members': staff_members,
     })
 
+@login_required
+def staff_list_view(request):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    staff_members = StaffMember.objects.filter(business=business).prefetch_related('schedules').order_by('first_name') if business else []
+    
+    from django.core.paginator import Paginator
+    paginator = Paginator(staff_members, 10)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    return render(request, 'business/staff_list.html', {
+        'business': business,
+        'staff_members': page_obj,
+        'page_obj': page_obj,
+    })
+
+@login_required
 def staff_create_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     branches = Branch.objects.filter(business=business) if business else []
     
     if request.method == 'POST':
@@ -464,8 +571,10 @@ def staff_create_view(request):
         phone = request.POST.get('phone', '')
         role_title = request.POST.get('role_title', 'Especialista')
         commission_rate = parse_decimal(request.POST.get('commission_rate'), '0.00')
+        base_salary = parse_decimal(request.POST.get('base_salary'), '0.00')
         branch_id = request.POST.get('branch_id')
-        branch = Branch.objects.filter(id=branch_id).first() if branch_id else None
+        branch_ids = request.POST.getlist('branch_ids')
+        branch = Branch.objects.filter(id=branch_id, business=business).first() if branch_id else None
         
         staff = StaffMember.objects.create(
             business=business,
@@ -476,8 +585,18 @@ def staff_create_view(request):
             phone=phone,
             role_title=role_title,
             commission_rate=commission_rate,
+            base_salary=base_salary,
             is_active=True
         )
+
+        if branch_ids:
+            selected_branches = Branch.objects.filter(id__in=branch_ids, business=business)
+            staff.branches.set(selected_branches)
+            if not staff.branch and selected_branches.exists():
+                staff.branch = selected_branches.first()
+                staff.save()
+        elif branch:
+            staff.branches.set([branch])
         
         # Create default work schedule Mon-Sat
         for day in range(0, 6):
@@ -498,8 +617,11 @@ def staff_create_view(request):
         'title': 'Registrar Nuevo Profesional / Empleado'
     })
 
+@login_required
 def staff_edit_view(request, staff_id):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     staff = get_object_or_404(StaffMember, id=staff_id, business=business)
     branches = Branch.objects.filter(business=business)
     
@@ -510,9 +632,21 @@ def staff_edit_view(request, staff_id):
         staff.phone = request.POST.get('phone', '')
         staff.role_title = request.POST.get('role_title', 'Especialista')
         staff.commission_rate = parse_decimal(request.POST.get('commission_rate'), '0.00')
+        staff.base_salary = parse_decimal(request.POST.get('base_salary'), '0.00')
         branch_id = request.POST.get('branch_id')
-        staff.branch = Branch.objects.filter(id=branch_id).first() if branch_id else None
+        branch_ids = request.POST.getlist('branch_ids')
+        staff.branch = Branch.objects.filter(id=branch_id, business=business).first() if branch_id else None
         staff.save()
+
+        if branch_ids:
+            selected_branches = Branch.objects.filter(id__in=branch_ids, business=business)
+            staff.branches.set(selected_branches)
+            if not staff.branch and selected_branches.exists():
+                staff.branch = selected_branches.first()
+                staff.save()
+        elif staff.branch:
+            staff.branches.set([staff.branch])
+
         return redirect('staff_list')
         
     return render(request, 'business/staff_form.html', {
@@ -531,9 +665,12 @@ GATEWAY_BASE_URL = "http://127.0.0.1:3000"
 def _gw_user(business):
     return str(business.id) if business else "default"
 
+@login_required
 @ensure_csrf_cookie
 def whatsapp_gateway_status_api(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'online': False, 'status': 'offline', 'error': 'Negocio no encontrado'})
     session_user = _gw_user(business)
     try:
         url = f"{GATEWAY_BASE_URL}/status?user={session_user}"
@@ -544,9 +681,12 @@ def whatsapp_gateway_status_api(request):
     except Exception as e:
         return JsonResponse({'online': False, 'status': 'offline', 'error': str(e)})
 
+@login_required
 @ensure_csrf_cookie
 def whatsapp_gateway_qr_api(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'online': False, 'qr': None, 'status': 'offline', 'error': 'Negocio no encontrado'})
     session_user = _gw_user(business)
     try:
         url = f"{GATEWAY_BASE_URL}/qr?user={session_user}"
@@ -557,11 +697,14 @@ def whatsapp_gateway_qr_api(request):
     except Exception as e:
         return JsonResponse({'online': False, 'qr': None, 'status': 'offline', 'error': str(e)})
 
+@login_required
 @ensure_csrf_cookie
 def whatsapp_gateway_generate_api(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'success': False, 'error': 'Negocio no encontrado'}, status=400)
     session_user = _gw_user(business)
     try:
         url = f"{GATEWAY_BASE_URL}/generate?user={session_user}"
@@ -572,11 +715,14 @@ def whatsapp_gateway_generate_api(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': f"Microservicio no responde en {GATEWAY_BASE_URL}. Inicia el gateway ejecutando 'npm start' dentro de la carpeta whatsapp-gateway."})
 
+@login_required
 @ensure_csrf_cookie
 def whatsapp_gateway_unlink_api(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'success': False, 'error': 'Negocio no encontrado'}, status=400)
     session_user = _gw_user(business)
     try:
         url = f"{GATEWAY_BASE_URL}/unlink?user={session_user}"
@@ -587,11 +733,14 @@ def whatsapp_gateway_unlink_api(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+@login_required
 @ensure_csrf_cookie
 def whatsapp_gateway_send_reminder_api(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'success': False, 'error': 'Negocio no encontrado'}, status=400)
     session_user = _gw_user(business)
 
     phone = request.POST.get('phone', '').strip()

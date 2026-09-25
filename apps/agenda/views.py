@@ -1,13 +1,17 @@
 from decimal import Decimal
 import datetime
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from apps.business.models import Business, StaffMember
 from apps.agenda.models import Service, ServiceCategory, Appointment, ScheduleBlock
 from apps.crm.models import Client
 from apps.core.utils import parse_decimal, parse_int
 
+@login_required
 def agenda_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     selected_date_str = request.GET.get('date', datetime.date.today().isoformat())
     selected_staff_id = request.GET.get('staff', '')
     
@@ -34,8 +38,11 @@ def agenda_view(request):
         'selected_staff_id': selected_staff_id,
     })
 
+@login_required
 def appointment_create_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     clients = Client.objects.filter(business=business) if business else []
     staff_members = StaffMember.objects.filter(business=business, is_active=True) if business else []
     services = Service.objects.filter(business=business, is_active=True) if business else []
@@ -100,8 +107,11 @@ def appointment_create_view(request):
         'title': 'Agendar Nueva Cita'
     })
 
+@login_required
 def appointment_edit_view(request, appointment_id):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     appointment = get_object_or_404(Appointment, id=appointment_id, business=business)
     clients = Client.objects.filter(business=business)
     staff_members = StaffMember.objects.filter(business=business, is_active=True)
@@ -134,19 +144,32 @@ def appointment_edit_view(request, appointment_id):
         'title': f'Editar Cita: {appointment.client.full_name}'
     })
 
+@login_required
 def service_list_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     categories = ServiceCategory.objects.filter(business=business).prefetch_related('services') if business else []
     services_without_category = Service.objects.filter(business=business, category__isnull=True) if business else []
+    all_services = Service.objects.filter(business=business).select_related('category').order_by('name') if business else []
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(all_services, 10)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
 
     return render(request, 'agenda/service_list.html', {
         'business': business,
         'categories': categories,
         'services_without_category': services_without_category,
+        'all_services': page_obj,
+        'page_obj': page_obj,
     })
 
+@login_required
 def service_create_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     categories = ServiceCategory.objects.filter(business=business) if business else []
 
     if request.method == 'POST':
@@ -157,7 +180,7 @@ def service_create_view(request):
         description = request.POST.get('description', '')
         commission_rate = parse_decimal(request.POST.get('commission_rate'), '0.00')
         
-        category = ServiceCategory.objects.filter(id=category_id).first() if category_id else None
+        category = ServiceCategory.objects.filter(id=category_id, business=business).first() if category_id else None
         
         Service.objects.create(
             business=business,
@@ -178,15 +201,18 @@ def service_create_view(request):
         'title': 'Crear Nuevo Servicio'
     })
 
+@login_required
 def service_edit_view(request, service_id):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     service = get_object_or_404(Service, id=service_id, business=business)
     categories = ServiceCategory.objects.filter(business=business)
 
     if request.method == 'POST':
         service.name = request.POST.get('name')
         category_id = request.POST.get('category_id')
-        service.category = ServiceCategory.objects.filter(id=category_id).first() if category_id else None
+        service.category = ServiceCategory.objects.filter(id=category_id, business=business).first() if category_id else None
         service.price = parse_decimal(request.POST.get('price'), '0.00')
         service.duration_minutes = parse_int(request.POST.get('duration_minutes'), 45)
         service.description = request.POST.get('description', '')
@@ -201,8 +227,11 @@ def service_edit_view(request, service_id):
         'title': f'Editar Servicio: {service.name}'
     })
 
+@login_required
 def service_category_create_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
 
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -222,8 +251,11 @@ def service_category_create_view(request):
 
 from apps.business.models import Business, StaffMember, WorkSchedule
 
+@login_required
 def appointment_calendar_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     staff_members = StaffMember.objects.filter(business=business, is_active=True) if business else []
 
     slot_min_time = "00:00:00"
@@ -236,9 +268,12 @@ def appointment_calendar_view(request):
         'slot_max_time': slot_max_time,
     })
 
+@login_required
 def appointment_events_api(request):
     from django.http import JsonResponse
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse([], safe=False)
     staff_id = request.GET.get('staff_id', '')
 
     appointments = Appointment.objects.filter(business=business).select_related('client', 'staff', 'service')

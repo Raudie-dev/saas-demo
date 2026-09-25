@@ -119,11 +119,65 @@
         <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
             <div>
                 <h2 class="text-xl font-bold font-display text-slate-900">Reserva tu Turno Online</h2>
-                <p class="text-xs text-slate-500 mt-1">Elige el servicio, el profesional de tu preferencia y la hora que mejor te acomode.</p>
+                <p class="text-xs text-slate-500 mt-1">Elige la sucursal, el servicio, el profesional de tu preferencia y la hora que mejor te acomode.</p>
             </div>
+
+            <!-- Branch Selection & Location Banner -->
+            {% if branches %}
+            <div class="p-5 rounded-2xl bg-slate-900 text-white space-y-4 shadow-md">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-rose-400 tracking-wider block">Sucursal de Atención</span>
+                        <h3 class="font-bold text-base text-white font-display flex items-center gap-2 mt-0.5">
+                            <i data-lucide="building-2" class="w-4 h-4 text-rose-400"></i>
+                            {% if selected_branch %}{{ selected_branch.name }}{% else %}{{ business.name }}{% endif %}
+                        </h3>
+                    </div>
+
+                    {% if branches.count > 1 %}
+                    <form method="GET" class="flex items-center gap-2">
+                        <select name="branch_id" onchange="this.form.submit()" class="bg-slate-800 border border-slate-700 text-white text-xs font-semibold rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                            {% for br in branches %}
+                            <option value="{{ br.id }}" {% if selected_branch and selected_branch.id == br.id %}selected{% endif %}>
+                                {{ br.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div class="flex items-start gap-2 text-slate-300">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-rose-400 shrink-0 mt-0.5"></i>
+                        <div>
+                            <span class="font-bold text-white block">Dirección:</span>
+                            <span>{% if selected_branch %}{{ selected_branch.address }}{% else %}{{ business.address }}{% endif %}</span>
+                        </div>
+                    </div>
+
+                    {% if selected_branch and selected_branch.google_maps_url %}
+                    <a href="{{ selected_branch.google_maps_url }}" target="_blank" rel="noopener noreferrer"
+                       class="px-3.5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs flex items-center gap-2 shadow transition shrink-0">
+                        <i data-lucide="map" class="w-4 h-4 text-rose-300"></i>
+                        <span>Abrir Google Maps</span>
+                    </a>
+                    {% else %}
+                    <a href="https://www.google.com/maps/search/?api=1&query={{ selected_branch.address|default:business.address|urlencode }}" target="_blank" rel="noopener noreferrer"
+                       class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-2 transition shrink-0 border border-slate-700">
+                        <i data-lucide="map" class="w-4 h-4 text-rose-400"></i>
+                        <span>Ver en Google Maps</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
 
             <form method="POST" autocomplete="off" class="space-y-6">
                 {% csrf_token %}
+                {% if selected_branch %}
+                <input type="hidden" name="branch_id" value="{{ selected_branch.id }}">
+                {% endif %}
 
                 <!-- Step 1: Select Service -->
                 <div class="space-y-3">

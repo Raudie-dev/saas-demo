@@ -52,6 +52,7 @@ class Branch(TimeStampedModel):
     address = models.CharField(max_length=255, verbose_name="Dirección")
     phone = models.CharField(max_length=50, blank=True, null=True)
     is_main = models.BooleanField(default=False, verbose_name="Sucursal Principal")
+    google_maps_url = models.URLField(blank=True, null=True, verbose_name="Ubicación Google Maps / URL")
 
     def __str__(self):
         return f"{self.business.name} - {self.name}"
@@ -74,6 +75,7 @@ class User(AbstractUser):
 class StaffMember(TimeStampedModel):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="staff_members")
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name="staff_members", null=True, blank=True)
+    branches = models.ManyToManyField(Branch, blank=True, related_name="staff_members_multi", verbose_name="Sucursales Asignadas")
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="staff_profile")
     first_name = models.CharField(max_length=100, verbose_name="Nombre")
     last_name = models.CharField(max_length=100, verbose_name="Apellido")
@@ -81,12 +83,23 @@ class StaffMember(TimeStampedModel):
     phone = models.CharField(max_length=50, blank=True, null=True)
     role_title = models.CharField(max_length=100, default="Especialista", verbose_name="Cargo / Especialidad")
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="Comisión Porcentaje (%)")
+    base_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Sueldo Base ($)")
     is_active = models.BooleanField(default=True)
     avatar_color = models.CharField(max_length=20, default="#3b82f6")
 
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def pending_commissions(self):
+        from django.db.models import Sum
+        total = self.commission_records.filter(is_settled=False).aggregate(total=Sum('amount'))['total']
+        return total or 0.00
+
+    @property
+    def estimated_total_salary(self):
+        return float(self.base_salary or 0) + float(self.pending_commissions or 0)
 
     def __str__(self):
         return self.full_name

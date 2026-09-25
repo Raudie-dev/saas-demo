@@ -7,22 +7,22 @@
 <div class="space-y-6 max-w-7xl mx-auto">
 
     <!-- Top Action & Search Bar -->
-    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
             <h2 class="text-xl font-bold font-display text-slate-900">Directorio de Agencias Registradas</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Control global de cuentas de clientes, datos de contacto y estado operativo de cada agencia.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Control global de cuentas de clientes, datos de contacto y estado de licencias de cada agencia.</p>
         </div>
 
         <form method="GET" class="flex items-center gap-3 w-full md:w-auto">
             <input type="text" name="q" value="{{ query }}" placeholder="Buscar por nombre de agencia..." class="bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl p-2.5 w-64 focus:outline-none focus:border-brand-900">
-            <button type="submit" class="px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition">
+            <button type="submit" class="px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition cursor-pointer">
                 Buscar
             </button>
         </form>
     </div>
 
     <!-- Businesses Grid / Table -->
-    <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
@@ -60,11 +60,11 @@
                             {% if biz.subscription %}
                                 {% if biz.subscription.status == 'ACTIVE' %}
                                 <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                    ACTIVA ({{ biz.subscription.plan.name }})
+                                    ACTIVA ({{ biz.subscription.plan.name|default:"Estándar" }})
                                 </span>
                                 {% elif biz.subscription.status == 'TRIAL' %}
                                 <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                                    EN PRUEBA
+                                    EN PRUEBA ({{ biz.subscription.days_remaining }}d)
                                 </span>
                                 {% else %}
                                 <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-900 border border-rose-300">
@@ -89,9 +89,9 @@
                         </td>
 
                         <td class="p-4 text-right">
-                            <a href="{% url 'superadmin_subscriptions' %}?q={{ biz.name }}" class="px-3 py-1.5 rounded-xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1">
-                                <i data-lucide="key" class="w-3.5 h-3.5"></i> Gestionar Licencia
-                            </a>
+                            <button type="button" onclick="openLicenseInfoModal('{{ biz.subscription.id|default:'' }}', '{{ biz.id }}', '{{ biz.name|escapejs }}', '{{ biz.email|escapejs }}', '{{ biz.subscription.status|default:'TRIAL' }}', '{{ biz.subscription.plan.id|default:'' }}', '{{ biz.subscription.plan.name|default:'Sin Plan'|escapejs }}', '{{ biz.subscription.license_key|default:'' }}', '{{ biz.subscription.expiration_date|date:'Y-m-d' }}', '{{ biz.subscription.start_date|date:'Y-m-d' }}', '{{ biz.subscription.days_remaining|default:0 }}', '{{ biz.subscription.notes|default:''|escapejs }}')" class="px-3.5 py-2 rounded-xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer">
+                                <i data-lucide="key" class="w-3.5 h-3.5"></i> Ver Licencia
+                            </button>
                         </td>
                     </tr>
                     {% empty %}
@@ -102,7 +102,232 @@
                 </tbody>
             </table>
         </div>
+
+        {% if page_obj and page_obj.has_other_pages %}
+        <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div class="text-slate-500 font-medium">
+                Mostrando <span class="font-bold text-slate-900">{{ page_obj.start_index }}</span> a <span class="font-bold text-slate-900">{{ page_obj.end_index }}</span> de <span class="font-bold text-slate-900">{{ page_obj.paginator.count }}</span> agencias
+            </div>
+            
+            <div class="flex items-center gap-1.5">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}"
+                   class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                    <i data-lucide="chevron-left" class="w-4 h-4 text-slate-500"></i> Anterior
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+                </span>
+                {% endif %}
+
+                <div class="flex items-center gap-1">
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <span class="w-8 h-8 rounded-xl bg-brand-900 text-white font-extrabold flex items-center justify-center shadow-xs text-xs">
+                            {{ num }}
+                        </span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}"
+                           class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold flex items-center justify-center transition text-xs shadow-2xs">
+                            {{ num }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}"
+                   class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                    Siguiente <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                    Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 
 </div>
+
+<!-- Modal para Ver / Ajustar Licencia de Agencia -->
+<div id="licenseInfoModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transition-all transform scale-100">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="key-round" class="w-5 h-5 text-rose-400"></i>
+                <h3 id="modalBizName" class="text-base font-bold font-display">Información de Licencia</h3>
+            </div>
+            <button type="button" onclick="closeLicenseInfoModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body & Form -->
+        <form method="POST" action="{% url 'superadmin_businesses' %}" class="p-6 space-y-4 text-xs">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="CREATE_CUSTOM">
+            <input type="hidden" id="modal_sub_id" name="subscription_id" value="">
+            <input type="hidden" id="modal_biz_id" name="business_id" value="">
+
+            <!-- Resumen Informativo -->
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 font-semibold">Agencia:</span>
+                    <span id="display_biz_name" class="font-bold text-slate-900 text-sm">--</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 font-semibold">Email Contacto:</span>
+                    <span id="display_biz_email" class="font-mono text-slate-800 font-medium">--</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 font-semibold">Clave Token de Licencia:</span>
+                    <div class="flex items-center gap-1.5">
+                        <span id="display_token_key" class="font-mono text-[10px] text-slate-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200 select-all">--</span>
+                        <button type="button" onclick="copyTokenKey()" title="Copiar Token" class="p-1 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 transition cursor-pointer">
+                            <i data-lucide="copy" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estado de Licencia & Plan -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1.5">Estado de Licencia</label>
+                    <select id="modal_status_select" name="status" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-brand-900">
+                        <option value="TRIAL">En Período de Prueba</option>
+                        <option value="ACTIVE">Licencia Activa</option>
+                        <option value="EXPIRED">Licencia Vencida</option>
+                        <option value="SUSPENDED">Cuenta Suspendida</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1.5">Plan Asignado</label>
+                    <select id="modal_plan_select" name="plan_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-brand-900">
+                        <option value="">Sin Plan Específico</option>
+                        {% for p in plans %}
+                        <option value="{{ p.id }}">{{ p.name }} (${{ p.monthly_price }}/mes)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Modalidad de Vencimiento -->
+            <div>
+                <label class="block font-bold text-slate-800 mb-1.5">Duración / Período de Validez</label>
+                <select id="modal_duration_select" name="duration_type_preset" onchange="handleDurationChangeBiz(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-brand-900">
+                    <option value="7">7 Días (Prueba Express)</option>
+                    <option value="15">15 Días (Prueba Estándar)</option>
+                    <option value="30">30 Días (1 Mes)</option>
+                    <option value="90">90 Días (3 Meses)</option>
+                    <option value="180">180 Días (6 Meses)</option>
+                    <option value="365">365 Días (1 Año Anual)</option>
+                    <option value="3650">10 Años (Licencia Vitalicia)</option>
+                    <option value="CUSTOM_DAYS">Días Personalizados</option>
+                    <option value="SPECIFIC_DATE">Fecha Exacta de Expiración</option>
+                </select>
+            </div>
+
+            <input type="hidden" id="modal_duration_type_biz" name="duration_type" value="DAYS">
+
+            <!-- Campo Días Personalizados -->
+            <div id="customDaysContainerBiz" class="hidden">
+                <label class="block font-bold text-slate-800 mb-1.5">Cantidad de Días a partir de Hoy</label>
+                <input type="number" min="1" max="10000" id="modal_custom_days_biz" name="custom_days" value="30" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-brand-900" placeholder="Ej: 45">
+            </div>
+
+            <!-- Campo Fecha Exacta -->
+            <div id="specificDateContainerBiz" class="hidden">
+                <label class="block font-bold text-slate-800 mb-1.5">Fecha de Vencimiento Exacta</label>
+                <input type="date" id="modal_expiration_date_biz" name="expiration_date" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-brand-900">
+            </div>
+
+            <!-- Notas Internas -->
+            <div>
+                <label class="block font-bold text-slate-800 mb-1.5">Notas de Administración (Opcional)</label>
+                <textarea id="modal_notes_biz" name="notes" rows="2" placeholder="Ej: Prueba especial concedida por soporte comercial." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900"></textarea>
+            </div>
+
+            <!-- Modal Footer Buttons -->
+            <div class="pt-3 border-t border-slate-200 flex items-center justify-between gap-2">
+                <button type="submit" onclick="this.form.action.value='REGENERATE_TOKEN'; return confirm('¿Regenerar clave token de licencia para esta agencia?')" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition text-[11px] flex items-center gap-1 cursor-pointer">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Regenerar Token
+                </button>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeLicenseInfoModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer">
+                        Cerrar
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-brand-900 hover:bg-brand-950 text-white font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="check" class="w-4 h-4"></i> Guardar Licencia
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentTokenKey = '';
+
+function openLicenseInfoModal(subId, bizId, bizName, bizEmail, status, planId, planName, tokenKey, expDate, startDate, daysRemaining, notes) {
+    document.getElementById('modalBizName').innerText = 'Licencia - ' + bizName;
+    document.getElementById('display_biz_name').innerText = bizName;
+    document.getElementById('display_biz_email').innerText = bizEmail;
+    document.getElementById('display_token_key').innerText = tokenKey ? tokenKey : 'Sin generar';
+    currentTokenKey = tokenKey;
+
+    document.getElementById('modal_sub_id').value = subId;
+    document.getElementById('modal_biz_id').value = bizId;
+    document.getElementById('modal_status_select').value = status;
+    document.getElementById('modal_plan_select').value = planId;
+    document.getElementById('modal_expiration_date_biz').value = expDate;
+    document.getElementById('modal_notes_biz').value = notes;
+
+    document.getElementById('modal_duration_select').value = 'SPECIFIC_DATE';
+    handleDurationChangeBiz('SPECIFIC_DATE');
+
+    document.getElementById('licenseInfoModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeLicenseInfoModal() {
+    document.getElementById('licenseInfoModal').classList.add('hidden');
+}
+
+function copyTokenKey() {
+    if (currentTokenKey) {
+        navigator.clipboard.writeText(currentTokenKey);
+        alert('Clave Token copiada al portapapeles:\n' + currentTokenKey);
+    }
+}
+
+function handleDurationChangeBiz(val) {
+    const customDaysContainer = document.getElementById('customDaysContainerBiz');
+    const specificDateContainer = document.getElementById('specificDateContainerBiz');
+    const durationType = document.getElementById('modal_duration_type_biz');
+    const customDaysInput = document.getElementById('modal_custom_days_biz');
+
+    if (val === 'CUSTOM_DAYS') {
+        durationType.value = 'DAYS';
+        customDaysContainer.classList.remove('hidden');
+        specificDateContainer.classList.add('hidden');
+    } else if (val === 'SPECIFIC_DATE') {
+        durationType.value = 'DATE';
+        customDaysContainer.classList.add('hidden');
+        specificDateContainer.classList.remove('hidden');
+    } else {
+        durationType.value = 'DAYS';
+        customDaysInput.value = val;
+        customDaysContainer.classList.add('hidden');
+        specificDateContainer.classList.add('hidden');
+    }
+}
+</script>
 {% endblock %}

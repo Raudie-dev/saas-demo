@@ -1,13 +1,17 @@
 from decimal import Decimal
 import datetime
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from apps.business.models import Business
 from apps.marketing.models import Coupon, GiftCard
 from apps.crm.models import Client
 from apps.core.utils import parse_decimal, parse_int
 
+@login_required
 def marketing_dashboard_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     coupons = Coupon.objects.filter(business=business) if business else []
     giftcards = GiftCard.objects.filter(business=business) if business else []
     clients = Client.objects.filter(business=business) if business else []
@@ -19,8 +23,11 @@ def marketing_dashboard_view(request):
         'clients': clients,
     })
 
+@login_required
 def coupon_create_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
 
     if request.method == 'POST':
         code = request.POST.get('code').upper()
@@ -45,8 +52,11 @@ def coupon_create_view(request):
         'title': 'Crear Nuevo Cupón Promocional'
     })
 
+@login_required
 def coupon_edit_view(request, coupon_id):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     coupon = get_object_or_404(Coupon, id=coupon_id, business=business)
 
     if request.method == 'POST':
@@ -64,15 +74,18 @@ def coupon_edit_view(request, coupon_id):
         'title': f'Editar Cupón: {coupon.code}'
     })
 
+@login_required
 def giftcard_create_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     clients = Client.objects.filter(business=business) if business else []
 
     if request.method == 'POST':
         code = request.POST.get('code').upper()
         amount = parse_decimal(request.POST.get('amount'), '50.00')
         client_id = request.POST.get('client_id')
-        client = Client.objects.filter(id=client_id).first() if client_id else None
+        client = Client.objects.filter(id=client_id, business=business).first() if client_id else None
         
         GiftCard.objects.create(
             business=business,

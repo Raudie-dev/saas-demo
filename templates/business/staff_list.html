@@ -1,27 +1,37 @@
 {% extends 'base.html' %}
 
-{% block title %}Equipo de Trabajo - BusinessOS{% endblock %}
-{% block header_title %}Equipo de Trabajo & Horarios de Atención{% endblock %}
+{% block title %}Equipo de Trabajo & Empleados - BusinessOS{% endblock %}
+{% block header_title %}Equipo de Trabajo, Sueldos & Comisiones{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
 
     <!-- Top Action Banner -->
-    <div class="glass-card bg-white p-6 rounded-2xl flex items-center justify-between border border-slate-200 shadow-sm">
+    <div class="glass-card bg-white p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between border border-slate-200 shadow-sm gap-4">
         <div>
-            <h3 class="font-bold text-slate-900 text-lg font-display">Personal & Especialistas</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Gestión de profesionales, especialidades y esquemas de comisiones</p>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 text-rose-900 border border-rose-200 text-xs font-bold mb-1">
+                <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                <span>Nómina y Equipo Especialista</span>
+            </div>
+            <h3 class="font-bold text-slate-900 text-lg font-display">Profesionales & Empleados de la Agencia</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Control de sueldos base, porcentajes de comisiones por servicio y liquidaciones pendientes</p>
         </div>
-        <a href="{% url 'staff_create' %}" class="px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition">
-            <i data-lucide="user-plus" class="w-4 h-4"></i>
-            Agregar Nuevo Profesional
-        </a>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{% url 'commission_report' %}" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs flex items-center gap-2 shadow-sm transition">
+                <i data-lucide="calculator" class="w-4 h-4 text-emerald-400"></i>
+                Ver Liquidación de Comisiones
+            </a>
+            <a href="{% url 'staff_create' %}" class="px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-xs flex items-center gap-2 shadow-md transition">
+                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                Agregar Profesional
+            </a>
+        </div>
     </div>
 
     <!-- Staff List Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {% for staff in staff_members %}
-        <div class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
             <div class="space-y-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-4">
@@ -30,35 +40,119 @@
                         </div>
                         <div>
                             <h3 class="font-bold text-slate-900 text-base font-display">{{ staff.full_name }}</h3>
-                            <p class="text-xs text-rose-900 font-semibold">{{ staff.role_title }}</p>
-                            <p class="text-xs text-slate-500 mt-0.5">{{ staff.email|default:"Sin email" }} • {{ staff.phone|default:"" }}</p>
+                            <span class="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 text-rose-900 border border-rose-200 mt-0.5">
+                                {{ staff.role_title }}
+                            </span>
+                            <p class="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                                <span>📧 {{ staff.email|default:"Sin email" }}</span>
+                                {% if staff.phone %}<span>• 📞 {{ staff.phone }}</span>{% endif %}
+                            </p>
                         </div>
                     </div>
-                    <a href="{% url 'staff_edit' staff.id %}" class="px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold transition">
+                    <a href="{% url 'staff_edit' staff.id %}" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center gap-1.5 border border-slate-200">
+                        <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
                         Editar
                     </a>
                 </div>
 
-                <div class="pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
-                    <span class="text-slate-500">Tasa de Comisión por Defecto:</span>
-                    <span class="font-extrabold text-rose-900 text-sm">{{ staff.commission_rate }}%</span>
+                <!-- Salary & Commissions Summary Grid -->
+                <div class="grid grid-cols-3 gap-2 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 text-center">
+                    <div class="space-y-0.5">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Sueldo Base</span>
+                        <span class="font-extrabold text-slate-900 text-sm block">${{ staff.base_salary|default:"0.00" }}</span>
+                    </div>
+                    <div class="space-y-0.5 border-x border-slate-200 px-1">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">% Comisión</span>
+                        <span class="font-extrabold text-rose-900 text-sm block">{{ staff.commission_rate }}%</span>
+                    </div>
+                    <div class="space-y-0.5">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Comisiones Pend.</span>
+                        <span class="font-extrabold text-emerald-700 text-sm block">${{ staff.pending_commissions|default:"0.00" }}</span>
+                    </div>
+                </div>
+
+                <!-- Total Earnings Banner -->
+                <div class="p-3 rounded-xl bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 text-white flex items-center justify-between text-xs font-bold shadow-xs">
+                    <span class="flex items-center gap-1.5 text-slate-200">
+                        <i data-lucide="coins" class="w-4 h-4 text-emerald-400"></i> Total Estimado Acumulado:
+                    </span>
+                    <span class="text-sm font-extrabold text-emerald-300">${{ staff.estimated_total_salary|floatformat:2 }}</span>
                 </div>
             </div>
 
-            <div class="space-y-1 pt-2">
-                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Horarios de Atención Habidos</span>
-                <div class="grid grid-cols-2 gap-2 text-xs text-slate-700">
+            <!-- Schedules Summary -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-100">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Horario de Atención</span>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px] text-slate-700">
                     {% for sched in staff.schedules.all %}
-                    <div class="p-2 rounded-lg bg-slate-50 border border-slate-200 flex justify-between">
-                        <span class="font-semibold text-slate-600">{{ sched.get_day_of_week_display }}:</span>
-                        <span class="text-rose-900 font-mono font-medium">{{ sched.start_time|time:"H:i" }} - {{ sched.end_time|time:"H:i" }}</span>
+                    <div class="p-1.5 rounded-lg bg-slate-50 border border-slate-200 flex justify-between items-center">
+                        <span class="font-bold text-slate-600">{{ sched.get_day_of_week_display|slice:":3" }}:</span>
+                        <span class="text-rose-900 font-mono font-semibold text-[10px]">{% if sched.is_working_day %}{{ sched.start_time|time:"H:i" }}-{{ sched.end_time|time:"H:i" }}{% else %}Off{% endif %}</span>
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
+        {% empty %}
+        <div class="col-span-2 glass-card bg-white p-12 text-center rounded-2xl border border-slate-200 space-y-3">
+            <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-900 flex items-center justify-center mx-auto">
+                <i data-lucide="users" class="w-6 h-6"></i>
+            </div>
+            <h4 class="font-bold text-slate-900 text-base">No hay profesionales ni empleados registrados</h4>
+            <p class="text-xs text-slate-500 max-w-md mx-auto">Registra al personal que presta servicios en tu negocio para asignar reservas y calcular automáticamente su sueldo y comisiones.</p>
+            <a href="{% url 'staff_create' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-900 text-white font-bold text-xs shadow-md">
+                <i data-lucide="plus" class="w-4 h-4"></i> Crear Primer Profesional
+            </a>
+        </div>
         {% endfor %}
     </div>
+
+    {% if page_obj and page_obj.has_other_pages %}
+    <div class="glass-card bg-white px-6 py-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div class="text-slate-500 font-medium">
+            Mostrando <span class="font-bold text-slate-900">{{ page_obj.start_index }}</span> a <span class="font-bold text-slate-900">{{ page_obj.end_index }}</span> de <span class="font-bold text-slate-900">{{ page_obj.paginator.count }}</span> profesionales
+        </div>
+        
+        <div class="flex items-center gap-1.5">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}"
+               class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                <i data-lucide="chevron-left" class="w-4 h-4 text-slate-500"></i> Anterior
+            </a>
+            {% else %}
+            <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+            </span>
+            {% endif %}
+
+            <div class="flex items-center gap-1">
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="w-8 h-8 rounded-xl bg-rose-900 text-white font-extrabold flex items-center justify-center shadow-xs text-xs">
+                        {{ num }}
+                    </span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}"
+                       class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold flex items-center justify-center transition text-xs shadow-2xs">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}"
+               class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                Siguiente <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+            </a>
+            {% else %}
+            <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 
 </div>
 {% endblock %}

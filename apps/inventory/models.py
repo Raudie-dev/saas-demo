@@ -1,6 +1,6 @@
 from django.db import models
 from apps.core.models import TimeStampedModel
-from apps.business.models import Business
+from apps.business.models import Business, Branch
 from apps.crm.models import Supplier
 
 class ProductCategory(TimeStampedModel):
@@ -16,6 +16,7 @@ class ProductCategory(TimeStampedModel):
 
 class Product(TimeStampedModel):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="products")
+    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name="products", verbose_name="Sucursal")
     category = models.ForeignKey(ProductCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name="products")
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name="supplied_products")
     name = models.CharField(max_length=150, verbose_name="Nombre del Producto")

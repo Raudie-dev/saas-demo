@@ -3,12 +3,16 @@ from django.http import HttpResponse
 from decimal import Decimal
 import datetime
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from apps.business.models import Business, StaffMember
 from apps.commissions.models import CommissionRecord, PayrollSettlement
 
+@login_required
 def commission_report_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     staff_members = StaffMember.objects.filter(business=business) if business else []
     
     selected_staff_id = request.GET.get('staff_id', '')
@@ -40,17 +44,30 @@ def commission_report_view(request):
             
         return redirect('commission_report')
 
+    from django.core.paginator import Paginator
+    rec_paginator = Paginator(records, 10)
+    records_page_obj = rec_paginator.get_page(request.GET.get('page', 1))
+
+    set_paginator = Paginator(settlements, 10)
+    settlements_page_obj = set_paginator.get_page(request.GET.get('set_page', 1))
+
     return render(request, 'commissions/report.html', {
         'business': business,
         'staff_members': staff_members,
-        'records': records,
+        'records': records_page_obj,
+        'page_obj': records_page_obj,
+        'records_page_obj': records_page_obj,
         'total_unsettled': total_unsettled,
-        'settlements': settlements,
+        'settlements': settlements_page_obj,
+        'settlements_page_obj': settlements_page_obj,
         'selected_staff_id': selected_staff_id,
     })
 
+@login_required
 def export_commissions_excel(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     selected_staff_id = request.GET.get('staff_id', '')
     records = CommissionRecord.objects.filter(business=business).select_related('staff')
     if selected_staff_id:
@@ -76,8 +93,11 @@ def export_commissions_excel(request):
         
     return response
 
+@login_required
 def export_commissions_pdf(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     selected_staff_id = request.GET.get('staff_id', '')
     records = CommissionRecord.objects.filter(business=business).select_related('staff')
     if selected_staff_id:

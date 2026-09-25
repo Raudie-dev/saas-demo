@@ -29,6 +29,18 @@
                         display: ['Outfit', 'sans-serif'],
                     },
                     colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                            950: '#4c0519',
+                        },
                         vinotinto: {
                             50: '#fdf2f4',
                             100: '#fce7ea',
@@ -82,12 +94,9 @@
             <!-- Brand Logo -->
             <div class="h-16 flex items-center px-6 border-b border-slate-800 justify-between shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-900 to-slate-900 flex items-center justify-center text-white font-extrabold font-display shadow-lg shadow-rose-950/50 border border-rose-800/40">
-                        B
-                    </div>
+                    <img src="/static/images/logo.png" alt="RauDie OS Logo" class="w-9 h-9 shadow-lg shadow-rose-950/50 object-contain shrink-0">
                     <div>
                         <h1 class="font-display font-bold text-lg text-white leading-none">RauDie OS</h1>
-                        <span class="text-xs text-rose-400 font-medium">Vinotinto Edition</span>
                     </div>
                 </div>
             </div>
@@ -114,7 +123,7 @@
             <nav class="px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar py-2">
                 <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'dashboard' %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                    <span>Dashboard & KPIs</span>
+                    <span>Panel Principal</span>
                 </a>
 
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Gestionar</div>
@@ -136,6 +145,11 @@
                 <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'service_list' %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="scissors" class="w-5 h-5"></i>
                     <span>Servicios & Tarifas</span>
+                </a>
+
+                <a href="{% url 'staff_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'equipo' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                    <span>Equipo & Profesionales</span>
                 </a>
 
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Administrar</div>
@@ -168,7 +182,7 @@
                 </a>
                 {% endif %}
 
-                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Crecer & IA</div>
+                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Finanzas & Crecimiento</div>
 
                 {% if modules_enabled.marketing %}
                 <a href="{% url 'marketing_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'marketing' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
@@ -191,9 +205,14 @@
 
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Configuración</div>
 
-                <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'business' in request.path and not 'superadmin' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="settings" class="w-5 h-5"></i>
-                    <span>Administración Agencia</span>
+                <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'business_config' %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="building-2" class="w-5 h-5"></i>
+                    <span>Empresa & Sucursales</span>
+                </a>
+
+                <a href="{% url 'user_profile_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'user_profile_config' %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    <span>Mi Cuenta & Seguridad</span>
                 </a>
             </nav>
         </div>
@@ -231,9 +250,7 @@
         <div class="relative flex-1 flex flex-col max-w-xs w-full bg-slate-950 text-white z-10 shadow-2xl">
             <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-900 to-slate-900 flex items-center justify-center text-white font-extrabold font-display border border-rose-800/40">
-                        B
-                    </div>
+                    <img src="/static/images/logo.png" alt="RauDie OS Logo" class="w-8 h-8 object-contain shrink-0">
                     <span class="font-display font-bold text-base text-white">RauDie OS</span>
                 </div>
                 <button id="mobile-sidebar-close-btn" class="p-2 text-slate-400 hover:text-white rounded-lg">
@@ -252,7 +269,7 @@
             <nav class="px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar py-3">
                 <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'dashboard' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                    <span>Dashboard & KPIs</span>
+                    <span>Panel Principal</span>
                 </a>
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Gestionar</div>
                 {% if modules_enabled.agenda %}
@@ -270,6 +287,10 @@
                 <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'service_list' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="scissors" class="w-5 h-5"></i>
                     <span>Servicios & Tarifas</span>
+                </a>
+                <a href="{% url 'staff_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'equipo' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                    <span>Equipo & Profesionales</span>
                 </a>
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Administrar</div>
                 {% if modules_enabled.pos %}
@@ -296,14 +317,19 @@
                     <span>Comisiones</span>
                 </a>
                 {% endif %}
-                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Configurar</div>
+                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Finanzas & Crecimiento</div>
                 <a href="{% url 'reports' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'reportes' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="wallet" class="w-5 h-5"></i>
                     <span>Finanzas</span>
                 </a>
-                <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'business' in request.path and not 'superadmin' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="settings" class="w-5 h-5"></i>
-                    <span>Administración Agencia</span>
+                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Configuración</div>
+                <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'business_config' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="building-2" class="w-5 h-5"></i>
+                    <span>Empresa & Sucursales</span>
+                </a>
+                <a href="{% url 'user_profile_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'user_profile_config' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    <span>Mi Cuenta & Seguridad</span>
                 </a>
             </nav>
             
@@ -330,6 +356,21 @@
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
+                {% if available_branches %}
+                <form method="POST" action="{% url 'switch_branch' %}" class="inline-flex items-center">
+                    {% csrf_token %}
+                    <div class="relative flex items-center">
+                        <select name="branch_id" onchange="this.form.submit()" title="Cambiar Sucursal Activa" class="bg-rose-50/90 hover:bg-rose-100 border border-rose-300 text-rose-950 font-extrabold text-xs rounded-xl pl-3 pr-7 py-1.5 focus:outline-none focus:border-rose-900 shadow-2xs cursor-pointer appearance-none transition">
+                            {% for b in available_branches %}
+                            <option value="{{ b.id }}" {% if current_branch and b.id == current_branch.id %}selected{% endif %}>
+                                📍 {{ b.name }}{% if b.is_main %} (Principal){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-rose-900 absolute right-2 pointer-events-none"></i>
+                    </div>
+                </form>
+                {% endif %}
                 {% if current_business and modules_enabled.booking %}
                 <a href="{% url 'public_booking' current_business.slug %}" target="_blank" class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-900 border border-rose-200 hover:bg-rose-100 transition">
                     <span class="w-2 h-2 rounded-full bg-rose-700 animate-pulse"></span>
@@ -371,7 +412,7 @@
                     {% else %}bg-blue-50 text-blue-950 border-blue-200/90{% endif %}">
                     <div class="flex items-center gap-2.5">
                         <i data-lucide="{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}alert-circle{% elif message.tags == 'warning' %}alert-triangle{% else %}info{% endif %}" class="w-4 h-4"></i>
-                        <span>{{ message.message }}</span>
+                        <span>{{ message }}</span>
                     </div>
                     <button onclick="this.parentElement.remove()" class="p-1 hover:opacity-75 rounded-lg">
                         <i data-lucide="x" class="w-4 h-4"></i>

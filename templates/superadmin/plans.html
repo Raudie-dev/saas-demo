@@ -7,19 +7,6 @@
 {% block content %}
 <div class="space-y-6 max-w-6xl mx-auto pb-12">
 
-    {% if messages %}
-    <div class="space-y-2">
-        {% for message in messages %}
-        <div class="p-4 rounded-xl text-sm font-semibold {% if message.tags == 'warning' or message.tags == 'error' %}bg-rose-50 border border-rose-200 text-rose-900{% else %}bg-emerald-50 border border-emerald-200 text-emerald-900{% endif %} flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <i data-lucide="info" class="w-5 h-5"></i>
-                <span>{{ message }}</span>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
     <!-- Top Action Bar -->
     <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>

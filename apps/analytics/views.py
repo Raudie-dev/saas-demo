@@ -1,7 +1,7 @@
 import datetime
 import csv
 from decimal import Decimal
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.utils import timezone
 from django.db.models import Sum, Count, Avg
@@ -12,11 +12,14 @@ from apps.crm.models import Client
 from apps.agenda.models import Appointment
 from apps.inventory.models import Product
 
+from django.contrib.auth.decorators import login_required
+from apps.business.models import Business, StaffMember
+
+@login_required
 def dashboard_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
-    
+    business = getattr(request, 'current_business', None) or request.user.business
     if not business:
-        return render(request, 'analytics/dashboard.html', {'business': None})
+        return redirect('onboarding')
         
     today = datetime.date.today()
     
@@ -303,14 +306,20 @@ def get_filtered_analytics_data(business, request):
     }
 
 
+@login_required
 def reports_view(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     data = get_filtered_analytics_data(business, request)
     return render(request, 'analytics/reports.html', data)
 
 
+@login_required
 def export_analytics_excel(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     data = get_filtered_analytics_data(business, request)
     
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
@@ -351,8 +360,11 @@ def export_analytics_excel(request):
     return response
 
 
+@login_required
 def export_analytics_pdf(request):
-    business = getattr(request, 'current_business', None) or Business.objects.first()
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
     data = get_filtered_analytics_data(business, request)
     data['report_title'] = 'Reporte Financiero, Métricas & Proyecciones'
     data['generated_at'] = timezone.now()

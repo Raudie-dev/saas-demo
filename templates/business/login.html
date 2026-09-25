@@ -40,10 +40,11 @@
     <!-- Main Login Container (Vertically Centered & Perfectly Proportioned) -->
     <div class="w-full max-w-md mx-auto my-auto space-y-5 relative z-10">
         
-        <!-- Pure Typography Brand Header -->
-        <div class="text-center space-y-1">
-            <a href="{% url 'landing' %}" class="inline-block font-display font-black text-3xl sm:text-4xl text-slate-900 tracking-tight">
-                RauDie<span class="text-rose-700">OS</span>
+        <!-- Brand Header with App Logo -->
+        <div class="text-center space-y-2">
+            <a href="{% url 'landing' %}" class="inline-flex items-center justify-center gap-3 group">
+                <img src="/static/images/logo.png" alt="RauDie OS Logo" class="w-12 h-12 drop-shadow-xl object-contain group-hover:scale-105 transition-transform">
+                <span class="font-display font-black text-3xl sm:text-4xl text-slate-900 tracking-tight">RauDie<span class="text-rose-700">OS</span></span>
             </a>
             <p class="text-xs sm:text-sm text-slate-500 font-medium">
                 CRM, Facturación & Reservas de Citas 24/7

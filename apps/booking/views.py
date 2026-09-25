@@ -93,7 +93,16 @@ def api_available_slots_view(request, business_slug):
 
 @ensure_csrf_cookie
 def public_booking_view(request, business_slug):
+    from django.db.models import Q
     business = get_object_or_404(Business, slug=business_slug)
+    branches = Branch.objects.filter(business=business)
+    branch_id = request.GET.get('branch_id') or request.POST.get('branch_id')
+    selected_branch = None
+    if branch_id:
+        selected_branch = branches.filter(id=branch_id).first()
+    if not selected_branch:
+        selected_branch = branches.filter(is_main=True).first() or branches.first()
+
     services = Service.objects.filter(business=business, is_active=True)
     
     # Auto-create default service if business has no active services
@@ -109,6 +118,12 @@ def public_booking_view(request, business_slug):
         services = Service.objects.filter(business=business, is_active=True)
 
     staff_members = StaffMember.objects.filter(business=business, is_active=True)
+    if selected_branch:
+        # Filter staff assigned to selected branch
+        staff_in_branch = staff_members.filter(Q(branch=selected_branch) | Q(branches=selected_branch)).distinct()
+        if staff_in_branch.exists():
+            staff_members = staff_in_branch
+
     if not staff_members.exists() and hasattr(request, 'user') and request.user.is_authenticated:
         # Fallback staff profile
         StaffMember.objects.get_or_create(
@@ -175,8 +190,9 @@ def public_booking_view(request, business_slug):
             status='CONFIRMED'
         )
         
+        branch_addr = selected_branch.address if selected_branch else business.address
         # Trigger simulated WhatsApp confirmation message
-        wa_msg = f"✅ *¡Cita Confirmada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n💇‍♂️ Especialista: {staff.full_name if staff else 'Equipo'}\n💈 Servicio: {service.name if service else 'Reserva'}\n📍 Dirección: {business.address}"
+        wa_msg = f"✅ *¡Cita Confirmada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n💇‍♂️ Especialista: {staff.full_name if staff else 'Equipo'}\n💈 Servicio: {service.name if service else 'Reserva'}\n📍 Sucursal / Dirección: {branch_addr}"
         AIAutomationLog.objects.create(
             business=business,
             target_client=client,
@@ -190,6 +206,8 @@ def public_booking_view(request, business_slug):
 
     return render(request, 'booking/public_booking.html', {
         'business': business,
+        'branches': branches,
+        'selected_branch': selected_branch,
         'services': services,
         'staff_members': staff_members,
         'booking_success': booking_success,
