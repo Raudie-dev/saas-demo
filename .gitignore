@@ -1,0 +1,17 @@
+# Environment / Sensitive files
+.env
+*.env
+
+# Python / Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+
+# Static files
+staticfiles/
+
+# Database
+*.sqlite3
