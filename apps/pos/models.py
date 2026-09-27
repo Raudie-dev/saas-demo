@@ -69,6 +69,27 @@ class Sale(TimeStampedModel):
     def __str__(self):
         return f"Venta #{str(self.id)[:8]} - Total: {self.business.currency}{self.total_amount}"
 
+    @property
+    def payments_list(self):
+        return list(self.payments.all())
+
+    @property
+    def payment_method_display(self):
+        pm_list = self.payments_list
+        if not pm_list:
+            return self.payment_method
+        if len(pm_list) == 1:
+            return pm_list[0].payment_method
+        return "Múltiple (" + ", ".join([f"{p.payment_method}: ${p.amount:.2f}" for p in pm_list]) + ")"
+
+class SalePayment(TimeStampedModel):
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="payments")
+    payment_method = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"{self.sale.id} - {self.payment_method}: ${self.amount}"
+
 class SaleItem(TimeStampedModel):
     ITEM_TYPE_CHOICES = [
         ('SERVICE', 'Servicio'),

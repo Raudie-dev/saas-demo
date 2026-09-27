@@ -106,5 +106,106 @@
         </form>
     </div>
 
+    <!-- Subscription Plan & Upgrade Request Card -->
+    <div id="subscription-section" class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm scroll-mt-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                    <i data-lucide="crown" class="w-5 h-5 text-amber-600"></i>
+                    <span>Plan de Suscripción de la Agencia</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Consulta tu tipo de suscripción actual y solicita cambios de plan al Administrador</p>
+            </div>
+            {% if subscription.pending_plan %}
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5 animate-pulse">
+                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                <span>Solicitud Pendiente: {{ subscription.pending_plan.name }}</span>
+            </span>
+            {% else %}
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                Plan Activo: {{ subscription.plan.name|default:'Plan Inicial' }}
+            </span>
+            {% endif %}
+        </div>
+
+        {% if subscription.pending_plan %}
+        <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3 text-xs text-amber-900">
+            <i data-lucide="info" class="w-5 h-5 text-amber-700 shrink-0 mt-0.5"></i>
+            <div>
+                <p class="font-bold">Has solicitado cambiar tu suscripción al plan <span class="underline font-extrabold text-amber-950">{{ subscription.pending_plan.name }}</span>.</p>
+                <p class="text-slate-600 mt-0.5">Tu solicitud está siendo revisada por el panel de Administración General. Una vez aprobada, se desbloquearán automáticamente los nuevos módulos incluidos.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for plan in available_plans %}
+            <div class="p-5 rounded-2xl border transition relative flex flex-col justify-between space-y-4 {% if subscription.plan and subscription.plan.id == plan.id %}border-rose-800 bg-rose-50/40 shadow-sm{% elif subscription.pending_plan and subscription.pending_plan.id == plan.id %}border-amber-400 bg-amber-50/50{% else %}border-slate-200 bg-slate-50/60 hover:bg-white hover:border-slate-300{% endif %}">
+                
+                {% if subscription.plan and subscription.plan.id == plan.id %}
+                <span class="absolute -top-2.5 right-4 px-2.5 py-0.5 bg-rose-900 text-white rounded-full text-[10px] font-bold uppercase tracking-wider">
+                    Plan Actual
+                </span>
+                {% elif subscription.pending_plan and subscription.pending_plan.id == plan.id %}
+                <span class="absolute -top-2.5 right-4 px-2.5 py-0.5 bg-amber-600 text-white rounded-full text-[10px] font-bold uppercase tracking-wider">
+                    Solicitado
+                </span>
+                {% endif %}
+
+                <div>
+                    <div class="font-display font-bold text-base text-slate-900">{{ plan.name }}</div>
+                    <div class="text-xs text-slate-500 mt-1 flex items-baseline gap-1">
+                        <span class="text-2xl font-black text-rose-900">${{ plan.monthly_price }}</span>
+                        <span class="text-[11px] font-medium text-slate-500">/ mes</span>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-200/70 space-y-2 text-xs text-slate-600">
+                        <div class="flex items-center gap-1.5 text-slate-700 font-semibold">
+                            <i data-lucide="users" class="w-3.5 h-3.5 text-rose-700"></i>
+                            <span>Hasta {{ plan.max_users }} Usuarios</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-slate-700 font-semibold">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-700"></i>
+                            <span>Hasta {{ plan.max_branches }} Sucursales</span>
+                        </div>
+                        <div class="pt-1">
+                            <span class="text-[11px] font-bold text-slate-700 block mb-1">Módulos Incluidos:</span>
+                            <div class="flex flex-wrap gap-1">
+                                {% for mod_code in plan.included_modules %}
+                                <span class="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-semibold text-slate-700">
+                                    {{ mod_code|upper }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    {% if subscription.plan and subscription.plan.id == plan.id %}
+                    <button type="button" disabled class="w-full py-2.5 rounded-xl bg-rose-950 text-rose-200 font-bold text-xs cursor-default flex items-center justify-center gap-1.5">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> Plan Contratado
+                    </button>
+                    {% elif subscription.pending_plan and subscription.pending_plan.id == plan.id %}
+                    <button type="button" disabled class="w-full py-2.5 rounded-xl bg-amber-200 text-amber-900 font-bold text-xs cursor-default flex items-center justify-center gap-1.5">
+                        <i data-lucide="clock" class="w-4 h-4"></i> Pendiente de Aprobación
+                    </button>
+                    {% else %}
+                    <form method="POST" action="{% url 'user_profile_config' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="REQUEST_PLAN_CHANGE">
+                        <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                        <button type="submit" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i data-lucide="send" class="w-4 h-4"></i> Solicitar Este Plan
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
 </div>
 {% endblock %}

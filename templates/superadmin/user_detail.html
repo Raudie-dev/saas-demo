@@ -1,0 +1,361 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}SuperAdmin - Ficha de Usuario: {{ business.name }}{% endblock %}
+{% block header_title %}Ficha Integral de la Agencia / Usuario{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto pb-10">
+
+    <!-- Header Navigation & Action Bar -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'superadmin_users' %}" class="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition shadow-2xs">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </a>
+            <div>
+                <h2 class="text-2xl font-extrabold font-display text-slate-900 flex items-center gap-2">
+                    <span>{{ business.name }}</span>
+                    <span class="text-xs font-mono font-bold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded">ID: {{ business.id }}</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">Información general, sucursales, equipo profesional, métodos de pago y gestión de la suscripción SaaS.</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="/reservas/{{ business.slug }}/" target="_blank" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 font-bold text-xs hover:bg-slate-50 transition flex items-center gap-2 shadow-2xs">
+                <i data-lucide="external-link" class="w-4 h-4 text-brand-900"></i>
+                <span>Ver Landing de Reservas</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- Stat: Branches -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Sucursales</span>
+                <div class="text-2xl font-extrabold font-display text-slate-900 mt-1">{{ branches_count }}</div>
+                <span class="text-[11px] text-slate-500">Sedes operativas</span>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-900">
+                <i data-lucide="map-pin" class="w-6 h-6"></i>
+            </div>
+        </div>
+
+        <!-- Stat: Staff Professionals -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Profesionales / Staff</span>
+                <div class="text-2xl font-extrabold font-display text-slate-900 mt-1">{{ staff_count }}</div>
+                <span class="text-[11px] text-slate-500">Especialistas registrados</span>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-900">
+                <i data-lucide="users" class="w-6 h-6"></i>
+            </div>
+        </div>
+
+        <!-- Stat: Payment Methods -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Métodos de Pago</span>
+                <div class="text-2xl font-extrabold font-display text-slate-900 mt-1">{{ payment_methods_count }}</div>
+                <span class="text-[11px] text-slate-500">Pasarelas & Cobro</span>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-900">
+                <i data-lucide="credit-card" class="w-6 h-6"></i>
+            </div>
+        </div>
+
+        <!-- Stat: License Status -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Estado Licencia</span>
+                <div class="mt-1">
+                    {% if subscription.status == 'ACTIVE' %}
+                    <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-block">
+                        LICENCIA ACTIVA
+                    </span>
+                    {% elif subscription.status == 'TRIAL' %}
+                    <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300 inline-block">
+                        PRUEBA ({{ subscription.days_remaining }}d)
+                    </span>
+                    {% else %}
+                    <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-100 text-rose-900 border border-rose-300 inline-block">
+                        {{ subscription.get_status_display }}
+                    </span>
+                    {% endif %}
+                </div>
+                <span class="text-[11px] text-slate-500 block mt-1">Vence: {{ subscription.expiration_date|date:"d/m/Y"|default:"N/A" }}</span>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-900">
+                <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 2 Column Layout: Left Details, Right Subscription Form -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left Column: Business Info, Branches, Staff, Payment Methods -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- General Info Card -->
+            <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="building-2" class="w-5 h-5 text-brand-900"></i>
+                        <span>Datos Generales de la Agencia</span>
+                    </h3>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
+                        {{ business.get_business_type_display }}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <span class="text-slate-500 block font-semibold">Email de Contacto:</span>
+                        <span class="font-bold text-slate-900 text-sm">{{ business.email }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block font-semibold">Teléfono / WhatsApp:</span>
+                        <span class="font-bold text-slate-900 text-sm">{{ business.phone }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block font-semibold">Dirección Principal:</span>
+                        <span class="font-medium text-slate-800">{{ business.address|default:"No registrada" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block font-semibold">RUT / RFC / Tax ID:</span>
+                        <span class="font-medium text-slate-800">{{ business.tax_id|default:"Sin especificar" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block font-semibold">Moneda Configurada:</span>
+                        <span class="font-bold text-rose-900">{{ business.currency }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block font-semibold">Fecha de Registro:</span>
+                        <span class="font-medium text-slate-800">{{ business.created_at|date:"d/m/Y H:i" }} hs</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Branches List -->
+            <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="map-pin" class="w-5 h-5 text-brand-900"></i>
+                        <span>Sucursales Configurada ({{ branches_count }})</span>
+                    </h3>
+                </div>
+
+                <div class="divide-y divide-slate-100 text-xs">
+                    {% for branch in branches %}
+                    <div class="py-3 flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-slate-900 flex items-center gap-2">
+                                <span>{{ branch.name }}</span>
+                                {% if branch.is_main %}
+                                <span class="px-2 py-0.5 rounded text-[9px] font-extrabold bg-rose-900 text-white uppercase">Sede Principal</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-slate-500 text-[11px] mt-0.5">{{ branch.address }} • {{ branch.phone|default:"Sin teléfono" }}</div>
+                        </div>
+                        {% if branch.google_maps_url %}
+                        <a href="{{ branch.google_maps_url }}" target="_blank" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition">
+                            Ubicación ↗
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-slate-400 italic py-2">No hay sucursales registradas para esta agencia.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Staff Members List -->
+            <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5 text-brand-900"></i>
+                        <span>Profesionales / Equipo de Trabajo ({{ staff_count }})</span>
+                    </h3>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {% for member in staff_members %}
+                    <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-extrabold text-xs shadow-2xs" style="background-color: {{ member.avatar_color|default:'#881337' }}">
+                            {{ member.first_name|first }}{{ member.last_name|first }}
+                        </div>
+                        <div>
+                            <div class="font-bold text-slate-900">{{ member.full_name }}</div>
+                            <div class="text-[11px] text-slate-500">{{ member.role_title }} • {{ member.email|default:"Sin email" }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-slate-400 italic py-2 col-span-2">No hay profesionales registrados en el staff.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Payment Methods Configured -->
+            <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="credit-card" class="w-5 h-5 text-brand-900"></i>
+                        <span>Métodos de Pago Habilitados ({{ payment_methods_count }})</span>
+                    </h3>
+                </div>
+
+                <div class="flex flex-wrap gap-2 text-xs">
+                    {% for pm in payment_methods %}
+                    <div class="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full {% if pm.is_enabled %}bg-emerald-500{% else %}bg-slate-300{% endif %}"></span>
+                        <span class="font-bold text-slate-800">{{ pm.name }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-slate-400 italic py-2">No hay métodos de pago personalizados registrados.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Subscription & License Management -->
+        <div class="space-y-6">
+
+            <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-5 h-5 text-brand-900"></i>
+                        <span>Gestión de Suscripción</span>
+                    </h3>
+                </div>
+
+                {% if subscription.pending_plan %}
+                <div class="bg-amber-50 border border-amber-300 p-3.5 rounded-xl text-xs text-amber-950 space-y-2">
+                    <div class="flex items-center gap-2 font-bold text-amber-900">
+                        <i data-lucide="bell" class="w-4 h-4 text-amber-700 animate-bounce"></i>
+                        <span>¡Solicitud de Cambio de Plan Pendiente!</span>
+                    </div>
+                    <p class="text-[11px] text-slate-700">La agencia ha solicitado cambiar al plan <span class="font-bold text-amber-950">{{ subscription.pending_plan.name }}</span> (${{ subscription.pending_plan.monthly_price }}/mes).</p>
+                </div>
+                {% endif %}
+
+                <!-- Form to update subscription -->
+                <form method="POST" action="{% url 'superadmin_user_detail' business.id %}" class="space-y-4 text-xs">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="UPDATE_SUBSCRIPTION">
+
+                    <!-- Plan Selection (strictly from SubscriptionPlan model) -->
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Plan de Suscripción (Base de Datos)</label>
+                        <select name="plan_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
+                            <option value="">-- Sin Plan Asignado --</option>
+                            {% for p in plans %}
+                            <option value="{{ p.id }}" {% if subscription.plan and subscription.plan.id == p.id %}selected{% endif %}>
+                                {{ p.name }} (${{ p.monthly_price }}/mes - Hasta {{ p.max_users }} usuarios)
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-slate-400 mt-1">Los planes se obtienen exclusivamente de los creados en la sección Planes & Tarifas.</p>
+                    </div>
+
+                    <!-- License Status -->
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Estado de la Cuenta / Licencia</label>
+                        <select name="status" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-brand-900">
+                            <option value="TRIAL" {% if subscription.status == 'TRIAL' %}selected{% endif %}>En Período de Prueba</option>
+                            <option value="ACTIVE" {% if subscription.status == 'ACTIVE' %}selected{% endif %}>Licencia Activa</option>
+                            <option value="EXPIRED" {% if subscription.status == 'EXPIRED' %}selected{% endif %}>Licencia Vencida</option>
+                            <option value="SUSPENDED" {% if subscription.status == 'SUSPENDED' %}selected{% endif %}>Cuenta Suspendida</option>
+                        </select>
+                    </div>
+
+                    <!-- Expiration preset / custom -->
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Duración / Renovación</label>
+                        <select name="duration_type_preset" onchange="handleDetailDurationChange(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-brand-900">
+                            <option value="KEEP">Mantener Vencimiento Actual ({{ subscription.expiration_date|date:"Y-m-d"|default:"Sin fecha" }})</option>
+                            <option value="30">30 Días (1 Mes)</option>
+                            <option value="90">90 Días (3 Meses)</option>
+                            <option value="180">180 Días (6 Meses)</option>
+                            <option value="365">365 Días (1 Año Anual)</option>
+                            <option value="CUSTOM_DAYS">Días Personalizados</option>
+                            <option value="SPECIFIC_DATE">Fecha Exacta</option>
+                        </select>
+                    </div>
+
+                    <input type="hidden" id="detail_duration_type" name="duration_type" value="DAYS">
+
+                    <div id="detailCustomDaysContainer" class="hidden">
+                        <label class="block font-bold text-slate-800 mb-1">Días a partir de hoy</label>
+                        <input type="number" min="1" max="10000" name="custom_days" value="30" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-brand-900">
+                    </div>
+
+                    <div id="detailSpecificDateContainer" class="hidden">
+                        <label class="block font-bold text-slate-800 mb-1">Fecha Exacta</label>
+                        <input type="date" name="expiration_date" value="{{ subscription.expiration_date|date:'Y-m-d' }}" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-brand-900">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Notas de Administración</label>
+                        <textarea name="notes" rows="3" placeholder="Anotaciones internas del cliente..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900">{{ subscription.notes|default:'' }}</textarea>
+                    </div>
+
+                    <button type="submit" class="w-full py-2.5 bg-brand-900 hover:bg-brand-950 text-white font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-2 cursor-pointer">
+                        <i data-lucide="check" class="w-4 h-4"></i> Guardar Cambios de Suscripción
+                    </button>
+                </form>
+
+                <!-- Token Token Action -->
+                <div class="border-t border-slate-200 pt-4 space-y-2">
+                    <span class="block font-bold text-slate-800 text-xs">Clave Token de Licencia</span>
+                    <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-[10px] font-bold text-slate-800 break-all select-all">
+                        {{ subscription.license_key }}
+                    </div>
+                    <form method="POST" action="{% url 'superadmin_user_detail' business.id %}" onsubmit="return confirm('¿Regenerar clave token de licencia para esta agencia?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="REGENERAR_TOKEN">
+                        <button type="submit" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Regenerar Token
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+function handleDetailDurationChange(val) {
+    const customDays = document.getElementById('detailCustomDaysContainer');
+    const specificDate = document.getElementById('detailSpecificDateContainer');
+    const durationType = document.getElementById('detail_duration_type');
+
+    if (val === 'CUSTOM_DAYS') {
+        durationType.value = 'DAYS';
+        customDays.classList.remove('hidden');
+        specificDate.classList.add('hidden');
+    } else if (val === 'SPECIFIC_DATE') {
+        durationType.value = 'DATE';
+        customDays.classList.add('hidden');
+        specificDate.classList.remove('hidden');
+    } else if (val === 'KEEP') {
+        durationType.value = 'DATE';
+        customDays.classList.add('hidden');
+        specificDate.classList.add('hidden');
+    } else {
+        durationType.value = 'DAYS';
+        customDays.classList.add('hidden');
+        specificDate.classList.add('hidden');
+    }
+}
+</script>
+{% endblock %}

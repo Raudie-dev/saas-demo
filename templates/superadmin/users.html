@@ -1,0 +1,174 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}SuperAdmin - Usuarios & Agencias{% endblock %}
+{% block header_title %}Directorio Unificado de Usuarios / Agencias{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto">
+
+    <!-- Top Action & Search Bar -->
+    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold font-display text-slate-900">Directorio de Usuarios / Agencias</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Gestión unificada de clientes registrados, estado de cuenta y acceso directo a la ficha completa.</p>
+        </div>
+
+        <form method="GET" class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <select name="status" onchange="this.form.submit()" class="bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl p-2.5 focus:outline-none focus:border-brand-900 font-semibold">
+                <option value="ALL" {% if status_filter == 'ALL' %}selected{% endif %}>Todos los Estados</option>
+                <option value="ACTIVE" {% if status_filter == 'ACTIVE' %}selected{% endif %}>Activas</option>
+                <option value="TRIAL" {% if status_filter == 'TRIAL' %}selected{% endif %}>En Prueba</option>
+                <option value="EXPIRED" {% if status_filter == 'EXPIRED' %}selected{% endif %}>Vencidas</option>
+                <option value="SUSPENDED" {% if status_filter == 'SUSPENDED' %}selected{% endif %}>Suspendidas</option>
+            </select>
+
+            <div class="flex items-center gap-2">
+                <input type="text" name="q" value="{{ query }}" placeholder="Buscar agencia o usuario..." class="bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl p-2.5 w-56 focus:outline-none focus:border-brand-900">
+                <button type="submit" class="px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition cursor-pointer">
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Users / Businesses Table -->
+    <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-950 text-white uppercase font-bold text-[10px] tracking-wider">
+                        <th class="p-4">ID Agencia</th>
+                        <th class="p-4">Agencia / Usuario</th>
+                        <th class="p-4">Contacto</th>
+                        <th class="p-4">Estado de Cuenta</th>
+                        <th class="p-4">Plan Actual</th>
+                        <th class="p-4">Vencimiento</th>
+                        <th class="p-4 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for biz in businesses %}
+                    <tr class="hover:bg-slate-50/60 transition">
+                        <td class="p-4 font-mono text-[10px] text-slate-500 font-bold">
+                            {{ biz.id|stringformat:".8s" }}...
+                        </td>
+
+                        <td class="p-4">
+                            <div class="font-bold text-slate-900 text-sm font-display">{{ biz.name }}</div>
+                            <a href="/reservas/{{ biz.slug }}/" target="_blank" class="text-[11px] text-brand-900 hover:underline font-mono inline-block">
+                                /reservas/{{ biz.slug }} ↗
+                            </a>
+                        </td>
+
+                        <td class="p-4">
+                            <div class="font-semibold text-slate-800">{{ biz.email }}</div>
+                            <div class="text-[10px] text-slate-500 mt-0.5">{{ biz.phone }}</div>
+                        </td>
+
+                        <td class="p-4">
+                            {% if biz.subscription %}
+                                {% if biz.subscription.status == 'ACTIVE' %}
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    ACTIVA
+                                </span>
+                                {% elif biz.subscription.status == 'TRIAL' %}
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                                    PRUEBA ({{ biz.subscription.days_remaining }}d)
+                                </span>
+                                {% elif biz.subscription.status == 'EXPIRED' %}
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
+                                    VENCIDA
+                                </span>
+                                {% else %}
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-800 border border-slate-300">
+                                    {{ biz.subscription.get_status_display }}
+                                </span>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-slate-400 italic">Sin Suscripción</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="p-4">
+                            {% if biz.subscription and biz.subscription.plan %}
+                            <span class="font-bold text-rose-900 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                {{ biz.subscription.plan.name }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-400 italic">Sin Plan</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="p-4 font-mono text-slate-700">
+                            {% if biz.subscription and biz.subscription.expiration_date %}
+                                {{ biz.subscription.expiration_date|date:"d/m/Y" }}
+                            {% else %}
+                                <span class="text-slate-400 italic">N/A</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="p-4 text-right">
+                            <a href="{% url 'superadmin_user_detail' biz.id %}" class="px-3.5 py-2 rounded-xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5">
+                                <i data-lucide="user-cog" class="w-3.5 h-3.5"></i> Ver Ficha
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-400 italic">No se encontraron agencias o usuarios registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj and page_obj.has_other_pages %}
+        <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div class="text-slate-500 font-medium">
+                Mostrando <span class="font-bold text-slate-900">{{ page_obj.start_index }}</span> a <span class="font-bold text-slate-900">{{ page_obj.end_index }}</span> de <span class="font-bold text-slate-900">{{ page_obj.paginator.count }}</span> registros
+            </div>
+            
+            <div class="flex items-center gap-1.5">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                   class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                    <i data-lucide="chevron-left" class="w-4 h-4 text-slate-500"></i> Anterior
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+                </span>
+                {% endif %}
+
+                <div class="flex items-center gap-1">
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <span class="w-8 h-8 rounded-xl bg-brand-900 text-white font-extrabold flex items-center justify-center shadow-xs text-xs">
+                            {{ num }}
+                        </span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                           class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold flex items-center justify-center transition text-xs shadow-2xs">
+                            {{ num }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                   class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                    Siguiente <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                    Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

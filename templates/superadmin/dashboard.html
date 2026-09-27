@@ -13,16 +13,15 @@
                 <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-900 text-rose-200 border border-rose-700/60 uppercase tracking-wider">
                     SuperAdmin SaaS
                 </span>
-                <span class="text-xs text-rose-300 font-medium">• Estado de Infraestructura: {{ server_metrics.status }}</span>
             </div>
-            <h2 class="text-2xl font-extrabold font-display">Monitoreo & Licencias de Plataforma</h2>
-            <p class="text-xs text-slate-300">Control global de suscripciones, salud de servidores e ingresos recurrentes (MRR).</p>
+            <h2 class="text-2xl font-extrabold font-display">Gestión & Licencias de Plataforma</h2>
+            <p class="text-xs text-slate-300">Control global de suscripciones e ingresos recurrentes (MRR).</p>
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
-            <a href="{% url 'superadmin_subscriptions' %}" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-900 hover:bg-rose-800 text-white shadow-md transition flex items-center gap-2 border border-rose-700/60">
-                <i data-lucide="key" class="w-4 h-4"></i>
-                <span>Gestionar Licencias</span>
+            <a href="{% url 'superadmin_users' %}" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-900 hover:bg-rose-800 text-white shadow-md transition flex items-center gap-2 border border-rose-700/60">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                <span>Usuarios / Agencias</span>
             </a>
             <a href="{% url 'superadmin_plans' %}" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-slate-900 hover:bg-slate-100 shadow-md transition flex items-center gap-2">
                 <i data-lucide="layers" class="w-4 h-4 text-rose-900"></i>
@@ -82,65 +81,30 @@
 
     </div>
 
-    <!-- System Health & Infrastructure Monitoring -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <!-- Server & Database Health -->
-        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 lg:col-span-1">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
-                    <i data-lucide="activity" class="w-5 h-5 text-rose-900"></i>
-                    <span>Monitoreo de Infraestructura</span>
-                </h3>
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            </div>
-
-            <div class="space-y-3 text-xs">
-                <div class="flex justify-between items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span class="font-medium text-slate-600">Base de Datos:</span>
-                    <span class="font-bold text-emerald-800">{{ server_metrics.db_health }}</span>
-                </div>
-                <div class="flex justify-between items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span class="font-medium text-slate-600">Tiempo Uptime:</span>
-                    <span class="font-bold text-slate-900">{{ server_metrics.uptime_pct }}</span>
-                </div>
-                <div class="flex justify-between items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span class="font-medium text-slate-600">Latencia Promedio:</span>
-                    <span class="font-bold text-slate-900">{{ server_metrics.latency_ms }}</span>
-                </div>
-                <div class="flex justify-between items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span class="font-medium text-slate-600">Uso de CPU / Memoria:</span>
-                    <span class="font-bold text-slate-900">{{ server_metrics.cpu_usage }} CPU • {{ server_metrics.mem_usage }} RAM</span>
-                </div>
-            </div>
+    <!-- Distribution of Plans -->
+    <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                <i data-lucide="bar-chart-3" class="w-5 h-5 text-rose-900"></i>
+                <span>Distribución de Agencias por Plan de Suscripción</span>
+            </h3>
+            <span class="text-xs text-slate-400 font-semibold">{{ total_businesses }} Agencias Registradas</span>
         </div>
 
-        <!-- Distribution of Plans -->
-        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 lg:col-span-2">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
-                    <i data-lucide="bar-chart-3" class="w-5 h-5 text-rose-900"></i>
-                    <span>Distribución de Agencias por Plan de Suscripción</span>
-                </h3>
-                <span class="text-xs text-slate-400 font-semibold">{{ total_businesses }} Agencias Registradas</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                {% for plan in plan_stats %}
-                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2 flex flex-col justify-between">
-                    <div>
-                        <span class="text-xs font-bold text-rose-900 uppercase tracking-wider block">{{ plan.name }}</span>
-                        <div class="text-2xl font-extrabold text-slate-900 mt-1">{{ plan.sub_count }} <span class="text-xs font-normal text-slate-500">agencias</span></div>
-                    </div>
-                    <div class="border-t border-slate-200 pt-2 text-[11px] text-slate-600 flex justify-between">
-                        <span>Precio: ${{ plan.monthly_price }}/mes</span>
-                        <span class="font-bold text-slate-900">Hasta {{ plan.max_users }} usuarios</span>
-                    </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            {% for plan in plan_stats %}
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2 flex flex-col justify-between">
+                <div>
+                    <span class="text-xs font-bold text-rose-900 uppercase tracking-wider block">{{ plan.name }}</span>
+                    <div class="text-2xl font-extrabold text-slate-900 mt-1">{{ plan.sub_count }} <span class="text-xs font-normal text-slate-500">agencias</span></div>
                 </div>
-                {% endfor %}
+                <div class="border-t border-slate-200 pt-2 text-[11px] text-slate-600 flex justify-between">
+                    <span>Precio: ${{ plan.monthly_price }}/mes</span>
+                    <span class="font-bold text-slate-900">Hasta {{ plan.max_users }} usuarios</span>
+                </div>
             </div>
+            {% endfor %}
         </div>
-
     </div>
 
     <!-- Recent System Audit Log -->
@@ -153,7 +117,7 @@
                 </h3>
                 <p class="text-xs text-slate-500 mt-0.5">Eventos de licencias, renovaciones y modificaciones administrativas.</p>
             </div>
-            <a href="{% url 'superadmin_subscriptions' %}" class="text-xs text-rose-900 font-bold hover:underline">Ver Suscripciones →</a>
+            <a href="{% url 'superadmin_users' %}" class="text-xs text-rose-900 font-bold hover:underline">Ver Usuarios / Agencias →</a>
         </div>
 
         <div class="overflow-x-auto">

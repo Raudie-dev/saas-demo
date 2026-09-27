@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
-from apps.business.models import Business, StaffMember, WorkSchedule
+from apps.business.models import Business, StaffMember, WorkSchedule, Branch
 from apps.agenda.models import Service, Appointment
 from apps.crm.models import Client
 from apps.ai_engine.models import AIAutomationLog

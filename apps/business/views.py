@@ -180,9 +180,15 @@ def onboarding_view(request):
             else:
                 business.slug = f"{raw_slug}-{uuid.uuid4().hex[:4]}"
 
+        allowed_modules = business.get_allowed_modules()
+        if selected_modules:
+            selected_modules = [m for m in selected_modules if m in allowed_modules]
+        else:
+            selected_modules = allowed_modules
+
         business.business_type = business_type
         business.primary_goal = primary_goal or "Gestionar y hacer crecer la agencia"
-        business.enabled_modules = selected_modules if selected_modules else ['crm', 'agenda', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
+        business.enabled_modules = selected_modules
         business.currency = currency
         business.branding_color = branding_color
         if phone:
@@ -256,7 +262,12 @@ def onboarding_view(request):
         }
     ]
 
-    all_modules = [
+    # Obtain default plan modules allowed
+    allowed_codes = ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
+    if hasattr(business, 'subscription') and business.subscription.plan:
+        allowed_codes = business.subscription.plan.included_modules or allowed_codes
+
+    raw_modules = [
         {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'desc': 'Seguimiento de prospectos, clientes VIP e historial completo'},
         {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar', 'desc': 'Programación de citas y control de horarios de colaboradores'},
         {'code': 'booking', 'name': 'Reservas Públicas 24/7', 'icon': 'globe', 'desc': 'Portal web para que tus clientes agenden solos'},
@@ -267,6 +278,8 @@ def onboarding_view(request):
         {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles', 'desc': 'Asistente IA para generar copies, presupuestos y resúmenes'},
         {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag', 'desc': 'Campañas de email, descuentos y fidelización de clientes'},
     ]
+
+    all_modules = [m for m in raw_modules if m['code'] in allowed_codes]
 
     return render(request, 'business/onboarding.html', {
         'business': business,
@@ -347,6 +360,13 @@ def business_config_view(request):
                     messages.warning(request, f"Sucursal '{name_del}' eliminada.")
             else:
                 messages.error(request, "No puedes eliminar la única sucursal de tu negocio.")
+        elif action == 'SAVE_PAYMENT_METHODS':
+            enabled_pm_ids = request.POST.getlist('enabled_payment_methods')
+            # Actualizar todos los métodos de pago de la empresa
+            PaymentMethodConfig.objects.filter(business=business).update(is_enabled=False)
+            if enabled_pm_ids:
+                PaymentMethodConfig.objects.filter(business=business, id__in=enabled_pm_ids).update(is_enabled=True)
+            messages.success(request, "¡Métodos de pago preferidos guardados con éxito!")
             return redirect('business_config')
 
         agency_name = request.POST.get('name', '').strip()
@@ -366,7 +386,8 @@ def business_config_view(request):
         
         selected_modules = request.POST.getlist('enabled_modules')
         if selected_modules:
-            business.enabled_modules = selected_modules
+            allowed_modules = business.get_allowed_modules()
+            business.enabled_modules = [m for m in selected_modules if m in allowed_modules]
 
         slug_input = request.POST.get('slug', '').strip()
         if slug_input and slug_input != business.slug:
@@ -413,8 +434,23 @@ def business_config_view(request):
     branches = Branch.objects.filter(business=business) if business else []
     payment_methods = PaymentMethodConfig.objects.filter(business=business) if business else []
 
-    # Load subscription and available plans
-    from apps.superadmin.models import SubscriptionPlan, BusinessSubscription
+    # Cargar Métodos de Pago Globales creados por el SuperAdmin
+    from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, GlobalPaymentMethod
+    global_payment_methods = GlobalPaymentMethod.objects.filter(is_active=True)
+    
+    # Sincronizar automáticamente los métodos globales en la empresa si no existen
+    if business and global_payment_methods.exists():
+        for gpm in global_payment_methods:
+            PaymentMethodConfig.objects.get_or_create(
+                business=business,
+                name=gpm.name,
+                defaults={
+                    'is_enabled': True,
+                    'instructions': gpm.description or ''
+                }
+            )
+        payment_methods = PaymentMethodConfig.objects.filter(business=business)
+
     subscription = getattr(business, 'subscription', None) if business else None
     available_plans = SubscriptionPlan.objects.filter(is_active=True)
 
@@ -459,16 +495,17 @@ def business_config_view(request):
                 'end_12h': to_12h(end_val),
             })
 
+    allowed_modules = business.get_allowed_modules() if business else []
     all_modules = [
-        {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users'},
-        {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar'},
-        {'code': 'booking', 'name': 'Portal Reservas 24/7', 'icon': 'globe'},
-        {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text'},
-        {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag'},
-        {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package'},
-        {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign'},
-        {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles'},
-        {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag'},
+        {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'is_allowed': 'crm' in allowed_modules},
+        {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar', 'is_allowed': 'agenda' in allowed_modules},
+        {'code': 'booking', 'name': 'Portal Reservas 24/7', 'icon': 'globe', 'is_allowed': 'booking' in allowed_modules},
+        {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'is_allowed': 'invoicing' in allowed_modules},
+        {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'is_allowed': 'pos' in allowed_modules},
+        {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package', 'is_allowed': 'inventory' in allowed_modules},
+        {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign', 'is_allowed': 'commissions' in allowed_modules},
+        {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles', 'is_allowed': 'ai_engine' in allowed_modules},
+        {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag', 'is_allowed': 'marketing' in allowed_modules},
     ]
 
     session_user = str(business.id) if business else "default"
@@ -536,8 +573,36 @@ def user_profile_config_view(request):
             messages.success(request, "¡Información de tu perfil actualizada correctamente!")
             return redirect('user_profile_config')
 
+        elif action == 'REQUEST_PLAN_CHANGE':
+            plan_id = request.POST.get('plan_id')
+            from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, SystemAuditLog
+            target_plan = SubscriptionPlan.objects.filter(id=plan_id, is_active=True).first()
+            if target_plan and business:
+                sub, _ = BusinessSubscription.objects.get_or_create(
+                    business=business,
+                    defaults={'status': 'TRIAL', 'start_date': timezone.now().date(), 'expiration_date': timezone.now().date() + datetime.timedelta(days=14)}
+                )
+                sub.pending_plan = target_plan
+                sub.save()
+
+                SystemAuditLog.objects.create(
+                    actor_email=request.user.email or request.user.username,
+                    action="SOLICITUD_CAMBIO_PLAN",
+                    details=f"La agencia '{business.name}' solicitó cambiar al plan '{target_plan.name}'."
+                )
+                messages.success(request, f"¡Solicitud enviada! Has solicitado el cambio al plan '{target_plan.name}'. Un administrador revisará y aprobará tu cambio de plan a la brevedad.")
+            else:
+                messages.error(request, "No se pudo procesar la solicitud de cambio de plan.")
+            return redirect('user_profile_config')
+
+    from apps.superadmin.models import SubscriptionPlan, BusinessSubscription
+    subscription = getattr(business, 'subscription', None) if business else None
+    available_plans = SubscriptionPlan.objects.filter(is_active=True).order_by('monthly_price')
+
     return render(request, 'business/config_user.html', {
         'business': business,
+        'subscription': subscription,
+        'available_plans': available_plans,
     })
 
 @login_required
@@ -705,6 +770,10 @@ def whatsapp_gateway_generate_api(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return JsonResponse({'success': False, 'error': 'Negocio no encontrado'}, status=400)
+    
+    if not business.is_module_enabled('ai_engine'):
+        return JsonResponse({'success': False, 'error': 'El módulo de IA & Automatización debe estar habilitado para vincular WhatsApp.'}, status=403)
+
     session_user = _gw_user(business)
     try:
         url = f"{GATEWAY_BASE_URL}/generate?user={session_user}"

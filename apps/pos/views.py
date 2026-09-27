@@ -6,8 +6,8 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
 from django.db import transaction
-from apps.business.models import Business, StaffMember
-from apps.pos.models import CashRegister, CashMovement, Sale, SaleItem
+from apps.business.models import Business, StaffMember, PaymentMethodConfig
+from apps.pos.models import CashRegister, CashMovement, Sale, SaleItem, SalePayment
 from apps.crm.models import Client
 from apps.agenda.models import Service, Appointment
 from apps.inventory.models import Product, StockMovement
@@ -26,6 +26,14 @@ def pos_terminal_view(request):
     if not business:
         return redirect('onboarding')
     
+    # Load enabled payment methods for business (ensure defaults if none)
+    payment_methods = list(PaymentMethodConfig.objects.filter(business=business, is_enabled=True))
+    if not payment_methods:
+        defaults = ["Efectivo", "Tarjeta", "Transferencia", "MercadoPago QR"]
+        for d in defaults:
+            PaymentMethodConfig.objects.get_or_create(business=business, name=d, defaults={'is_enabled': True})
+        payment_methods = list(PaymentMethodConfig.objects.filter(business=business, is_enabled=True))
+
     register_qs = CashRegister.objects.filter(business=business, status='OPEN')
     if current_branch:
         register_qs = register_qs.filter(branch=current_branch)
@@ -66,8 +74,13 @@ def pos_terminal_view(request):
         if action == 'close_register' and active_register:
             active_register.status = 'CLOSED'
             active_register.closed_at = timezone.now()
-            completed_sales = active_register.sales.filter(status='COMPLETED')
-            cash_sales = sum(s.total_amount for s in completed_sales if s.payment_method == 'Efectivo')
+            completed_sales = list(active_register.sales.filter(status='COMPLETED').prefetch_related('payments'))
+            def _get_cash(s):
+                p_list = list(s.payments.all())
+                if p_list:
+                    return sum(p.amount for p in p_list if 'efectivo' in p.payment_method.lower())
+                return s.total_amount if s.payment_method == 'Efectivo' else Decimal('0.00')
+            cash_sales = sum(_get_cash(s) for s in completed_sales)
             active_register.final_amount_system = active_register.initial_amount + cash_sales
             active_register.final_amount_cash = active_register.initial_amount + cash_sales
             active_register.save()
@@ -80,6 +93,7 @@ def pos_terminal_view(request):
         product_id = request.POST.get('product_id')
         post_app_id = request.POST.get('appointment_id')
         payment_method = request.POST.get('payment_method', 'Efectivo')
+        is_split_payment = request.POST.get('is_split_payment') == 'true'
         tip_amount = parse_decimal(request.POST.get('tip_amount'), '0.00')
         discount_amount = parse_decimal(request.POST.get('discount_amount'), '0.00')
 
@@ -176,6 +190,27 @@ def pos_terminal_view(request):
             total = (subtotal - discount_amount) + tip_amount
             sale.subtotal = subtotal
             sale.total_amount = total
+
+            # Process payment lines (Single vs Split)
+            created_payments = []
+            if is_split_payment:
+                for pm in payment_methods:
+                    amt_str = request.POST.get(f'payment_amount_{pm.id}', '0')
+                    amt = parse_decimal(amt_str, '0.00')
+                    if amt > 0:
+                        sp = SalePayment.objects.create(sale=sale, payment_method=pm.name, amount=amt)
+                        created_payments.append(sp)
+
+            if not created_payments:
+                sp = SalePayment.objects.create(sale=sale, payment_method=payment_method, amount=total)
+                created_payments.append(sp)
+                sale.payment_method = payment_method
+            else:
+                if len(created_payments) == 1:
+                    sale.payment_method = created_payments[0].payment_method
+                else:
+                    sale.payment_method = "Múltiple (" + ", ".join([f"{p.payment_method}: {business.currency}{p.amount:.2f}" for p in created_payments]) + ")"
+
             sale.save()
             
             if client:
@@ -193,7 +228,7 @@ def pos_terminal_view(request):
                 cash_register=active_register,
                 movement_type='INCOME',
                 amount=total,
-                concept=f"Venta POS #{str(sale.id)[:8]} ({payment_method})"
+                concept=f"Venta POS #{str(sale.id)[:8]} ({sale.payment_method})"
             )
 
             messages.success(request, f"¡Venta #{str(sale.id)[:8]} registrada correctamente por {business.currency}{total}!")
@@ -216,21 +251,29 @@ def pos_terminal_view(request):
         }
 
     if active_register:
-        completed_sales = list(active_register.sales.filter(status='COMPLETED'))
+        completed_sales = list(active_register.sales.filter(status='COMPLETED').prefetch_related('payments'))
         active_register.sales_count = len(completed_sales)
         active_register.total_sales = sum(s.total_amount for s in completed_sales)
-        active_register.cash_total = sum(s.total_amount for s in completed_sales if s.payment_method == 'Efectivo')
+        
+        def _get_cash(s):
+            p_list = list(s.payments.all())
+            if p_list:
+                return sum(p.amount for p in p_list if 'efectivo' in p.payment_method.lower())
+            return s.total_amount if s.payment_method == 'Efectivo' else Decimal('0.00')
+
+        active_register.cash_total = sum(_get_cash(s) for s in completed_sales)
         active_register.expected_cash = active_register.initial_amount + active_register.cash_total
 
     sales_qs = Sale.objects.filter(business=business)
     if current_branch:
         sales_qs = sales_qs.filter(branch=current_branch)
-    recent_sales = sales_qs.select_related('client', 'staff', 'cash_register', 'branch').prefetch_related('items', 'items__service', 'items__product')[:15]
+    recent_sales = sales_qs.select_related('client', 'staff', 'cash_register', 'branch').prefetch_related('items', 'items__service', 'items__product', 'payments')[:15]
 
     return render(request, 'pos/terminal.html', {
         'business': business,
         'current_branch': current_branch,
         'active_register': active_register,
+        'payment_methods': payment_methods,
         'clients': clients,
         'staff_members': staff_members,
         'services': services,
@@ -274,8 +317,13 @@ def cash_register_view(request):
             active_register.status = 'CLOSED'
             active_register.closed_at = timezone.now()
             # Calculate final amounts for close record
-            completed_sales = active_register.sales.filter(status='COMPLETED')
-            cash_sales = sum(s.total_amount for s in completed_sales if s.payment_method == 'Efectivo')
+            completed_sales = list(active_register.sales.filter(status='COMPLETED').prefetch_related('payments'))
+            def _get_cash(s):
+                p_list = list(s.payments.all())
+                if p_list:
+                    return sum(p.amount for p in p_list if 'efectivo' in p.payment_method.lower())
+                return s.total_amount if s.payment_method == 'Efectivo' else Decimal('0.00')
+            cash_sales = sum(_get_cash(s) for s in completed_sales)
             active_register.final_amount_system = active_register.initial_amount + cash_sales
             active_register.final_amount_cash = active_register.initial_amount + cash_sales
             active_register.save()
@@ -290,14 +338,46 @@ def cash_register_view(request):
 
     # Compute summary metrics and attach pre-fetched sales list for each cash register shift
     for reg in registers:
-        reg_sales = list(reg.sales.filter(status='COMPLETED').select_related('client', 'staff').prefetch_related('items', 'items__service', 'items__product'))
+        reg_sales = list(reg.sales.filter(status='COMPLETED').select_related('client', 'staff').prefetch_related('items', 'items__service', 'items__product', 'payments'))
         reg.sales_list = reg_sales
         reg.total_sales = sum(s.total_amount for s in reg_sales)
         reg.sales_count = len(reg_sales)
-        reg.cash_total = sum(s.total_amount for s in reg_sales if s.payment_method == 'Efectivo')
-        reg.card_total = sum(s.total_amount for s in reg_sales if s.payment_method == 'Tarjeta')
-        reg.qr_total = sum(s.total_amount for s in reg_sales if 'QR' in s.payment_method or 'Mercado' in s.payment_method)
-        reg.transfer_total = sum(s.total_amount for s in reg_sales if s.payment_method == 'Transferencia')
+        
+        cash_t = Decimal('0.00')
+        card_t = Decimal('0.00')
+        qr_t = Decimal('0.00')
+        transfer_t = Decimal('0.00')
+
+        for s in reg_sales:
+            pm_list = list(s.payments.all())
+            if pm_list:
+                for p in pm_list:
+                    name_l = p.payment_method.lower()
+                    if 'efectivo' in name_l:
+                        cash_t += p.amount
+                    elif 'tarjeta' in name_l or 'card' in name_l or 'débito' in name_l or 'crédito' in name_l:
+                        card_t += p.amount
+                    elif 'qr' in name_l or 'mercado' in name_l:
+                        qr_t += p.amount
+                    elif 'transfer' in name_l:
+                        transfer_t += p.amount
+                    else:
+                        cash_t += p.amount
+            else:
+                pm = s.payment_method
+                if pm == 'Efectivo':
+                    cash_t += s.total_amount
+                elif pm == 'Tarjeta':
+                    card_t += s.total_amount
+                elif 'QR' in pm or 'Mercado' in pm:
+                    qr_t += s.total_amount
+                elif pm == 'Transferencia':
+                    transfer_t += s.total_amount
+
+        reg.cash_total = cash_t
+        reg.card_total = card_t
+        reg.qr_total = qr_t
+        reg.transfer_total = transfer_t
         reg.expected_cash = reg.initial_amount + reg.cash_total
 
     sales_query = Sale.objects.filter(business=business)

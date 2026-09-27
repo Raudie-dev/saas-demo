@@ -15,8 +15,10 @@ class BusinessMiddleware:
         available_branches = []
 
         if hasattr(request, 'user') and request.user.is_authenticated:
-            if hasattr(request.user, 'business') and request.user.business:
-                business = request.user.business
+            from apps.superadmin.models import SuperAdminUser
+            if not isinstance(request.user, SuperAdminUser):
+                if hasattr(request.user, 'business') and request.user.business:
+                    business = request.user.business
             else:
                 from apps.business.models import Business, Branch
                 agency_name = f"Agencia {request.user.first_name or request.user.username}".strip()

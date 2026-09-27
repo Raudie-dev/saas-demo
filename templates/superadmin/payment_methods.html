@@ -1,0 +1,149 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}SuperAdmin - Métodos de Pago Globales{% endblock %}
+{% block header_title %}Catálogo de Métodos de Pago Globales{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto pb-10">
+
+    <!-- Top Action & Info Bar -->
+    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold font-display text-slate-900">Métodos de Pago de la Plataforma</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Define los métodos de pago globales disponibles para que las empresas y agencias puedan utilizarlos en sus ventas e informes.</p>
+        </div>
+
+        <button type="button" onclick="openCreatePaymentMethodModal()" class="px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition cursor-pointer flex items-center gap-2 shadow-xs">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Nuevo Método de Pago</span>
+        </button>
+    </div>
+
+    <!-- Payment Methods Grid / Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for pm in payment_methods %}
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full {% if pm.is_active %}bg-emerald-500 animate-pulse{% else %}bg-slate-300{% endif %}"></span>
+                        <h3 class="font-bold text-slate-900 text-sm font-display">{{ pm.name }}</h3>
+                    </div>
+                    <span class="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 uppercase border border-slate-200">
+                        {{ pm.code }}
+                    </span>
+                </div>
+                <p class="text-xs text-slate-600 line-clamp-2">{{ pm.description|default:"Sin descripción." }}</p>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                <form method="POST" action="{% url 'superadmin_payment_methods' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="TOGGLE_STATUS">
+                    <input type="hidden" name="payment_method_id" value="{{ pm.id }}">
+                    <button type="submit" class="px-3 py-1.5 rounded-xl font-bold text-[11px] transition cursor-pointer {% if pm.is_active %}bg-rose-50 text-rose-900 border border-rose-200 hover:bg-rose-100{% else %}bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100{% endif %}">
+                        {% if pm.is_active %}Desactivar Globalmente{% else %}Activar Globalmente{% endif %}
+                    </button>
+                </form>
+
+                <button type="button" onclick="openEditPaymentMethodModal('{{ pm.id }}', '{{ pm.name|escapejs }}', '{{ pm.code|escapejs }}', '{{ pm.description|escapejs }}', {% if pm.is_active %}true{% else %}false{% endif %})" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[11px] transition cursor-pointer">
+                    Editar
+                </button>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-3 p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 italic">
+            No hay métodos de pago creados en la plataforma.
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Modal para Crear / Editar Método de Pago -->
+<div id="paymentMethodModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transition-all transform scale-100">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="credit-card" class="w-5 h-5 text-rose-400"></i>
+                <h3 id="modalTitle" class="text-base font-bold font-display">Nuevo Método de Pago</h3>
+            </div>
+            <button type="button" onclick="closePaymentMethodModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Form -->
+        <form method="POST" action="{% url 'superadmin_payment_methods' %}" class="p-6 space-y-4 text-xs">
+            {% csrf_token %}
+            <input type="hidden" id="pm_action" name="action" value="CREATE">
+            <input type="hidden" id="pm_id" name="payment_method_id" value="">
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Nombre Comercial</label>
+                <input type="text" id="pm_name" name="name" required placeholder="Ej: MercadoPago / QR, Transferencia CBU, Efectivo" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Código Identificador (Único)</label>
+                <input type="text" id="pm_code" name="code" required placeholder="Ej: MERCADOPAGO, TRANSFER, CASH" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-mono font-bold uppercase focus:outline-none focus:border-brand-900">
+                <p class="text-[10px] text-slate-400 mt-1">Este código servirá para agrupar las ventas e informes de las agencias.</p>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Descripción / Instrucciones Generales</label>
+                <textarea id="pm_description" name="description" rows="3" placeholder="Descripción explicativa de cómo opera este método..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900"></textarea>
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+                <input type="checkbox" id="pm_is_active" name="is_active" checked class="w-4 h-4 rounded text-brand-900 focus:ring-brand-900">
+                <label for="pm_is_active" class="font-bold text-slate-800">Habilitado Globalmente para Agencias</label>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button type="button" onclick="closePaymentMethodModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 bg-brand-900 hover:bg-brand-950 text-white font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i> Guardar Método
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openCreatePaymentMethodModal() {
+    document.getElementById('modalTitle').innerText = 'Nuevo Método de Pago Global';
+    document.getElementById('pm_action').value = 'CREATE';
+    document.getElementById('pm_id').value = '';
+    document.getElementById('pm_name').value = '';
+    document.getElementById('pm_code').value = '';
+    document.getElementById('pm_code').readOnly = false;
+    document.getElementById('pm_description').value = '';
+    document.getElementById('pm_is_active').checked = true;
+
+    document.getElementById('paymentMethodModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function openEditPaymentMethodModal(id, name, code, description, isActive) {
+    document.getElementById('modalTitle').innerText = 'Editar Método de Pago: ' + name;
+    document.getElementById('pm_action').value = 'UPDATE';
+    document.getElementById('pm_id').value = id;
+    document.getElementById('pm_name').value = name;
+    document.getElementById('pm_code').value = code;
+    document.getElementById('pm_code').readOnly = true;
+    document.getElementById('pm_description').value = description;
+    document.getElementById('pm_is_active').checked = isActive;
+
+    document.getElementById('paymentMethodModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closePaymentMethodModal() {
+    document.getElementById('paymentMethodModal').classList.add('hidden');
+}
+</script>
+{% endblock %}
