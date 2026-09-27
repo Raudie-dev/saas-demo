@@ -6,16 +6,39 @@
 {% block content %}
 <div class="space-y-6 max-w-5xl mx-auto">
 
-    <!-- Subheader Module Tabs -->
-    <div class="glass-card bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
-        <a href="{% url 'business_config' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-900 text-white shadow-md">
+    <!-- Subheader Agency Config Tabs -->
+    <div class="glass-card bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none">
+        <button type="button" onclick="showConfigTab('general')" id="tab-btn-general" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-900 text-white shadow-sm shrink-0 cursor-pointer">
             <i data-lucide="building-2" class="w-4 h-4"></i>
-            <span>Empresa, Sucursales & Módulos</span>
-        </a>
-        <a href="{% url 'user_profile_config' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50">
-            <i data-lucide="shield-check" class="w-4 h-4 text-slate-500"></i>
-            <span>Mi Cuenta & Seguridad</span>
-        </a>
+            <span>Datos Empresa</span>
+        </button>
+        <button type="button" onclick="showConfigTab('branches')" id="tab-btn-branches" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+            <i data-lucide="map-pin" class="w-4 h-4 text-slate-500"></i>
+            <span>Sucursales</span>
+        </button>
+        <button type="button" onclick="showConfigTab('payments')" id="tab-btn-payments" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+            <i data-lucide="credit-card" class="w-4 h-4 text-slate-500"></i>
+            <span>Métodos de Pago</span>
+        </button>
+        <button type="button" onclick="showConfigTab('schedule')" id="tab-btn-schedule" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+            <i data-lucide="clock" class="w-4 h-4 text-slate-500"></i>
+            <span>Horarios de Atención</span>
+        </button>
+        <button type="button" onclick="showConfigTab('modules')" id="tab-btn-modules" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+            <i data-lucide="layout-grid" class="w-4 h-4 text-slate-500"></i>
+            <span>Módulos Activos</span>
+        </button>
+        <button type="button" onclick="showConfigTab('whatsapp')" id="tab-btn-whatsapp" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+            <i data-lucide="message-square" class="w-4 h-4 text-slate-500"></i>
+            <span>WhatsApp API</span>
+            {% if 'ai_engine' not in business.enabled_modules %}
+            <i data-lucide="lock" class="w-3 h-3 text-rose-500" title="Requiere módulo IA & Automatización"></i>
+            {% endif %}
+        </button>
+        <button type="button" onclick="showConfigTab('all')" id="tab-btn-all" class="config-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold text-rose-900 bg-rose-50 hover:bg-rose-100 transition flex items-center gap-1.5 border border-rose-200 shrink-0 cursor-pointer">
+            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+            <span>Ver Todo</span>
+        </button>
     </div>
 
     <!-- Top Banner Card -->
@@ -40,7 +63,8 @@
     <form method="POST" action="{% url 'business_config' %}" class="space-y-6">
         {% csrf_token %}
 
-        <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+        <!-- Section: General Business Data -->
+        <div id="sec-general" class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 class="font-bold text-slate-900 text-lg font-display">Datos de la Empresa & Branding</h3>
                 <span class="text-xs text-slate-400">Edita los parámetros de tu negocio</span>
@@ -123,10 +147,17 @@
                     <input type="text" name="address" value="{{ business.address }}" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
                 </div>
             </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-100">
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-900 hover:bg-rose-800 shadow-md transition flex items-center gap-2 cursor-pointer">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Guardar Datos de la Empresa</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Dynamic Modules Toggle Card -->
-        <div class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm">
+        <!-- Section: Active Modules -->
+        <div id="sec-modules" class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm hidden">
             <div class="border-b border-slate-100 pb-3">
                 <h3 class="font-bold text-slate-900 text-base font-display">Módulos Activos en el Sistema</h3>
                 <p class="text-xs text-slate-500 mt-0.5">Activa o desactiva las secciones según las necesidades operativas de tu equipo.</p>
@@ -134,19 +165,44 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {% for mod in all_modules %}
-                <label class="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
-                    <input type="checkbox" name="enabled_modules" value="{{ mod.code }}" {% if not business.enabled_modules or mod.code in business.enabled_modules %}checked{% endif %} class="w-4 h-4 accent-rose-700 rounded border-slate-300">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="{{ mod.icon }}" class="w-4 h-4 text-rose-700"></i>
-                        <span class="text-xs font-bold text-slate-800">{{ mod.name }}</span>
+                {% if not mod.is_allowed %}
+                <div onclick="openUpgradePlanModal('{{ mod.name|escapejs }}')" class="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-100/70 opacity-85 cursor-pointer hover:border-amber-400 hover:bg-amber-50/40 transition group">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" disabled class="w-4 h-4 accent-rose-700 rounded border-slate-300 pointer-events-none">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="{{ mod.icon }}" class="w-4 h-4 text-slate-400 group-hover:text-amber-700 transition"></i>
+                            <span class="text-xs font-bold text-slate-500 group-hover:text-slate-900 transition">{{ mod.name }}</span>
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200 flex items-center gap-1 shrink-0">
+                        <i data-lucide="lock" class="w-3 h-3 text-amber-700"></i>
+                        <span>Bloqueado por Plan</span>
+                    </span>
+                </div>
+                {% else %}
+                <label class="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="enabled_modules" value="{{ mod.code }}" {% if not business.enabled_modules or mod.code in business.enabled_modules %}checked{% endif %} class="w-4 h-4 accent-rose-700 rounded border-slate-300">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="{{ mod.icon }}" class="w-4 h-4 text-rose-700"></i>
+                            <span class="text-xs font-bold text-slate-800">{{ mod.name }}</span>
+                        </div>
                     </div>
                 </label>
+                {% endif %}
                 {% endfor %}
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-100">
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-900 hover:bg-rose-800 shadow-md transition flex items-center gap-2 cursor-pointer">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Guardar Configuración de Módulos</span>
+                </button>
             </div>
         </div>
 
-        <!-- Working Hours Schedule Configuration Card -->
-        <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+        <!-- Section: Working Hours Schedule -->
+        <div id="sec-schedule" class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm hidden">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
                     <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
@@ -190,18 +246,18 @@
                 </div>
                 {% endfor %}
             </div>
-        </div>
 
-        <div class="flex justify-end">
-            <button type="submit" class="px-6 py-3 rounded-xl text-sm font-bold text-white bg-rose-900 hover:bg-rose-800 shadow-lg shadow-rose-900/30 transition flex items-center gap-2 cursor-pointer">
-                <i data-lucide="save" class="w-4 h-4"></i>
-                <span>Guardar Cambios de Agencia</span>
-            </button>
+            <div class="flex justify-end pt-2 border-t border-slate-100">
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-900 hover:bg-rose-800 shadow-md transition flex items-center gap-2 cursor-pointer">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Guardar Horarios de Atención</span>
+                </button>
+            </div>
         </div>
     </form>
 
     <!-- Branch Management Card -->
-    <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+    <div id="sec-branches" class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm hidden">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
             <div>
                 <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
@@ -259,8 +315,46 @@
         </div>
     </div>
 
+    <!-- Payment Methods Config Card -->
+    <div id="sec-payments" class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm hidden">
+        <form method="POST" action="{% url 'business_config' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="SAVE_PAYMENT_METHODS">
+
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="credit-card" class="w-5 h-5 text-rose-900"></i>
+                        <span>Métodos de Pago Aceptados en la Agencia</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Selecciona cuáles de los métodos de pago globales disponibles utiliza tu negocio para el cobro en caja e informes.</p>
+                </div>
+
+                <button type="submit" class="px-4 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0">
+                    <i data-lucide="check" class="w-4 h-4"></i> Guardar Métodos Seleccionados
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {% for pm in payment_methods %}
+                <label class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+                    <input type="checkbox" name="enabled_payment_methods" value="{{ pm.id }}" {% if pm.is_enabled %}checked{% endif %} class="w-4 h-4 accent-rose-700 rounded border-slate-300 mt-0.5">
+                    <div>
+                        <span class="text-xs font-bold text-slate-900 block">{{ pm.name }}</span>
+                        {% if pm.instructions %}
+                        <span class="text-[11px] text-slate-500 line-clamp-1 block mt-0.5">{{ pm.instructions }}</span>
+                        {% endif %}
+                    </div>
+                </label>
+                {% empty %}
+                <p class="text-slate-400 italic text-xs col-span-3">No hay métodos de pago globales habilitados por el SuperAdmin.</p>
+                {% endfor %}
+            </div>
+        </form>
+    </div>
+
     <!-- WhatsApp Gateway Integration Card -->
-    <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+    <div id="sec-whatsapp" class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm hidden">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
             <div>
                 <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
@@ -291,7 +385,24 @@
         </div>
 
         <div class="space-y-4">
-            {% if not gw_status.online %}
+            {% if 'ai_engine' not in business.enabled_modules %}
+            <div class="p-5 rounded-2xl bg-slate-900 text-white border border-rose-900/60 space-y-3 shadow-md">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-950 text-rose-300 border border-rose-800 flex items-center justify-center font-bold shrink-0">
+                        <i data-lucide="lock" class="w-5 h-5 text-rose-400"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-white">Módulo de IA & Automatización Desactivado</h4>
+                        <p class="text-xs text-slate-300 mt-0.5">Para vincular la cuenta de WhatsApp Gateway y enviar mensajes o recordatorios automáticos, primero debes activar el módulo <strong>IA & Automatización</strong>.</p>
+                    </div>
+                </div>
+                <div class="pt-2 border-t border-slate-800 flex justify-end">
+                    <button type="button" onclick="showConfigTab('modules')" class="px-4 py-2 rounded-xl bg-rose-900 hover:bg-rose-800 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i> Activar Módulo de IA & Automatización
+                    </button>
+                </div>
+            </div>
+            {% elif not gw_status.online %}
             <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
                 <div class="flex items-center gap-2 font-bold text-sm">
                     <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-700"></i>
@@ -396,7 +507,58 @@
     </div>
 </div>
 
+<!-- Modal: Upgrade Plan Required for Locked Module -->
+<div id="upgradePlanModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-5 relative animate-in fade-in zoom-in-95 duration-200">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 flex items-center justify-center font-bold shrink-0">
+                    <i data-lucide="lock" class="w-5 h-5 text-amber-700"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-base text-slate-900">Módulo Bloqueado por Plan</h3>
+                    <p class="text-xs text-slate-500">Upgrade de Licencia Requerido</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeUpgradePlanModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div class="space-y-3 bg-amber-50/60 p-4 rounded-2xl border border-amber-200/70 text-xs text-amber-950">
+            <p class="font-semibold text-sm">El módulo <span id="upgrade-module-name" class="font-extrabold text-amber-900">Módulo</span> no está incluido en tu tipo de suscripción actual <span class="font-bold">({{ business.subscription.plan.name|default:'Plan Actual' }})</span>.</p>
+            <p class="text-slate-600">No se puede habilitar desde la configuración del negocio porque requiere un nivel de plan superior. Debes cambiar el tipo de suscripción para desbloquearlo.</p>
+        </div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+            <button type="button" onclick="closeUpgradePlanModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer">
+                Entendido
+            </button>
+            <a href="{% url 'user_profile_config' %}#subscription-section" class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                <span>Solicitar Cambio de Suscripción</span>
+            </a>
+        </div>
+    </div>
+</div>
+
 <script>
+    function openUpgradePlanModal(moduleName) {
+        const modal = document.getElementById('upgradePlanModal');
+        const nameSpan = document.getElementById('upgrade-module-name');
+        if (nameSpan) nameSpan.textContent = moduleName;
+        if (modal) {
+            modal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function closeUpgradePlanModal() {
+        const modal = document.getElementById('upgradePlanModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
     function openAddBranchModal() {
         document.getElementById('branchModalTitle').innerText = 'Añadir Nueva Sucursal';
         document.getElementById('modal_branch_id').value = '';
@@ -521,5 +683,56 @@
             location.reload();
         });
     }
+
+    function showConfigTab(tabName) {
+        const sections = ['general', 'branches', 'payments', 'schedule', 'modules', 'whatsapp'];
+
+        document.querySelectorAll('.config-tab-btn').forEach(btn => {
+            btn.classList.remove('bg-rose-900', 'text-white', 'shadow-md');
+            btn.classList.add('text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-100', 'border', 'border-slate-200', 'bg-slate-50');
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('text-white');
+                icon.classList.add('text-slate-500');
+            }
+        });
+
+        const activeBtn = document.getElementById('tab-btn-' + tabName);
+        if (activeBtn) {
+            activeBtn.classList.remove('text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-100', 'border', 'border-slate-200', 'bg-slate-50');
+            activeBtn.classList.add('bg-rose-900', 'text-white', 'shadow-md');
+            const icon = activeBtn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('text-slate-500');
+                icon.classList.add('text-white');
+            }
+        }
+
+        sections.forEach(sec => {
+            const el = document.getElementById('sec-' + sec);
+            if (el) {
+                if (tabName === 'all' || tabName === sec) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            }
+        });
+
+        if (window.location.hash !== '#' + tabName && tabName !== 'all') {
+            history.replaceState(null, null, '#' + tabName);
+        }
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const hash = window.location.hash.replace('#', '');
+        if (['general', 'branches', 'payments', 'schedule', 'modules', 'whatsapp', 'all'].includes(hash)) {
+            showConfigTab(hash);
+        } else {
+            showConfigTab('general');
+        }
+    });
 </script>
 {% endblock %}

@@ -70,18 +70,7 @@
             </span>
         </div>
 
-        <!-- System Stats Badge -->
-        <div class="mx-3 my-3 p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-            <div class="flex items-center justify-between font-semibold text-slate-300 mb-1">
-                <span>Estado Servidor:</span>
-                <span class="flex items-center gap-1 text-emerald-400 font-bold text-[10px]">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> 99.98%
-                </span>
-            </div>
-            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                <div class="bg-brand-900 h-full w-[95%]"></div>
-            </div>
-        </div>
+
 
         <!-- SuperAdmin Navigation Links -->
         <nav class="px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar py-2">
@@ -92,19 +81,19 @@
                 <span>Panel Global</span>
             </a>
 
-            <a href="{% url 'superadmin_businesses' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_businesses' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                <i data-lucide="building-2" class="w-4 h-4 text-rose-400"></i>
-                <span>Directorio de Agencias</span>
-            </a>
-
-            <a href="{% url 'superadmin_subscriptions' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_subscriptions' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                <i data-lucide="key" class="w-4 h-4 text-rose-400"></i>
-                <span>Licencias & Suscripciones</span>
+            <a href="{% url 'superadmin_users' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_users' or request.resolver_match.url_name == 'superadmin_user_detail' or request.resolver_match.url_name == 'superadmin_businesses' or request.resolver_match.url_name == 'superadmin_subscriptions' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                <i data-lucide="users" class="w-4 h-4 text-rose-400"></i>
+                <span>Usuarios / Agencias</span>
             </a>
 
             <a href="{% url 'superadmin_plans' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_plans' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i data-lucide="layers" class="w-4 h-4 text-rose-400"></i>
                 <span>Planes & Tarifas SaaS</span>
+            </a>
+
+            <a href="{% url 'superadmin_payment_methods' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_payment_methods' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                <i data-lucide="credit-card" class="w-4 h-4 text-rose-400"></i>
+                <span>Métodos de Pago Globales</span>
             </a>
 
         </nav>

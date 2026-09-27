@@ -41,9 +41,21 @@ class Business(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    def get_allowed_modules(self):
+        sub = getattr(self, 'subscription', None)
+        if sub and sub.plan and sub.plan.included_modules:
+            return sub.plan.included_modules
+        return ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
+
+    def is_module_allowed_by_plan(self, module_name):
+        allowed = self.get_allowed_modules()
+        return module_name in allowed
+
     def is_module_enabled(self, module_name):
+        if not self.is_module_allowed_by_plan(module_name):
+            return False
         if not self.enabled_modules:
-            return True # By default all modules enabled if list is empty
+            return True
         return module_name in self.enabled_modules
 
 class Branch(TimeStampedModel):

@@ -9,49 +9,81 @@ from django.db.models import Sum, Count
 from apps.business.models import Business, User, StaffMember, Branch
 from apps.agenda.models import Appointment
 from apps.invoicing.models import Invoice
-from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, SystemAuditLog
+from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, SystemAuditLog, SuperAdminUser, GlobalPaymentMethod
 
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth import authenticate, login, logout
 
-def is_super_admin(user):
-    # Check if user is staff/superuser or has OWNER/ADMIN role
-    return user.is_authenticated and (user.is_staff or user.is_superuser or user.role in ['OWNER', 'ADMIN'])
+def get_current_superadmin(request):
+    """
+    Obtiene el SuperAdminUser directamente de la sesión actual de Django.
+    """
+    superadmin_id = request.session.get('superadmin_id')
+    if superadmin_id:
+        admin_user = SuperAdminUser.objects.filter(id=superadmin_id, is_active=True).first()
+        if admin_user:
+            return admin_user
+    return None
+
+def is_super_admin(user_or_request):
+    """
+    Helper para los decoradores y vistas.
+    """
+    if hasattr(user_or_request, 'session'):
+        return get_current_superadmin(user_or_request) is not None
+    return isinstance(user_or_request, SuperAdminUser) and user_or_request.is_active
+
+def superadmin_required(view_func):
+    """
+    Decorador dedicado para proteger las vistas de SuperAdmin comprobando exclusivamente SuperAdminUser.
+    """
+    def _wrapped_view(request, *args, **kwargs):
+        current_admin = get_current_superadmin(request)
+        if not current_admin:
+            messages.error(request, "Debes iniciar sesión con una cuenta de SuperAdmin.")
+            return redirect('superadmin_login')
+        request.superadmin_user = current_admin
+        request.user = current_admin
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
 
 @ensure_csrf_cookie
 def superadmin_login_view(request):
-    if request.user.is_authenticated and is_super_admin(request.user):
+    if get_current_superadmin(request):
         return redirect('superadmin_dashboard')
 
     if request.method == 'POST':
         username_or_email = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
 
-        user_obj = User.objects.filter(email__iexact=username_or_email).first() or User.objects.filter(username__iexact=username_or_email).first()
-        
-        if user_obj:
-            user = authenticate(request, username=user_obj.username, password=password)
-            if user is not None and is_super_admin(user):
-                login(request, user)
-                SystemAuditLog.objects.create(
-                    actor_email=user.email or user.username,
-                    action="SUPERADMIN_LOGIN",
-                    details="Inicio de sesión exitoso en el Panel SuperAdmin"
-                )
-                messages.success(request, f"¡Bienvenido al Panel SuperAdmin, {user.first_name or user.username}!")
-                return redirect('superadmin_dashboard')
+        # Buscar exclusivamente en el modelo SuperAdminUser
+        admin_user = (
+            SuperAdminUser.objects.filter(email__iexact=username_or_email).first() or
+            SuperAdminUser.objects.filter(username__iexact=username_or_email).first()
+        )
 
-        messages.error(request, "Acceso denegado. Credenciales de SuperAdmin incorrectas o permisos insuficientes.")
+        if admin_user and admin_user.is_active and admin_user.check_password(password):
+            # Guardar la sesión de SuperAdmin de forma independiente
+            request.session['superadmin_id'] = str(admin_user.id)
+            SystemAuditLog.objects.create(
+                actor_email=admin_user.email,
+                action="SUPERADMIN_LOGIN",
+                details="Inicio de sesión exitoso en el Panel SuperAdmin"
+            )
+            messages.success(request, f"¡Bienvenido al Panel SuperAdmin, {admin_user.first_name or admin_user.username}!")
+            return redirect('superadmin_dashboard')
+
+        messages.error(request, "Acceso denegado. Credenciales de SuperAdmin incorrectas o cuenta inactiva.")
 
     return render(request, 'superadmin/login.html')
 
 def superadmin_logout_view(request):
-    logout(request)
+    if 'superadmin_id' in request.session:
+        del request.session['superadmin_id']
     messages.info(request, "Sesión de SuperAdmin cerrada correctamente.")
     return redirect('superadmin_login')
 
-@login_required(login_url='superadmin_login')
-@user_passes_test(is_super_admin, login_url='superadmin_login')
+@superadmin_required
 def superadmin_dashboard_view(request):
     # Ensure default plans exist
     _ensure_default_plans()
@@ -111,251 +143,22 @@ def superadmin_dashboard_view(request):
         'recent_businesses': recent_businesses,
     })
 
-@login_required(login_url='superadmin_login')
-@user_passes_test(is_super_admin, login_url='superadmin_login')
+@superadmin_required
 @ensure_csrf_cookie
-def subscriptions_list_view(request):
+def users_list_view(request):
+    """
+    Vista unificada 'Usuarios / Agencias' para administrar el listado de clientes/agencias de la plataforma.
+    """
     _ensure_default_plans()
     _sync_business_subscriptions()
 
     status_filter = request.GET.get('status', 'ALL')
     query = request.GET.get('q', '').strip()
 
-    subscriptions = BusinessSubscription.objects.select_related('business', 'plan').all()
+    businesses = Business.objects.select_related('subscription', 'subscription__plan').prefetch_related('branches', 'staff_members', 'users', 'payment_methods').all()
 
     if status_filter != 'ALL':
-        subscriptions = subscriptions.filter(status=status_filter)
-
-    if query:
-        subscriptions = subscriptions.filter(business__name__icontains=query)
-
-    plans = SubscriptionPlan.objects.filter(is_active=True)
-    all_businesses = Business.objects.all().order_by('name')
-
-    if request.method == 'POST':
-        action = request.POST.get('action')
-
-        if action == 'CREATE_CUSTOM':
-            biz_id = request.POST.get('business_id')
-            sub_id = request.POST.get('subscription_id')
-            status = request.POST.get('status', 'TRIAL')
-            plan_id = request.POST.get('plan_id')
-            duration_type = request.POST.get('duration_type', 'DAYS')
-            custom_days = request.POST.get('custom_days')
-            expiration_date_str = request.POST.get('expiration_date')
-            notes = request.POST.get('notes', '').strip()
-
-            sub = None
-            if sub_id:
-                sub = get_object_or_404(BusinessSubscription, id=sub_id)
-            elif biz_id:
-                biz = get_object_or_404(Business, id=biz_id)
-                sub = getattr(biz, 'subscription', None)
-                if not sub:
-                    sub = BusinessSubscription.objects.create(
-                        business=biz,
-                        start_date=timezone.now().date(),
-                        expiration_date=timezone.now().date() + datetime.timedelta(days=14)
-                    )
-
-            if not sub:
-                messages.error(request, "Debe seleccionar una agencia o suscripción válida.")
-                return redirect('superadmin_subscriptions')
-
-            sub.status = status
-            if plan_id:
-                sub.plan = SubscriptionPlan.objects.filter(id=plan_id).first()
-            else:
-                sub.plan = None
-
-            if duration_type == 'DATE' and expiration_date_str:
-                try:
-                    sub.expiration_date = datetime.datetime.strptime(expiration_date_str, '%Y-%m-%d').date()
-                except ValueError:
-                    pass
-            elif duration_type == 'DAYS' and custom_days:
-                days_int = int(custom_days)
-                sub.expiration_date = timezone.now().date() + datetime.timedelta(days=days_int)
-
-            if notes:
-                sub.notes = notes
-
-            sub.save()
-
-            SystemAuditLog.objects.create(
-                actor_email=request.user.email or request.user.username,
-                action="GESTION_LICENCIA",
-                details=f"Licencia configurada para {sub.business.name} (Estado: {sub.get_status_display()}, Vence: {sub.expiration_date})"
-            )
-            messages.success(request, f"¡Licencia configurada exitosamente para {sub.business.name}!")
-            return redirect('superadmin_subscriptions')
-
-        elif action == 'REGENERATE_TOKEN':
-            sub_id = request.POST.get('subscription_id')
-            sub = get_object_or_404(BusinessSubscription, id=sub_id)
-            sub.license_key = uuid.uuid4()
-            sub.save()
-
-            SystemAuditLog.objects.create(
-                actor_email=request.user.email or request.user.username,
-                action="REGENERAR_TOKEN",
-                details=f"Token de licencia regenerado para {sub.business.name}"
-            )
-            messages.success(request, f"¡Nuevo Token de Licencia generado para {sub.business.name}!")
-            return redirect('superadmin_subscriptions')
-
-        sub_id = request.POST.get('subscription_id')
-        sub = get_object_or_404(BusinessSubscription, id=sub_id)
-
-        if action == 'ACTIVATE':
-            sub.status = 'ACTIVE'
-            plan_id = request.POST.get('plan_id')
-            if plan_id:
-                sub.plan = SubscriptionPlan.objects.filter(id=plan_id).first()
-            # Extend 30 days from now
-            sub.expiration_date = timezone.now().date() + datetime.timedelta(days=30)
-            sub.save()
-
-            SystemAuditLog.objects.create(
-                actor_email=request.user.email or request.user.username,
-                action="ACTIVACION_LICENCIA",
-                details=f"Licencia activada para {sub.business.name} (Plan: {sub.plan.name if sub.plan else 'Estándar'})"
-            )
-            messages.success(request, f"¡Licencia activada exitosamente para {sub.business.name}!")
-
-        elif action == 'EXTEND_TRIAL':
-            days = int(request.POST.get('days', 15))
-            sub.status = 'TRIAL'
-            current_exp = sub.expiration_date if sub.expiration_date and sub.expiration_date > timezone.now().date() else timezone.now().date()
-            sub.expiration_date = current_exp + datetime.timedelta(days=days)
-            sub.save()
-
-            SystemAuditLog.objects.create(
-                actor_email=request.user.email or request.user.username,
-                action="EXTENSION_PRUEBA",
-                details=f"Prueba extendida por {days} días para {sub.business.name}"
-            )
-            messages.success(request, f"Período de prueba extendido por {days} días para {sub.business.name}.")
-
-        elif action == 'SUSPEND':
-            sub.status = 'SUSPENDED'
-            sub.save()
-
-            SystemAuditLog.objects.create(
-                actor_email=request.user.email or request.user.username,
-                action="SUSPENSION_CUENTA",
-                details=f"Cuenta suspendida para {sub.business.name}"
-            )
-            messages.warning(request, f"La cuenta de {sub.business.name} ha sido suspendida.")
-
-        elif action == 'CHANGE_PLAN':
-            plan_id = request.POST.get('plan_id')
-            new_plan = get_object_or_404(SubscriptionPlan, id=plan_id)
-            sub.plan = new_plan
-            sub.save()
-
-            SystemAuditLog.objects.create(
-                actor_email=request.user.email or request.user.username,
-                action="CAMBIO_PLAN",
-                details=f"Plan de {sub.business.name} actualizado a {new_plan.name}"
-            )
-            messages.success(request, f"Plan de {sub.business.name} actualizado a {new_plan.name}.")
-
-        return redirect('superadmin_subscriptions')
-
-    from django.core.paginator import Paginator
-    paginator = Paginator(subscriptions.order_by('-updated_at'), 10)
-    page_obj = paginator.get_page(request.GET.get('page', 1))
-
-    return render(request, 'superadmin/subscriptions.html', {
-        'subscriptions': page_obj,
-        'page_obj': page_obj,
-        'plans': plans,
-        'all_businesses': all_businesses,
-        'status_filter': status_filter,
-        'query': query,
-    })
-
-@login_required(login_url='superadmin_login')
-@user_passes_test(is_super_admin, login_url='superadmin_login')
-@ensure_csrf_cookie
-def businesses_list_view(request):
-    _ensure_default_plans()
-    _sync_business_subscriptions()
-
-    plans = SubscriptionPlan.objects.filter(is_active=True)
-
-    if request.method == 'POST':
-        action = request.POST.get('action')
-
-        if action == 'CREATE_CUSTOM':
-            biz_id = request.POST.get('business_id')
-            sub_id = request.POST.get('subscription_id')
-            status = request.POST.get('status', 'TRIAL')
-            plan_id = request.POST.get('plan_id')
-            duration_type = request.POST.get('duration_type', 'DAYS')
-            custom_days = request.POST.get('custom_days')
-            expiration_date_str = request.POST.get('expiration_date')
-            notes = request.POST.get('notes', '').strip()
-
-            sub = None
-            if sub_id:
-                sub = BusinessSubscription.objects.filter(id=sub_id).first()
-            if not sub and biz_id:
-                biz = get_object_or_404(Business, id=biz_id)
-                sub = getattr(biz, 'subscription', None)
-                if not sub:
-                    sub = BusinessSubscription.objects.create(
-                        business=biz,
-                        start_date=timezone.now().date(),
-                        expiration_date=timezone.now().date() + datetime.timedelta(days=14)
-                    )
-
-            if sub:
-                sub.status = status
-                if plan_id:
-                    sub.plan = SubscriptionPlan.objects.filter(id=plan_id).first()
-                else:
-                    sub.plan = None
-
-                if duration_type == 'DATE' and expiration_date_str:
-                    try:
-                        sub.expiration_date = datetime.datetime.strptime(expiration_date_str, '%Y-%m-%d').date()
-                    except ValueError:
-                        pass
-                elif duration_type == 'DAYS' and custom_days:
-                    days_int = int(custom_days)
-                    sub.expiration_date = timezone.now().date() + datetime.timedelta(days=days_int)
-
-                if notes:
-                    sub.notes = notes
-
-                sub.save()
-
-                SystemAuditLog.objects.create(
-                    actor_email=request.user.email or request.user.username,
-                    action="GESTION_LICENCIA",
-                    details=f"Licencia actualizada para {sub.business.name} (Estado: {sub.get_status_display()}, Vence: {sub.expiration_date})"
-                )
-                messages.success(request, f"¡Licencia actualizada exitosamente para {sub.business.name}!")
-                return redirect('superadmin_businesses')
-
-        elif action == 'REGENERATE_TOKEN':
-            sub_id = request.POST.get('subscription_id')
-            sub = get_object_or_404(BusinessSubscription, id=sub_id)
-            sub.license_key = uuid.uuid4()
-            sub.save()
-
-            SystemAuditLog.objects.create(
-                actor_email=request.user.email or request.user.username,
-                action="REGENERAR_TOKEN",
-                details=f"Token de licencia regenerado para {sub.business.name}"
-            )
-            messages.success(request, f"¡Nuevo Token de Licencia generado para {sub.business.name}!")
-            return redirect('superadmin_businesses')
-
-    query = request.GET.get('q', '').strip()
-    businesses = Business.objects.prefetch_related('subscription', 'branches', 'users').all()
+        businesses = businesses.filter(subscription__status=status_filter)
 
     if query:
         businesses = businesses.filter(name__icontains=query)
@@ -364,15 +167,106 @@ def businesses_list_view(request):
     paginator = Paginator(businesses.order_by('-created_at'), 10)
     page_obj = paginator.get_page(request.GET.get('page', 1))
 
-    return render(request, 'superadmin/businesses.html', {
+    return render(request, 'superadmin/users.html', {
         'businesses': page_obj,
         'page_obj': page_obj,
+        'status_filter': status_filter,
         'query': query,
-        'plans': plans,
     })
 
-@login_required(login_url='superadmin_login')
-@user_passes_test(is_super_admin, login_url='superadmin_login')
+@superadmin_required
+@ensure_csrf_cookie
+def user_detail_view(request, business_id):
+    """
+    Ficha detallada del usuario/agencia para inspeccionar y modificar:
+    - Sucursales
+    - Profesionales / Staff
+    - Métodos de Pago
+    - Suscripción y Licencia tomados dinámicamente de SubscriptionPlan
+    """
+    _ensure_default_plans()
+    business = get_object_or_404(Business, id=business_id)
+    subscription, _ = BusinessSubscription.objects.get_or_create(
+        business=business,
+        defaults={
+            'start_date': timezone.now().date(),
+            'expiration_date': timezone.now().date() + datetime.timedelta(days=14)
+        }
+    )
+
+    plans = SubscriptionPlan.objects.filter(is_active=True).order_by('monthly_price')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'UPDATE_SUBSCRIPTION':
+            status = request.POST.get('status', 'TRIAL')
+            plan_id = request.POST.get('plan_id')
+            duration_type = request.POST.get('duration_type', 'DAYS')
+            custom_days = request.POST.get('custom_days')
+            expiration_date_str = request.POST.get('expiration_date')
+            notes = request.POST.get('notes', '').strip()
+
+            subscription.status = status
+            if plan_id:
+                subscription.plan = get_object_or_404(SubscriptionPlan, id=plan_id, is_active=True)
+            else:
+                subscription.plan = None
+
+            if duration_type == 'DATE' and expiration_date_str:
+                try:
+                    subscription.expiration_date = datetime.datetime.strptime(expiration_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            elif duration_type == 'DAYS' and custom_days:
+                days_int = int(custom_days)
+                subscription.expiration_date = timezone.now().date() + datetime.timedelta(days=days_int)
+
+            if notes:
+                subscription.notes = notes
+
+            subscription.pending_plan = None
+            subscription.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="ACTUALIZACION_LICENCIA",
+                details=f"Licencia actualizada para {business.name} (Plan: {subscription.plan.name if subscription.plan else 'Sin Plan'}, Estado: {subscription.get_status_display()}, Vence: {subscription.expiration_date})"
+            )
+            messages.success(request, f"¡Suscripción de {business.name} actualizada correctamente!")
+            return redirect('superadmin_user_detail', business_id=business.id)
+
+        elif action == 'REGENERATE_TOKEN':
+            subscription.license_key = uuid.uuid4()
+            subscription.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="REGENERAR_TOKEN",
+                details=f"Token de licencia regenerado para {business.name}"
+            )
+            messages.success(request, f"¡Nuevo Token de Licencia generado para {business.name}!")
+            return redirect('superadmin_user_detail', business_id=business.id)
+
+    branches = business.branches.all()
+    staff_members = business.staff_members.all()
+    payment_methods = business.payment_methods.all()
+    business_users = business.users.all()
+
+    return render(request, 'superadmin/user_detail.html', {
+        'business': business,
+        'subscription': subscription,
+        'plans': plans,
+        'branches': branches,
+        'branches_count': branches.count(),
+        'staff_members': staff_members,
+        'staff_count': staff_members.count(),
+        'payment_methods': payment_methods,
+        'payment_methods_count': payment_methods.count(),
+        'business_users': business_users,
+    })
+
+@superadmin_required
 @ensure_csrf_cookie
 def plans_management_view(request):
     _ensure_default_plans()
@@ -467,7 +361,103 @@ def plans_management_view(request):
         'all_modules': all_modules
     })
 
+@superadmin_required
+@ensure_csrf_cookie
+def payment_methods_management_view(request):
+    """
+    Gestión de Métodos de Pago Globales que las agencias/clientes pueden habilitar o utilizar.
+    """
+    _ensure_default_payment_methods()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'CREATE':
+            name = request.POST.get('name', '').strip()
+            code = request.POST.get('code', '').strip().upper()
+            description = request.POST.get('description', '').strip()
+            is_active = request.POST.get('is_active') == 'on'
+
+            if not name or not code:
+                messages.error(request, "Nombre y Código Identificador son obligatorios.")
+                return redirect('superadmin_payment_methods')
+
+            if GlobalPaymentMethod.objects.filter(code=code).exists():
+                messages.error(request, f"Ya existe un método de pago con el código '{code}'.")
+                return redirect('superadmin_payment_methods')
+
+            pm = GlobalPaymentMethod.objects.create(
+                name=name,
+                code=code,
+                description=description,
+                is_active=is_active
+            )
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="CREAR_METODO_PAGO",
+                details=f"Método de pago global '{pm.name}' ({pm.code}) creado."
+            )
+            messages.success(request, f"¡Método de pago '{pm.name}' creado exitosamente!")
+            return redirect('superadmin_payment_methods')
+
+        elif action == 'UPDATE':
+            pm_id = request.POST.get('payment_method_id')
+            pm = get_object_or_404(GlobalPaymentMethod, id=pm_id)
+
+            pm.name = request.POST.get('name', '').strip() or pm.name
+            pm.description = request.POST.get('description', '').strip()
+            pm.is_active = request.POST.get('is_active') == 'on'
+            pm.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="ACTUALIZAR_METODO_PAGO",
+                details=f"Método de pago '{pm.name}' ({pm.code}) actualizado."
+            )
+            messages.success(request, f"¡Método de pago '{pm.name}' actualizado correctamente!")
+            return redirect('superadmin_payment_methods')
+
+        elif action == 'TOGGLE_STATUS':
+            pm_id = request.POST.get('payment_method_id')
+            pm = get_object_or_404(GlobalPaymentMethod, id=pm_id)
+            pm.is_active = not pm.is_active
+            pm.save()
+
+            status_txt = "activado" if pm.is_active else "desactivado"
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="ESTADO_METODO_PAGO",
+                details=f"Método de pago '{pm.name}' {status_txt}."
+            )
+            messages.info(request, f"Método de pago '{pm.name}' {status_txt}.")
+            return redirect('superadmin_payment_methods')
+
+    payment_methods = GlobalPaymentMethod.objects.all().order_by('name')
+
+    return render(request, 'superadmin/payment_methods.html', {
+        'payment_methods': payment_methods
+    })
+
 # Helpers
+def _ensure_default_payment_methods():
+    default_methods = [
+        {'code': 'Efectivo', 'name': 'Efectivo', 'description': 'Cobro directo en efectivo / caja física.'},
+        {'code': 'Tarjeta', 'name': 'Tarjeta de Débito / Crédito', 'description': 'Pago con tarjeta mediante POS físico o terminal web.'},
+        {'code': 'MercadoPago / QR', 'name': 'MercadoPago / Código QR', 'description': 'Cobro digital escaneando código QR o billetera virtual.'},
+        {'code': 'Transferencia', 'name': 'Transferencia Bancaria', 'description': 'Transferencia bancaria directa con CBU / Alias.'},
+    ]
+
+    for item in default_methods:
+        GlobalPaymentMethod.objects.get_or_create(
+            code=item['code'],
+            defaults={
+                'name': item['name'],
+                'description': item['description'],
+                'is_active': True
+            }
+        )
+
 def _ensure_default_plans():
     if SubscriptionPlan.objects.exists():
         pro = SubscriptionPlan.objects.filter(code='PRO').first()
