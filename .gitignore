@@ -15,4 +15,4 @@ staticfiles/
 
 # Database
 *.sqlite3
-passenger_wsgi.py
+
