@@ -6,23 +6,27 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- Top Action Banner -->
-    <div class="glass-card p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-200">
-        <div>
-            <h3 class="font-bold text-slate-900 text-lg font-display">Servicios Configurados</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Catálogo de prestaciones, tiempos de atención y tarifas para la agenda</p>
+    <!-- Unified Service Card (Sucursales Design) -->
+    <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
+        
+        <!-- Header -->
+        <div class="flex flex-col xl:flex-row items-start xl:items-center justify-between border-b border-slate-100 pb-4 gap-4">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                    <i data-lucide="layers" class="w-5 h-5 text-rose-900"></i>
+                    <span>Servicios Configurados</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Catálogo de prestaciones, tiempos de atención y tarifas para la agenda</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto shrink-0">
+                <a href="{% url 'service_category_create' %}" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1.5 border border-slate-300 transition shrink-0">
+                    <i data-lucide="folder-plus" class="w-4 h-4 text-rose-900"></i> Categoría
+                </a>
+                <a href="{% url 'service_create' %}" class="px-3.5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Servicio
+                </a>
+            </div>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{% url 'service_category_create' %}" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold flex items-center gap-2 border border-slate-300 transition">
-                <i data-lucide="folder-plus" class="w-4 h-4 text-rose-900"></i>
-                Agregar Categoría
-            </a>
-            <a href="{% url 'service_create' %}" class="px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-semibold flex items-center gap-2 shadow-md shadow-rose-900/20 transition">
-                <i data-lucide="plus" class="w-4 h-4"></i>
-                Agregar Nuevo Servicio
-            </a>
-        </div>
-    </div>
 
     <!-- Service Categories Grid -->
     {% for cat in categories %}
@@ -126,6 +130,7 @@
         </div>
     </div>
     {% endif %}
+    </div>
 
 </div>
 {% endblock %}

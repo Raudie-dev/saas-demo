@@ -34,32 +34,38 @@
         </div>
     </div>
 
-    <!-- Tabbed Navigation Bar (Idéntica a la ficha de clientes) -->
-    <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
-        <button type="button" onclick="switchFinanceTab('kpis')" id="finance-tab-kpis" class="finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-100 text-rose-900 shadow-sm font-semibold">
-            <i data-lucide="layout-grid" class="w-4 h-4 text-rose-900"></i>
-            <span>Resumen & KPIs Principales</span>
-        </button>
+    <!-- Tabbed Navigation Bar (Scrollable) -->
+    <div class="relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden group">
+        <!-- Scroll indicator gradients -->
+        <div id="tab-fade-left" class="hidden absolute top-0 left-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none transition-opacity duration-300"></div>
+        <div id="tab-fade-right" class="absolute top-0 right-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none transition-opacity duration-300"></div>
+        
+        <div id="finance-tabs-container" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none p-2 relative z-0" onscroll="handleTabScroll(this)">
+            <button type="button" onclick="switchFinanceTab('kpis')" id="finance-tab-kpis" class="finance-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-900 text-white shadow-sm shrink-0 cursor-pointer">
+                <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                <span>Resumen & KPIs Principales</span>
+            </button>
 
-        <button type="button" onclick="switchFinanceTab('charts')" id="finance-tab-charts" class="finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2">
-            <i data-lucide="line-chart" class="w-4 h-4 text-rose-900"></i>
-            <span>Flujo Financiero & Métodos de Pago</span>
-        </button>
+            <button type="button" onclick="switchFinanceTab('charts')" id="finance-tab-charts" class="finance-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="line-chart" class="w-4 h-4"></i>
+                <span>Flujo Financiero & Métodos de Pago</span>
+            </button>
 
-        <button type="button" onclick="switchFinanceTab('projections')" id="finance-tab-projections" class="finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2">
-            <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
-            <span>Proyecciones Dinámicas</span>
-        </button>
+            <button type="button" onclick="switchFinanceTab('projections')" id="finance-tab-projections" class="finance-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                <span>Proyecciones Dinámicas</span>
+            </button>
 
-        <button type="button" onclick="switchFinanceTab('top')" id="finance-tab-top" class="finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2">
-            <i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i>
-            <span>Más Vendidos por Rango</span>
-        </button>
+            <button type="button" onclick="switchFinanceTab('top')" id="finance-tab-top" class="finance-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="trophy" class="w-4 h-4"></i>
+                <span>Más Vendidos por Rango</span>
+            </button>
 
-        <button type="button" onclick="switchFinanceTab('staff')" id="finance-tab-staff" class="finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2">
-            <i data-lucide="users" class="w-4 h-4 text-rose-900"></i>
-            <span>Desempeño Equipo & Retención CRM</span>
-        </button>
+            <button type="button" onclick="switchFinanceTab('staff')" id="finance-tab-staff" class="finance-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                <span>Desempeño Equipo & Retención CRM</span>
+            </button>
+        </div>
     </div>
 
     <!-- Context-Aware Dynamic Filter Bar (Debajo de la barra de pestañas) -->
@@ -67,15 +73,19 @@
         <form method="GET" action="{% url 'reports' %}" id="finance-filter-form" class="space-y-3">
             <input type="hidden" name="active_tab" id="active_tab_input" value="kpis">
             
-            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5 cursor-pointer hover:opacity-80 transition-opacity" onclick="document.getElementById('filter-content').classList.toggle('hidden'); document.getElementById('filter-toggle-icon').classList.toggle('rotate-180')">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2" id="filter-title">
                     <i data-lucide="filter" class="w-4 h-4 text-rose-900"></i>
-                    <span>Filtros de Análisis para Resumen & KPIs</span>
+                    <span>Filtros de Análisis para Resumen</span>
                 </span>
-                <span class="text-xs text-slate-400 font-medium">Rango: {{ start_date|date:"d/m/Y" }} al {{ end_date|date:"d/m/Y" }}</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400 font-medium">Rango: {{ start_date|date:"d/m/Y" }} al {{ end_date|date:"d/m/Y" }}</span>
+                    <i data-lucide="chevron-down" id="filter-toggle-icon" class="w-4 h-4 text-slate-400 transition-transform duration-300"></i>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+            <div id="filter-content" class="hidden mt-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                 <!-- Preset Selector -->
                 <div class="space-y-1">
                     <label class="text-[11px] font-bold text-slate-600 uppercase">Período Predefinido</label>
@@ -129,6 +139,7 @@
                         <span>Aplicar Filtros</span>
                     </button>
                 </div>
+            </div>
             </div>
         </form>
     </div>
@@ -213,8 +224,10 @@
                         Año {% now "Y" %}
                     </span>
                 </div>
-                <div class="h-64">
-                    <canvas id="financialTrendChart"></canvas>
+                <div class="h-64 overflow-x-auto overflow-y-hidden">
+                    <div class="min-w-[600px] h-full pb-2">
+                        <canvas id="financialTrendChart"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -567,7 +580,7 @@
 
         // Reset all tab button styles
         document.querySelectorAll('.finance-tab-btn').forEach(btn => {
-            btn.className = 'finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2';
+            btn.className = 'finance-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer';
         });
 
         // Show active content
@@ -579,7 +592,7 @@
         // Highlight active tab button
         const activeBtn = document.getElementById('finance-tab-' + tabId);
         if (activeBtn) {
-            activeBtn.className = 'finance-tab-btn px-5 py-3 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-100 text-rose-900 shadow-sm font-semibold';
+            activeBtn.className = 'finance-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-900 text-white shadow-sm shrink-0 cursor-pointer';
         }
 
         // Update hidden input for active tab persistence
@@ -593,7 +606,7 @@
 
         if (filterTitle) {
             if (tabId === 'kpis') {
-                filterTitle.innerHTML = `<i data-lucide="filter" class="w-4 h-4 text-rose-900"></i><span>Filtros de Análisis para Resumen & KPIs</span>`;
+                filterTitle.innerHTML = `<i data-lucide="filter" class="w-4 h-4 text-rose-900"></i><span>Filtros de Análisis para Resumen</span>`;
                 if (staffBox) staffBox.classList.remove('hidden');
                 if (statusBox) statusBox.classList.remove('hidden');
             } else if (tabId === 'charts') {
@@ -679,13 +692,15 @@
     // Render Payment Methods Donut Chart
     const payEl = document.getElementById('financialPaymentChart');
     if (payEl) {
+        const payData = {{ payment_methods_chart_data|safe }};
+        const hasPayData = payData.some(v => v > 0);
         new Chart(payEl.getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: ['MercadoPago QR', 'Efectivo', 'Tarjeta', 'Transferencia'],
+                labels: hasPayData ? ['MercadoPago QR', 'Efectivo', 'Tarjeta', 'Transferencia'] : ['Sin cobros registrados'],
                 datasets: [{
-                    data: {{ payment_methods_chart_data|safe }},
-                    backgroundColor: ['#3b82f6', '#10b981', '#a855f7', '#f59e0b'],
+                    data: hasPayData ? payData : [1],
+                    backgroundColor: hasPayData ? ['#3b82f6', '#10b981', '#a855f7', '#f59e0b'] : ['#f1f5f9'],
                     borderWidth: 0
                 }]
             },
@@ -693,7 +708,8 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } }
+                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } },
+                    tooltip: { enabled: hasPayData } // Disable tooltip if no data
                 }
             }
         });
@@ -704,13 +720,14 @@
     if (srvPieEl) {
         const srvLabels = {{ service_proj_labels|safe }};
         const srvData = {{ service_proj_data|safe }};
+        const hasSrvData = srvData.length > 0 && srvData.some(v => v > 0);
         new Chart(srvPieEl.getContext('2d'), {
             type: 'pie',
             data: {
-                labels: srvLabels.length ? srvLabels : ['Sin citas en rango'],
+                labels: hasSrvData ? srvLabels : ['Sin citas registradas'],
                 datasets: [{
-                    data: srvData.length ? srvData : [0],
-                    backgroundColor: ['#701a2b', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'],
+                    data: hasSrvData ? srvData : [1],
+                    backgroundColor: hasSrvData ? ['#701a2b', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'] : ['#f1f5f9'],
                     borderWidth: 1,
                     borderColor: '#ffffff'
                 }]
@@ -719,7 +736,8 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'right', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } }
+                    legend: { position: 'right', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } },
+                    tooltip: { enabled: hasSrvData }
                 }
             }
         });
@@ -835,5 +853,35 @@
     if (activeTabParam && ['kpis', 'charts', 'projections', 'top', 'staff'].includes(activeTabParam)) {
         switchFinanceTab(activeTabParam);
     }
+
+    // Function to dynamically toggle scroll fades
+    function handleTabScroll(element) {
+        const leftFade = document.getElementById('tab-fade-left');
+        const rightFade = document.getElementById('tab-fade-right');
+        
+        if (leftFade) {
+            if (element.scrollLeft > 5) {
+                leftFade.classList.remove('hidden');
+            } else {
+                leftFade.classList.add('hidden');
+            }
+        }
+        
+        if (rightFade) {
+            // Check if reached the end (with 2px buffer for rounding)
+            const maxScroll = element.scrollWidth - element.clientWidth;
+            if (element.scrollLeft >= maxScroll - 2) {
+                rightFade.classList.add('hidden');
+            } else {
+                rightFade.classList.remove('hidden');
+            }
+        }
+    }
+
+    // Initialize check on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('finance-tabs-container');
+        if (container) handleTabScroll(container);
+    });
 </script>
 {% endblock %}

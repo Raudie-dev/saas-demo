@@ -6,14 +6,17 @@
 {% block content %}
 <div class="max-w-3xl mx-auto space-y-6">
 
-    <div class="glass-card p-6 rounded-2xl flex items-center justify-between border border-slate-200">
+    <div class="mb-4">
+        <a href="{% url 'inventory_list' %}" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Volver a Inventario
+        </a>
+    </div>
+
+    <div class="glass-card p-6 rounded-2xl border border-slate-200">
         <div>
             <h3 class="font-bold text-slate-900 text-lg font-display">{{ title }}</h3>
             <p class="text-xs text-slate-500 mt-1">Configura SKU, precios de compra/venta, stock y proveedor</p>
         </div>
-        <a href="{% url 'inventory_list' %}" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
-            ← Volver a Inventario
-        </a>
     </div>
 
     <div class="glass-card p-8 rounded-2xl border border-slate-200 space-y-6">

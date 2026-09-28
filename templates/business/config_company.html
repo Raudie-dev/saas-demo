@@ -7,38 +7,44 @@
 <div class="space-y-6 max-w-5xl mx-auto">
 
     <!-- Subheader Agency Config Tabs -->
-    <div class="glass-card bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none">
-        <button type="button" onclick="showConfigTab('general')" id="tab-btn-general" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-900 text-white shadow-sm shrink-0 cursor-pointer">
-            <i data-lucide="building-2" class="w-4 h-4"></i>
-            <span>Datos Empresa</span>
-        </button>
-        <button type="button" onclick="showConfigTab('branches')" id="tab-btn-branches" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
-            <i data-lucide="map-pin" class="w-4 h-4 text-slate-500"></i>
-            <span>Sucursales</span>
-        </button>
-        <button type="button" onclick="showConfigTab('payments')" id="tab-btn-payments" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
-            <i data-lucide="credit-card" class="w-4 h-4 text-slate-500"></i>
-            <span>Métodos de Pago</span>
-        </button>
-        <button type="button" onclick="showConfigTab('schedule')" id="tab-btn-schedule" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
-            <i data-lucide="clock" class="w-4 h-4 text-slate-500"></i>
-            <span>Horarios de Atención</span>
-        </button>
-        <button type="button" onclick="showConfigTab('modules')" id="tab-btn-modules" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
-            <i data-lucide="layout-grid" class="w-4 h-4 text-slate-500"></i>
-            <span>Módulos Activos</span>
-        </button>
-        <button type="button" onclick="showConfigTab('whatsapp')" id="tab-btn-whatsapp" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
-            <i data-lucide="message-square" class="w-4 h-4 text-slate-500"></i>
-            <span>WhatsApp API</span>
-            {% if 'ai_engine' not in business.enabled_modules %}
-            <i data-lucide="lock" class="w-3 h-3 text-rose-500" title="Requiere módulo IA & Automatización"></i>
-            {% endif %}
-        </button>
-        <button type="button" onclick="showConfigTab('all')" id="tab-btn-all" class="config-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold text-rose-900 bg-rose-50 hover:bg-rose-100 transition flex items-center gap-1.5 border border-rose-200 shrink-0 cursor-pointer">
-            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-            <span>Ver Todo</span>
-        </button>
+    <div class="relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden group">
+        <!-- Scroll indicator gradients -->
+        <div id="tab-fade-left" class="hidden absolute top-0 left-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none transition-opacity duration-300"></div>
+        <div id="tab-fade-right" class="absolute top-0 right-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none transition-opacity duration-300"></div>
+        
+        <div id="config-tabs-container" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none p-2 relative z-0" onscroll="handleTabScroll(this)">
+            <button type="button" onclick="showConfigTab('general')" id="tab-btn-general" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-900 text-white shadow-sm shrink-0 cursor-pointer">
+                <i data-lucide="building-2" class="w-4 h-4"></i>
+                <span>Datos Empresa</span>
+            </button>
+            <button type="button" onclick="showConfigTab('branches')" id="tab-btn-branches" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="map-pin" class="w-4 h-4 text-slate-500"></i>
+                <span>Sucursales</span>
+            </button>
+            <button type="button" onclick="showConfigTab('payments')" id="tab-btn-payments" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="credit-card" class="w-4 h-4 text-slate-500"></i>
+                <span>Métodos de Pago</span>
+            </button>
+            <button type="button" onclick="showConfigTab('schedule')" id="tab-btn-schedule" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="clock" class="w-4 h-4 text-slate-500"></i>
+                <span>Horarios de Atención</span>
+            </button>
+            <button type="button" onclick="showConfigTab('modules')" id="tab-btn-modules" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="layout-grid" class="w-4 h-4 text-slate-500"></i>
+                <span>Módulos Activos</span>
+            </button>
+            <button type="button" onclick="showConfigTab('whatsapp')" id="tab-btn-whatsapp" class="config-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="message-square" class="w-4 h-4 text-slate-500"></i>
+                <span>WhatsApp API</span>
+                {% if 'ai_engine' not in business.enabled_modules %}
+                <i data-lucide="lock" class="w-3 h-3 text-rose-500" title="Requiere módulo IA & Automatización"></i>
+                {% endif %}
+            </button>
+            <button type="button" onclick="showConfigTab('all')" id="tab-btn-all" class="config-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold text-rose-900 bg-rose-50 hover:bg-rose-100 transition flex items-center gap-1.5 border border-rose-200 shrink-0 cursor-pointer">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                <span>Ver Todo</span>
+            </button>
+        </div>
     </div>
 
     <!-- Top Banner Card -->
@@ -65,9 +71,9 @@
 
         <!-- Section: General Business Data -->
         <div id="sec-general" class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="border-b border-slate-100 pb-3">
                 <h3 class="font-bold text-slate-900 text-lg font-display">Datos de la Empresa & Branding</h3>
-                <span class="text-xs text-slate-400">Edita los parámetros de tu negocio</span>
+                <p class="text-xs text-slate-500 mt-0.5">Edita los parámetros de tu negocio</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -733,6 +739,33 @@
         } else {
             showConfigTab('general');
         }
+        
+        const container = document.getElementById('config-tabs-container');
+        if (container) handleTabScroll(container);
     });
+
+    // Function to dynamically toggle scroll fades
+    function handleTabScroll(element) {
+        const leftFade = document.getElementById('tab-fade-left');
+        const rightFade = document.getElementById('tab-fade-right');
+        
+        if (leftFade) {
+            if (element.scrollLeft > 5) {
+                leftFade.classList.remove('hidden');
+            } else {
+                leftFade.classList.add('hidden');
+            }
+        }
+        
+        if (rightFade) {
+            // Check if reached the end (with 2px buffer for rounding)
+            const maxScroll = element.scrollWidth - element.clientWidth;
+            if (element.scrollLeft >= maxScroll - 2) {
+                rightFade.classList.add('hidden');
+            } else {
+                rightFade.classList.remove('hidden');
+            }
+        }
+    }
 </script>
 {% endblock %}
