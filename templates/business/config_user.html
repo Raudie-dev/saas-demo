@@ -20,7 +20,7 @@
 
     <!-- User Profile Details Card -->
     <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
             <div>
                 <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
                     <i data-lucide="user-check" class="w-5 h-5 text-rose-900"></i>
@@ -28,7 +28,7 @@
                 </h3>
                 <p class="text-xs text-slate-500 mt-0.5">Actualiza tus datos personales y teléfono de contacto en el sistema</p>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200">
+            <span class="w-fit inline-flex px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200">
                 {{ request.user.get_role_display|default:'Administrador Principal' }}
             </span>
         </div>
@@ -108,7 +108,7 @@
 
     <!-- Subscription Plan & Upgrade Request Card -->
     <div id="subscription-section" class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm scroll-mt-6">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
             <div>
                 <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
                     <i data-lucide="crown" class="w-5 h-5 text-amber-600"></i>
@@ -117,12 +117,12 @@
                 <p class="text-xs text-slate-500 mt-0.5">Consulta tu tipo de suscripción actual y solicita cambios de plan al Administrador</p>
             </div>
             {% if subscription.pending_plan %}
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5 animate-pulse">
+            <span class="w-fit inline-flex px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 items-center gap-1.5 animate-pulse">
                 <i data-lucide="clock" class="w-3.5 h-3.5"></i>
                 <span>Solicitud Pendiente: {{ subscription.pending_plan.name }}</span>
             </span>
             {% else %}
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <span class="w-fit inline-flex px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                 Plan Activo: {{ subscription.plan.name|default:'Plan Inicial' }}
             </span>
             {% endif %}

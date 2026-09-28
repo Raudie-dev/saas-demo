@@ -59,9 +59,14 @@
         font-family: inherit;
     }
     .fc .fc-toolbar-title {
-        font-size: 1.125rem;
+        font-size: 0.95rem;
         font-weight: 800;
         color: #0f172a;
+        background-color: #f1f5f9;
+        padding: 0.4rem 0.8rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        display: inline-block;
     }
     .fc .fc-button-primary {
         background-color: #0f172a;
@@ -131,6 +136,24 @@
         background: transparent !important;
         border: none !important;
     }
+
+    /* Mobile responsiveness for FullCalendar header without !important */
+    @media (max-width: 640px) {
+        div#fullCalendar.fc .fc-header-toolbar.fc-toolbar {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        div#fullCalendar.fc .fc-header-toolbar .fc-toolbar-chunk {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        div#fullCalendar.fc .fc-header-toolbar .fc-toolbar-title {
+            font-size: 0.85rem;
+            text-align: center;
+        }
+    }
 </style>
 
 <script>
@@ -152,8 +175,35 @@
         const initialFormat = document.getElementById('timeFormatFilter').value || '12h';
         const currentFormatObj = timeFormats[initialFormat] || timeFormats['12h'];
         
+        // Define formatting function before config
+        function formatCalendarHeader() {
+            const isMobile = window.innerWidth <= 640;
+            const header = document.querySelector('.fc-header-toolbar');
+            if (header) {
+                if (isMobile) {
+                    header.style.cssText = 'display: flex; flex-direction: column; gap: 0.75rem;';
+                    document.querySelectorAll('.fc-toolbar-chunk').forEach(chunk => {
+                        chunk.style.cssText = 'display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem;';
+                    });
+                } else {
+                    header.style.cssText = '';
+                    document.querySelectorAll('.fc-toolbar-chunk').forEach(chunk => chunk.style.cssText = '');
+                }
+            }
+            
+            // Format title as a button always
+            const title = document.querySelector('.fc-toolbar-title');
+            if (title) {
+                title.style.cssText = 'font-size: 0.95rem; font-weight: 800; color: #0f172a; background-color: #f1f5f9; padding: 0.4rem 0.8rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; display: inline-block;';
+                if (isMobile) {
+                    title.style.fontSize = '0.85rem';
+                }
+            }
+        }
+        
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'timeGridWeek',
+            datesSet: formatCalendarHeader,
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
@@ -226,6 +276,12 @@
         });
 
         calendar.render();
+
+
+        
+        // Run immediately and on resize
+        setTimeout(formatCalendarHeader, 50);
+        window.addEventListener('resize', formatCalendarHeader);
     });
 
     function refetchCalendar() {
