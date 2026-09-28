@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum, Count
+from django.utils.text import slugify
 from apps.business.models import Business, User, StaffMember, Branch
 from apps.agenda.models import Appointment
 from apps.invoicing.models import Invoice

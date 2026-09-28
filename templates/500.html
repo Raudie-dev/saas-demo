@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error del Servidor - RauDie OS</title>
+    <!-- Google Fonts Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+    </style>
+</head>
+<body class="h-full flex items-center justify-center p-4 bg-slate-950">
+    <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center shadow-2xl space-y-6 relative overflow-hidden">
+        <div class="absolute -top-24 -left-24 w-48 h-48 bg-rose-900/30 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-rose-950/40 rounded-full blur-3xl pointer-events-none"></div>
+
+        <img src="/static/images/logo.png" alt="RauDie OS Logo" class="relative inline-block w-20 h-20 drop-shadow-2xl object-contain mx-auto">
+
+        <div class="space-y-2 relative">
+            <h1 class="text-6xl font-black font-display text-transparent bg-clip-text bg-gradient-to-br from-rose-400 to-rose-700">500</h1>
+            <h2 class="text-xl font-bold font-display text-white mt-2">Presentamos un problema</h2>
+            <p class="text-sm text-slate-400">
+                Algo salió mal en nuestros servidores, pero no te preocupes, ya lo estamos resolviendo. Intenta nuevamente en unos minutos.
+            </p>
+        </div>
+
+        <div class="pt-2 flex flex-col gap-3 relative">
+            <button onclick="window.location.reload()" class="w-full py-3.5 px-4 bg-rose-900 hover:bg-rose-800 text-white font-bold rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Reintentar
+            </button>
+            <a href="/" class="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm rounded-2xl transition flex items-center justify-center gap-2">
+                <i data-lucide="home" class="w-4 h-4"></i> Ir al Inicio
+            </a>
+        </div>
+
+        <div class="border-t border-slate-800 pt-4 text-xs text-slate-500 flex items-center justify-center gap-2 relative">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span>RauDie OS</span>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
