@@ -40,7 +40,7 @@
     <div class="glass-card rounded-2xl overflow-hidden border border-slate-200">
         <div class="p-4 border-b border-slate-200 bg-slate-100/80 flex items-center justify-between">
             <h3 class="font-bold text-slate-900 font-display">Citas para el {{ selected_date|date:"l d \d\e F, Y" }}</h3>
-            <span class="text-xs px-2.5 py-1 rounded-full bg-rose-100 text-rose-900 font-bold border border-rose-200">
+            <span class="whitespace-nowrap shrink-0 text-xs px-3 py-1 rounded-full bg-rose-100 text-rose-900 font-bold border border-rose-200 shadow-sm">
                 {{ appointments|length }} cita(s)
             </span>
         </div>
@@ -65,11 +65,17 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 flex-wrap justify-end self-end sm:self-center">
-                    <div class="text-right mr-2">
-                        <span class="text-xs text-slate-500 block">Total</span>
+                <div class="flex flex-col gap-3 self-stretch sm:self-center w-full sm:w-auto mt-4 sm:mt-0">
+                    <div class="text-right hidden sm:block">
+                        <span class="text-xs text-slate-500 block leading-none mb-1">Total</span>
                         <span class="text-base font-extrabold text-slate-900">{{ business.currency }}{{ app.total_price }}</span>
                     </div>
+                    
+                    <div class="flex items-center gap-2 flex-wrap justify-end border-t sm:border-0 border-slate-100 pt-3 sm:pt-0">
+                        <div class="text-left flex-1 sm:hidden">
+                            <span class="text-xs text-slate-500 block leading-none mb-1">Total</span>
+                            <span class="text-base font-extrabold text-slate-900">{{ business.currency }}{{ app.total_price }}</span>
+                        </div>
 
                     <!-- WhatsApp Reminder Button -->
                     <button type="button"
@@ -148,6 +154,7 @@
                         <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i> Cobrar
                     </a>
                     {% endif %}
+                    </div>
                 </div>
             </div>
             {% empty %}

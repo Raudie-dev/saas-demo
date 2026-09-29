@@ -7,4 +7,6 @@ urlpatterns = [
     path('gastos/', views.expense_list_view, name='expense_list'),
     path('gastos/crear/', views.expense_create_view, name='expense_create'),
     path('gastos/<uuid:expense_id>/editar/', views.expense_edit_view, name='expense_edit'),
+    path('gastos/exportar/excel/', views.export_expenses_excel, name='export_expenses_excel'),
+    path('gastos/exportar/pdf/', views.export_expenses_pdf, name='export_expenses_pdf'),
 ]

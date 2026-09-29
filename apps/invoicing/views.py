@@ -41,7 +41,7 @@ def expense_list_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    expenses = Expense.objects.filter(business=business).select_related('category', 'supplier').order_by('-date') if business else []
+    expenses = Expense.objects.filter(business=business).select_related('category', 'supplier').order_by('-issue_date') if business else []
 
     from django.core.paginator import Paginator
     exp_paginator = Paginator(expenses, 10)
@@ -68,6 +68,7 @@ def expense_create_view(request):
         supplier_id = request.POST.get('supplier_id')
         status = request.POST.get('status', 'PAID')
         notes = request.POST.get('notes', '')
+        issue_date = request.POST.get('issue_date') or timezone.now().date()
         
         category = ExpenseCategory.objects.filter(id=category_id, business=business).first() if category_id else None
         supplier = Supplier.objects.filter(id=supplier_id, business=business).first() if supplier_id else None
@@ -78,6 +79,7 @@ def expense_create_view(request):
             supplier=supplier,
             concept=concept,
             amount=amount,
+            issue_date=issue_date,
             status=status,
             notes=notes
         )
@@ -107,6 +109,9 @@ def expense_edit_view(request, expense_id):
         supplier_id = request.POST.get('supplier_id')
         expense.status = request.POST.get('status', 'PAID')
         expense.notes = request.POST.get('notes', '')
+        issue_date = request.POST.get('issue_date')
+        if issue_date:
+            expense.issue_date = issue_date
         
         expense.category = ExpenseCategory.objects.filter(id=category_id, business=business).first() if category_id else None
         expense.supplier = Supplier.objects.filter(id=supplier_id, business=business).first() if supplier_id else None

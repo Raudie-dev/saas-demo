@@ -6,6 +6,12 @@
 {% block content %}
 <div class="space-y-6">
 
+    <div class="mb-2">
+        <a href="{% url 'pos_terminal' %}" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Volver al Terminal POS
+        </a>
+    </div>
+
     <!-- Active Register Control & Summary -->
     <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-100 pb-4 gap-4">
@@ -130,7 +136,7 @@
                             </span>
                         </td>
                         <td class="p-4 text-right">
-                            <button type="button" onclick="openShiftSalesModal('modal-shift-sales-{{ reg.id }}')" class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer">
+                            <button type="button" onclick="openShiftSalesModal('modal-shift-sales-{{ reg.id }}')" class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer">
                                 <i data-lucide="receipt" class="w-3.5 h-3.5"></i> Ver Ventas ({{ reg.sales_count }})
                             </button>
                         </td>
