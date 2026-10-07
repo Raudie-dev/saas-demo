@@ -33,3 +33,44 @@ class GiftCard(TimeStampedModel):
 
     def __str__(self):
         return f"GiftCard #{self.code} - Saldo: ${self.current_balance}"
+
+class LoyaltyProgram(TimeStampedModel):
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="loyalty_programs")
+    name = models.CharField(max_length=150, verbose_name="Nombre del Programa (Ej: Cliente VIP, Puntos Belleza)")
+    points_per_currency = models.DecimalField(max_digits=5, decimal_places=2, default=1.00, verbose_name="Puntos por cada $ gastado")
+    minimum_points_to_redeem = models.IntegerField(default=100, verbose_name="Puntos Mínimos para Canjear")
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Programa de Fidelización: {self.name}"
+
+class LoyaltyCard(TimeStampedModel):
+    program = models.ForeignKey(LoyaltyProgram, on_delete=models.CASCADE, related_name="cards")
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="loyalty_cards")
+    points = models.IntegerField(default=0, verbose_name="Puntos Acumulados")
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Fidelización: {self.client.full_name} ({self.points} pts)"
+
+class EmailCampaign(TimeStampedModel):
+    AUDIENCE_CHOICES = [
+        ('ALL', 'Todos los Clientes'),
+        ('VIP', 'Clientes VIP / Frecuentes'),
+        ('INACTIVE', 'Clientes Inactivos'),
+        ('CUSTOM', 'Personalizado')
+    ]
+    STATUS_CHOICES = [
+        ('DRAFT', 'Borrador'),
+        ('SENT', 'Enviado')
+    ]
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="email_campaigns")
+    name = models.CharField(max_length=150, verbose_name="Nombre de la Campaña")
+    subject = models.CharField(max_length=255, verbose_name="Asunto del Email")
+    body = models.TextField(verbose_name="Contenido del Correo")
+    audience = models.CharField(max_length=20, choices=AUDIENCE_CHOICES, default='ALL', verbose_name="Audiencia Objetivo")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT', verbose_name="Estado")
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Campaña: {self.name} ({self.get_status_display()})"

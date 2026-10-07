@@ -80,7 +80,12 @@ def superadmin_login_view(request):
 def superadmin_logout_view(request):
     if 'superadmin_id' in request.session:
         del request.session['superadmin_id']
-    messages.info(request, "Sesión de SuperAdmin cerrada correctamente.")
+        
+    if request.GET.get('timeout') == '1':
+        messages.warning(request, "Tu sesión de SuperAdmin ha expirado por inactividad de 30 minutos.")
+    else:
+        messages.info(request, "Sesión de SuperAdmin cerrada correctamente.")
+        
     return redirect('superadmin_login')
 
 @superadmin_required

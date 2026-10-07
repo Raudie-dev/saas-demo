@@ -196,12 +196,6 @@
                     <span>Finanzas</span>
                 </a>
 
-                {% if modules_enabled.ai_engine %}
-                <a href="{% url 'ai_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition border border-rose-800/40 bg-gradient-to-r from-rose-950 to-slate-950 text-rose-300 hover:text-white hover:from-rose-900 hover:to-slate-900 shadow-sm">
-                    <i data-lucide="sparkles" class="w-5 h-5 text-rose-400"></i>
-                    <span>IA & Automatización</span>
-                </a>
-                {% endif %}
 
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Configuración</div>
 
@@ -444,6 +438,25 @@
         mobileMenuToggleBtn?.addEventListener('click', toggleMobileSidebar);
         mobileSidebarBackdrop?.addEventListener('click', toggleMobileSidebar);
         mobileSidebarCloseBtn?.addEventListener('click', toggleMobileSidebar);
+
+        // Session Inactivity Timeout (Cierre de sesión por inactividad)
+        let inactivityTimeout;
+        const INACTIVITY_DURATION = 30 * 60 * 1000; // 30 minutos
+
+        function resetInactivityTimeout() {
+            clearTimeout(inactivityTimeout);
+            inactivityTimeout = setTimeout(() => {
+                window.location.href = "{% url 'logout' %}?timeout=1";
+            }, INACTIVITY_DURATION);
+        }
+
+        // Detectar cualquier actividad del usuario
+        ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart', 'click'].forEach(evt => {
+            document.addEventListener(evt, resetInactivityTimeout, true);
+        });
+
+        // Inicializar el contador al cargar la página
+        resetInactivityTimeout();
 
         // Service Worker & Offline Banner
         const offlineBanner = document.getElementById('pwa-offline-banner');
