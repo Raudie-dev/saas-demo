@@ -13,5 +13,5 @@ staticfiles/
 # Database
 *.sqlite3
 
-.create_admin.py
+create_admin.py
 
