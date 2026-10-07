@@ -186,105 +186,10 @@
 
     </div>
 
-    <!-- Interactive AI Assistant Assistant Chatbot Widget -->
-    <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-md space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div class="flex items-center gap-3">
-                <div class="shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-900 to-slate-950 text-white flex items-center justify-center shadow-md">
-                    <i data-lucide="bot" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
-                        Asistente Virtual IA
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">En Línea</span>
-                    </h3>
-                    <p class="text-xs text-slate-500">Consulta en lenguaje natural sobre turnos de hoy, disponibilidad de agenda o recomendaciones de stock</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Suggestion Pills -->
-        <div class="flex flex-wrap items-center gap-2 text-xs">
-            <span class="text-slate-500 font-semibold">Sugerencias rápidas:</span>
-            <button onclick="sendQuickPrompt('¿Cuáles son los turnos vacíos para hoy y mañana?')" class="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 transition font-medium">
-                📅 Turnos vacíos para hoy y mañana
-            </button>
-            <button onclick="sendQuickPrompt('¿Qué productos necesitan reposición urgente?')" class="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-amber-900 border border-slate-200 transition font-medium">
-                ⚠️ Productos con stock urgente
-            </button>
-            <button onclick="sendQuickPrompt('Resumen de facturación de hoy')" class="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-emerald-900 border border-slate-200 transition font-medium">
-                💵 Resumen de ventas del día
-            </button>
-        </div>
-
-        <!-- Chat Conversation Output Box -->
-        <div id="aiChatBox" class="p-4 rounded-xl bg-slate-50 border border-slate-200 h-40 overflow-y-auto space-y-3 custom-scrollbar text-xs">
-            <div class="p-3 rounded-lg bg-white border border-rose-900/20 text-slate-800 shadow-sm">
-                🤖 <strong>Asistente IA:</strong> ¡Hola! Estoy a tu disposición. ¿En qué puedo ayudarte a gestionar la jornada de hoy en <strong>{{ business.name }}</strong>?
-            </div>
-        </div>
-
-        <!-- Chat Input Form -->
-        <form id="aiChatForm" class="flex items-center gap-2" autocomplete="off">
-            <input type="text" id="aiPromptInput" placeholder="Escribe tu consulta aquí..." required class="flex-1 bg-white border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900">
-            <button type="submit" class="shrink-0 px-3 sm:px-5 py-2.5 bg-rose-900 hover:bg-rose-950 text-white font-bold text-sm rounded-xl shadow-md transition flex items-center gap-2">
-                <i data-lucide="send" class="w-4 h-4"></i> <span class="hidden sm:inline">Enviar</span>
-            </button>
-        </form>
-    </div>
 
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-    // AI Chatbot Handler
-    const chatForm = document.getElementById('aiChatForm');
-    const promptInput = document.getElementById('aiPromptInput');
-    const chatBox = document.getElementById('aiChatBox');
-
-    function sendQuickPrompt(text) {
-        promptInput.value = text;
-        chatForm.dispatchEvent(new Event('submit'));
-    }
-
-    if (chatForm) {
-        chatForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const text = promptInput.value.trim();
-            if (!text) return;
-
-            // User Bubble
-            const userDiv = document.createElement('div');
-            userDiv.className = 'p-3 rounded-lg bg-slate-950 text-white text-right font-medium';
-            userDiv.innerHTML = `👤 <strong>Tú:</strong> ${text}`;
-            chatBox.appendChild(userDiv);
-            promptInput.value = '';
-
-            // Bot Loading indicator
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'p-3 rounded-lg bg-rose-50 text-rose-900 animate-pulse border border-rose-200 font-medium';
-            loadingDiv.innerHTML = `🤖 <strong>Asistente IA:</strong> Consultando datos del negocio...`;
-            chatBox.appendChild(loadingDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            // Fetch AI API response
-            fetch('/ia/chat/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `prompt=${encodeURIComponent(text)}`
-            })
-            .then(res => res.json())
-            .then(data => {
-                loadingDiv.className = 'p-3 rounded-lg bg-white border border-rose-900/30 text-slate-800 whitespace-pre-line shadow-sm';
-                loadingDiv.innerHTML = data.reply;
-                chatBox.scrollTop = chatBox.scrollHeight;
-            })
-            .catch(err => {
-                loadingDiv.innerHTML = `⚠️ Error al comunicarse con la IA.`;
-            });
-        });
-    }
-</script>
 {% endblock %}
 

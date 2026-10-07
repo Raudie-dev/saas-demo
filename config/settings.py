@@ -166,6 +166,12 @@ if ENVIRONMENT == 'production' and not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
+# Session Timeout Configuration (Cierre de sesión por inactividad)
+# 1800 segundos = 30 minutos de inactividad
+SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', 1800))
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
 # Authentication URLs
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'

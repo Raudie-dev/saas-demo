@@ -24,6 +24,10 @@ class Business(TimeStampedModel):
     branding_color = models.CharField(max_length=20, default="#881337", verbose_name="Color de Marca (Hex)")
     business_type = models.CharField(max_length=30, choices=BUSINESS_TYPE_CHOICES, default='MARKETING', verbose_name="Tipo de Agencia / Negocio")
     primary_goal = models.CharField(max_length=255, default="Captar clientes y automatizar ventas", verbose_name="Objetivo Principal")
+    appointment_reminder_message = models.TextField(
+        default="Hola {client_name}, te recordamos tu cita de *{service}* en *{business}* para el día *{date}* a las *{time}* con *{staff}*. ¡Te esperamos!",
+        verbose_name="Plantilla de Recordatorio de Cita (WhatsApp)"
+    )
     TIME_FORMAT_CHOICES = [
         ('12h', '12 Horas (ej: 09:00 AM / 09:00 PM)'),
         ('24h', '24 Horas (ej: 09:00 / 21:00)'),

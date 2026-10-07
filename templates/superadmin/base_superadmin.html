@@ -155,6 +155,23 @@
 
     <script>
         lucide.createIcons();
+
+        // Session Inactivity Timeout (Cierre de sesión por inactividad)
+        let inactivityTimeout;
+        const INACTIVITY_DURATION = 30 * 60 * 1000; // 30 minutos
+
+        function resetInactivityTimeout() {
+            clearTimeout(inactivityTimeout);
+            inactivityTimeout = setTimeout(() => {
+                window.location.href = "{% url 'superadmin_logout' %}?timeout=1";
+            }, INACTIVITY_DURATION);
+        }
+
+        ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart', 'click'].forEach(evt => {
+            document.addEventListener(evt, resetInactivityTimeout, true);
+        });
+
+        resetInactivityTimeout();
     </script>
 </body>
 </html>

@@ -201,6 +201,8 @@
         }
     });
 
+    const whatsappTemplate = `{{ business.appointment_reminder_message|escapejs }}` || `Hola {client_name}, te recordamos tu cita de *{service}* en *{business}* para el día *{date}* a las *{time} hs* con *{staff}*. ¡Te esperamos!`;
+
     function sendWhatsappReminder(phone, clientFirstName, clientFullName, serviceName, dateStr, timeStr, staffName, businessName) {
         if (!phone || phone === 'Sin teléfono' || phone.trim() === '') {
             alert('El cliente no cuenta con un número de teléfono registrado.');
@@ -209,7 +211,14 @@
 
         let cleanPhone = phone.replace(/[^\d+]/g, '');
         const clientDisplayName = clientFirstName || clientFullName || 'Cliente';
-        const message = `Hola ${clientDisplayName}, te recordamos tu cita de *${serviceName}* en *${businessName}* para el día *${dateStr}* a las *${timeStr} hs* con *${staffName}*. ¡Te esperamos!`;
+        
+        let message = whatsappTemplate
+            .replace(/{client_name}/g, clientDisplayName)
+            .replace(/{service}/g, serviceName)
+            .replace(/{business}/g, businessName)
+            .replace(/{date}/g, dateStr)
+            .replace(/{time}/g, timeStr)
+            .replace(/{staff}/g, staffName);
         
         const formData = new FormData();
         formData.append('phone', cleanPhone);

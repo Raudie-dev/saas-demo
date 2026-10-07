@@ -3,7 +3,7 @@ import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from apps.business.models import Business
-from apps.marketing.models import Coupon, GiftCard
+from apps.marketing.models import Coupon, GiftCard, EmailCampaign, LoyaltyProgram, LoyaltyCard
 from apps.crm.models import Client
 from apps.core.utils import parse_decimal, parse_int
 
@@ -101,4 +101,79 @@ def giftcard_create_view(request):
         'business': business,
         'clients': clients,
         'title': 'Emitir Nueva Gift Card'
+    })
+
+@login_required
+def email_marketing_list_view(request):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    campaigns = EmailCampaign.objects.filter(business=business).order_by('-created_at')
+    return render(request, 'marketing/email_list.html', {
+        'business': business,
+        'campaigns': campaigns
+    })
+
+@login_required
+def email_campaign_create_view(request):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        subject = request.POST.get('subject')
+        body = request.POST.get('body')
+        audience = request.POST.get('audience', 'ALL')
+        
+        EmailCampaign.objects.create(
+            business=business,
+            name=name,
+            subject=subject,
+            body=body,
+            audience=audience,
+            status='DRAFT'
+        )
+        return redirect('email_marketing_list')
+        
+    return render(request, 'marketing/email_form.html', {
+        'business': business,
+        'audiences': EmailCampaign.AUDIENCE_CHOICES
+    })
+
+@login_required
+def loyalty_program_view(request):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    
+    program = LoyaltyProgram.objects.filter(business=business).first()
+    
+    if request.method == 'POST':
+        name = request.POST.get('name', 'Programa VIP')
+        points_per_currency = parse_decimal(request.POST.get('points_per_currency'), '1.00')
+        minimum_points_to_redeem = parse_int(request.POST.get('minimum_points_to_redeem'), 100)
+        
+        if program:
+            program.name = name
+            program.points_per_currency = points_per_currency
+            program.minimum_points_to_redeem = minimum_points_to_redeem
+            program.save()
+        else:
+            program = LoyaltyProgram.objects.create(
+                business=business,
+                name=name,
+                points_per_currency=points_per_currency,
+                minimum_points_to_redeem=minimum_points_to_redeem
+            )
+        return redirect('loyalty_program_view')
+
+    cards = LoyaltyCard.objects.filter(program=program).select_related('client') if program else []
+    clients = Client.objects.filter(business=business)
+    
+    return render(request, 'marketing/loyalty_dashboard.html', {
+        'business': business,
+        'program': program,
+        'cards': cards,
+        'clients': clients
     })

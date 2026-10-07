@@ -12,7 +12,13 @@
             <h3 class="font-bold text-slate-900 text-lg font-display">Promociones & Fidelización</h3>
             <p class="text-xs text-slate-500 mt-0.5">Gestión de cupones con descuento, gift cards y campañas automáticas</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'email_marketing_list' %}" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition">
+                <i data-lucide="mail" class="w-4 h-4"></i> Email Marketing
+            </a>
+            <a href="{% url 'loyalty_program_view' %}" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition">
+                <i data-lucide="star" class="w-4 h-4"></i> Tarjeta de Fidelización
+            </a>
             <a href="{% url 'coupon_create' %}" class="px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition">
                 <i data-lucide="tag" class="w-4 h-4"></i> Crear Cupón
             </a>

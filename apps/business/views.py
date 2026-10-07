@@ -142,7 +142,12 @@ def logout_view(request):
     for _ in storage:
         pass
     logout(request)
-    messages.info(request, "Has cerrado sesión correctamente.")
+    
+    if request.GET.get('timeout') == '1':
+        messages.warning(request, "Tu sesión ha expirado por inactividad de 30 minutos.")
+    else:
+        messages.info(request, "Has cerrado sesión correctamente.")
+        
     return redirect('login')
 
 @login_required(login_url='login')
@@ -190,7 +195,6 @@ def onboarding_view(request):
         business.primary_goal = primary_goal or "Gestionar y hacer crecer la agencia"
         business.enabled_modules = selected_modules
         business.currency = currency
-        business.branding_color = branding_color
         if phone:
             business.phone = phone
         if address:
@@ -378,11 +382,14 @@ def business_config_view(request):
         business.phone = request.POST.get('phone', business.phone).strip()
         business.address = request.POST.get('address', business.address).strip()
         business.currency = request.POST.get('currency', business.currency).strip()
-        business.branding_color = request.POST.get('branding_color', business.branding_color).strip()
         business.business_type = request.POST.get('business_type', business.business_type)
         business.primary_goal = request.POST.get('primary_goal', business.primary_goal).strip()
         business.time_format = request.POST.get('time_format', getattr(business, 'time_format', '12h'))
         business.allow_editing_client_history = (request.POST.get('allow_editing_client_history') == 'on' or request.POST.get('allow_editing_client_history') == 'true')
+        
+        # Guardar mensaje de recordatorio de cita
+        if 'appointment_reminder_message' in request.POST:
+            business.appointment_reminder_message = request.POST.get('appointment_reminder_message').strip()
         
         selected_modules = request.POST.getlist('enabled_modules')
         if selected_modules:

@@ -217,6 +217,16 @@ def pos_terminal_view(request):
                 client.total_spent += total
                 client.save()
 
+                # Otorgar Puntos de Fidelización
+                from apps.marketing.models import LoyaltyProgram, LoyaltyCard
+                loyalty_program = LoyaltyProgram.objects.filter(business=business, is_active=True).first()
+                if loyalty_program:
+                    points_earned = int(total * loyalty_program.points_per_currency)
+                    if points_earned > 0:
+                        card, _ = LoyaltyCard.objects.get_or_create(program=loyalty_program, client=client)
+                        card.points += points_earned
+                        card.save()
+
             if post_app_id:
                 app_obj = Appointment.objects.filter(id=post_app_id, business=business).first()
                 if app_obj:
