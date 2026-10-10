@@ -155,7 +155,7 @@
                 <div>
                     <div class="font-display font-bold text-base text-slate-900">{{ plan.name }}</div>
                     <div class="text-xs text-slate-500 mt-1 flex items-baseline gap-1">
-                        <span class="text-2xl font-black text-rose-900">${{ plan.monthly_price }}</span>
+                        <span class="text-2xl font-black text-rose-900">{{ plan.currency }}{{ plan.display_monthly }}</span>
                         <span class="text-[11px] font-medium text-slate-500">/ mes</span>
                     </div>
 
@@ -207,5 +207,91 @@
         </div>
     </div>
 
+    <!-- Informar Pago de Suscripción -->
+    <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm mt-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-5 h-5 text-brand-900"></i>
+                    <span>Informar Pago de Suscripción SaaS</span>
+                </h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Reporta el pago de tu licencia. Las opciones dependen de tu región asignada.</p>
+            </div>
+        </div>
+
+        {% if billing_methods %}
+        <form method="POST" action="{% url 'user_profile_config' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="REPORT_PAYMENT">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Método Utilizado</label>
+                    <select name="region_payment_method_id" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-900">
+                        <option value="">-- Seleccionar --</option>
+                        {% for rm in billing_methods %}
+                        <option value="{{ rm.id }}">{{ rm.payment_method.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Plan Pagado</label>
+                    <select name="plan_id" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-900">
+                        {% for plan in available_plans %}
+                        <option value="{{ plan.id }}">{{ plan.name }} ({{ plan.currency }}{{ plan.display_monthly }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Monto Pagado</label>
+                    <input type="number" step="0.01" name="amount" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">N° de Comprobante / Referencia</label>
+                    <input type="text" name="reference" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-900">
+                </div>
+            </div>
+
+            <!-- Instrucciones de Pago por Región (JS toggle) -->
+            <div id="payment-instructions" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 whitespace-pre-line"></div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="px-5 py-2 bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                    <i data-lucide="send" class="w-4 h-4"></i> Informar Pago
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <div class="p-6 text-center bg-slate-50 rounded-xl border border-slate-200">
+            <p class="text-xs font-bold text-slate-600">No hay métodos de pago de facturación habilitados para tu región ({{ business.region.name|default:'Sin Región' }}).</p>
+        </div>
+        {% endif %}
+    </div>
+
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const instructionsMap = {
+        {% for rm in billing_methods %}
+        "{{ rm.id }}": "{{ rm.instructions|escapejs }}",
+        {% endfor %}
+    };
+    
+    const selectMethod = document.querySelector('select[name="region_payment_method_id"]');
+    const instructionsDiv = document.getElementById('payment-instructions');
+    
+    if(selectMethod) {
+        selectMethod.addEventListener('change', function() {
+            const val = this.value;
+            if(val && instructionsMap[val]) {
+                instructionsDiv.innerHTML = "<strong>Instrucciones para Pago:</strong><br>" + instructionsMap[val];
+                instructionsDiv.classList.remove('hidden');
+            } else {
+                instructionsDiv.classList.add('hidden');
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

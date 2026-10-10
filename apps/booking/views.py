@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from apps.business.models import Business, StaffMember, WorkSchedule, Branch
-from apps.agenda.models import Service, Appointment
+from apps.agenda.models import Service, Appointment, ServiceCategory
 from apps.crm.models import Client
 from apps.ai_engine.models import AIAutomationLog
 
@@ -117,6 +117,20 @@ def public_booking_view(request, business_slug):
         )
         services = Service.objects.filter(business=business, is_active=True)
 
+    # Group services by category
+    categories = ServiceCategory.objects.filter(business=business).order_by('name')
+    uncategorized_services = services.filter(category__isnull=True)
+    
+    # Pre-fetch services per category
+    category_data = []
+    for cat in categories:
+        cat_services = services.filter(category=cat)
+        if cat_services.exists():
+            category_data.append({
+                'category': cat,
+                'services': cat_services
+            })
+
     staff_members = StaffMember.objects.filter(business=business, is_active=True)
     if selected_branch:
         # Filter staff assigned to selected branch
@@ -209,6 +223,8 @@ def public_booking_view(request, business_slug):
         'branches': branches,
         'selected_branch': selected_branch,
         'services': services,
+        'category_data': category_data,
+        'uncategorized_services': uncategorized_services,
         'staff_members': staff_members,
         'booking_success': booking_success,
         'appointment': appointment_created,

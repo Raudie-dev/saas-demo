@@ -19,7 +19,10 @@ class Business(TimeStampedModel):
     email = models.EmailField(verbose_name="Email de contacto")
     phone = models.CharField(max_length=50, verbose_name="Teléfono / WhatsApp")
     address = models.TextField(blank=True, null=True, verbose_name="Dirección Principal")
-    logo_url = models.URLField(blank=True, null=True, verbose_name="URL de Logo")
+    logo_url = models.ImageField(upload_to='business/logos/', blank=True, null=True, verbose_name="Logo de Perfil")
+    banner_url = models.ImageField(upload_to='business/banners/', blank=True, null=True, verbose_name="Banner/Portada")
+    description = models.TextField(blank=True, null=True, verbose_name="Descripción del Negocio / Bio")
+    whatsapp_number = models.CharField(max_length=50, blank=True, null=True, verbose_name="Número de WhatsApp (Opcional)")
     currency = models.CharField(max_length=10, default="$", verbose_name="Símbolo de Moneda")
     branding_color = models.CharField(max_length=20, default="#881337", verbose_name="Color de Marca (Hex)")
     business_type = models.CharField(max_length=30, choices=BUSINESS_TYPE_CHOICES, default='MARKETING', verbose_name="Tipo de Agencia / Negocio")
@@ -37,6 +40,7 @@ class Business(TimeStampedModel):
     onboarding_completed = models.BooleanField(default=False, verbose_name="Onboarding Completado")
     time_format = models.CharField(max_length=10, choices=TIME_FORMAT_CHOICES, default='12h', verbose_name="Formato de Hora")
     allow_editing_client_history = models.BooleanField(default=True, verbose_name="Permitir editar el historial de servicios de clientes")
+    region = models.ForeignKey('superadmin.Region', on_delete=models.SET_NULL, null=True, blank=True, related_name='businesses', verbose_name="Región")
 
     class Meta:
         verbose_name = "Negocio"
@@ -61,6 +65,28 @@ class Business(TimeStampedModel):
         if not self.enabled_modules:
             return True
         return module_name in self.enabled_modules
+
+    def save(self, *args, **kwargs):
+        from apps.core.utils_image import process_image_to_webp
+        
+        # Process logo if it's new or changed
+        if self.pk:
+            try:
+                old_instance = Business.objects.get(pk=self.pk)
+                if self.logo_url and hasattr(self.logo_url, 'file') and getattr(old_instance.logo_url, 'name', None) != self.logo_url.name:
+                    process_image_to_webp(self.logo_url, max_size=(512, 512))
+                
+                if self.banner_url and hasattr(self.banner_url, 'file') and getattr(old_instance.banner_url, 'name', None) != self.banner_url.name:
+                    process_image_to_webp(self.banner_url, max_size=(1920, 1080))
+            except Business.DoesNotExist:
+                pass
+        else:
+            if self.logo_url and hasattr(self.logo_url, 'file'):
+                process_image_to_webp(self.logo_url, max_size=(512, 512))
+            if self.banner_url and hasattr(self.banner_url, 'file'):
+                process_image_to_webp(self.banner_url, max_size=(1920, 1080))
+
+        super().save(*args, **kwargs)
 
 class Branch(TimeStampedModel):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="branches")
@@ -102,6 +128,23 @@ class StaffMember(TimeStampedModel):
     base_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Sueldo Base ($)")
     is_active = models.BooleanField(default=True)
     avatar_color = models.CharField(max_length=20, default="#3b82f6")
+    profile_picture = models.ImageField(upload_to='staff/profiles/', blank=True, null=True, verbose_name="Foto de Perfil")
+
+    def save(self, *args, **kwargs):
+        from apps.core.utils_image import process_image_to_webp
+        
+        if self.pk:
+            try:
+                old_instance = StaffMember.objects.get(pk=self.pk)
+                if self.profile_picture and hasattr(self.profile_picture, 'file') and getattr(old_instance.profile_picture, 'name', None) != self.profile_picture.name:
+                    process_image_to_webp(self.profile_picture, max_size=(512, 512))
+            except StaffMember.DoesNotExist:
+                pass
+        else:
+            if self.profile_picture and hasattr(self.profile_picture, 'file'):
+                process_image_to_webp(self.profile_picture, max_size=(512, 512))
+
+        super().save(*args, **kwargs)
 
     @property
     def full_name(self):

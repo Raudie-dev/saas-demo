@@ -152,7 +152,29 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1.5">Teléfono / WhatsApp de Agencia</label>
-                        <input type="text" name="phone" value="{{ business.phone }}" placeholder="+54 9 11 9999 8888" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-rose-600 transition">
+                        <div class="flex">
+                            <select name="phone_prefix" class="w-24 bg-slate-50 border border-slate-300 border-r-0 rounded-l-xl px-2 py-3 text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-rose-600 transition">
+                                <option value="+54" {% if '+54' in business.phone %}selected{% endif %}>🇦🇷 +54</option>
+                                <option value="+56" {% if '+56' in business.phone %}selected{% endif %}>🇨🇱 +56</option>
+                                <option value="+52" {% if '+52' in business.phone %}selected{% endif %}>🇲🇽 +52</option>
+                                <option value="+57" {% if '+57' in business.phone %}selected{% endif %}>🇨🇴 +57</option>
+                                <option value="+51" {% if '+51' in business.phone %}selected{% endif %}>🇵🇪 +51</option>
+                                <option value="+1" {% if '+1' in business.phone %}selected{% endif %}>🇺🇸 +1</option>
+                                <option value="+34" {% if '+34' in business.phone %}selected{% endif %}>🇪🇸 +34</option>
+                            </select>
+                            <input type="text" name="phone_number" value="{{ business.phone|default:'' }}" placeholder="9 11 9999 8888" class="flex-1 min-w-0 bg-slate-50 border border-slate-300 rounded-r-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-rose-600 transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Región Comercial</label>
+                        <select name="region_id" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-rose-600 transition">
+                            <option value="">-- Seleccionar Región --</option>
+                            {% for region in all_regions %}
+                            <option value="{{ region.id }}" {% if business.region and business.region.id == region.id %}selected{% endif %}>{{ region.name }} ({{ region.code }})</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-slate-500 mt-1">Define los métodos de pago disponibles y configuración por defecto.</p>
                     </div>
 
                     <div>

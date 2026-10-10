@@ -96,7 +96,78 @@ class GlobalPaymentMethod(TimeStampedModel):
     def __str__(self):
         return f"{self.name} ({'Activo' if self.is_active else 'Inactivo'})"
 
+class Region(TimeStampedModel):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Nombre de la Región")
+    code = models.CharField(max_length=50, unique=True, verbose_name="Código (ej: AR, CL, GLOBAL)")
+    country_codes = models.CharField(max_length=200, blank=True, null=True, verbose_name="Códigos de País para Auto-detección (ej: AR, CL, UY)")
+    currency_symbol = models.CharField(max_length=10, default="$", verbose_name="Símbolo de Moneda Default")
+    is_active = models.BooleanField(default=True, verbose_name="Región Activa")
+    is_default = models.BooleanField(default=False, verbose_name="Región por Defecto")
 
+    class Meta:
+        verbose_name = "Región"
+        verbose_name_plural = "Regiones"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+class PlanRegionPricing(TimeStampedModel):
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.CASCADE, related_name="region_prices", verbose_name="Plan")
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name="plan_prices", verbose_name="Región")
+    monthly_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio Mensual Regional ($)")
+    annual_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio Anual Regional ($)")
+    is_active = models.BooleanField(default=True, verbose_name="Activo en esta Región")
+
+    class Meta:
+        verbose_name = "Precio Regional de Plan"
+        verbose_name_plural = "Precios Regionales de Planes"
+        unique_together = ('plan', 'region')
+
+    def __str__(self):
+        return f"{self.plan.name} - {self.region.name} (${self.monthly_price}/mes)"
+
+class RegionPaymentMethod(TimeStampedModel):
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name="payment_methods", verbose_name="Región")
+    payment_method = models.ForeignKey(GlobalPaymentMethod, on_delete=models.CASCADE, related_name="region_configurations", verbose_name="Método de Pago Global")
+    instructions = models.TextField(blank=True, null=True, verbose_name="Instrucciones para la Región (CBU, Alias, Link)")
+    use_for_sales = models.BooleanField(default=True, verbose_name="Usar en Ventas (POS) de las Agencias")
+    use_for_billing = models.BooleanField(default=False, verbose_name="Usar para Pagar Suscripción del SaaS")
+    is_active = models.BooleanField(default=True, verbose_name="Activo en esta Región")
+
+    class Meta:
+        verbose_name = "Método de Pago por Región"
+        verbose_name_plural = "Métodos de Pago por Región"
+        unique_together = ('region', 'payment_method')
+
+    def __str__(self):
+        return f"{self.payment_method.name} en {self.region.name}"
+
+class SubscriptionPayment(TimeStampedModel):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pendiente de Revisión'),
+        ('APPROVED', 'Pago Aprobado'),
+        ('REJECTED', 'Pago Rechazado'),
+    ]
+
+    business = models.ForeignKey('business.Business', on_delete=models.CASCADE, related_name="subscription_payments", verbose_name="Agencia")
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Plan Abonado")
+    region_payment_method = models.ForeignKey(RegionPaymentMethod, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Método de Pago Utilizado")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Monto Informado")
+    reference = models.CharField(max_length=255, blank=True, null=True, verbose_name="N° Referencia / Comprobante")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', verbose_name="Estado del Pago")
+    paid_at = models.DateTimeField(default=timezone.now, verbose_name="Fecha de Pago Informada")
+    reviewed_at = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de Revisión")
+    reviewed_by = models.ForeignKey('SuperAdminUser', on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_payments")
+    notes = models.TextField(blank=True, null=True, verbose_name="Notas del Administrador")
+
+    class Meta:
+        verbose_name = "Pago de Suscripción"
+        verbose_name_plural = "Pagos de Suscripciones"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Pago {self.id} - {self.business.name} ({self.get_status_display()})"
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 
 class SuperAdminUserManager(BaseUserManager):
@@ -171,3 +242,47 @@ class SuperAdminUser(AbstractBaseUser, PermissionsMixin):
         full = f"{self.first_name} {self.last_name}".strip()
         return full or self.username or self.email
 
+
+class SystemAnnouncement(TimeStampedModel):
+    TYPE_CHOICES = [
+        ('INFO', 'Informativo (Azul)'),
+        ('WARNING', 'Advertencia (Amarillo)'),
+        ('STRICT', 'Estricto/Bloqueo (Rojo)'),
+    ]
+
+    title = models.CharField(max_length=200, verbose_name="Título")
+    message = models.TextField(verbose_name="Mensaje (soporta saltos de línea)")
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='INFO', verbose_name="Tipo de Modal")
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
+    is_dismissible = models.BooleanField(default=True, verbose_name="Se puede cerrar (X)")
+    
+    # Action Button
+    action_button_text = models.CharField(max_length=100, blank=True, null=True, verbose_name="Texto del Botón de Acción")
+    action_button_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="URL del Botón (ej: /negocio/configuracion/)")
+
+    # Filters
+    target_regions = models.ManyToManyField(Region, blank=True, verbose_name="Filtrar por Regiones")
+    target_missing_region = models.BooleanField(default=False, verbose_name="Solo para agencias SIN región asignada")
+
+    class Meta:
+        verbose_name = "Comunicado / Modal"
+        verbose_name_plural = "Comunicados y Modales"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} ({self.get_type_display()})"
+
+
+from django.conf import settings
+
+class AnnouncementDismissal(TimeStampedModel):
+    announcement = models.ForeignKey(SystemAnnouncement, on_delete=models.CASCADE, related_name='dismissals')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='dismissed_announcements')
+
+    class Meta:
+        verbose_name = "Descarte de Comunicado"
+        verbose_name_plural = "Descartes de Comunicados"
+        unique_together = ('announcement', 'user')
+
+    def __str__(self):
+        return f"{self.user.email} cerró {self.announcement.title}"

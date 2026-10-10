@@ -72,6 +72,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.business.context_processors.business_context',
+                'apps.superadmin.context_processors.announcement_context',
             ],
         },
     },
@@ -100,7 +101,7 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': BASE_DIR / 'raudie_os.sqlite3',
         }
     }
 

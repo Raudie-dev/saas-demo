@@ -96,6 +96,16 @@
                 <span>Métodos de Pago Globales</span>
             </a>
 
+            <a href="{% url 'superadmin_regions' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_regions' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                <i data-lucide="globe" class="w-4 h-4 text-rose-400"></i>
+                <span>Regiones y Pagos</span>
+            </a>
+
+            <a href="{% url 'superadmin_announcements' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_announcements' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                <i data-lucide="bell" class="w-4 h-4 text-rose-400"></i>
+                <span>Modales y Comunicados</span>
+            </a>
+
         </nav>
 
     </aside>

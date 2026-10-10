@@ -1,6 +1,7 @@
 
 # Python / Virtual Environment
 venv/
+media/
 .venv/
 env/
 ENV/

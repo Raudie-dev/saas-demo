@@ -30,4 +30,5 @@ urlpatterns = [
     path('whatsapp-gateway/generate/', views.whatsapp_gateway_generate_api, name='whatsapp_gateway_generate'),
     path('whatsapp-gateway/unlink/', views.whatsapp_gateway_unlink_api, name='whatsapp_gateway_unlink'),
     path('whatsapp-gateway/send-reminder/', views.whatsapp_gateway_send_reminder_api, name='whatsapp_gateway_send_reminder'),
+    path('dismiss-announcement/<int:announcement_id>/', views.dismiss_announcement_view, name='dismiss_announcement'),
 ]

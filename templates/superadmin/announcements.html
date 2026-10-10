@@ -1,0 +1,183 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}SuperAdmin - Modales y Comunicados{% endblock %}
+{% block header_title %}Modales y Comunicados{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto pb-10">
+
+    <!-- Top Action & Info Bar -->
+    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold font-display text-slate-900">Comunicados del Sistema</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Crea modales y pop-ups para notificar a las agencias, forzarlos a actualizar datos o informar novedades.</p>
+        </div>
+
+        <button type="button" onclick="openCreateAnnouncementModal()" class="px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition cursor-pointer flex items-center gap-2 shadow-xs">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Nuevo Comunicado</span>
+        </button>
+    </div>
+
+    <!-- Announcements Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for ann in announcements %}
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full {% if ann.is_active %}bg-emerald-500 animate-pulse{% else %}bg-slate-300{% endif %}"></span>
+                        <h3 class="font-bold text-slate-900 text-sm font-display">{{ ann.title }}</h3>
+                    </div>
+                    <span class="font-mono text-[10px] font-bold px-2 py-0.5 rounded {% if ann.type == 'STRICT' %}bg-rose-100 text-rose-700{% elif ann.type == 'WARNING' %}bg-amber-100 text-amber-700{% else %}bg-blue-100 text-blue-700{% endif %} uppercase border border-slate-200">
+                        {{ ann.get_type_display }}
+                    </span>
+                </div>
+                <p class="text-xs text-slate-600 line-clamp-3 whitespace-pre-wrap">{{ ann.message }}</p>
+                
+                <div class="text-[10px] text-slate-500 space-y-1 mt-2">
+                    <p><strong>Cerrable (X):</strong> {% if ann.is_dismissible %}Sí{% else %}No (Obligatorio){% endif %}</p>
+                    {% if ann.target_regions.exists %}
+                    <p><strong>Filtro:</strong> Solo Regiones: {% for r in ann.target_regions.all %}{{ r.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+                    {% endif %}
+                    {% if ann.target_missing_region %}
+                    <p><strong>Filtro:</strong> Solo agencias SIN región</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                <form method="POST" action="{% url 'superadmin_announcements' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="TOGGLE_STATUS">
+                    <input type="hidden" name="announcement_id" value="{{ ann.id }}">
+                    <button type="submit" class="px-3 py-1.5 rounded-xl font-bold text-[11px] transition cursor-pointer {% if ann.is_active %}bg-rose-50 text-rose-900 border border-rose-200 hover:bg-rose-100{% else %}bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100{% endif %}">
+                        {% if ann.is_active %}Pausar{% else %}Activar{% endif %}
+                    </button>
+                </form>
+                
+                <form method="POST" action="{% url 'superadmin_announcements' %}" onsubmit="return confirm('¿Eliminar comunicado definitivamente?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="DELETE">
+                    <input type="hidden" name="announcement_id" value="{{ ann.id }}">
+                    <button type="submit" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-rose-600 hover:bg-rose-50 font-bold text-[11px] transition cursor-pointer">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-3 p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 italic">
+            No hay comunicados creados.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Create -->
+<div id="announcementModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transition-all transform scale-100">
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="bell" class="w-5 h-5 text-rose-400"></i>
+                <h3 id="modalTitle" class="text-base font-bold font-display">Nuevo Comunicado / Modal</h3>
+            </div>
+            <button type="button" onclick="closeAnnouncementModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'superadmin_announcements' %}" class="p-6 space-y-4 text-xs max-h-[70vh] overflow-y-auto">
+            {% csrf_token %}
+            <input type="hidden" id="ann_action" name="action" value="CREATE">
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Título</label>
+                <input type="text" name="title" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Mensaje</label>
+                <textarea name="message" required rows="4" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Tipo / Estilo</label>
+                    <select name="type" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900">
+                        <option value="INFO">Informativo (Azul)</option>
+                        <option value="WARNING">Advertencia (Amarillo)</option>
+                        <option value="STRICT">Estricto/Bloqueo (Rojo)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Cerrable (Botón X)</label>
+                    <div class="flex items-center h-10 gap-2">
+                        <input type="checkbox" name="is_dismissible" id="is_dismissible" checked class="w-4 h-4 text-brand-900 border-slate-300 rounded focus:ring-brand-900">
+                        <label for="is_dismissible" class="text-slate-600">El usuario puede descartarlo</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-4 border-t border-slate-100">
+                <h4 class="font-bold text-slate-800 mb-2">Botón de Acción (Opcional)</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Texto del botón</label>
+                        <input type="text" name="action_button_text" placeholder="Ej: Configurar Región" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">URL (Destino)</label>
+                        <input type="text" name="action_button_url" placeholder="Ej: /negocio/configuracion/" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900">
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100">
+                <h4 class="font-bold text-slate-800 mb-2">Filtros (Audiencia)</h4>
+                
+                <div class="space-y-3">
+                    <label class="flex items-start gap-2 p-3 border border-slate-200 rounded-xl bg-slate-50 cursor-pointer">
+                        <input type="checkbox" name="target_missing_region" class="w-4 h-4 text-brand-900 border-slate-300 rounded focus:ring-brand-900 mt-0.5">
+                        <div class="flex-1">
+                            <span class="block font-bold text-slate-800">Solo agencias SIN región</span>
+                            <span class="block text-slate-500 mt-0.5">Muestra el modal únicamente a las agencias que no tienen una región comercial asignada.</span>
+                        </div>
+                    </label>
+
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">O mostrar a regiones específicas (mantén Ctrl/Cmd para seleccionar varias):</label>
+                        <select name="target_regions" multiple class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900 h-24">
+                            {% for r in regions %}
+                            <option value="{{ r.id }}">{{ r.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-slate-400 mt-1">Si no seleccionas ninguna, aplicará a todas (salvo que marques "Solo agencias SIN región").</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 mt-2">
+                <input type="checkbox" name="is_active" id="is_active" checked class="w-4 h-4 text-brand-900 border-slate-300 rounded focus:ring-brand-900">
+                <label for="is_active" class="font-bold text-slate-800">Publicar Inmediatamente</label>
+            </div>
+
+            <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
+                <button type="button" onclick="closeAnnouncementModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition cursor-pointer">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-brand-900 text-white font-bold rounded-xl hover:bg-brand-800 transition shadow-xs cursor-pointer">Guardar Modal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openCreateAnnouncementModal() {
+    document.getElementById('announcementModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeAnnouncementModal() {
+    document.getElementById('announcementModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

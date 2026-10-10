@@ -483,6 +483,47 @@
     </script>
 
     {% block extra_scripts %}{% endblock %}
+
+    <!-- System Announcement Modal -->
+    {% if active_announcement %}
+    <div id="systemAnnouncementModal" class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 {% if active_announcement.type == 'STRICT' %}bg-rose-950{% elif active_announcement.type == 'WARNING' %}bg-amber-500{% else %}bg-brand-900{% endif %} text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="{% if active_announcement.type == 'STRICT' %}alert-octagon{% elif active_announcement.type == 'WARNING' %}alert-triangle{% else %}info{% endif %}" class="w-5 h-5 text-white"></i>
+                    <h3 class="text-base font-bold font-display">{{ active_announcement.title }}</h3>
+                </div>
+                {% if active_announcement.is_dismissible %}
+                <button type="button" onclick="dismissAnnouncement('{{ active_announcement.id }}')" class="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+                {% endif %}
+            </div>
+            
+            <div class="p-6 text-sm text-slate-700 whitespace-pre-wrap">{{ active_announcement.message }}</div>
+            
+            {% if active_announcement.action_button_url and active_announcement.action_button_text %}
+            <div class="p-6 pt-0 flex justify-end">
+                <a href="{{ active_announcement.action_button_url }}" class="px-4 py-2 bg-brand-900 text-white font-bold rounded-xl hover:bg-brand-800 transition shadow-xs text-xs">
+                    {{ active_announcement.action_button_text }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        function dismissAnnouncement(id) {
+            fetch(`/dismiss-announcement/${id}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(() => {
+                document.getElementById('systemAnnouncementModal').remove();
+            }).catch(console.error);
+        }
+    </script>
+    {% endif %}
 </body>
 </html>
-
