@@ -12,7 +12,6 @@ __pycache__/
 staticfiles/
 
 # Database
-*.sqlite3
 
 .create_admin.py
 
