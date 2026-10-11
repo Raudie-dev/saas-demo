@@ -1,356 +1,730 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-slate-50 text-slate-900">
+<html lang="es" class="h-full bg-slate-50 text-slate-800 scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ business.name }} - Reservas Online</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <title>{{ business.name }} · Perfil y Reservas</title>
+
+    <!-- Meta Description & SEO -->
+    <meta name="description" content="{% if business.description %}{{ business.description|striptags|truncatewords:25 }}{% else %}Agenda tu cita en {{ business.name }} online. Especialistas calificados y atención personalizada.{% endif %}">
+    <meta name="author" content="{{ business.name }}">
+
+    <!-- Open Graph (WhatsApp, Telegram, Facebook, iMessage) - LOGO DE LA AGENCIA -->
+    <meta property="og:type" content="business.business">
+    <meta property="og:title" content="{{ business.name }} · Reserva tu Cita Online">
+    <meta property="og:description" content="{% if business.description %}{{ business.description|striptags|truncatewords:25 }}{% else %}Agenda tu cita en {{ business.name }} online en segundos.{% endif %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:site_name" content="{{ business.name }}">
+    {% if business.logo_url %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ business.logo_url.url }}">
+    <meta property="og:image:secure_url" content="{{ request.scheme }}://{{ request.get_host }}{{ business.logo_url.url }}">
+    <meta property="og:image:alt" content="Logo de {{ business.name }}">
+    <meta property="og:image:type" content="image/webp">
+    <meta property="og:image:width" content="500">
+    <meta property="og:image:height" content="500">
+    {% elif business.banner_url %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ business.banner_url.url }}">
+    <meta property="og:image:secure_url" content="{{ request.scheme }}://{{ request.get_host }}{{ business.banner_url.url }}">
+    {% endif %}
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ business.name }} · Reserva tu Cita Online">
+    <meta name="twitter:description" content="{% if business.description %}{{ business.description|striptags|truncatewords:25 }}{% else %}Agenda tu cita en {{ business.name }} fácilmente.{% endif %}">
+    {% if business.logo_url %}
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ business.logo_url.url }}">
+    {% elif business.banner_url %}
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ business.banner_url.url }}">
+    {% endif %}
+
+    <!-- Favicon & Apple Touch Icon -->
+    {% if business.logo_url %}
+    <link rel="icon" href="{{ business.logo_url.url }}">
+    <link rel="apple-touch-icon" href="{{ business.logo_url.url }}">
+    {% endif %}
+
+    <!-- Google Fonts & Tailwind -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        display: ['"Outfit"', 'sans-serif'],
+                        fun: ['"Nunito"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                            950: '#4c0519',
+                        },
+                        vinotinto: {
+                            50: '#fdf2f4',
+                            100: '#fce7ea',
+                            200: '#f8d0d7',
+                            500: '#9f1239',
+                            600: '#881337',
+                            700: '#701a2b',
+                            800: '#581c25',
+                            900: '#3b0712',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
         .font-display { font-family: 'Outfit', sans-serif; }
-        .banner-container {
-            height: 300px;
-            background-color: #1e293b;
-            background-position: center;
-            background-size: cover;
-            position: relative;
-        }
-        .logo-container {
-            width: 120px;
-            height: 120px;
-            border-radius: 20px;
-            border: 4px solid white;
-            background-color: white;
-            position: absolute;
-            bottom: -60px;
-            left: 20px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .logo-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        .logo-placeholder {
-            background: linear-gradient(to top right, #881337, #0f172a);
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 3rem;
-            font-weight: 800;
-            font-family: 'Outfit', sans-serif;
-        }
+        .font-fun { font-family: 'Nunito', sans-serif; }
         
-        /* Modal Styles */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .card-clean {
+            background-color: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 1.75rem;
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+        }
+
+        .card-clean-hover {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-clean-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -4px rgba(136, 19, 55, 0.12);
+            border-color: #fca5a5;
+        }
+
+        .title-underline {
+            position: relative;
+            display: inline-block;
+        }
+        .title-underline::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 48px;
+            height: 3.5px;
+            background-color: #881337;
+            border-radius: 9999px;
+        }
+
+        .title-underline-left {
+            position: relative;
+            display: inline-block;
+        }
+        .title-underline-left::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 38px;
+            height: 3px;
+            background-color: #881337;
+            border-radius: 9999px;
+        }
+
         .modal-overlay {
             background-color: rgba(15, 23, 42, 0.7);
             backdrop-filter: blur(4px);
         }
-        
-        /* Hide scrollbar for category list */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-full flex flex-col">
+<body class="min-h-full flex flex-col antialiased selection:bg-rose-900 selection:text-white">
 
-    <!-- Top Navbar -->
+    <!-- Top Navigation Bar (Platform Vinotinto Branding) -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="font-display font-bold text-xl text-slate-900">{{ business.name }}</div>
-            <a href="#" class="text-sm font-semibold text-slate-600 hover:text-slate-900 transition">Iniciar sesión</a>
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <!-- Brand Logo & Name -->
+            <a href="{% url 'public_booking' business.slug %}" class="flex items-center gap-2.5">
+                {% if business.logo_url %}
+                <img src="{{ business.logo_url.url }}" alt="{{ business.name }}" class="w-9 h-9 rounded-full object-cover border-2 border-rose-100 shadow-sm">
+                {% else %}
+                <div class="w-9 h-9 rounded-full bg-rose-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                    {{ business.name|slice:":1" }}
+                </div>
+                {% endif %}
+                <span class="font-fun font-extrabold tracking-wider text-base text-slate-900 uppercase">
+                    {{ business.name }}
+                </span>
+            </a>
+
+            <!-- Nav Links -->
+            <nav class="flex items-center gap-3 sm:gap-5 text-xs font-bold text-slate-600">
+                <a href="#servicios" class="hidden sm:inline hover:text-rose-900 transition">Servicios</a>
+                <a href="#sobre" class="hidden sm:inline hover:text-rose-900 transition">Sobre</a>
+                <a href="#equipo" class="hidden sm:inline hover:text-rose-900 transition">Especialistas</a>
+                <a href="#mapa" class="hidden sm:inline hover:text-rose-900 transition">Ubicación</a>
+                
+                <!-- Share button -->
+                <button type="button" onclick="shareBusinessProfile()" title="Compartir perfil"
+                        class="px-3.5 py-1.5 rounded-full border border-rose-200 text-rose-900 hover:bg-rose-50 flex items-center gap-1.5 transition">
+                    <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                    <span>Compartir</span>
+                </button>
+
+                <!-- Booking CTA button -->
+                <a href="#servicios" class="px-4 py-1.5 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white font-bold transition shadow-sm hover:shadow flex items-center gap-1.5">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                    <span>Agendar</span>
+                </a>
+            </nav>
         </div>
     </header>
 
     {% if booking_success %}
-    <!-- Success Screen overlaying everything else -->
-    <div class="max-w-2xl mx-auto px-4 py-12 w-full mt-10">
-        <div class="bg-white border border-slate-200 rounded-3xl p-8 text-center space-y-6 shadow-xl">
-            <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-200">
-                <i data-lucide="check-circle" class="w-10 h-10"></i>
-            </div>
-            <div>
-                <h2 class="text-2xl font-bold font-display text-slate-900">¡Tu Cita Ha Sido Reservada Con Éxito!</h2>
-                <p class="text-slate-600 text-sm mt-2">Hemos enviado una confirmación instantánea a tu WhatsApp.</p>
+    <!-- Booking Success View -->
+    <main class="max-w-2xl mx-auto px-4 py-16 w-full flex-1 flex items-center">
+        <div class="w-full card-clean p-8 sm:p-10 text-center space-y-6 shadow-xl border border-rose-100">
+            <div class="w-20 h-20 rounded-full bg-rose-50 text-rose-900 flex items-center justify-center mx-auto border-4 border-white shadow-md">
+                <i data-lucide="check" class="w-10 h-10 stroke-[3]"></i>
             </div>
 
-            <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 max-w-md mx-auto text-left space-y-3">
-                <div class="flex justify-between text-sm">
-                    <span class="text-slate-500">Servicio:</span>
+            <div class="space-y-1">
+                <span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200">
+                    ¡Reserva Confirmada!
+                </span>
+                <h1 class="text-2xl sm:text-3xl font-fun font-black text-slate-900">Cita Agendada con Éxito</h1>
+                <p class="text-slate-500 text-sm max-w-md mx-auto">
+                    Te esperamos en {{ business.name }}. Hemos registrado tu cita y enviado un recordatorio automático.
+                </p>
+            </div>
+
+            <!-- Receipt Card -->
+            <div class="bg-[#fdf2f4] p-5 rounded-2xl border border-rose-100 text-left space-y-3">
+                <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
+                    <span class="text-slate-500 font-medium">Servicio:</span>
                     <span class="font-bold text-slate-900">{{ appointment.service.name }}</span>
                 </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-slate-500">Especialista:</span>
+                <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
+                    <span class="text-slate-500 font-medium">Especialista:</span>
                     <span class="font-bold text-rose-900">{{ appointment.staff.full_name }}</span>
                 </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-slate-500">Fecha y Hora:</span>
-                    <span class="font-bold text-emerald-700">{{ appointment.date }} a las {{ appointment.start_time }} hs</span>
+                <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
+                    <span class="text-slate-500 font-medium">Fecha y Hora:</span>
+                    <span class="font-bold text-slate-900">{{ appointment.date }} · {{ appointment.start_time }} hs</span>
                 </div>
-                <div class="flex justify-between text-sm border-t border-slate-200 pt-2">
-                    <span class="text-slate-500">Total Servicio:</span>
-                    <span class="font-extrabold text-slate-900 text-base">{{ business.currency }}{{ appointment.total_price }}</span>
+                {% if selected_branch or business.address %}
+                <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
+                    <span class="text-slate-500 font-medium">Lugar:</span>
+                    <span class="text-slate-700 text-right text-xs max-w-[200px] truncate">
+                        {{ selected_branch.address|default:business.address }}
+                    </span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between text-sm pt-1">
+                    <span class="text-slate-500 font-medium">Total:</span>
+                    <span class="font-extrabold text-rose-950 text-base">{{ business.currency }}{{ appointment.total_price }}</span>
                 </div>
             </div>
 
-            <a href="{% url 'public_booking' business.slug %}" class="inline-block px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-950 text-white font-semibold text-sm shadow-md transition mt-4">
-                Hacer Otra Reserva
-            </a>
+            <!-- Calendar Export Actions -->
+            <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <button type="button" 
+                        onclick="exportToGoogleCalendar('{{ appointment.service.name }} en {{ business.name }}', '{{ appointment.date }}', '{{ appointment.start_time }}', '{{ appointment.end_time }}', 'Reserva con {{ appointment.staff.full_name }}', '{{ business.address|default:'' }}')"
+                        class="px-4 py-2.5 rounded-full bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-2 border border-slate-300 shadow-sm transition">
+                    <i data-lucide="calendar" class="w-4 h-4 text-rose-800"></i> Google Calendar
+                </button>
+                <button type="button" 
+                        onclick="exportToAppleCalendar('{{ appointment.service.name }} en {{ business.name }}', '{{ appointment.date }}', '{{ appointment.start_time }}', '{{ appointment.end_time }}', 'Reserva con {{ appointment.staff.full_name }}', '{{ business.address|default:'' }}')"
+                        class="px-4 py-2.5 rounded-full bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-2 border border-slate-300 shadow-sm transition">
+                    <i data-lucide="download" class="w-4 h-4 text-slate-600"></i> Descargar iCal (.ics)
+                </button>
+            </div>
+
+            <div class="pt-2">
+                <a href="{% url 'public_booking' business.slug %}" 
+                   class="inline-block px-7 py-3 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white font-bold text-sm shadow-md transition">
+                    Volver al Perfil del Negocio
+                </a>
+            </div>
         </div>
-    </div>
+    </main>
+
     {% else %}
 
     <main class="w-full flex-1 pb-20">
         
-        <!-- Banner & Profile Header Section -->
-        <div class="w-full bg-white border-b border-slate-200 pb-8">
-            <div class="max-w-6xl mx-auto">
-                <div class="banner-container rounded-b-3xl sm:rounded-3xl mt-0 sm:mt-4 overflow-hidden" 
-                     {% if business.banner_url %}style="background-image: url('{{ business.banner_url.url }}');"{% endif %}>
-                    
-                    <div class="logo-container">
-                        {% if business.logo_url %}
-                        <img src="{{ business.logo_url.url }}" alt="Logo {{ business.name }}">
-                        {% else %}
-                        <div class="logo-placeholder">{{ business.name|slice:":1" }}</div>
-                        {% endif %}
-                    </div>
-                </div>
+        <!-- BANNER SECTION (Clean layout with smooth gradient fallback) -->
+        <section class="w-full overflow-hidden bg-slate-900">
+            <div class="w-full h-48 sm:h-64 relative bg-cover bg-center overflow-hidden"
+                 {% if business.banner_url %}
+                 style="background-image: url('{{ business.banner_url.url }}');"
+                 {% else %}
+                 style="background: linear-gradient(135deg, #701a2b 0%, #3b0712 100%);"
+                 {% endif %}>
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-900/20 to-transparent"></div>
+            </div>
+        </section>
 
-                <div class="mt-20 px-4 sm:px-6">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                        <div>
-                            <h1 class="font-display font-black text-3xl sm:text-4xl text-slate-900">{{ business.name }}</h1>
-                            <div class="flex items-center gap-2 mt-2">
-                                <div class="flex text-amber-400">
-                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
-                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
-                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
-                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
-                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
-                                </div>
-                                <span class="text-sm font-bold text-slate-700">5.0 <span class="text-slate-400 font-normal">(Negocio Verificado)</span></span>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button class="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition">
-                                <i data-lucide="instagram" class="w-5 h-5"></i>
-                            </button>
-                            <button class="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition">
-                                <i data-lucide="share-2" class="w-5 h-5"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    {% if business.description %}
-                    <div class="mt-6 max-w-3xl text-sm text-slate-600 leading-relaxed">
-                        {{ business.description }}
+        <!-- CONTAINER FOR CARDS (Centered reference aesthetic) -->
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 relative z-10 space-y-6">
+            
+            <!-- CIRCULAR AVATAR (Placed OUTSIDE the card so it floats seamlessly over the banner and card without clipping!) -->
+            <div class="relative z-30 flex justify-center -mt-16 sm:-mt-20 -mb-16 sm:-mb-20">
+                <div class="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-white ring-4 ring-rose-100 flex items-center justify-center shrink-0">
+                    {% if business.logo_url %}
+                    <img src="{{ business.logo_url.url }}" alt="{{ business.name }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <div class="w-full h-full bg-gradient-to-tr from-rose-900 to-rose-950 text-white flex items-center justify-center text-4xl sm:text-5xl font-fun font-black">
+                        {{ business.name|slice:":1" }}
                     </div>
                     {% endif %}
                 </div>
             </div>
-        </div>
 
-        <!-- Main Content Area -->
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 mt-8 flex flex-col-reverse md:flex-row gap-8 items-start">
-            
-            <!-- Left Column: Services & Categories -->
-            <div class="w-full md:w-2/3 space-y-6">
+            <!-- CARD 1: PROFILE HERO CARD -->
+            <div class="card-clean shadow-md overflow-hidden relative pt-20 sm:pt-24">
                 
-                <!-- Search -->
-                <div class="relative">
-                    <i data-lucide="search" class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="serviceSearch" placeholder="¿Qué servicio buscas?" class="w-full bg-white border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition shadow-sm">
-                </div>
-
-                <div class="flex flex-col sm:flex-row gap-6 items-start">
-                    <!-- Categories Sidebar -->
-                    <div class="w-full sm:w-48 shrink-0 flex flex-row sm:flex-col gap-2 overflow-x-auto sm:overflow-visible no-scrollbar pb-2 sm:pb-0 sticky top-20">
-                        <a href="#todos" class="category-link active whitespace-nowrap px-4 py-2.5 rounded-xl text-sm font-bold bg-slate-900 text-white transition">Todos</a>
-                        {% for cat in category_data %}
-                        <a href="#cat-{{ cat.category.id }}" class="category-link whitespace-nowrap px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition">{{ cat.category.name }}</a>
-                        {% endfor %}
-                        {% if uncategorized_services %}
-                        <a href="#cat-otros" class="category-link whitespace-nowrap px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition">Otros Servicios</a>
-                        {% endif %}
+                <!-- Profile Info -->
+                <div class="text-center px-6 pb-6">
+                    <!-- Top Pill Tag -->
+                    <div class="inline-block px-3 py-0.5 rounded border border-rose-300 bg-rose-50 text-[11px] font-bold text-rose-900 tracking-wide mb-2 uppercase">
+                        {{ business.get_business_type_display|default:"Negocio Verificado" }}
                     </div>
 
-                    <!-- Services List -->
-                    <div class="w-full space-y-8" id="servicesContainer">
-                        
-                        {% for cat in category_data %}
-                        <div class="service-category-group" id="cat-{{ cat.category.id }}">
-                            <h3 class="font-display font-bold text-xl text-slate-900 mb-4">{{ cat.category.name }}</h3>
-                            <div class="space-y-3">
-                                {% for service in cat.services %}
-                                <div class="bg-white border border-slate-200 rounded-2xl p-4 hover:border-slate-300 hover:shadow-md transition flex items-center justify-between gap-4 cursor-pointer" onclick="openBookingModal('{{ service.id }}', '{{ service.name }}', '{{ service.price }}', '{{ service.duration_minutes }}')">
-                                    <div class="space-y-1">
-                                        <h4 class="font-bold text-slate-900 service-name">{{ service.name }}</h4>
-                                        {% if service.description %}
-                                        <p class="text-xs text-slate-500 line-clamp-2">{{ service.description }}</p>
-                                        {% endif %}
-                                        <div class="text-xs font-semibold text-slate-700 flex items-center gap-2 mt-2">
-                                            <span>{{ service.duration_minutes }} min</span>
-                                            <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                                            <span>{{ business.currency }}{{ service.price }}</span>
-                                        </div>
-                                    </div>
-                                    <button class="w-10 h-10 shrink-0 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition">
-                                        <i data-lucide="plus" class="w-5 h-5"></i>
-                                    </button>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endfor %}
+                    <!-- Business Name -->
+                    <h1 class="font-fun font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">
+                        <span class="title-underline">{{ business.name }}</span>
+                    </h1>
 
-                        {% if uncategorized_services %}
-                        <div class="service-category-group" id="cat-otros">
-                            <h3 class="font-display font-bold text-xl text-slate-900 mb-4">Otros Servicios</h3>
-                            <div class="space-y-3">
-                                {% for service in uncategorized_services %}
-                                <div class="bg-white border border-slate-200 rounded-2xl p-4 hover:border-slate-300 hover:shadow-md transition flex items-center justify-between gap-4 cursor-pointer" onclick="openBookingModal('{{ service.id }}', '{{ service.name }}', '{{ service.price }}', '{{ service.duration_minutes }}')">
-                                    <div class="space-y-1">
-                                        <h4 class="font-bold text-slate-900 service-name">{{ service.name }}</h4>
-                                        {% if service.description %}
-                                        <p class="text-xs text-slate-500 line-clamp-2">{{ service.description }}</p>
-                                        {% endif %}
-                                        <div class="text-xs font-semibold text-slate-700 flex items-center gap-2 mt-2">
-                                            <span>{{ service.duration_minutes }} min</span>
-                                            <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                                            <span>{{ business.currency }}{{ service.price }}</span>
-                                        </div>
-                                    </div>
-                                    <button class="w-10 h-10 shrink-0 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition">
-                                        <i data-lucide="plus" class="w-5 h-5"></i>
-                                    </button>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
+                    {% if business.description %}
+                    <p class="mt-4 text-xs sm:text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
+                        {{ business.description }}
+                    </p>
+                    {% endif %}
 
-                    </div>
-                </div>
-            </div>
+                    <!-- QUICK ACTION BUTTONS: Agendar Cita + WhatsApp Directo + Ver Mapa -->
+                    <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
+                        <a href="#servicios" 
+                           class="px-5 py-2.5 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            <span>Agendar Cita</span>
+                        </a>
 
-            <!-- Right Column: Info & Staff -->
-            <div class="w-full md:w-1/3 space-y-6">
-                <!-- Location Info Card -->
-                <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
-                    
-                    <div class="aspect-video w-full bg-slate-100 rounded-2xl overflow-hidden relative border border-slate-200 flex items-center justify-center">
-                        {% if selected_branch and selected_branch.google_maps_url %}
-                        <a href="{{ selected_branch.google_maps_url }}" target="_blank" class="absolute inset-0 z-10"></a>
-                        {% endif %}
-                        <i data-lucide="map" class="w-8 h-8 text-slate-300 absolute"></i>
-                        <img src="https://maps.googleapis.com/maps/api/staticmap?center={{ business.address|urlencode }}&zoom=15&size=400x200&maptype=roadmap&markers=color:red%7C{{ business.address|urlencode }}&key=YOUR_API_KEY" alt="Map" onerror="this.style.display='none'" class="w-full h-full object-cover">
-                    </div>
-
-                    <div class="space-y-4">
-                        <div class="flex gap-3 text-sm">
-                            <i data-lucide="map-pin" class="w-5 h-5 text-slate-400 shrink-0"></i>
-                            <div class="text-slate-700">
-                                {{ business.address|default:"Dirección no disponible" }}
-                            </div>
-                        </div>
-                        <div class="flex gap-3 text-sm">
-                            <i data-lucide="phone" class="w-5 h-5 text-slate-400 shrink-0"></i>
-                            <div class="text-slate-700">
-                                {{ business.phone }}
-                            </div>
-                        </div>
-                        {% if business.whatsapp_number %}
-                        <a href="https://wa.me/{{ business.whatsapp_number|cut:' '|cut:'+' }}" target="_blank" class="flex gap-3 text-sm group cursor-pointer">
-                            <i data-lucide="message-circle" class="w-5 h-5 text-green-500 shrink-0 group-hover:scale-110 transition"></i>
-                            <div class="text-green-600 font-semibold">
-                                ¡Contáctanos por Whatsapp!
-                            </div>
+                        {% with wa=business.whatsapp_number|default:business.phone %}
+                        {% if wa %}
+                        <a href="https://wa.me/{{ wa|cut:' '|cut:'+'|cut:'-' }}" target="_blank"
+                           class="px-5 py-2.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
+                            <i data-lucide="message-circle" class="w-4 h-4 fill-current"></i>
+                            <span>WhatsApp Directo</span>
                         </a>
                         {% endif %}
-                        <div class="flex gap-3 text-sm">
-                            <i data-lucide="clock" class="w-5 h-5 text-slate-400 shrink-0"></i>
-                            <div class="text-slate-700 hover:text-slate-900 cursor-pointer underline decoration-slate-300 underline-offset-4">
-                                Ver horario de atención
-                            </div>
-                        </div>
+                        {% endwith %}
+
+                        <a href="#mapa" 
+                           class="px-4 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold flex items-center gap-2 transition">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-rose-800"></i>
+                            <span>Ver Mapa</span>
+                        </a>
                     </div>
                 </div>
 
-                <!-- Professionals Card -->
-                <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-                    <h3 class="font-display font-bold text-lg text-slate-900 mb-4">Profesionales</h3>
-                    <div class="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+                <!-- Bottom Footer Strip of Card (Vinotinto/Rose soft tint matching platform) -->
+                <div class="bg-[#fdf2f4] border-t border-[#fce7ea] px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-700 font-medium">
+                    <div class="space-y-0.5 text-center sm:text-left">
+                        {% if business.email %}
+                        <div><strong class="text-slate-900">Email:</strong> {{ business.email }}</div>
+                        {% endif %}
+                        {% if business.phone %}
+                        <div><strong class="text-slate-900">Teléfono:</strong> {{ business.phone }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="text-center sm:text-right font-semibold text-rose-950 flex items-center gap-1">
+                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-800"></i>
+                        <span>{{ selected_branch.address|default:business.address|default:"Tacuarí 478" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 2: "Sobre" AND "Especialistas" (Two side-by-side cards) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="sobre">
+                
+                <!-- Card: Sobre -->
+                <div class="card-clean p-6 space-y-4">
+                    <div class="flex items-center gap-2 pb-1">
+                        <i data-lucide="user" class="w-5 h-5 text-rose-900"></i>
+                        <h3 class="font-fun font-black text-xl text-slate-900">
+                            <span class="title-underline-left">Sobre</span>
+                        </h3>
+                    </div>
+
+                    <div class="space-y-2 text-xs text-slate-600 leading-relaxed pt-1">
+                        <p><strong class="text-slate-900">Tipo:</strong> {{ business.get_business_type_display|default:"Servicios Comerciales" }}</p>
+                        <p><strong class="text-slate-900">Ubicación:</strong> {{ selected_branch.address|default:business.address|default:"Tacuarí 478" }}</p>
+                        <p><strong class="text-slate-900">Especialistas:</strong> {{ staff_members.count }} profesionales listos para atenderte.</p>
+                        <p><strong class="text-slate-900">Atención:</strong> Lunes a Sábado con turnos programados.</p>
+                        {% with wa=business.whatsapp_number|default:business.phone %}
+                        {% if wa %}
+                        <p class="pt-1">
+                            <a href="https://wa.me/{{ wa|cut:' '|cut:'+'|cut:'-' }}" target="_blank" 
+                               class="inline-flex items-center gap-1.5 text-emerald-700 font-bold hover:underline">
+                                <i data-lucide="message-circle" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                Contactar por WhatsApp
+                            </a>
+                        </p>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+
+                <!-- Card: Especialistas -->
+                <div class="card-clean p-6 space-y-4" id="equipo">
+                    <div class="flex items-center justify-between pb-1">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="users" class="w-5 h-5 text-rose-900"></i>
+                            <h3 class="font-fun font-black text-xl text-slate-900">
+                                <span class="title-underline-left">Especialistas</span>
+                            </h3>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-500">{{ staff_members.count }} activos</span>
+                    </div>
+
+                    <div class="space-y-2.5 max-h-60 overflow-y-auto no-scrollbar pt-1">
                         {% for staff in staff_members %}
-                        <div class="flex flex-col items-center gap-2 min-w-[70px]">
-                            {% if staff.profile_picture %}
-                            <img src="{{ staff.profile_picture.url }}" alt="{{ staff.full_name }}" class="w-14 h-14 rounded-full border border-slate-200 object-cover">
-                            {% else %}
-                            <div class="w-14 h-14 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center text-slate-400 font-bold text-xl uppercase">
-                                {{ staff.first_name|slice:":1" }}{{ staff.last_name|slice:":1" }}
+                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 card-clean-hover">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-12 h-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-white shrink-0 flex items-center justify-center">
+                                    {% if staff.profile_picture %}
+                                    <img src="{{ staff.profile_picture.url }}" alt="{{ staff.full_name }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                    <span class="text-xs font-bold text-rose-900 uppercase">{{ staff.first_name|slice:":1" }}{{ staff.last_name|slice:":1" }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-bold text-xs sm:text-sm text-slate-900 truncate">{{ staff.first_name }} {{ staff.last_name }}</h4>
+                                    <p class="text-[11px] text-slate-500 truncate mt-0.5">{{ staff.role_title|default:"Especialista" }}</p>
+                                </div>
                             </div>
-                            {% endif %}
-                            <span class="text-xs font-semibold text-slate-700 text-center leading-tight">{{ staff.first_name }}<br>{{ staff.last_name }}</span>
+
+                            <button type="button" 
+                                    onclick="selectSpecialistShortcut('{{ staff.id }}', '{{ staff.full_name }}')"
+                                    class="shrink-0 px-3.5 py-1.5 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold transition shadow-sm flex items-center gap-1">
+                                <span>Agendar</span>
+                            </button>
+                        </div>
+                        {% empty %}
+                        <div class="p-4 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                            Equipo en preparación
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
             </div>
+
+            <!-- ROW 3: SERVICIOS / SHOWCASE (Antes de la Ubicación) -->
+            <div class="card-clean p-6 sm:p-8 space-y-6 shadow-md" id="servicios">
+                
+                <!-- Section Header with star matching screenshot -->
+                <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                    <h2 class="font-fun font-black text-2xl text-slate-900">
+                        <span class="title-underline-left">Servicios</span>
+                    </h2>
+                    <i data-lucide="star" class="w-6 h-6 text-rose-900"></i>
+                </div>
+
+                <!-- Search and Categories -->
+                <div class="space-y-3">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="serviceSearch" placeholder="Buscar servicio (ej: corte, consulta, asesoría)..." 
+                               class="w-full bg-slate-50 border border-slate-200 rounded-full py-2.5 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 focus:ring-1 focus:ring-rose-900 transition">
+                    </div>
+
+                    <!-- Category Pills -->
+                    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pt-1" id="categoryChips">
+                        <button type="button" data-cat="all" 
+                                class="category-chip active px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap bg-[#881337] text-white shadow-sm">
+                            Todos ({{ total_services_count }})
+                        </button>
+                        {% for cat in category_data %}
+                        <button type="button" data-cat="{{ cat.category.id }}" 
+                                class="category-chip px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-900 border border-slate-200">
+                            {{ cat.category.name }} ({{ cat.services.count }})
+                        </button>
+                        {% endfor %}
+                        {% if uncategorized_services %}
+                        <button type="button" data-cat="otros" 
+                                class="category-chip px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-900 border border-slate-200">
+                            Otros ({{ uncategorized_services.count }})
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- PODIUM / TOP 3 SERVICES (Colores Vinotinto y Plataforma) -->
+                {% if services.count >= 3 %}
+                <div class="pt-2 pb-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end">
+                        
+                        <!-- #2 Service (Left) -->
+                        {% with s2=services.1 %}
+                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2 card-clean-hover cursor-pointer"
+                             onclick="openBookingModal('{{ s2.id }}', '{{ s2.name|escapejs }}', '{{ s2.price }}', '{{ s2.duration_minutes }}')">
+                            <!-- Circular Icon badge -->
+                            <div class="w-14 h-14 rounded-full bg-slate-800 text-white flex items-center justify-center mx-auto border-4 border-white shadow-md">
+                                <i data-lucide="sparkles" class="w-6 h-6"></i>
+                            </div>
+                            <div class="font-bold text-xs text-slate-700 truncate">{{ s2.name }}</div>
+                            <div class="font-fun font-black text-lg text-slate-900">{{ business.currency }}{{ s2.price }}</div>
+                            <!-- Rank pill bar -->
+                            <div class="bg-rose-800 text-white rounded-lg py-1 px-3 flex items-center justify-between text-xs font-bold shadow-sm">
+                                <span>#2</span>
+                                <span class="text-[10px] font-medium">{{ s2.duration_minutes }} min</span>
+                            </div>
+                        </div>
+                        {% endwith %}
+
+                        <!-- #1 Service (Center - Prominent & Taller!) -->
+                        {% with s1=services.0 %}
+                        <div class="bg-[#fdf2f4] border-2 border-rose-300 rounded-2xl p-5 text-center space-y-2.5 shadow-md card-clean-hover cursor-pointer relative -translate-y-2"
+                             onclick="openBookingModal('{{ s1.id }}', '{{ s1.name|escapejs }}', '{{ s1.price }}', '{{ s1.duration_minutes }}')">
+                            <span class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#881337] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                Destacado
+                            </span>
+                            <!-- Circular Icon badge -->
+                            <div class="w-16 h-16 rounded-full bg-[#881337] text-white flex items-center justify-center mx-auto border-4 border-white shadow-lg">
+                                <i data-lucide="award" class="w-8 h-8 text-rose-200"></i>
+                            </div>
+                            <div class="font-fun font-bold text-sm text-slate-900 truncate">{{ s1.name }}</div>
+                            <div class="font-fun font-black text-2xl text-rose-950">{{ business.currency }}{{ s1.price }}</div>
+                            <!-- Rank pill bar (#1) -->
+                            <div class="bg-[#881337] text-white rounded-lg py-1.5 px-3 flex items-center justify-between text-xs font-bold shadow">
+                                <span>#1</span>
+                                <span class="text-[10px] font-medium">{{ s1.duration_minutes }} min</span>
+                            </div>
+                        </div>
+                        {% endwith %}
+
+                        <!-- #3 Service (Right) -->
+                        {% with s3=services.2 %}
+                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2 card-clean-hover cursor-pointer"
+                             onclick="openBookingModal('{{ s3.id }}', '{{ s3.name|escapejs }}', '{{ s3.price }}', '{{ s3.duration_minutes }}')">
+                            <!-- Circular Icon badge -->
+                            <div class="w-14 h-14 rounded-full bg-slate-800 text-white flex items-center justify-center mx-auto border-4 border-white shadow-md">
+                                <i data-lucide="heart-handshake" class="w-6 h-6"></i>
+                            </div>
+                            <div class="font-bold text-xs text-slate-700 truncate">{{ s3.name }}</div>
+                            <div class="font-fun font-black text-lg text-slate-900">{{ business.currency }}{{ s3.price }}</div>
+                            <!-- Rank pill bar (#3) -->
+                            <div class="bg-rose-800 text-white rounded-lg py-1 px-3 flex items-center justify-between text-xs font-bold shadow-sm">
+                                <span>#3</span>
+                                <span class="text-[10px] font-medium">{{ s3.duration_minutes }} min</span>
+                            </div>
+                        </div>
+                        {% endwith %}
+
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- SERVICES LIST / ROWS (Barras Vinotinto en armonía con RauDie OS) -->
+                <div class="space-y-2.5 pt-2" id="servicesListContainer">
+                    {% for service in services %}
+                    <div class="service-row rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white p-3.5 sm:px-5 flex items-center justify-between gap-3 shadow-sm transition duration-200 cursor-pointer"
+                         data-service-id="{{ service.id }}"
+                         data-category-id="{% if service.category %}{{ service.category.id }}{% else %}otros{% endif %}"
+                         onclick="openBookingModal('{{ service.id }}', '{{ service.name|escapejs }}', '{{ service.price }}', '{{ service.duration_minutes }}')">
+                        
+                        <!-- Rank Pill (#1, #2, #3, #4...) -->
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-fun font-black text-xs shrink-0">
+                                #{{ forloop.counter }}
+                            </span>
+                            <div class="min-w-0">
+                                <div class="font-bold text-xs sm:text-sm truncate service-title">{{ service.name }}</div>
+                                <div class="text-[10px] text-rose-200 flex items-center gap-2">
+                                    <span>⏱ {{ service.duration_minutes }} min</span>
+                                    {% if service.description %}
+                                    <span class="truncate hidden sm:inline opacity-80">· {{ service.description }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Price & Action CTA -->
+                        <div class="flex items-center gap-3 shrink-0">
+                            <span class="font-fun font-black text-sm sm:text-base tracking-tight">
+                                {{ business.currency }}{{ service.price }}
+                            </span>
+                            <button type="button" class="w-7 h-7 rounded-full bg-white text-rose-900 hover:scale-110 flex items-center justify-center transition shadow-sm">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <div id="noResultsMessage" class="hidden p-8 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                        No se encontraron servicios que coincidan con la búsqueda.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ROW 4: UBICACIÓN Y VISTA DE GOOGLE MAPS (Ahora después de los Servicios) -->
+            <div class="card-clean p-6 space-y-4 shadow-md" id="mapa">
+                <div class="flex items-center justify-between pb-1 border-b border-slate-200">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="map-pin" class="w-5 h-5 text-rose-900"></i>
+                        <h3 class="font-fun font-black text-xl text-slate-900">
+                            <span class="title-underline-left">Ubicación</span>
+                        </h3>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-500 truncate max-w-[200px] sm:max-w-none">
+                        {{ selected_branch.address|default:business.address|default:"Tacuarí 478" }}
+                    </span>
+                </div>
+
+                <!-- Google Maps Interactive Iframe View -->
+                <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm aspect-video sm:h-72 w-full relative bg-slate-100">
+                    <iframe 
+                        class="w-full h-full border-0"
+                        src="https://maps.google.com/maps?q={{ selected_branch.address|default:business.address|default:'Tacuari 478'|urlencode }}&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                        allowfullscreen="" 
+                        loading="lazy" 
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </div>
+
+                <!-- Map footer with external link button -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 text-xs text-slate-600">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="navigation" class="w-4 h-4 text-rose-800"></i>
+                        <span>Dirección: <strong class="text-slate-800">{{ selected_branch.address|default:business.address|default:"Tacuarí 478" }}</strong></span>
+                    </div>
+
+                    <a href="{% if selected_branch and selected_branch.google_maps_url %}{{ selected_branch.google_maps_url }}{% else %}https://www.google.com/maps/search/?api=1&query={{ selected_branch.address|default:business.address|default:'Tacuari 478'|urlencode }}{% endif %}" 
+                       target="_blank" 
+                       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-900 font-bold border border-rose-200 transition">
+                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        <span>Abrir en Google Maps</span>
+                    </a>
+                </div>
+            </div>
+
         </div>
 
     </main>
 
-    <!-- Booking Modal -->
+    <!-- FLOATING WHATSAPP BUTTON (Fixed bottom right for instant access) -->
+    {% with wa=business.whatsapp_number|default:business.phone %}
+    {% if wa %}
+    <a href="https://wa.me/{{ wa|cut:' '|cut:'+'|cut:'-' }}" target="_blank"
+       title="Contactar por WhatsApp"
+       class="fixed bottom-6 right-6 z-40 bg-[#25D366] hover:bg-[#20ba5a] text-white p-3.5 sm:px-5 sm:py-3.5 rounded-full shadow-2xl flex items-center gap-2.5 font-bold text-xs sm:text-sm hover:scale-105 transition-all duration-300 group border-2 border-white">
+        <i data-lucide="message-circle" class="w-5 h-5 fill-current"></i>
+        <span class="hidden sm:inline">WhatsApp</span>
+        <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
+    </a>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Portal Paused Modal (Shown if visitor tries to book when online reservations are paused) -->
+    <div id="portalPausedModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border border-slate-200 space-y-5 relative">
+            <button type="button" onclick="closePortalPausedModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+
+            <div class="w-16 h-16 rounded-full bg-rose-50 text-rose-900 flex items-center justify-center mx-auto border-2 border-rose-100 shadow-inner">
+                <i data-lucide="clock" class="w-8 h-8"></i>
+            </div>
+            
+            <div class="space-y-2">
+                <span class="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                    Atención Personalizada
+                </span>
+                <h3 class="text-xl font-fun font-black text-slate-900">Reservas Online Pausadas</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Las reservas online automáticas para <span id="pausedModalServiceName" class="font-bold text-slate-800">{{ business.name }}</span> están en pausa temporal. ¡Comunícate directamente con nosotros y te agendamos de inmediato!
+                </p>
+            </div>
+
+            <div class="space-y-2.5 pt-2">
+                {% if business.phone %}
+                <a href="https://wa.me/{{ business.phone|cut:'+'|cut:' '|cut:'-' }}?text=Hola%20{{ business.name|urlencode }},%20deseo%20consultar%20disponibilidad%20para%20un%20servicio" target="_blank"
+                   class="w-full py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition">
+                    <i data-lucide="message-circle" class="w-4 h-4 fill-current"></i>
+                    <span>Escribir por WhatsApp</span>
+                </a>
+                <a href="tel:{{ business.phone }}" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition">
+                    <i data-lucide="phone" class="w-4 h-4"></i>
+                    <span>Llamar al {{ business.phone }}</span>
+                </a>
+                {% endif %}
+                <button type="button" onclick="closePortalPausedModal()" class="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition">
+                    Entendido, gracias
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Booking Modal (Platform Vinotinto look) -->
     <div id="bookingModal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 modal-overlay" onclick="closeBookingModal()"></div>
         
-        <div class="absolute inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bg-white sm:rounded-3xl rounded-t-3xl sm:max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+        <div class="absolute inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bg-white sm:rounded-3xl rounded-t-3xl sm:max-w-xl w-full max-h-[92vh] overflow-y-auto shadow-2xl flex flex-col z-10 text-slate-800 border border-slate-200">
             
-            <div class="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10 sm:rounded-t-3xl rounded-t-3xl">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-20 sm:rounded-t-3xl rounded-t-3xl">
                 <div>
-                    <h3 class="font-display font-bold text-lg text-slate-900">Finalizar Reserva</h3>
-                    <p class="text-xs text-slate-500 mt-0.5" id="modalServiceInfo">Seleccionaste: <strong>Servicio</strong></p>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-rose-900 block">Agendar Cita</span>
+                    <h3 class="font-fun font-extrabold text-lg text-slate-900" id="modalServiceTitle">Servicio</h3>
+                    <p class="text-xs text-slate-500 mt-0.5" id="modalServiceSubtitle">45 min · {{ business.currency }}0.00</p>
                 </div>
-                <button type="button" onclick="closeBookingModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition">
+                <button type="button" onclick="closeBookingModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200 flex items-center justify-center transition">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <div class="p-5">
-                <form method="POST" id="bookingForm" class="space-y-6">
+            <!-- Modal Body Form -->
+            <div class="p-5 sm:p-6">
+                <form method="POST" id="bookingForm" class="space-y-5">
                     {% csrf_token %}
                     <input type="hidden" name="service_id" id="modalServiceId" value="">
                     {% if selected_branch %}
                     <input type="hidden" name="branch_id" value="{{ selected_branch.id }}">
                     {% endif %}
 
-                    <!-- Step 2: Select Staff -->
-                    <div class="space-y-3">
-                        <label class="block text-sm font-bold text-slate-900">1. Elige tu Especialista</label>
-                        <div class="grid grid-cols-2 gap-3">
+                    <!-- Step 1: Specialist Selection -->
+                    <div class="space-y-2.5">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">1</span>
+                            Elige Especialista
+                        </label>
+                        <div class="grid grid-cols-2 gap-2.5 max-h-44 overflow-y-auto pr-1 no-scrollbar">
                             {% for staff in staff_members %}
-                            <label class="relative flex items-center p-3 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer hover:border-slate-400 transition group has-[:checked]:border-slate-900 has-[:checked]:ring-1 has-[:checked]:ring-slate-900">
+                            <label class="relative flex items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:border-rose-400 transition group has-[:checked]:border-rose-900 has-[:checked]:bg-rose-50 has-[:checked]:ring-1 has-[:checked]:ring-rose-900">
                                 <input type="radio" name="staff_id" value="{{ staff.id }}" {% if forloop.first %}checked{% endif %} required class="sr-only" onchange="fetchAvailableSlots()">
-                                <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-2 min-w-0">
                                     {% if staff.profile_picture %}
-                                    <img src="{{ staff.profile_picture.url }}" alt="{{ staff.full_name }}" class="w-8 h-8 rounded-full border border-slate-200 object-cover shrink-0">
+                                    <img src="{{ staff.profile_picture.url }}" alt="{{ staff.full_name }}" class="w-8 h-8 rounded-full object-cover shrink-0">
                                     {% else %}
-                                    <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs uppercase shrink-0">
+                                    <div class="w-8 h-8 rounded-full bg-rose-100 text-rose-900 flex items-center justify-center font-bold text-xs shrink-0">
                                         {{ staff.first_name|slice:":1" }}{{ staff.last_name|slice:":1" }}
                                     </div>
                                     {% endif %}
@@ -363,37 +737,49 @@
                         </div>
                     </div>
 
-                    <!-- Step 3: Select Date & Time -->
-                    <div class="space-y-3">
-                        <label class="block text-sm font-bold text-slate-900">2. Selecciona Fecha y Hora</label>
+                    <!-- Step 2: Date & Available Time Slots -->
+                    <div class="space-y-2.5">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">2</span>
+                            Fecha y Horario
+                        </label>
                         
-                        <div class="flex items-center justify-between text-xs font-bold text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                            <span class="flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4"></i> Fecha de Cita:</span>
+                        <div class="flex items-center justify-between text-xs font-semibold text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            <span class="flex items-center gap-1.5 text-slate-900">
+                                <i data-lucide="calendar" class="w-4 h-4 text-rose-800"></i> Día:
+                            </span>
                             <input type="date" id="booking_date" name="booking_date" value="{{ today_date }}" min="{{ today_date }}" required
-                                   class="bg-white border border-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:border-slate-900 font-medium"
+                                   class="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:border-rose-900 font-medium"
                                    onchange="fetchAvailableSlots()">
                         </div>
 
-                        <div id="slots_container" class="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
-                            <!-- Slots will be populated here via AJAX -->
-                            <div class="col-span-full text-center py-4 text-xs text-slate-500">
-                                Cargando horarios disponibles...
+                        <div id="slots_container" class="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
+                            <div class="col-span-full text-center py-4 text-xs text-slate-400">
+                                Cargando turnos disponibles...
                             </div>
                         </div>
                         <input type="hidden" name="booking_time" id="booking_time" required>
                     </div>
 
-                    <!-- Step 4: Client Info -->
-                    <div class="space-y-3 pt-4 border-t border-slate-100">
-                        <label class="block text-sm font-bold text-slate-900">3. Tus Datos</label>
-                        <div class="grid grid-cols-1 gap-3">
-                            <input type="text" name="client_name" placeholder="Nombre completo" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-slate-900 focus:bg-white transition">
-                            <input type="text" name="client_phone" placeholder="Teléfono / WhatsApp" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-slate-900 focus:bg-white transition">
+                    <!-- Step 3: Client Contact Details -->
+                    <div class="space-y-2.5 pt-2 border-t border-slate-100">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">3</span>
+                            Tus Datos
+                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <input type="text" name="client_name" placeholder="Nombre completo *" required 
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
+                            <input type="tel" name="client_phone" placeholder="WhatsApp / Teléfono *" required 
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
                         </div>
+                        <input type="email" name="client_email" placeholder="Correo electrónico (opcional)" 
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
                     </div>
 
-                    <div class="pt-4">
-                        <button type="submit" id="submitBookingBtn" disabled class="w-full py-3.5 rounded-xl bg-slate-900 text-white font-bold text-sm shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <div class="pt-2">
+                        <button type="submit" id="submitBookingBtn" disabled 
+                                class="w-full py-3 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white font-bold text-sm shadow-md transition disabled:opacity-40 disabled:cursor-not-allowed">
                             Confirmar Reserva
                         </button>
                     </div>
@@ -404,82 +790,229 @@
     </div>
     {% endif %}
 
+    <!-- Toast Notification for Link Copying -->
+    <div id="shareToast" class="fixed bottom-24 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-semibold">
+            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+            <span>¡Enlace copiado al portapapeles! Listo para compartir.</span>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-8 px-4 text-center text-xs text-slate-500">
+        <div class="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5 font-semibold text-slate-700">
+                <span>{{ business.name }}</span>
+                <span>·</span>
+                <span>Portal de Reservas Oficial</span>
+            </div>
+            <div class="text-[11px] text-slate-400">
+                Impulsado por RauDie OS
+            </div>
+        </div>
+    </footer>
+
     <script>
         lucide.createIcons();
 
-        // Search functionality
-        const searchInput = document.getElementById('serviceSearch');
-        if(searchInput) {
-            searchInput.addEventListener('input', function(e) {
-                const term = e.target.value.toLowerCase();
-                const services = document.querySelectorAll('.service-name');
-                services.forEach(s => {
-                    const block = s.closest('.bg-white');
-                    if(s.innerText.toLowerCase().includes(term)) {
-                        block.style.display = 'flex';
-                    } else {
-                        block.style.display = 'none';
+        // Share API
+        function shareBusinessProfile() {
+            const shareData = {
+                title: "{{ business.name|escapejs }} · Reserva Online",
+                text: "Agenda tu cita online en {{ business.name|escapejs }}:",
+                url: window.location.href
+            };
+
+            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                navigator.share(shareData).catch(err => {
+                    if (err.name !== 'AbortError') {
+                        copyUrlToClipboard();
                     }
                 });
+            } else {
+                copyUrlToClipboard();
+            }
+        }
+
+        function copyUrlToClipboard() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showToast();
+            }).catch(() => {
+                prompt("Copia el siguiente enlace para compartir:", window.location.href);
             });
         }
 
-        // Category Scroll Spy / Active state
-        const categoryLinks = document.querySelectorAll('.category-link');
-        categoryLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                categoryLinks.forEach(l => {
-                    l.classList.remove('bg-slate-900', 'text-white');
-                    l.classList.add('text-slate-600', 'hover:bg-slate-100');
+        function showToast() {
+            const toast = document.getElementById('shareToast');
+            if (!toast) return;
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+
+        // Live Search & Category Filter
+        const searchInput = document.getElementById('serviceSearch');
+        const categoryChips = document.querySelectorAll('.category-chip');
+        const serviceRows = document.querySelectorAll('.service-row');
+        const noResultsMsg = document.getElementById('noResultsMessage');
+        let activeCategoryId = 'all';
+
+        if (searchInput) {
+            searchInput.addEventListener('input', filterServices);
+        }
+
+        categoryChips.forEach(chip => {
+            chip.addEventListener('click', function() {
+                categoryChips.forEach(c => {
+                    c.classList.remove('active', 'bg-[#881337]', 'text-white', 'shadow-sm');
+                    c.classList.add('bg-slate-100', 'text-slate-700', 'border', 'border-slate-200');
                 });
-                this.classList.remove('text-slate-600', 'hover:bg-slate-100');
-                this.classList.add('bg-slate-900', 'text-white');
+                this.classList.add('active', 'bg-[#881337]', 'text-white', 'shadow-sm');
+                this.classList.remove('bg-slate-100', 'text-slate-700', 'border', 'border-slate-200');
+                activeCategoryId = this.getAttribute('data-cat');
+                filterServices();
             });
         });
 
+        function filterServices() {
+            const term = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            let visibleCount = 0;
+
+            serviceRows.forEach(row => {
+                const rowCat = row.getAttribute('data-category-id');
+                const title = row.querySelector('.service-title').innerText.toLowerCase();
+                
+                const matchesCat = (activeCategoryId === 'all') || (rowCat === activeCategoryId);
+                const matchesSearch = !term || title.includes(term);
+
+                if (matchesCat && matchesSearch) {
+                    row.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            if (noResultsMsg) {
+                if (visibleCount === 0) {
+                    noResultsMsg.classList.remove('hidden');
+                } else {
+                    noResultsMsg.classList.add('hidden');
+                }
+            }
+        }
+
         // Modal Logic
+        const IS_PORTAL_PAUSED = false;
         const modal = document.getElementById('bookingModal');
-        function openBookingModal(serviceId, serviceName, servicePrice, serviceDuration) {
+
+        function showPortalPausedModal(serviceName) {
+            const pausedModal = document.getElementById('portalPausedModal');
+            if (pausedModal) {
+                if (serviceName) {
+                    const svcEl = document.getElementById('pausedModalServiceName');
+                    if (svcEl) svcEl.innerText = serviceName;
+                }
+                pausedModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closePortalPausedModal() {
+            const pausedModal = document.getElementById('portalPausedModal');
+            if (pausedModal) {
+                pausedModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function openBookingModal(serviceId, serviceName, servicePrice, serviceDuration, preselectedStaffId) {
+            if (IS_PORTAL_PAUSED) {
+                showPortalPausedModal(serviceName);
+                return;
+            }
+
             document.getElementById('modalServiceId').value = serviceId;
-            document.getElementById('modalServiceInfo').innerHTML = `Servicio: <strong class="text-slate-900">${serviceName}</strong> (${serviceDuration} min - {{ business.currency }}${servicePrice})`;
+            document.getElementById('modalServiceTitle').innerText = serviceName;
+            document.getElementById('modalServiceSubtitle').innerText = `${serviceDuration} min · {{ business.currency }}${servicePrice}`;
+            
+            if (preselectedStaffId) {
+                const staffRadio = document.querySelector(`input[name="staff_id"][value="${preselectedStaffId}"]`);
+                if (staffRadio) {
+                    staffRadio.checked = true;
+                }
+            }
+
             modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; // Prevent background scroll
+            document.body.style.overflow = 'hidden';
             fetchAvailableSlots();
         }
 
+        function selectSpecialistShortcut(staffId, staffName) {
+            if (IS_PORTAL_PAUSED) {
+                showPortalPausedModal(staffName ? `Atención con ${staffName}` : '');
+                return;
+            }
+
+            const firstRow = document.querySelector('.service-row');
+            if (firstRow) {
+                firstRow.click();
+                setTimeout(() => {
+                    const r = document.querySelector(`input[name="staff_id"][value="${staffId}"]`);
+                    if (r) {
+                        r.checked = true;
+                        fetchAvailableSlots();
+                    }
+                }, 50);
+            }
+        }
+
         function closeBookingModal() {
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
         }
 
         // AJAX Slots Logic
         function fetchAvailableSlots() {
-            const dateStr = document.getElementById('booking_date').value;
-            const staffId = document.querySelector('input[name="staff_id"]:checked').value;
+            const dateInput = document.getElementById('booking_date');
+            if (!dateInput) return;
+            const dateStr = dateInput.value;
+            const staffRadio = document.querySelector('input[name="staff_id"]:checked');
+            if (!staffRadio) return;
+            const staffId = staffRadio.value;
             const container = document.getElementById('slots_container');
             const submitBtn = document.getElementById('submitBookingBtn');
             const timeInput = document.getElementById('booking_time');
             
             timeInput.value = "";
             submitBtn.disabled = true;
-            container.innerHTML = '<div class="col-span-full py-4 text-center text-xs text-slate-500 flex items-center justify-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Cargando horarios...</div>';
+            container.innerHTML = '<div class="col-span-full py-4 text-center text-xs text-slate-400 flex items-center justify-center gap-1.5"><i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-rose-800"></i> Buscando horarios...</div>';
             lucide.createIcons();
 
-            fetch(`/booking/api/{{ business.slug }}/slots/?date=${dateStr}&staff_id=${staffId}`)
-                .then(response => response.json())
+            fetch(`/reservas/{{ business.slug }}/api/slots/?date=${dateStr}&staff_id=${staffId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Error de red');
+                    return response.json();
+                })
                 .then(data => {
                     container.innerHTML = '';
-                    if(!data.is_open || data.slots.length === 0) {
-                        container.innerHTML = `<div class="col-span-full py-4 text-center text-xs font-bold text-rose-500 bg-rose-50 rounded-xl border border-rose-100">${data.message || 'No hay horarios disponibles para esta fecha.'}</div>`;
+                    if (!data.is_open || !data.slots || data.slots.length === 0) {
+                        container.innerHTML = `<div class="col-span-full py-3 px-2 text-center text-xs font-semibold text-rose-700 bg-rose-50 rounded-xl border border-rose-200">${data.message || 'No hay turnos disponibles para esta fecha.'}</div>`;
                         return;
                     }
 
                     data.slots.forEach(slot => {
                         const btn = document.createElement('button');
                         btn.type = 'button';
-                        btn.className = `py-2 rounded-xl text-xs font-bold transition border ${slot.available ? 'bg-white border-slate-200 text-slate-700 hover:border-slate-900 hover:text-slate-900' : 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed'}`;
+                        const isAvailable = !slot.disabled;
+                        btn.className = `py-2 rounded-xl text-xs font-bold transition border ${isAvailable ? 'bg-white border-slate-200 text-slate-700 hover:border-rose-800 hover:bg-rose-50 hover:text-rose-900' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'}`;
                         btn.innerText = slot.time;
-                        if(slot.available) {
+                        if (isAvailable) {
                             btn.onclick = () => selectSlot(btn, slot.time);
                         } else {
                             btn.disabled = true;
@@ -488,22 +1021,22 @@
                     });
                 })
                 .catch(err => {
-                    container.innerHTML = '<div class="col-span-full py-4 text-center text-xs text-red-500">Error al cargar horarios.</div>';
+                    container.innerHTML = '<div class="col-span-full py-3 text-center text-xs text-rose-500">Error al cargar horarios.</div>';
                 });
         }
 
         function selectSlot(btnElement, timeStr) {
             document.querySelectorAll('#slots_container button').forEach(b => {
-                if(!b.disabled) {
-                    b.className = 'py-2 rounded-xl text-xs font-bold transition border bg-white border-slate-200 text-slate-700 hover:border-slate-900 hover:text-slate-900';
+                if (!b.disabled) {
+                    b.className = 'py-2 rounded-xl text-xs font-bold transition border bg-white border-slate-200 text-slate-700 hover:border-rose-800 hover:bg-rose-50 hover:text-rose-900';
                 }
             });
-            btnElement.className = 'py-2 rounded-xl text-xs font-bold transition border bg-slate-900 border-slate-900 text-white shadow-md';
+            btnElement.className = 'py-2 rounded-xl text-xs font-bold transition border bg-[#881337] border-[#881337] text-white shadow-sm';
             document.getElementById('booking_time').value = timeStr;
             document.getElementById('submitBookingBtn').disabled = false;
         }
 
-        // Calendar export functions
+        // Calendar export utilities
         function formatDateTime(dateStr, timeStr) {
             const dt = new Date(`${dateStr}T${timeStr}`);
             return dt.toISOString().replace(/-|:|\.\d\d\d/g,"");
@@ -521,7 +1054,7 @@
             const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
             const link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
-            link.download = 'cita.ics';
+            link.download = 'cita-reserva.ics';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

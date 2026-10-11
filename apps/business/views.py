@@ -13,7 +13,6 @@ from django.contrib import messages
 from django.utils.text import slugify
 from django.utils import timezone
 from apps.business.models import Business, Branch, StaffMember, WorkSchedule, PaymentMethodConfig, User
-from apps.superadmin.models import SystemAnnouncement, AnnouncementDismissal
 from apps.core.utils import parse_decimal, parse_int
 
 @ensure_csrf_cookie
@@ -467,11 +466,37 @@ def business_config_view(request):
         else:
             # Fallback for old behaviour just in case
             business.phone = request.POST.get('phone', business.phone).strip()
-            
-        if 'logo_url' in request.FILES:
+        import base64
+        from django.core.files.base import ContentFile
+
+        # Handle cropped logo (Base64) or direct file upload
+        cropped_logo_b64 = request.POST.get('cropped_logo_base64')
+        if cropped_logo_b64 and ';base64,' in cropped_logo_b64:
+            try:
+                format_meta, imgstr = cropped_logo_b64.split(';base64,')
+                ext = format_meta.split('/')[-1] if '/' in format_meta else 'png'
+                data = base64.b64decode(imgstr)
+                file_name = f"{business.slug}_logo_cropped.{ext}"
+                business.logo_url = ContentFile(data, name=file_name)
+            except Exception as e:
+                print(f"Error decoding cropped logo: {e}")
+        elif 'logo_url' in request.FILES:
             business.logo_url = request.FILES['logo_url']
-        if 'banner_url' in request.FILES:
+
+        # Handle cropped banner (Base64) or direct file upload
+        cropped_banner_b64 = request.POST.get('cropped_banner_base64')
+        if cropped_banner_b64 and ';base64,' in cropped_banner_b64:
+            try:
+                format_meta, imgstr = cropped_banner_b64.split(';base64,')
+                ext = format_meta.split('/')[-1] if '/' in format_meta else 'png'
+                data = base64.b64decode(imgstr)
+                file_name = f"{business.slug}_banner_cropped.{ext}"
+                business.banner_url = ContentFile(data, name=file_name)
+            except Exception as e:
+                print(f"Error decoding cropped banner: {e}")
+        elif 'banner_url' in request.FILES:
             business.banner_url = request.FILES['banner_url']
+
         business.description = request.POST.get('description', business.description).strip() or None
         business.whatsapp_number = request.POST.get('whatsapp_number', business.whatsapp_number).strip() or None
             
@@ -1016,16 +1041,6 @@ def whatsapp_gateway_send_reminder_api(request):
     fallback_url = f"https://api.whatsapp.com/send?phone={urllib.parse.quote(clean_phone)}&text={urllib.parse.quote(message)}"
     return JsonResponse({'success': True, 'sent_direct': False, 'fallback_url': fallback_url})
 
-@login_required
-@ensure_csrf_cookie
-def dismiss_announcement_view(request, announcement_id):
-    if request.method == 'POST':
-        announcement = get_object_or_404(SystemAnnouncement, id=announcement_id)
-        if announcement.is_dismissible:
-            AnnouncementDismissal.objects.get_or_create(announcement=announcement, user=request.user)
-            return JsonResponse({'success': True})
-        return JsonResponse({'success': False, 'error': 'No dismissible'}, status=400)
-    return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
 
 def manifest_view(request):
     from django.conf import settings
@@ -1049,6 +1064,104 @@ def service_worker_view(request):
 
 def offline_view(request):
     return render(request, 'offline.html')
+
+
+@login_required(login_url='login')
+def booking_portal_config_view(request):
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    if not business:
+        return redirect('onboarding')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'TOGGLE_BOOKING':
+            # Support both direct checkbox and toggle state
+            is_enabled = request.POST.get('is_booking_enabled') in ['on', 'true', '1']
+            business.is_booking_enabled = is_enabled
+            business.save()
+            status_text = "activado" if is_enabled else "pausado"
+            messages.success(request, f"¡El portal de reservas online ha sido {status_text} exitosamente!")
+            return redirect('booking_portal_config')
+
+        elif action == 'UPDATE_SLUG':
+            slug_input = request.POST.get('slug', '').strip()
+            if slug_input:
+                new_slug = slugify(slug_input)
+                if not Business.objects.filter(slug=new_slug).exclude(id=business.id).exists():
+                    business.slug = new_slug
+                    business.save()
+                    messages.success(request, f"¡Enlace de reservas actualizado! Ahora es: /reservas/{new_slug}/")
+                else:
+                    messages.error(request, f"El enlace '{new_slug}' ya se encuentra ocupado por otro negocio. Prueba con otro.")
+            return redirect('booking_portal_config')
+
+        elif action == 'UPDATE_DETAILS':
+            import base64
+            from django.core.files.base import ContentFile
+
+            # Handle cropped logo (Base64) or direct file upload
+            cropped_logo_b64 = request.POST.get('cropped_logo_base64')
+            if cropped_logo_b64 and ';base64,' in cropped_logo_b64:
+                try:
+                    format_meta, imgstr = cropped_logo_b64.split(';base64,')
+                    ext = format_meta.split('/')[-1] if '/' in format_meta else 'png'
+                    data = base64.b64decode(imgstr)
+                    file_name = f"{business.slug}_logo_cropped.{ext}"
+                    business.logo_url = ContentFile(data, name=file_name)
+                except Exception as e:
+                    print(f"Error decoding cropped logo: {e}")
+            elif 'logo_url' in request.FILES:
+                business.logo_url = request.FILES['logo_url']
+
+            # Handle cropped banner (Base64) or direct file upload
+            cropped_banner_b64 = request.POST.get('cropped_banner_base64')
+            if cropped_banner_b64 and ';base64,' in cropped_banner_b64:
+                try:
+                    format_meta, imgstr = cropped_banner_b64.split(';base64,')
+                    ext = format_meta.split('/')[-1] if '/' in format_meta else 'png'
+                    data = base64.b64decode(imgstr)
+                    file_name = f"{business.slug}_banner_cropped.{ext}"
+                    business.banner_url = ContentFile(data, name=file_name)
+                except Exception as e:
+                    print(f"Error decoding cropped banner: {e}")
+            elif 'banner_url' in request.FILES:
+                business.banner_url = request.FILES['banner_url']
+
+            business.description = request.POST.get('description', business.description).strip() or None
+            business.whatsapp_number = request.POST.get('whatsapp_number', business.whatsapp_number).strip() or None
+            business.save()
+            messages.success(request, "¡Detalles y personalización del perfil público actualizados!")
+            return redirect('booking_portal_config')
+
+    full_booking_url = request.build_absolute_uri(f"/reservas/{business.slug}/")
+
+    return render(request, 'business/booking_portal_config.html', {
+        'business': business,
+        'full_booking_url': full_booking_url,
+    })
+
+
+@login_required(login_url='login')
+def booking_portal_toggle_api(request):
+    """Endpoint AJAX rápido para activar o desactivar con 1 solo clic"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    if not business:
+        return JsonResponse({'error': 'Negocio no encontrado'}, status=400)
+    
+    business.is_booking_enabled = not business.is_booking_enabled
+    business.save()
+    
+    status_label = "Activo" if business.is_booking_enabled else "Pausado"
+    return JsonResponse({
+        'success': True,
+        'is_booking_enabled': business.is_booking_enabled,
+        'status_label': status_label,
+        'message': f"Portal de reservas {status_label.lower()} correctamente."
+    })
 
 
 

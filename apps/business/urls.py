@@ -18,6 +18,8 @@ urlpatterns = [
     path('registro/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('onboarding/', views.onboarding_view, name='onboarding'),
+    path('portal-reservas/', views.booking_portal_config_view, name='booking_portal_config'),
+    path('portal-reservas/toggle/', views.booking_portal_toggle_api, name='booking_portal_toggle_api'),
     path('config/', views.business_config_view, name='business_config'),
     path('config/empresa/', views.business_config_view),
     path('config/cuenta/', views.user_profile_config_view, name='user_profile_config'),
@@ -30,5 +32,4 @@ urlpatterns = [
     path('whatsapp-gateway/generate/', views.whatsapp_gateway_generate_api, name='whatsapp_gateway_generate'),
     path('whatsapp-gateway/unlink/', views.whatsapp_gateway_unlink_api, name='whatsapp_gateway_unlink'),
     path('whatsapp-gateway/send-reminder/', views.whatsapp_gateway_send_reminder_api, name='whatsapp_gateway_send_reminder'),
-    path('dismiss-announcement/<int:announcement_id>/', views.dismiss_announcement_view, name='dismiss_announcement'),
 ]

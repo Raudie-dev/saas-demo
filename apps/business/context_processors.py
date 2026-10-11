@@ -3,7 +3,7 @@ from apps.business.models import Business
 def business_context(request):
     """Proporciona el negocio activo y la configuración de módulos a todas las plantillas HTML."""
     business = getattr(request, 'current_business', None)
-    if not business and request.user.is_authenticated and getattr(request.user, 'business', None):
+    if not business and hasattr(request, 'user') and request.user.is_authenticated and getattr(request.user, 'business', None):
         business = request.user.business
 
     all_module_keys = ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']

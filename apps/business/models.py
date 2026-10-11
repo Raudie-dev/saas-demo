@@ -41,6 +41,7 @@ class Business(TimeStampedModel):
     time_format = models.CharField(max_length=10, choices=TIME_FORMAT_CHOICES, default='12h', verbose_name="Formato de Hora")
     allow_editing_client_history = models.BooleanField(default=True, verbose_name="Permitir editar el historial de servicios de clientes")
     region = models.ForeignKey('superadmin.Region', on_delete=models.SET_NULL, null=True, blank=True, related_name='businesses', verbose_name="Región")
+    is_booking_enabled = models.BooleanField(default=True, verbose_name="Portal de Reservas Público Activo")
 
     class Meta:
         verbose_name = "Negocio"
@@ -60,6 +61,8 @@ class Business(TimeStampedModel):
         return module_name in allowed
 
     def is_module_enabled(self, module_name):
+        if module_name == 'booking' and not getattr(self, 'is_booking_enabled', True):
+            return False
         if not self.is_module_allowed_by_plan(module_name):
             return False
         if not self.enabled_modules:

@@ -3,6 +3,21 @@
 {% block title %}Configuración de Empresa - BusinessOS{% endblock %}
 {% block header_title %}Administración & Configuración de la Empresa{% endblock %}
 
+{% block extra_head %}
+<!-- Cropper.js CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+<style>
+    .cropper-view-box,
+    .cropper-face {
+        border-radius: 0;
+    }
+    .is-circular-crop .cropper-view-box,
+    .is-circular-crop .cropper-face {
+        border-radius: 50%;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="space-y-6 max-w-5xl mx-auto">
 
@@ -176,36 +191,97 @@
                 </div>
 
                 <div class="md:col-span-2 mt-4 pt-4 border-t border-slate-100">
-                    <h4 class="font-bold text-slate-800 text-sm mb-4">Branding e Información Pública (Portal de Reservas)</h4>
+                    <h4 class="font-bold text-slate-800 text-sm mb-1">Branding e Información Pública (Portal de Reservas)</h4>
+                    <p class="text-xs text-slate-500 mb-2">Ajusta la información y fotos de cabecera. Puedes <strong>recortar y encuadrar</strong> cada imagen antes de subirla.</p>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Logo (Foto de perfil)</label>
-                    {% if business.logo_url %}
-                    <div class="mb-2">
-                        <img src="{{ business.logo_url.url }}" alt="Logo" class="h-12 rounded object-cover">
+                <!-- Hidden inputs for cropped Base64 data -->
+                <input type="hidden" name="cropped_logo_base64" id="croppedLogoBase64">
+                <input type="hidden" name="cropped_banner_base64" id="croppedBannerBase64">
+
+                <!-- 1. LOGO UPLOAD & CROP CARD (UNIFIED DESIGN) -->
+                <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 transition hover:border-slate-300">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <!-- Logo Thumbnail -->
+                            <div class="w-14 h-14 rounded-2xl bg-white border-2 border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-xs relative group">
+                                {% if business.logo_url %}
+                                <img src="{{ business.logo_url.url }}" alt="Logo Actual" id="logoThumbPreview" class="w-full h-full object-cover">
+                                {% else %}
+                                <div id="logoThumbPreviewPlaceholder" class="w-full h-full bg-rose-900 text-white font-black text-lg flex items-center justify-center">
+                                    {{ business.name|slice:":1" }}
+                                </div>
+                                <img id="logoThumbPreview" src="" alt="Nuevo Logo" class="w-full h-full object-cover hidden">
+                                {% endif %}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-xs font-bold text-slate-900">Logo de la Agencia</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900">1:1 Cuadrado</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 mt-0.5 truncate" id="logoStatusText">
+                                    {% if business.logo_url %}Logo activo{% else %}Sin logo asignado{% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Button Trigger -->
+                        <div class="shrink-0">
+                            <input type="file" name="logo_url" id="logoFileInput" accept="image/*" class="hidden" onchange="onFileSelected(this, 'logo')">
+                            <button type="button" onclick="triggerImageCrop('logo')"
+                                    class="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 hover:border-rose-900 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer">
+                                <i data-lucide="crop" class="w-3.5 h-3.5"></i>
+                                <span>Subir y Recortar</span>
+                            </button>
+                        </div>
                     </div>
-                    {% endif %}
-                    <input type="file" name="logo_url" accept="image/*" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Banner (Portada)</label>
-                    {% if business.banner_url %}
-                    <div class="mb-2">
-                        <img src="{{ business.banner_url.url }}" alt="Banner" class="h-12 rounded object-cover">
+                <!-- 2. BANNER / PORTADA UPLOAD & CROP CARD (UNIFIED DESIGN) -->
+                <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 transition hover:border-slate-300">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <!-- Banner Thumbnail -->
+                            <div class="w-20 h-12 rounded-xl bg-white border-2 border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-xs relative">
+                                {% if business.banner_url %}
+                                <img src="{{ business.banner_url.url }}" alt="Portada Actual" id="bannerThumbPreview" class="w-full h-full object-cover">
+                                {% else %}
+                                <div id="bannerThumbPreviewPlaceholder" class="w-full h-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs">
+                                    <i data-lucide="image" class="w-5 h-5"></i>
+                                </div>
+                                <img id="bannerThumbPreview" src="" alt="Nueva Portada" class="w-full h-full object-cover hidden">
+                                {% endif %}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-xs font-bold text-slate-900">Portada / Banner</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">16:9 Panorámica</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 mt-0.5 truncate" id="bannerStatusText">
+                                    {% if business.banner_url %}Portada activa{% else %}Sin portada asignada{% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Button Trigger -->
+                        <div class="shrink-0">
+                            <input type="file" name="banner_url" id="bannerFileInput" accept="image/*" class="hidden" onchange="onFileSelected(this, 'banner')">
+                            <button type="button" onclick="triggerImageCrop('banner')"
+                                    class="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 hover:border-rose-900 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer">
+                                <i data-lucide="crop" class="w-3.5 h-3.5"></i>
+                                <span>Subir y Recortar</span>
+                            </button>
+                        </div>
                     </div>
-                    {% endif %}
-                    <input type="file" name="banner_url" accept="image/*" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Número de WhatsApp (Público)</label>
-                    <input type="text" name="whatsapp_number" value="{{ business.whatsapp_number|default:'' }}" placeholder="Ej: +56912345678" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
                 </div>
 
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Descripción del Negocio</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Oficial de Reservas (Público)</label>
+                    <input type="text" name="whatsapp_number" value="{{ business.whatsapp_number|default:'' }}" placeholder="Ej: +5491122334455" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Descripción / Bio de la Agencia</label>
                     <textarea name="description" rows="3" placeholder="Cuéntale a tus clientes sobre tu negocio, experiencia y servicios..." class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">{{ business.description|default:'' }}</textarea>
                 </div>
             </div>
@@ -605,6 +681,96 @@
     </div>
 </div>
 
+<!-- INTERACTIVE IMAGE CROPPER MODAL (CROPPER.JS) -->
+<div id="cropperModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm hidden animate-in fade-in duration-150">
+    <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 flex flex-col max-h-[92vh] overflow-hidden">
+        
+        <!-- Modal Header -->
+        <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between shrink-0 bg-slate-50/50">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="crop" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm sm:text-base text-slate-900" id="cropperModalTitle">Recortar y Ajustar Imagen</h3>
+                    <p class="text-[11px] text-slate-500" id="cropperModalSubtitle">Ajusta el encuadre exacto como deseas que se vea</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCropperModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200 flex items-center justify-center transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Cropper Workspace Area -->
+        <div class="p-4 sm:p-6 flex-1 overflow-y-auto space-y-4 bg-slate-900 flex flex-col justify-center items-center">
+            <div class="max-w-full max-h-[380px] sm:max-h-[440px] flex items-center justify-center overflow-hidden w-full" id="cropperContainer">
+                <img id="cropperImageSource" src="" alt="Recorte" class="max-w-full">
+            </div>
+        </div>
+
+        <!-- Cropper Toolbar Controls -->
+        <div class="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <!-- Aspect Ratio and Tools -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] font-bold text-slate-500 mr-1 hidden sm:inline">Proporción:</span>
+                <button type="button" onclick="setCropRatio(1)" id="btnRatioSquare"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:border-rose-900 transition cursor-pointer">
+                    1:1 (Cuadrado)
+                </button>
+                <button type="button" onclick="setCropRatio(16/9)" id="btnRatioBanner"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:border-rose-900 transition cursor-pointer">
+                    16:9 (Panorámico)
+                </button>
+                <button type="button" onclick="setCropRatio(NaN)" id="btnRatioFree"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:border-rose-900 transition cursor-pointer">
+                    Libre
+                </button>
+            </div>
+
+            <!-- Zoom and Rotate Controls -->
+            <div class="flex items-center gap-1.5">
+                <button type="button" onclick="cropperZoom(0.1)" title="Acercar (+)"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-900 hover:bg-slate-100 transition shadow-2xs cursor-pointer">
+                    <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="cropperZoom(-0.1)" title="Alejar (-)"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-900 hover:bg-slate-100 transition shadow-2xs cursor-pointer">
+                    <i data-lucide="zoom-out" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="cropperRotate(-90)" title="Girar 90° izquierda"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-900 hover:bg-slate-100 transition shadow-2xs cursor-pointer">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="cropperRotate(90)" title="Girar 90° derecha"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-900 hover:bg-slate-100 transition shadow-2xs cursor-pointer">
+                    <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="cropperReset()" title="Restablecer recorte"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-900 hover:bg-slate-100 transition shadow-2xs cursor-pointer">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal Actions Footer -->
+        <div class="px-5 py-3.5 border-t border-slate-200 flex items-center justify-end gap-2.5 bg-white shrink-0">
+            <button type="button" onclick="closeCropperModal()"
+                    class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+                Cancelar
+            </button>
+            <button type="button" onclick="confirmCrop()" id="btnConfirmCrop"
+                    class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span>Aplicar Recorte</span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Cropper.js Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+
 <script>
     function openUpgradePlanModal(moduleName) {
         const modal = document.getElementById('upgradePlanModal');
@@ -822,6 +988,187 @@
                 rightFade.classList.remove('hidden');
             }
         }
+    }
+
+    // -------------------------------------------------------------
+    // CROPPER.JS MODAL & IMAGE LOGIC
+    // -------------------------------------------------------------
+    let currentCropper = null;
+    let activeCropTarget = 'logo'; // 'logo' or 'banner'
+
+    function triggerImageCrop(targetType) {
+        activeCropTarget = targetType;
+        const fileInput = document.getElementById(targetType === 'logo' ? 'logoFileInput' : 'bannerFileInput');
+        if (fileInput) {
+            fileInput.value = ''; // Reset input so same file can be re-selected
+            fileInput.click();
+        }
+    }
+
+    function onFileSelected(input, targetType) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        activeCropTarget = targetType;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            openCropperModal(e.target.result, targetType);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function openCropperModal(imageSrc, targetType) {
+        const modal = document.getElementById('cropperModal');
+        const img = document.getElementById('cropperImageSource');
+        const modalTitle = document.getElementById('cropperModalTitle');
+        const modalSubtitle = document.getElementById('cropperModalSubtitle');
+        const container = document.getElementById('cropperContainer');
+
+        if (targetType === 'logo') {
+            modalTitle.innerText = "Recortar y Ajustar Logo";
+            modalSubtitle.innerText = "Encuadra el logo de tu agencia (proporción recomendada 1:1)";
+            container.classList.add('is-circular-crop');
+        } else {
+            modalTitle.innerText = "Recortar y Ajustar Foto de Portada";
+            modalSubtitle.innerText = "Encuadra la portada panorámica (proporción recomendada 16:9)";
+            container.classList.remove('is-circular-crop');
+        }
+
+        img.src = imageSrc;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+        // Destroy any existing cropper instance
+        if (currentCropper) {
+            currentCropper.destroy();
+            currentCropper = null;
+        }
+
+        // Initialize Cropper.js
+        const defaultAspect = (targetType === 'logo') ? 1 : (16 / 9);
+        currentCropper = new Cropper(img, {
+            aspectRatio: defaultAspect,
+            viewMode: 1,
+            autoCropArea: 0.9,
+            responsive: true,
+            background: false,
+            zoomable: true,
+            rotatable: true,
+            scalable: true,
+            ready() {
+                highlightActiveRatioButton(defaultAspect);
+            }
+        });
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeCropperModal() {
+        const modal = document.getElementById('cropperModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+        if (currentCropper) {
+            currentCropper.destroy();
+            currentCropper = null;
+        }
+    }
+
+    function setCropRatio(ratio) {
+        if (!currentCropper) return;
+        currentCropper.setAspectRatio(ratio);
+        highlightActiveRatioButton(ratio);
+    }
+
+    function highlightActiveRatioButton(ratio) {
+        const bSquare = document.getElementById('btnRatioSquare');
+        const bBanner = document.getElementById('btnRatioBanner');
+        const bFree = document.getElementById('btnRatioFree');
+
+        [bSquare, bBanner, bFree].forEach(b => {
+            if (b) b.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:border-rose-900 transition cursor-pointer";
+        });
+
+        if (ratio === 1 && bSquare) {
+            bSquare.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-900 text-white border border-rose-900 transition shadow-2xs cursor-pointer";
+        } else if (Math.abs(ratio - (16/9)) < 0.05 && bBanner) {
+            bBanner.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-900 text-white border border-rose-900 transition shadow-2xs cursor-pointer";
+        } else if (isNaN(ratio) && bFree) {
+            bFree.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-900 text-white border border-rose-900 transition shadow-2xs cursor-pointer";
+        }
+    }
+
+    function cropperZoom(delta) {
+        if (currentCropper) currentCropper.zoom(delta);
+    }
+
+    function cropperRotate(degrees) {
+        if (currentCropper) currentCropper.rotate(degrees);
+    }
+
+    function cropperReset() {
+        if (currentCropper) currentCropper.reset();
+    }
+
+    function confirmCrop() {
+        if (!currentCropper) return;
+
+        let exportWidth = 600;
+        let exportHeight = 600;
+
+        if (activeCropTarget === 'banner') {
+            exportWidth = 1440;
+            exportHeight = 810;
+        }
+
+        const canvas = currentCropper.getCroppedCanvas({
+            width: exportWidth,
+            height: exportHeight,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+
+        if (!canvas) {
+            alert("No se pudo procesar el recorte de la imagen.");
+            return;
+        }
+
+        const croppedBase64 = canvas.toDataURL('image/jpeg', 0.92);
+
+        if (activeCropTarget === 'logo') {
+            document.getElementById('croppedLogoBase64').value = croppedBase64;
+            
+            const thumbImg = document.getElementById('logoThumbPreview');
+            const placeholder = document.getElementById('logoThumbPreviewPlaceholder');
+            if (placeholder) placeholder.classList.add('hidden');
+            if (thumbImg) {
+                thumbImg.src = croppedBase64;
+                thumbImg.classList.remove('hidden');
+            }
+
+            const statusText = document.getElementById('logoStatusText');
+            if (statusText) {
+                statusText.innerHTML = '<span class="text-emerald-600 font-bold">✅ Recorte listo para guardar</span>';
+            }
+        } else {
+            document.getElementById('croppedBannerBase64').value = croppedBase64;
+
+            const thumbImg = document.getElementById('bannerThumbPreview');
+            const placeholder = document.getElementById('bannerThumbPreviewPlaceholder');
+            if (placeholder) placeholder.classList.add('hidden');
+            if (thumbImg) {
+                thumbImg.src = croppedBase64;
+                thumbImg.classList.remove('hidden');
+            }
+
+            const statusText = document.getElementById('bannerStatusText');
+            if (statusText) {
+                statusText.innerHTML = '<span class="text-emerald-600 font-bold">✅ Recorte listo para guardar</span>';
+            }
+        }
+
+        closeCropperModal();
     }
 </script>
 {% endblock %}

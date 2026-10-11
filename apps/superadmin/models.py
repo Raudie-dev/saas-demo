@@ -243,46 +243,4 @@ class SuperAdminUser(AbstractBaseUser, PermissionsMixin):
         return full or self.username or self.email
 
 
-class SystemAnnouncement(TimeStampedModel):
-    TYPE_CHOICES = [
-        ('INFO', 'Informativo (Azul)'),
-        ('WARNING', 'Advertencia (Amarillo)'),
-        ('STRICT', 'Estricto/Bloqueo (Rojo)'),
-    ]
 
-    title = models.CharField(max_length=200, verbose_name="Título")
-    message = models.TextField(verbose_name="Mensaje (soporta saltos de línea)")
-    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='INFO', verbose_name="Tipo de Modal")
-    is_active = models.BooleanField(default=True, verbose_name="Activo")
-    is_dismissible = models.BooleanField(default=True, verbose_name="Se puede cerrar (X)")
-    
-    # Action Button
-    action_button_text = models.CharField(max_length=100, blank=True, null=True, verbose_name="Texto del Botón de Acción")
-    action_button_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="URL del Botón (ej: /negocio/configuracion/)")
-
-    # Filters
-    target_regions = models.ManyToManyField(Region, blank=True, verbose_name="Filtrar por Regiones")
-    target_missing_region = models.BooleanField(default=False, verbose_name="Solo para agencias SIN región asignada")
-
-    class Meta:
-        verbose_name = "Comunicado / Modal"
-        verbose_name_plural = "Comunicados y Modales"
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"{self.title} ({self.get_type_display()})"
-
-
-from django.conf import settings
-
-class AnnouncementDismissal(TimeStampedModel):
-    announcement = models.ForeignKey(SystemAnnouncement, on_delete=models.CASCADE, related_name='dismissals')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='dismissed_announcements')
-
-    class Meta:
-        verbose_name = "Descarte de Comunicado"
-        verbose_name_plural = "Descartes de Comunicados"
-        unique_together = ('announcement', 'user')
-
-    def __str__(self):
-        return f"{self.user.email} cerró {self.announcement.title}"
