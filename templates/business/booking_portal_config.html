@@ -1,0 +1,940 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configuración del Portal de Reservas · RauDie OS{% endblock %}
+
+{% block extra_head %}
+<!-- Cropper.js CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+<style>
+    /* Estilos personalizados para el visor de recorte */
+    .cropper-view-box,
+    .cropper-face {
+        border-radius: 0;
+    }
+    .is-circular-crop .cropper-view-box,
+    .is-circular-crop .cropper-face {
+        border-radius: 50%;
+    }
+    .cropper-line, .cropper-point {
+        background-color: #881337;
+    }
+    .cropper-point.point-se {
+        width: 8px;
+        height: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-7 pb-20">
+
+    <!-- TOP BREADCRUMB & PAGE HEADER -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+                <a href="{% url 'business_config' %}" class="hover:text-rose-900 transition">Configuración</a>
+                <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span class="text-rose-900 font-bold">Portal de Reservas</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-display font-black text-slate-900 tracking-tight">
+                Portal de Reservas Online
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                Administra tu enlace público 24/7, activa o pausa la recepción de citas y visualiza tu portal en vivo.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <a href="{% url 'public_booking' business.slug %}" target="_blank"
+               class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Ver Portal en Pestaña Nueva</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 1. MASTER SWITCH CARD: Activar / Pausar Portal en 1 Clic -->
+    <div class="glass-card rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm transition-all duration-300 {% if business.is_booking_enabled %}bg-gradient-to-r from-emerald-50/50 via-white to-white border-emerald-200{% else %}bg-gradient-to-r from-slate-50 via-white to-white border-slate-300{% endif %}" id="statusCard">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+            
+            <div class="flex items-start gap-4">
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300 {% if business.is_booking_enabled %}bg-emerald-500 text-white shadow-lg shadow-emerald-500/20{% else %}bg-slate-200 text-slate-500{% endif %}" id="statusIconBox">
+                    <i data-lucide="{% if business.is_booking_enabled %}globe{% else %}pause-circle{% endif %}" class="w-7 h-7" id="statusIcon"></i>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all {% if business.is_booking_enabled %}bg-emerald-100 text-emerald-800 border border-emerald-300{% else %}bg-slate-200 text-slate-600 border border-slate-300{% endif %}" id="statusBadge">
+                            <span class="w-2 h-2 rounded-full {% if business.is_booking_enabled %}bg-emerald-500 animate-ping{% else %}bg-slate-400{% endif %}" id="statusDot"></span>
+                            <span id="statusBadgeText">{% if business.is_booking_enabled %}PORTAL ACTIVO (ONLINE){% else %}PORTAL PAUSADO (OFFLINE){% endif %}</span>
+                        </span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900" id="statusTitle">
+                        {% if business.is_booking_enabled %}
+                        El portal está abierto recibiendo citas 24/7
+                        {% else %}
+                        El portal de reservas está temporalmente pausado
+                        {% endif %}
+                    </h3>
+                    <p class="text-xs text-slate-500 max-w-xl leading-relaxed" id="statusDesc">
+                        {% if business.is_booking_enabled %}
+                        Tus clientes pueden ingresar al enlace, seleccionar sus servicios, elegir el especialista y agendar citas en tiempo real.
+                        {% else %}
+                        El portal está desactivado. Cualquier usuario o cliente que ingrese al enlace recibirá un error 404 (Página no encontrada) y no podrá acceder.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- ONE-CLICK TOGGLE BUTTON & SWITCH -->
+            <div class="flex flex-col items-end gap-2 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                <button type="button" onclick="togglePortalStatusAjax()" id="toggleBtn"
+                        class="w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all shadow-md {% if business.is_booking_enabled %}bg-amber-600 hover:bg-amber-700 text-white{% else %}bg-emerald-600 hover:bg-emerald-700 text-white{% endif %}">
+                    <i data-lucide="power" class="w-4 h-4"></i>
+                    <span id="toggleBtnText">{% if business.is_booking_enabled %}Pausar Portal de Reservas{% else %}Activar Portal Ahora{% endif %}</span>
+                </button>
+                <span class="text-[11px] text-slate-400">Cambio inmediato sin recargar la página</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 2. LINK CONFIGURATION CARD -->
+    <div class="glass-card rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-6">
+        <div>
+            <div class="flex items-center gap-2">
+                <i data-lucide="link-2" class="w-5 h-5 text-rose-900"></i>
+                <h2 class="text-lg font-bold text-slate-900">Enlace de Reservas Público</h2>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">
+                Comparte este enlace con tus clientes por WhatsApp, Instagram, Google o en tus redes sociales.
+            </p>
+        </div>
+
+        <!-- FULL URL DISPLAY BOX WITH ACTIONS -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-3">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Tu Enlace Oficial de Reservas:
+            </label>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                <div class="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs sm:text-sm font-mono text-slate-800 font-bold select-all overflow-x-auto truncate" id="fullLinkText">
+                    {{ full_booking_url }}
+                </div>
+                
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" onclick="copyFullLink()" 
+                            class="flex-1 sm:flex-none px-4 py-3 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-sm">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        <span>Copiar Enlace</span>
+                    </button>
+
+                    <a href="https://wa.me/?text={{ 'Agenda tu cita fácilmente en '|urlencode }}{{ business.name|urlencode }}:%20{{ full_booking_url|urlencode }}" 
+                       target="_blank" title="Compartir en WhatsApp"
+                       class="px-4 py-3 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-sm">
+                        <i data-lucide="message-circle" class="w-4 h-4 fill-current"></i>
+                        <span class="hidden sm:inline">WhatsApp</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- EDIT SLUG FORM -->
+        <div class="pt-4 border-t border-slate-100">
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="UPDATE_SLUG">
+                <div>
+                    <label class="block text-xs font-bold text-slate-800 mb-1.5">
+                        Personalizar URL / Slug
+                    </label>
+                    <p class="text-xs text-slate-500 mb-3">
+                        Puedes cambiar el identificador de tu negocio en la dirección web para que sea más fácil de recordar.
+                    </p>
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 max-w-xl">
+                        <div class="flex items-center bg-slate-100 border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-500 shrink-0 font-mono">
+                            {{ request.get_host }}/reservas/
+                        </div>
+                        <input type="text" name="slug" value="{{ business.slug }}" required pattern="^[a-zA-Z0-9-_]+$"
+                               placeholder="mi-agencia"
+                               class="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:border-rose-900 focus:ring-1 focus:ring-rose-900 transition">
+                        <button type="submit" 
+                                class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shrink-0">
+                            Guardar Slug
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. PROFILE CUSTOMIZATION & OPEN GRAPH SHARING -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- QUICK PROFILE CUSTOMIZATION & MODERN IMAGE CROP BUTTONS -->
+        <div class="glass-card rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
+            <div class="flex items-center gap-2">
+                <i data-lucide="sliders" class="w-5 h-5 text-rose-900"></i>
+                <h3 class="text-base font-bold text-slate-900">Personalización del Perfil & Fotos</h3>
+            </div>
+            <p class="text-xs text-slate-500">
+                Ajusta la información y fotos de cabecera. Puedes **recortar y encuadrar** cada imagen antes de subirla.
+            </p>
+
+            <form method="POST" enctype="multipart/form-data" id="profileDetailsForm" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="UPDATE_DETAILS">
+                
+                <!-- Hidden inputs for base64 cropped images -->
+                <input type="hidden" name="cropped_logo_base64" id="croppedLogoBase64">
+                <input type="hidden" name="cropped_banner_base64" id="croppedBannerBase64">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp Oficial de Reservas</label>
+                    <input type="text" name="whatsapp_number" value="{{ business.whatsapp_number|default:'' }}"
+                           placeholder="+54 9 11 2345 6789"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-rose-900 transition font-medium">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Descripción / Bio de la Agencia</label>
+                    <textarea name="description" rows="2" 
+                              placeholder="Breve reseña que verán tus clientes al ingresar..."
+                              class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-rose-900 transition leading-relaxed">{{ business.description|default:'' }}</textarea>
+                </div>
+
+                <!-- REDESIGNED MODERN IMAGE UPLOAD CARDS WITH CROPPER -->
+                <div class="space-y-3 pt-1">
+                    
+                    <!-- 1. LOGO UPLOAD & CROP CARD -->
+                    <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 transition hover:border-slate-300">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <!-- Logo Thumbnail -->
+                                <div class="w-14 h-14 rounded-2xl bg-white border-2 border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-xs relative group">
+                                    {% if business.logo_url %}
+                                    <img src="{{ business.logo_url.url }}" alt="Logo Actual" id="logoThumbPreview" class="w-full h-full object-cover">
+                                    {% else %}
+                                    <div id="logoThumbPreviewPlaceholder" class="w-full h-full bg-rose-900 text-white font-black text-lg flex items-center justify-center">
+                                        {{ business.name|slice:":1" }}
+                                    </div>
+                                    <img id="logoThumbPreview" src="" alt="Nuevo Logo" class="w-full h-full object-cover hidden">
+                                    {% endif %}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="text-xs font-bold text-slate-900">Logo de la Agencia</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900">1:1 Cuadrado</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-0.5 truncate" id="logoStatusText">
+                                        {% if business.logo_url %}Logo activo{% else %}Sin logo asignado{% endif %}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Button Trigger -->
+                            <div class="shrink-0">
+                                <input type="file" id="logoFileInput" accept="image/*" class="hidden" onchange="onFileSelected(this, 'logo')">
+                                <button type="button" onclick="triggerImageCrop('logo')"
+                                        class="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 hover:border-rose-900 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition">
+                                    <i data-lucide="crop" class="w-3.5 h-3.5"></i>
+                                    <span>Subir y Recortar</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. BANNER / PORTADA UPLOAD & CROP CARD -->
+                    <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 transition hover:border-slate-300">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <!-- Banner Thumbnail -->
+                                <div class="w-20 h-12 rounded-xl bg-white border-2 border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-xs relative">
+                                    {% if business.banner_url %}
+                                    <img src="{{ business.banner_url.url }}" alt="Portada Actual" id="bannerThumbPreview" class="w-full h-full object-cover">
+                                    {% else %}
+                                    <div id="bannerThumbPreviewPlaceholder" class="w-full h-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs">
+                                        <i data-lucide="image" class="w-5 h-5"></i>
+                                    </div>
+                                    <img id="bannerThumbPreview" src="" alt="Nueva Portada" class="w-full h-full object-cover hidden">
+                                    {% endif %}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="text-xs font-bold text-slate-900">Portada / Banner</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">16:9 Panorámica</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-0.5 truncate" id="bannerStatusText">
+                                        {% if business.banner_url %}Portada activa{% else %}Sin portada asignada{% endif %}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Button Trigger -->
+                            <div class="shrink-0">
+                                <input type="file" id="bannerFileInput" accept="image/*" class="hidden" onchange="onFileSelected(this, 'banner')">
+                                <button type="button" onclick="triggerImageCrop('banner')"
+                                        class="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 hover:border-rose-900 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition">
+                                    <i data-lucide="crop" class="w-3.5 h-3.5"></i>
+                                    <span>Subir y Recortar</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" id="saveCustomizationBtn"
+                            class="w-full py-3 rounded-xl bg-slate-900 hover:bg-rose-950 text-white text-xs sm:text-sm font-bold transition shadow-sm flex items-center justify-center gap-2">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Guardar Personalización</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- OPEN GRAPH WHATSAPP LIVE PREVIEW CARD -->
+        <div class="glass-card rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="share-2" class="w-5 h-5 text-rose-900"></i>
+                    <h3 class="text-base font-bold text-slate-900">Vista Previa al Compartir Enlace</h3>
+                </div>
+                <span class="text-[11px] font-semibold text-slate-400">WhatsApp / Redes</span>
+            </div>
+            <p class="text-xs text-slate-500">
+                Así verán tus clientes la tarjeta visual interactiva cuando les envíes el enlace por WhatsApp, iMessage o Instagram:
+            </p>
+
+            <!-- Simulated WhatsApp Preview Card -->
+            <div class="max-w-sm mx-auto bg-[#eef7f0] p-3 rounded-2xl border border-emerald-200/80 shadow-sm space-y-2">
+                <div class="bg-white rounded-xl overflow-hidden border border-emerald-100 shadow-sm">
+                    <div class="aspect-video w-full bg-slate-100 flex items-center justify-center overflow-hidden relative" id="ogPreviewImageBox">
+                        {% if business.logo_url %}
+                        <img src="{{ business.logo_url.url }}" alt="{{ business.name }}" id="ogPreviewImage" class="w-full h-full object-contain p-4 bg-white">
+                        {% elif business.banner_url %}
+                        <img src="{{ business.banner_url.url }}" alt="{{ business.name }}" id="ogPreviewImage" class="w-full h-full object-cover">
+                        {% else %}
+                        <div id="ogPreviewPlaceholder" class="w-full h-full bg-gradient-to-tr from-rose-900 to-slate-900 flex items-center justify-center text-white text-4xl font-black">
+                            {{ business.name|slice:":1" }}
+                        </div>
+                        <img id="ogPreviewImage" src="" alt="{{ business.name }}" class="w-full h-full object-contain p-4 bg-white hidden">
+                        {% endif %}
+                    </div>
+                    <div class="p-3 space-y-1">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">{{ request.get_host }}</div>
+                        <h4 class="font-bold text-xs text-slate-900 leading-tight">{{ business.name }} · Reserva tu Cita Online</h4>
+                        <p class="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                            {{ business.description|default:"Agenda tu cita online en segundos. Especialistas calificados y atención garantizada." }}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between text-[11px] text-emerald-800 font-semibold px-1">
+                    <span>https://{{ request.get_host }}/reservas/{{ business.slug }}/</span>
+                    <i data-lucide="check-check" class="w-4 h-4 text-emerald-600"></i>
+                </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 space-y-1">
+                <div class="flex items-center gap-1.5 font-bold text-slate-700">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+                    <span>Optimización Automática WebP</span>
+                </div>
+                <p class="text-[11px]">
+                    Las fotos que recortes se procesan y optimizan automáticamente en formato WebP para cargar al instante en smartphones y computadoras.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 4. LIVE PORTAL PREVIEW SECTION (VISTA PREVIA EN VIVO DEL PORTAL) -->
+    <div class="glass-card rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="layout" class="w-5 h-5 text-rose-900"></i>
+                    <h2 class="text-lg font-bold text-slate-900">Vista Previa en Vivo del Portal</h2>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Interactúa y prueba la experiencia que tienen tus clientes al reservar citas.
+                </p>
+            </div>
+
+            <!-- Controls: Device switcher, refresh, open full -->
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <!-- Device Mode Toggle Pills -->
+                <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
+                    <button type="button" onclick="setPreviewDevice('mobile')" id="btnDeviceMobile"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-rose-950 shadow-xs">
+                        <i data-lucide="smartphone" class="w-3.5 h-3.5 text-rose-900"></i>
+                        <span>Móvil</span>
+                    </button>
+                    <button type="button" onclick="setPreviewDevice('desktop')" id="btnDeviceDesktop"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+                        <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
+                        <span>Escritorio</span>
+                    </button>
+                </div>
+
+                <!-- Refresh Button -->
+                <button type="button" onclick="refreshPortalPreview()" title="Recargar vista previa"
+                        class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-rose-900 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                    <i data-lucide="rotate-cw" class="w-3.5 h-3.5" id="refreshIcon"></i>
+                    <span class="hidden sm:inline">Refrescar</span>
+                </button>
+
+                <!-- Open in new tab -->
+                <a href="{% url 'public_booking' business.slug %}" target="_blank"
+                   class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-rose-950 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    <span>Abrir Completo</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- PREVIEW FRAME WORKSPACE -->
+        <div class="bg-gradient-to-b from-slate-100 via-slate-100/70 to-slate-200/80 rounded-2xl p-4 sm:p-8 flex justify-center items-center min-h-[640px] overflow-hidden border border-slate-200/80 relative">
+            
+            <!-- SMARTPHONE MOCKUP FRAME -->
+            <div id="mobileDeviceFrame" class="w-[360px] sm:w-[385px] h-[720px] bg-slate-950 rounded-[48px] p-3 shadow-2xl ring-1 ring-slate-800 transition-all duration-300 flex flex-col relative">
+                <!-- Top Notch / Island -->
+                <div class="h-6 flex items-center justify-center shrink-0">
+                    <div class="w-24 h-4 bg-slate-900 rounded-full flex items-center justify-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-slate-800"></span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-900/80"></span>
+                    </div>
+                </div>
+
+                <!-- Smartphone Screen (iframe) -->
+                <div class="flex-1 bg-white rounded-[36px] overflow-hidden relative shadow-inner">
+                    <iframe id="portalPreviewIframeMobile" src="{% url 'public_booking' business.slug %}" 
+                            class="w-full h-full border-0" loading="lazy"></iframe>
+                    <!-- Deactivated Notice Overlay (Mobile) -->
+                    <div id="previewOfflineOverlayMobile" class="absolute inset-0 bg-slate-950/85 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center z-10 text-white transition-opacity duration-300 {% if business.is_booking_enabled %}hidden{% endif %}">
+                        <div class="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center mb-3 shadow-inner">
+                            <i data-lucide="eye-off" class="w-7 h-7"></i>
+                        </div>
+                        <h4 class="font-bold text-base mb-1 text-white">Portal Desactivado</h4>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 mb-2">
+                            Retorna Error 404
+                        </span>
+                        <p class="text-xs text-slate-300 mb-5 max-w-[240px] leading-relaxed">
+                            El portal no está disponible públicamente para clientes. Actívalo para permitir agendamientos.
+                        </p>
+                        <button type="button" onclick="togglePortalStatus()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-900/40 transition flex items-center gap-2">
+                            <i data-lucide="power" class="w-3.5 h-3.5"></i>
+                            <span>Activar Portal Ahora</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Home Indicator Bar -->
+                <div class="h-4 flex items-center justify-center shrink-0">
+                    <div class="w-28 h-1 bg-slate-700 rounded-full"></div>
+                </div>
+            </div>
+
+            <!-- DESKTOP BROWSER MOCKUP FRAME (Hidden by default) -->
+            <div id="desktopDeviceFrame" class="w-full max-w-4xl h-[660px] bg-white rounded-2xl shadow-2xl border border-slate-300 transition-all duration-300 hidden flex-col overflow-hidden">
+                <!-- Browser Tab Bar Header -->
+                <div class="bg-slate-100 border-b border-slate-200 px-4 py-2.5 flex items-center gap-3 shrink-0">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-rose-400"></span>
+                        <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+                        <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+                    </div>
+                    <div class="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1 text-[11px] text-slate-600 font-mono flex items-center justify-between truncate">
+                        <span class="truncate">https://{{ request.get_host }}/reservas/{{ business.slug }}/</span>
+                        <i data-lucide="lock" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                    </div>
+                </div>
+                <!-- Browser Viewport (iframe) -->
+                <div class="flex-1 overflow-hidden relative bg-white">
+                    <iframe id="portalPreviewIframeDesktop" src="{% url 'public_booking' business.slug %}" 
+                            class="w-full h-full border-0" loading="lazy"></iframe>
+                    <!-- Deactivated Notice Overlay (Desktop) -->
+                    <div id="previewOfflineOverlayDesktop" class="absolute inset-0 bg-slate-950/85 backdrop-blur-xs flex flex-col items-center justify-center p-8 text-center z-10 text-white transition-opacity duration-300 {% if business.is_booking_enabled %}hidden{% endif %}">
+                        <div class="w-16 h-16 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center mb-3 shadow-inner">
+                            <i data-lucide="eye-off" class="w-8 h-8"></i>
+                        </div>
+                        <h4 class="font-bold text-lg mb-1 text-white">Portal Desactivado</h4>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 mb-3">
+                            Retorna Error 404
+                        </span>
+                        <p class="text-xs text-slate-300 mb-5 max-w-sm leading-relaxed">
+                            El portal no está disponible públicamente para clientes. Los visitantes recibirán una página 404. Actívalo para permitir agendamientos y ver la vista previa en vivo.
+                        </p>
+                        <button type="button" onclick="togglePortalStatus()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-900/40 transition flex items-center gap-2">
+                            <i data-lucide="power" class="w-4 h-4"></i>
+                            <span>Activar Portal Ahora</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- 5. INTERACTIVE IMAGE CROPPER MODAL (CROPPER.JS) -->
+<div id="cropperModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm hidden animate-in fade-in duration-150">
+    <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 flex flex-col max-h-[92vh] overflow-hidden">
+        
+        <!-- Modal Header -->
+        <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between shrink-0 bg-slate-50/50">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="crop" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm sm:text-base text-slate-900" id="cropperModalTitle">Recortar y Ajustar Imagen</h3>
+                    <p class="text-[11px] text-slate-500" id="cropperModalSubtitle">Ajusta el encuadre exacto como deseas que se vea</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCropperModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200 flex items-center justify-center transition">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Cropper Workspace Area -->
+        <div class="p-4 sm:p-6 flex-1 overflow-y-auto space-y-4 bg-slate-900 flex flex-col justify-center items-center">
+            <div class="max-w-full max-h-[380px] sm:max-h-[440px] flex items-center justify-center overflow-hidden w-full" id="cropperContainer">
+                <img id="cropperImageSource" src="" alt="Recorte" class="max-w-full">
+            </div>
+        </div>
+
+        <!-- Cropper Toolbar Controls -->
+        <div class="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <!-- Aspect Ratio and Tools -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] font-bold text-slate-500 mr-1 hidden sm:inline">Proporción:</span>
+                <button type="button" onclick="setCropRatio(1)" id="btnRatioSquare"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:border-rose-900 transition">
+                    1:1 (Cuadrado)
+                </button>
+                <button type="button" onclick="setCropRatio(16/9)" id="btnRatioBanner"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:border-rose-900 transition">
+                    16:9 (Panorámico)
+                </button>
+                <button type="button" onclick="setCropRatio(NaN)" id="btnRatioFree"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:border-rose-900 transition">
+                    Libre
+                </button>
+            </div>
+
+            <!-- Zoom and Rotate Controls -->
+            <div class="flex items-center gap-1.5">
+                <button type="button" onclick="cropperZoom(0.1)" title="Acercar (+)"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-900 hover:bg-slate-100 transition shadow-2xs">
+                    <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="cropperZoom(-0.1)" title="Alejar (-)"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-900 hover:bg-slate-100 transition shadow-2xs">
+                    <i data-lucide="zoom-out" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="cropperRotate(-90)" title="Girar 90° izquierda"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-900 hover:bg-slate-100 transition shadow-2xs">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="cropperRotate(90)" title="Girar 90° derecha"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-900 hover:bg-slate-100 transition shadow-2xs">
+                    <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="cropperReset()" title="Restablecer recorte"
+                        class="p-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-rose-900 hover:bg-slate-100 transition shadow-2xs">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal Actions Footer -->
+        <div class="px-5 py-3.5 border-t border-slate-200 flex items-center justify-end gap-2.5 bg-white shrink-0">
+            <button type="button" onclick="closeCropperModal()"
+                    class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+                Cancelar
+            </button>
+            <button type="button" onclick="confirmCrop()" id="btnConfirmCrop"
+                    class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span>Aplicar Recorte</span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- COPY TOAST NOTIFICATION -->
+<div id="copyToast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2.5 text-xs font-semibold">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+        <span>¡Enlace copiado al portapapeles con éxito!</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Cropper.js JavaScript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+
+<script>
+    // -------------------------------------------------------------
+    // 1. LIVE PORTAL PREVIEW DEVICE SWITCHER & REFRESH
+    // -------------------------------------------------------------
+    function setPreviewDevice(mode) {
+        const mobileFrame = document.getElementById('mobileDeviceFrame');
+        const desktopFrame = document.getElementById('desktopDeviceFrame');
+        const btnMobile = document.getElementById('btnDeviceMobile');
+        const btnDesktop = document.getElementById('btnDeviceDesktop');
+
+        if (mode === 'mobile') {
+            mobileFrame.classList.remove('hidden');
+            mobileFrame.classList.add('flex');
+            desktopFrame.classList.add('hidden');
+            desktopFrame.classList.remove('flex');
+
+            btnMobile.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-rose-950 shadow-xs";
+            btnDesktop.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900";
+        } else {
+            mobileFrame.classList.add('hidden');
+            mobileFrame.classList.remove('flex');
+            desktopFrame.classList.remove('hidden');
+            desktopFrame.classList.add('flex');
+
+            btnDesktop.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-rose-950 shadow-xs";
+            btnMobile.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900";
+        }
+        lucide.createIcons();
+    }
+
+    function refreshPortalPreview() {
+        const iframeMobile = document.getElementById('portalPreviewIframeMobile');
+        const iframeDesktop = document.getElementById('portalPreviewIframeDesktop');
+        const icon = document.getElementById('refreshIcon');
+
+        if (icon) icon.classList.add('animate-spin');
+        if (iframeMobile) iframeMobile.src = iframeMobile.src;
+        if (iframeDesktop) iframeDesktop.src = iframeDesktop.src;
+
+        setTimeout(() => {
+            if (icon) icon.classList.remove('animate-spin');
+        }, 800);
+    }
+
+    // -------------------------------------------------------------
+    // 2. COPY LINK & TOAST
+    // -------------------------------------------------------------
+    function copyFullLink() {
+        const urlText = document.getElementById('fullLinkText').innerText.trim();
+        navigator.clipboard.writeText(urlText).then(() => {
+            showToast();
+        }).catch(() => {
+            prompt("Copia tu enlace oficial:", urlText);
+        });
+    }
+
+    function showToast() {
+        const toast = document.getElementById('copyToast');
+        if (!toast) return;
+        toast.classList.remove('translate-y-24', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+            toast.classList.add('translate-y-24', 'opacity-0');
+            toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 3000);
+    }
+
+    // -------------------------------------------------------------
+    // 3. MASTER SWITCH AJAX TOGGLE
+    // -------------------------------------------------------------
+    function togglePortalStatusAjax() {
+        const toggleBtn = document.getElementById('toggleBtn');
+        toggleBtn.disabled = true;
+
+        fetch("{% url 'booking_portal_toggle_api' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            toggleBtn.disabled = false;
+            if (data.success) {
+                const isActive = data.is_booking_enabled;
+                const card = document.getElementById('statusCard');
+                const iconBox = document.getElementById('statusIconBox');
+                const badge = document.getElementById('statusBadge');
+                const dot = document.getElementById('statusDot');
+                const badgeText = document.getElementById('statusBadgeText');
+                const title = document.getElementById('statusTitle');
+                const desc = document.getElementById('statusDesc');
+                const btnText = document.getElementById('toggleBtnText');
+
+                if (isActive) {
+                    card.className = "glass-card rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm transition-all duration-300 bg-gradient-to-r from-emerald-50/50 via-white to-white border-emerald-200";
+                    iconBox.className = "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20";
+                    badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all bg-emerald-100 text-emerald-800 border border-emerald-300";
+                    dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-ping";
+                    badgeText.innerText = "PORTAL ACTIVO (ONLINE)";
+                    title.innerText = "El portal está abierto recibiendo citas 24/7";
+                    desc.innerText = "Tus clientes pueden ingresar al enlace, seleccionar sus servicios, elegir el especialista y agendar citas en tiempo real.";
+                    toggleBtn.className = "w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all shadow-md bg-amber-600 hover:bg-amber-700 text-white";
+                    btnText.innerText = "Pausar Portal de Reservas";
+
+                    // Hide deactivated overlays
+                    document.getElementById('previewOfflineOverlayMobile')?.classList.add('hidden');
+                    document.getElementById('previewOfflineOverlayDesktop')?.classList.add('hidden');
+
+                    // Update sidebar pill & badge
+                    const pillBox = document.getElementById('sidebarPortalPillContainer');
+                    if (pillBox) {
+                        pillBox.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span><span class="text-[11px] font-semibold text-emerald-300 truncate">Enlace Activo (Online)</span>';
+                    }
+                    const menuBadge = document.getElementById('sidebarMenuPortalBadgeContainer');
+                    if (menuBadge) {
+                        menuBadge.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Activo</span>';
+                    }
+                } else {
+                    card.className = "glass-card rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm transition-all duration-300 bg-gradient-to-r from-slate-50 via-white to-white border-slate-300";
+                    iconBox.className = "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300 bg-slate-200 text-slate-500";
+                    badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all bg-slate-200 text-slate-600 border border-slate-300";
+                    dot.className = "w-2 h-2 rounded-full bg-slate-400";
+                    badgeText.innerText = "PORTAL PAUSADO (OFFLINE)";
+                    title.innerText = "El portal de reservas está temporalmente pausado";
+                    desc.innerText = "El portal de reservas está desactivado. Cualquier usuario o cliente que ingrese al enlace recibirá un error 404 (Página no encontrada).";
+                    toggleBtn.className = "w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all shadow-md bg-emerald-600 hover:bg-emerald-700 text-white";
+                    btnText.innerText = "Activar Portal Ahora";
+
+                    // Show deactivated overlays
+                    document.getElementById('previewOfflineOverlayMobile')?.classList.remove('hidden');
+                    document.getElementById('previewOfflineOverlayDesktop')?.classList.remove('hidden');
+
+                    // Update sidebar pill & badge
+                    const pillBox = document.getElementById('sidebarPortalPillContainer');
+                    if (pillBox) {
+                        pillBox.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-500 shrink-0"></span><span class="text-[11px] font-semibold text-slate-400 truncate">Enlace Pausado (Offline)</span>';
+                    }
+                    const menuBadge = document.getElementById('sidebarMenuPortalBadgeContainer');
+                    if (menuBadge) {
+                        menuBadge.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>Pausado</span>';
+                    }
+                }
+
+                refreshPortalPreview();
+                lucide.createIcons();
+            }
+        })
+        .catch(err => {
+            toggleBtn.disabled = false;
+            alert("Error al actualizar el estado del portal.");
+        });
+    }
+
+    // -------------------------------------------------------------
+    // 4. INTERACTIVE IMAGE CROPPER (CROPPER.JS) LOGIC
+    // -------------------------------------------------------------
+    let currentCropper = null;
+    let activeCropTarget = 'logo'; // 'logo' or 'banner'
+
+    function triggerImageCrop(targetType) {
+        activeCropTarget = targetType;
+        const fileInput = document.getElementById(targetType === 'logo' ? 'logoFileInput' : 'bannerFileInput');
+        if (fileInput) {
+            fileInput.value = ''; // Reset input so same file can be re-selected
+            fileInput.click();
+        }
+    }
+
+    function onFileSelected(input, targetType) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        activeCropTarget = targetType;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            openCropperModal(e.target.result, targetType);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function openCropperModal(imageSrc, targetType) {
+        const modal = document.getElementById('cropperModal');
+        const img = document.getElementById('cropperImageSource');
+        const modalTitle = document.getElementById('cropperModalTitle');
+        const modalSubtitle = document.getElementById('cropperModalSubtitle');
+        const container = document.getElementById('cropperContainer');
+
+        if (targetType === 'logo') {
+            modalTitle.innerText = "Recortar y Ajustar Logo";
+            modalSubtitle.innerText = "Encuadra el logo de tu agencia (proporción recomendada 1:1)";
+            container.classList.add('is-circular-crop');
+        } else {
+            modalTitle.innerText = "Recortar y Ajustar Foto de Portada";
+            modalSubtitle.innerText = "Encuadra la portada panorámica (proporción recomendada 16:9)";
+            container.classList.remove('is-circular-crop');
+        }
+
+        img.src = imageSrc;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+        // Destroy any existing cropper instance
+        if (currentCropper) {
+            currentCropper.destroy();
+            currentCropper = null;
+        }
+
+        // Initialize Cropper.js
+        const defaultAspect = (targetType === 'logo') ? 1 : (16 / 9);
+        currentCropper = new Cropper(img, {
+            aspectRatio: defaultAspect,
+            viewMode: 1,
+            autoCropArea: 0.9,
+            responsive: true,
+            background: false,
+            zoomable: true,
+            rotatable: true,
+            scalable: true,
+            ready() {
+                highlightActiveRatioButton(defaultAspect);
+            }
+        });
+    }
+
+    function closeCropperModal() {
+        const modal = document.getElementById('cropperModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+        if (currentCropper) {
+            currentCropper.destroy();
+            currentCropper = null;
+        }
+    }
+
+    function setCropRatio(ratio) {
+        if (!currentCropper) return;
+        currentCropper.setAspectRatio(ratio);
+        highlightActiveRatioButton(ratio);
+    }
+
+    function highlightActiveRatioButton(ratio) {
+        const bSquare = document.getElementById('btnRatioSquare');
+        const bBanner = document.getElementById('btnRatioBanner');
+        const bFree = document.getElementById('btnRatioFree');
+
+        [bSquare, bBanner, bFree].forEach(b => {
+            if (b) b.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:border-rose-900 transition";
+        });
+
+        if (ratio === 1 && bSquare) {
+            bSquare.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-900 text-white border border-rose-900 transition shadow-2xs";
+        } else if (Math.abs(ratio - (16/9)) < 0.05 && bBanner) {
+            bBanner.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-900 text-white border border-rose-900 transition shadow-2xs";
+        } else if (isNaN(ratio) && bFree) {
+            bFree.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-900 text-white border border-rose-900 transition shadow-2xs";
+        }
+    }
+
+    function cropperZoom(delta) {
+        if (currentCropper) currentCropper.zoom(delta);
+    }
+
+    function cropperRotate(degrees) {
+        if (currentCropper) currentCropper.rotate(degrees);
+    }
+
+    function cropperReset() {
+        if (currentCropper) currentCropper.reset();
+    }
+
+    function confirmCrop() {
+        if (!currentCropper) return;
+
+        // Export dimensions
+        let exportWidth = 600;
+        let exportHeight = 600;
+
+        if (activeCropTarget === 'banner') {
+            exportWidth = 1440;
+            exportHeight = 810;
+        }
+
+        const canvas = currentCropper.getCroppedCanvas({
+            width: exportWidth,
+            height: exportHeight,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+
+        if (!canvas) {
+            alert("No se pudo procesar el recorte de la imagen.");
+            return;
+        }
+
+        const croppedBase64 = canvas.toDataURL('image/jpeg', 0.92);
+
+        if (activeCropTarget === 'logo') {
+            // Update hidden input
+            document.getElementById('croppedLogoBase64').value = croppedBase64;
+            
+            // Update thumbnail
+            const thumbImg = document.getElementById('logoThumbPreview');
+            const placeholder = document.getElementById('logoThumbPreviewPlaceholder');
+            if (placeholder) placeholder.classList.add('hidden');
+            if (thumbImg) {
+                thumbImg.src = croppedBase64;
+                thumbImg.classList.remove('hidden');
+            }
+
+            // Update status text
+            const statusText = document.getElementById('logoStatusText');
+            if (statusText) {
+                statusText.innerHTML = '<span class="text-emerald-600 font-bold">✅ Recorte listo para guardar</span>';
+            }
+
+            // Update Open Graph live preview
+            const ogImg = document.getElementById('ogPreviewImage');
+            const ogPlaceholder = document.getElementById('ogPreviewPlaceholder');
+            if (ogPlaceholder) ogPlaceholder.classList.add('hidden');
+            if (ogImg) {
+                ogImg.src = croppedBase64;
+                ogImg.classList.remove('hidden');
+            }
+        } else {
+            // Update hidden input
+            document.getElementById('croppedBannerBase64').value = croppedBase64;
+
+            // Update thumbnail
+            const thumbImg = document.getElementById('bannerThumbPreview');
+            const placeholder = document.getElementById('bannerThumbPreviewPlaceholder');
+            if (placeholder) placeholder.classList.add('hidden');
+            if (thumbImg) {
+                thumbImg.src = croppedBase64;
+                thumbImg.classList.remove('hidden');
+            }
+
+            // Update status text
+            const statusText = document.getElementById('bannerStatusText');
+            if (statusText) {
+                statusText.innerHTML = '<span class="text-emerald-600 font-bold">✅ Recorte listo para guardar</span>';
+            }
+        }
+
+        // Highlight save button
+        const saveBtn = document.getElementById('saveCustomizationBtn');
+        if (saveBtn) {
+            saveBtn.classList.add('ring-4', 'ring-rose-500/40', 'animate-pulse');
+            setTimeout(() => {
+                saveBtn.classList.remove('animate-pulse');
+            }, 2500);
+        }
+
+        closeCropperModal();
+    }
+</script>
+{% endblock %}

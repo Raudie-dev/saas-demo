@@ -1,6 +1,7 @@
 
 # Python / Virtual Environment
 venv/
+media/
 .venv/
 env/
 ENV/
@@ -11,7 +12,6 @@ __pycache__/
 staticfiles/
 
 # Database
-*.sqlite3
 
 create_admin.py
 

@@ -20,8 +20,47 @@
     </div>
 
     <div class="glass-card bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-        <form method="POST" autocomplete="off" class="space-y-6">
+        <form method="POST" autocomplete="off" class="space-y-6" enctype="multipart/form-data">
             {% csrf_token %}
+
+            <div class="mb-4 border-b border-slate-100 pb-4">
+                <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 transition hover:border-slate-300">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <!-- Avatar Thumbnail -->
+                            <div class="w-14 h-14 rounded-full bg-white border-2 border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-xs relative">
+                                {% if staff and staff.profile_picture %}
+                                <img src="{{ staff.profile_picture.url }}" alt="{{ staff.first_name }}" id="staffThumbPreview" class="w-full h-full object-cover">
+                                {% else %}
+                                <div id="staffThumbPlaceholder" class="w-full h-full bg-rose-900 text-white font-black text-lg flex items-center justify-center">
+                                    {{ staff.first_name|default:'E'|slice:":1" }}
+                                </div>
+                                <img id="staffThumbPreview" src="" alt="Nueva Foto" class="w-full h-full object-cover hidden">
+                                {% endif %}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-xs font-bold text-slate-900">Foto de Perfil del Profesional</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900">1:1 Cuadrado</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 mt-0.5 truncate" id="staffPhotoStatus">
+                                    {% if staff and staff.profile_picture %}Foto activa{% else %}Sin foto asignada{% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Button Trigger -->
+                        <div class="shrink-0">
+                            <input type="file" name="profile_picture" id="staffFileInput" accept="image/*" class="hidden" onchange="previewStaffPhoto(this)">
+                            <button type="button" onclick="document.getElementById('staffFileInput').click()"
+                                    class="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 hover:border-rose-900 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer">
+                                <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                                <span>Cambiar Foto</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -88,11 +127,33 @@
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                <a href="{% url 'staff_list' %}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition">Cancelar</a>
-                <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-bold shadow-md transition">Guardar Profesional</button>
+                <a href="{% url 'staff_list' %}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition cursor-pointer">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-bold shadow-md transition cursor-pointer">Guardar Profesional</button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    function previewStaffPhoto(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('staffThumbPreview');
+            const placeholder = document.getElementById('staffThumbPlaceholder');
+            if (placeholder) placeholder.classList.add('hidden');
+            if (preview) {
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+            }
+            const status = document.getElementById('staffPhotoStatus');
+            if (status) {
+                status.innerHTML = '<span class="text-emerald-600 font-bold">✅ Foto lista para guardar</span>';
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+</script>
 {% endblock %}
 

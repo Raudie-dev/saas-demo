@@ -101,7 +101,7 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': BASE_DIR / 'raudie_os.sqlite3',
         }
     }
 
@@ -148,18 +148,33 @@ REST_FRAMEWORK = {
 }
 
 # CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv(
-        'CSRF_TRUSTED_ORIGINS',
-        'http://127.0.0.1:8000,http://localhost:8000,http://127.0.0.1,http://localhost'
-    ).split(',')
-    if origin.strip()
+csrf_trusted_env = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+default_trusted_origins = [
+    'https://demos.raudie.net',
+    'http://demos.raudie.net',
+    'https://*.raudie.net',
+    'http://*.raudie.net',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'http://127.0.0.1',
+    'http://localhost',
+    'http://0.0.0.0:5555',
 ]
+if csrf_trusted_env:
+    CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(
+        default_trusted_origins + [origin.strip() for origin in csrf_trusted_env.split(',') if origin.strip()]
+    ))
+else:
+    CSRF_TRUSTED_ORIGINS = default_trusted_origins
+
+# Allow embedding in same origin for portal preview iframes
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Recognize HTTPS behind reverse proxies (Nginx, Traefik, Cloudflare, etc.)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Security Hardening for Production (HTTPS / Cookie security)
 if ENVIRONMENT == 'production' and not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() in ('true', '1', 't')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True

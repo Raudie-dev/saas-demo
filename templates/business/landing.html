@@ -1096,6 +1096,22 @@
                         Elige el plan ideal para tu negocio. Administra o escala módulos en cualquier momento.
                     </p>
 
+                    <!-- Region Selector -->
+                    <div class="pt-2 flex justify-center">
+                        <form method="GET" action="#precios" class="inline-block relative">
+                            <select name="region" onchange="this.form.submit()" class="appearance-none bg-slate-50 border border-slate-300 text-slate-800 text-sm font-bold rounded-full py-2 pl-4 pr-10 hover:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all cursor-pointer shadow-sm">
+                                {% for r in regions %}
+                                <option value="{{ r.id }}" {% if current_region and current_region.id == r.id %}selected{% endif %}>
+                                    🌎 Precios para {{ r.name }} ({{ r.currency_symbol }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </div>
+                        </form>
+                    </div>
+
                     <!-- Monthly/Annual Toggle -->
                     <div class="pt-4 flex items-center justify-center gap-3 text-xs font-bold">
                         <span id="label-monthly" class="text-slate-900 font-bold">Facturación Mensual</span>
@@ -1128,8 +1144,8 @@
                                 </p>
                                 
                                 <div class="pt-4 flex items-baseline justify-center gap-2">
-                                    <span class="font-display font-black text-5xl sm:text-6xl text-slate-900 plan-price-display" data-monthly="${{ plan.monthly_price|floatformat:0 }}" data-yearly="${{ plan.annual_price|floatformat:0 }}">${{ plan.monthly_price|floatformat:0 }}</span>
-                                    <span class="text-sm text-slate-500 font-bold billing-period">USD / mes</span>
+                                    <span class="font-display font-black text-5xl sm:text-6xl text-slate-900 plan-price-display" data-monthly="{{ plan.currency }}{{ plan.display_monthly|floatformat:0 }}" data-yearly="{{ plan.currency }}{{ plan.display_annual|floatformat:0 }}">{{ plan.currency }}{{ plan.display_monthly|floatformat:0 }}</span>
+                                    <span class="text-sm text-slate-500 font-bold billing-period">/ mes</span>
                                 </div>
                             </div>
 

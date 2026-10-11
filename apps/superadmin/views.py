@@ -10,7 +10,7 @@ from django.utils.text import slugify
 from apps.business.models import Business, User, StaffMember, Branch
 from apps.agenda.models import Appointment
 from apps.invoicing.models import Invoice
-from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, SystemAuditLog, SuperAdminUser, GlobalPaymentMethod
+from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, SystemAuditLog, SuperAdminUser, GlobalPaymentMethod, Region, RegionPaymentMethod, SubscriptionPayment, PlanRegionPricing
 
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth import authenticate, login, logout
@@ -253,11 +253,26 @@ def user_detail_view(request, business_id):
             )
             messages.success(request, f"¡Nuevo Token de Licencia generado para {business.name}!")
             return redirect('superadmin_user_detail', business_id=business.id)
+            
+        elif action == 'UPDATE_REGION':
+            region_id = request.POST.get('region_id')
+            if region_id:
+                region = get_object_or_404(Region, id=region_id)
+                business.region = region
+                business.save()
+                SystemAuditLog.objects.create(
+                    actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                    action="ACTUALIZACION_REGION",
+                    details=f"Región actualizada para {business.name} a {region.name}"
+                )
+                messages.success(request, f"¡Región de {business.name} actualizada a {region.name}!")
+            return redirect('superadmin_user_detail', business_id=business.id)
 
     branches = business.branches.all()
     staff_members = business.staff_members.all()
     payment_methods = business.payment_methods.all()
     business_users = business.users.all()
+    all_regions = Region.objects.filter(is_active=True).order_by('name')
 
     return render(request, 'superadmin/user_detail.html', {
         'business': business,
@@ -270,6 +285,7 @@ def user_detail_view(request, business_id):
         'payment_methods': payment_methods,
         'payment_methods_count': payment_methods.count(),
         'business_users': business_users,
+        'all_regions': all_regions,
     })
 
 @superadmin_required
@@ -292,7 +308,7 @@ def plans_management_view(request):
 
             if name and code:
                 code_clean = slugify(code).replace('-', '_').upper()
-                SubscriptionPlan.objects.create(
+                plan = SubscriptionPlan.objects.create(
                     code=code_clean,
                     name=name,
                     monthly_price=Decimal(monthly_price),
@@ -303,6 +319,18 @@ def plans_management_view(request):
                     show_on_landing=show_on_landing,
                     is_active=True
                 )
+                
+                # Create default region pricing for existing regions
+                regions = Region.objects.filter(is_active=True)
+                for r in regions:
+                    PlanRegionPricing.objects.create(
+                        plan=plan,
+                        region=r,
+                        monthly_price=plan.monthly_price,
+                        annual_price=plan.annual_price,
+                        is_active=True
+                    )
+                    
                 messages.success(request, f"¡Plan '{name}' creado exitosamente!")
                 return redirect('superadmin_plans')
 
@@ -338,6 +366,24 @@ def plans_management_view(request):
             plan.is_active = is_active
             plan.save()
 
+            # Handle region pricing
+            regions = Region.objects.filter(is_active=True)
+            for r in regions:
+                r_monthly = request.POST.get(f'region_monthly_{r.id}')
+                r_annual = request.POST.get(f'region_annual_{r.id}')
+                r_active = request.POST.get(f'region_active_{r.id}') == 'on'
+                
+                if r_monthly and r_annual:
+                    PlanRegionPricing.objects.update_or_create(
+                        plan=plan,
+                        region=r,
+                        defaults={
+                            'monthly_price': Decimal(r_monthly.replace(',', '.')),
+                            'annual_price': Decimal(r_annual.replace(',', '.')),
+                            'is_active': r_active
+                        }
+                    )
+
             messages.success(request, f"¡Plan '{plan.name}' actualizado exitosamente!")
             return redirect('superadmin_plans')
 
@@ -362,9 +408,12 @@ def plans_management_view(request):
         {'code': 'marketing', 'name': 'Marketing & Promociones'},
     ]
 
+    regions = Region.objects.filter(is_active=True).order_by('name')
+
     return render(request, 'superadmin/plans.html', {
         'plans': plans,
-        'all_modules': all_modules
+        'all_modules': all_modules,
+        'regions': regions
     })
 
 @superadmin_required
@@ -398,6 +447,16 @@ def payment_methods_management_view(request):
                 description=description,
                 is_active=is_active
             )
+            
+            selected_regions = request.POST.getlist('regions')
+            for r_id in selected_regions:
+                RegionPaymentMethod.objects.create(
+                    region_id=r_id, 
+                    payment_method=pm, 
+                    use_for_sales=True, 
+                    is_active=True, 
+                    instructions=description
+                )
 
             SystemAuditLog.objects.create(
                 actor_email=request.superadmin_user.email or request.superadmin_user.username,
@@ -415,6 +474,15 @@ def payment_methods_management_view(request):
             pm.description = request.POST.get('description', '').strip()
             pm.is_active = request.POST.get('is_active') == 'on'
             pm.save()
+            
+            selected_regions = request.POST.getlist('regions')
+            RegionPaymentMethod.objects.filter(payment_method=pm).update(use_for_sales=False)
+            
+            for r_id in selected_regions:
+                rpm, _ = RegionPaymentMethod.objects.get_or_create(region_id=r_id, payment_method=pm)
+                rpm.use_for_sales = True
+                rpm.is_active = True
+                rpm.save()
 
             SystemAuditLog.objects.create(
                 actor_email=request.superadmin_user.email or request.superadmin_user.username,
@@ -440,9 +508,102 @@ def payment_methods_management_view(request):
             return redirect('superadmin_payment_methods')
 
     payment_methods = GlobalPaymentMethod.objects.all().order_by('name')
+    all_regions = Region.objects.filter(is_active=True).order_by('name')
+    
+    import json
+    for pm in payment_methods:
+        pm.selected_regions_json = json.dumps([str(r_id) for r_id in RegionPaymentMethod.objects.filter(payment_method=pm, use_for_sales=True).values_list('region_id', flat=True)])
 
     return render(request, 'superadmin/payment_methods.html', {
-        'payment_methods': payment_methods
+        'payment_methods': payment_methods,
+        'all_regions': all_regions,
+    })
+
+@superadmin_required
+@ensure_csrf_cookie
+def regions_management_view(request):
+    """
+    Gestión de Regiones y sus Métodos de Pago.
+    """
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'CREATE':
+            name = request.POST.get('name', '').strip()
+            code = request.POST.get('code', '').strip().upper()
+            currency_symbol = request.POST.get('currency_symbol', '$').strip()
+            is_active = request.POST.get('is_active') == 'on'
+
+            if Region.objects.filter(code=code).exists():
+                messages.error(request, f"Ya existe una región con el código '{code}'.")
+            else:
+                country_codes = ",".join(request.POST.getlist('country_codes'))
+                Region.objects.create(
+                    name=name,
+                    code=code,
+                    country_codes=country_codes,
+                    currency_symbol=currency_symbol,
+                    is_active=is_active
+                )
+                messages.success(request, f"¡Región '{name}' creada exitosamente!")
+            return redirect('superadmin_regions')
+
+        elif action == 'UPDATE':
+            region_id = request.POST.get('region_id')
+            region = get_object_or_404(Region, id=region_id)
+            region.name = request.POST.get('name', '').strip() or region.name
+            region.country_codes = ",".join(request.POST.getlist('country_codes'))
+            region.currency_symbol = request.POST.get('currency_symbol', '$').strip()
+            region.is_active = request.POST.get('is_active') == 'on'
+            region.save()
+            messages.success(request, f"¡Región '{region.name}' actualizada correctamente!")
+            return redirect('superadmin_regions')
+
+        elif action == 'UPDATE_PAYMENT_METHODS':
+            region_id = request.POST.get('region_id')
+            region = get_object_or_404(Region, id=region_id)
+            
+            # Disable all billing methods first, then process form
+            RegionPaymentMethod.objects.filter(region=region).update(use_for_billing=False)
+            
+            global_methods = GlobalPaymentMethod.objects.filter(is_active=True)
+            for gm in global_methods:
+                if request.POST.get(f'method_{gm.id}_active') == 'on':
+                    instructions = request.POST.get(f'method_{gm.id}_instructions', '').strip()
+                    
+                    rpm, _ = RegionPaymentMethod.objects.update_or_create(
+                        region=region,
+                        payment_method=gm,
+                        defaults={
+                            'use_for_billing': True,
+                            'instructions': instructions,
+                            'is_active': True
+                        }
+                    )
+            messages.success(request, f"¡Métodos de pago para la región '{region.name}' actualizados!")
+            return redirect('superadmin_regions')
+
+    regions = Region.objects.all().order_by('name')
+    global_methods = GlobalPaymentMethod.objects.filter(is_active=True)
+    
+    # Pre-fetch region payment methods
+    regions_data = []
+    for region in regions:
+        region_methods = {rpm.payment_method_id: rpm for rpm in region.payment_methods.all()}
+        methods_data = []
+        for gm in global_methods:
+            methods_data.append({
+                'global_method': gm,
+                'region_config': region_methods.get(gm.id)
+            })
+        regions_data.append({
+            'region': region,
+            'methods': methods_data
+        })
+
+    return render(request, 'superadmin/regions.html', {
+        'regions_data': regions_data,
+        'global_methods': global_methods,
     })
 
 # Helpers
@@ -498,3 +659,5 @@ def _sync_business_subscriptions():
                 start_date=timezone.now().date(),
                 expiration_date=default_exp
             )
+
+

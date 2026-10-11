@@ -18,6 +18,8 @@ urlpatterns = [
     path('registro/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('onboarding/', views.onboarding_view, name='onboarding'),
+    path('portal-reservas/', views.booking_portal_config_view, name='booking_portal_config'),
+    path('portal-reservas/toggle/', views.booking_portal_toggle_api, name='booking_portal_toggle_api'),
     path('config/', views.business_config_view, name='business_config'),
     path('config/empresa/', views.business_config_view),
     path('config/cuenta/', views.user_profile_config_view, name='user_profile_config'),

@@ -4,12 +4,17 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from apps.business.models import Business, StaffMember, WorkSchedule, Branch
-from apps.agenda.models import Service, Appointment
+from apps.agenda.models import Service, Appointment, ServiceCategory
 from apps.crm.models import Client
 from apps.ai_engine.models import AIAutomationLog
 
 def api_available_slots_view(request, business_slug):
+    from django.http import Http404
     business = get_object_or_404(Business, slug=business_slug)
+
+    if not business.is_booking_enabled:
+        raise Http404("El portal de reservas se encuentra desactivado.")
+
     date_str = request.GET.get('date', datetime.date.today().isoformat())
     staff_id = request.GET.get('staff_id')
 
@@ -94,7 +99,14 @@ def api_available_slots_view(request, business_slug):
 @ensure_csrf_cookie
 def public_booking_view(request, business_slug):
     from django.db.models import Q
+    from django.http import Http404
+
     business = get_object_or_404(Business, slug=business_slug)
+
+    # Si el portal está desactivado, arrojar error 404
+    if not business.is_booking_enabled:
+        raise Http404("El portal de reservas se encuentra desactivado.")
+
     branches = Branch.objects.filter(business=business)
     branch_id = request.GET.get('branch_id') or request.POST.get('branch_id')
     selected_branch = None
@@ -117,6 +129,20 @@ def public_booking_view(request, business_slug):
         )
         services = Service.objects.filter(business=business, is_active=True)
 
+    # Group services by category
+    categories = ServiceCategory.objects.filter(business=business).order_by('name')
+    uncategorized_services = services.filter(category__isnull=True)
+    
+    # Pre-fetch services per category
+    category_data = []
+    for cat in categories:
+        cat_services = services.filter(category=cat)
+        if cat_services.exists():
+            category_data.append({
+                'category': cat,
+                'services': cat_services
+            })
+
     staff_members = StaffMember.objects.filter(business=business, is_active=True)
     if selected_branch:
         # Filter staff assigned to selected branch
@@ -136,16 +162,24 @@ def public_booking_view(request, business_slug):
     
     booking_success = False
     appointment_created = None
+    portal_error_message = None
 
     if request.method == 'POST':
         service_id = request.POST.get('service_id')
         staff_id = request.POST.get('staff_id')
-        date_str = request.POST.get('date', datetime.date.today().isoformat())
-        time_str = request.POST.get('time', '10:00')
+        date_str = request.POST.get('date') or request.POST.get('booking_date') or datetime.date.today().isoformat()
+        time_str = request.POST.get('time') or request.POST.get('booking_time') or '10:00'
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
-        phone = request.POST.get('phone', '').strip()
-        email = request.POST.get('email', '').strip()
+        client_name = request.POST.get('client_name', '').strip()
+        if not first_name and client_name:
+            parts = client_name.split(' ', 1)
+            first_name = parts[0]
+            if len(parts) > 1 and not last_name:
+                last_name = parts[1]
+        
+        phone = (request.POST.get('phone') or request.POST.get('client_phone', '')).strip()
+        email = (request.POST.get('email') or request.POST.get('client_email', '')).strip()
         
         service = Service.objects.filter(id=service_id, business=business).first() if service_id else services.first()
         if not service:
@@ -209,8 +243,12 @@ def public_booking_view(request, business_slug):
         'branches': branches,
         'selected_branch': selected_branch,
         'services': services,
+        'total_services_count': services.count(),
+        'category_data': category_data,
+        'uncategorized_services': uncategorized_services,
         'staff_members': staff_members,
         'booking_success': booking_success,
         'appointment': appointment_created,
-        'today_date': datetime.date.today().isoformat()
+        'today_date': datetime.date.today().isoformat(),
+        'portal_error_message': portal_error_message
     })
