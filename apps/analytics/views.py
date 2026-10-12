@@ -1,6 +1,7 @@
 import datetime
 import csv
 from decimal import Decimal
+from collections import defaultdict
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.utils import timezone
@@ -13,6 +14,7 @@ from apps.agenda.models import Appointment
 from apps.inventory.models import Product
 
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from apps.business.models import Business, StaffMember
 
 @login_required
@@ -22,8 +24,44 @@ def dashboard_view(request):
         return redirect('onboarding')
         
     today = datetime.date.today()
+    user = request.user
+    is_professional = getattr(user, 'is_restricted_professional', False)
+
+    # Vista Especializada para Profesionales (Solo sus citas, comisiones y métricas personales)
+    if is_professional:
+        user_staff = getattr(user, 'staff_profile', None)
+        if user_staff:
+            today_appointments = Appointment.objects.filter(business=business, staff=user_staff, date=today).select_related('client', 'service')
+            upcoming_appointments = today_appointments.order_by('start_time')
+            pending_commissions = user_staff.pending_commissions
+            base_salary = user_staff.base_salary
+            estimated_total = user_staff.estimated_total_salary
+            month_appointments_count = Appointment.objects.filter(
+                business=business, staff=user_staff, status='COMPLETED', date__year=today.year, date__month=today.month
+            ).count()
+        else:
+            today_appointments = Appointment.objects.none()
+            upcoming_appointments = []
+            pending_commissions = Decimal('0.00')
+            base_salary = Decimal('0.00')
+            estimated_total = Decimal('0.00')
+            month_appointments_count = 0
+
+        context = {
+            'business': business,
+            'is_professional_dashboard': True,
+            'user_staff': user_staff,
+            'today_appointments': today_appointments,
+            'today_appointments_count': today_appointments.count(),
+            'recent_appointments': upcoming_appointments,
+            'pending_commissions': pending_commissions,
+            'base_salary': base_salary,
+            'estimated_total': estimated_total,
+            'month_appointments_count': month_appointments_count,
+        }
+        return render(request, 'analytics/dashboard.html', context)
     
-    # Facturación del día (Ventas POS del día de hoy)
+    # Vista General / Administrativa
     today_sales_qs = Sale.objects.filter(business=business, status='COMPLETED', created_at__date=today)
     today_sales = today_sales_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
     today_sales_count = today_sales_qs.count()
@@ -43,6 +81,7 @@ def dashboard_view(request):
 
     context = {
         'business': business,
+        'is_professional_dashboard': False,
         'today_sales': today_sales,
         'today_sales_count': today_sales_count,
         'today_appointments': today_appointments,
@@ -126,11 +165,33 @@ def get_filtered_analytics_data(business, request):
     accounts_receivable = AccountReceivable.objects.filter(business=business, status='PENDING').aggregate(total=Sum('amount_due'))['total'] or Decimal('0.00')
     accounts_payable = Expense.objects.filter(business=business, status='PENDING').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
-    # Payment Methods breakdown
-    pm_qr = completed_sales.filter(payment_method='MERCADOPAGO').aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-    pm_cash = completed_sales.filter(payment_method='CASH').aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-    pm_card = completed_sales.filter(payment_method='CARD').aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-    pm_transfer = completed_sales.filter(payment_method='TRANSFER').aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    # Dynamic Payment Methods breakdown based on real sales and SalePayment records
+    pm_totals = defaultdict(Decimal)
+    completed_sales_with_payments = completed_sales.prefetch_related('payments')
+    for s in completed_sales_with_payments:
+        pm_list = list(s.payments.all())
+        if pm_list:
+            for p in pm_list:
+                pm_name = (p.payment_method or '').strip() or 'Otros'
+                pm_totals[pm_name] += (p.amount or Decimal('0.00'))
+        else:
+            pm_name = (s.payment_method or '').strip() or 'Efectivo'
+            pm_totals[pm_name] += (s.total_amount or Decimal('0.00'))
+
+    pm_cash = Decimal('0.00')
+    pm_card = Decimal('0.00')
+    pm_qr = Decimal('0.00')
+    pm_transfer = Decimal('0.00')
+    for name, val in pm_totals.items():
+        name_l = name.lower()
+        if 'efectivo' in name_l or 'cash' in name_l:
+            pm_cash += val
+        elif 'tarjeta' in name_l or 'card' in name_l or 'débito' in name_l or 'crédito' in name_l:
+            pm_card += val
+        elif 'mercado' in name_l or 'qr' in name_l:
+            pm_qr += val
+        elif 'transfer' in name_l:
+            pm_transfer += val
 
     payment_methods_breakdown = {
         'MERCADOPAGO': pm_qr,
@@ -138,6 +199,28 @@ def get_filtered_analytics_data(business, request):
         'CARD': pm_card,
         'TRANSFER': pm_transfer,
     }
+
+    sorted_pm = sorted(pm_totals.items(), key=lambda x: x[1], reverse=True)
+    pm_labels = [k for k, v in sorted_pm if v > 0]
+    pm_values = [float(v) for k, v in sorted_pm if v > 0]
+    total_pm_amount = sum(pm_values)
+
+    palette = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4', '#84cc16', '#64748b']
+
+    payment_methods_summary = []
+    for idx, (label, val) in enumerate([(k, v) for k, v in sorted_pm if v > 0]):
+        pct = round((float(val) / total_pm_amount * 100), 1) if total_pm_amount > 0 else 0
+        payment_methods_summary.append({
+            'name': label,
+            'amount': val,
+            'percentage': pct,
+            'percentage_css': f"{pct:.1f}",
+            'color': palette[idx % len(palette)],
+        })
+
+    payment_methods_chart_data = pm_values
+    payment_methods_chart_labels = pm_labels
+    payment_methods_chart_colors = [palette[i % len(palette)] for i in range(len(pm_labels))]
 
     # Staff Performance
     staff_reports = StaffMember.objects.filter(business=business)
@@ -246,13 +329,6 @@ def get_filtered_analytics_data(business, request):
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         monthly_expenses_data.append(float(m_exp))
 
-    payment_methods_chart_data = [
-        float(pm_qr),
-        float(pm_cash),
-        float(pm_card),
-        float(pm_transfer)
-    ]
-
     all_staff = StaffMember.objects.filter(business=business, is_active=True)
 
     return {
@@ -274,6 +350,10 @@ def get_filtered_analytics_data(business, request):
         'accounts_payable': accounts_payable,
         'payment_methods_breakdown': payment_methods_breakdown,
         'payment_methods_chart_data': payment_methods_chart_data,
+        'payment_methods_chart_labels': payment_methods_chart_labels,
+        'payment_methods_chart_colors': payment_methods_chart_colors,
+        'payment_methods_summary': payment_methods_summary,
+        'total_pm_amount': total_pm_amount,
         'monthly_sales_data': monthly_sales_data,
         'monthly_expenses_data': monthly_expenses_data,
         'staff_reports': staff_reports,
@@ -311,6 +391,9 @@ def reports_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
+    if not request.user.has_perm_flag('can_view_financial_reports'):
+        messages.error(request, "No tienes permiso para consultar reportes financieros globales.")
+        return redirect('dashboard')
     data = get_filtered_analytics_data(business, request)
     return render(request, 'analytics/reports.html', data)
 
@@ -320,6 +403,9 @@ def export_analytics_excel(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
+    if not request.user.has_perm_flag('can_view_financial_reports'):
+        messages.error(request, "No tienes permiso para exportar reportes financieros.")
+        return redirect('dashboard')
     data = get_filtered_analytics_data(business, request)
     
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
@@ -365,6 +451,9 @@ def export_analytics_pdf(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
+    if not request.user.has_perm_flag('can_view_financial_reports'):
+        messages.error(request, "No tienes permiso para exportar reportes financieros.")
+        return redirect('dashboard')
     data = get_filtered_analytics_data(business, request)
     data['report_title'] = 'Reporte Financiero, Métricas & Proyecciones'
     data['generated_at'] = timezone.now()

@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from apps.business.models import Business, StaffMember
 from apps.agenda.models import Service, ServiceCategory, Appointment, ScheduleBlock
 from apps.crm.models import Client
+from django.contrib import messages
 from apps.core.utils import parse_decimal, parse_int
 
 @login_required
@@ -12,6 +13,11 @@ def agenda_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
+
+    if not request.user.has_module_access('agenda'):
+        messages.error(request, "No tienes permiso para acceder a la Agenda.")
+        return redirect('dashboard')
+
     selected_date_str = request.GET.get('date', datetime.date.today().isoformat())
     selected_staff_id = request.GET.get('staff', '')
     
@@ -25,7 +31,20 @@ def agenda_view(request):
     clients = Client.objects.filter(business=business) if business else []
     
     appointments = Appointment.objects.filter(business=business, date=selected_date).select_related('client', 'staff', 'service')
-    if selected_staff_id:
+
+    # Aislamiento para Profesionales (Solo sus propias citas)
+    user_scope = getattr(request.user, 'appointment_scope', 'ALL')
+    user_staff = getattr(request.user, 'staff_profile', None)
+
+    if user_scope == 'OWN':
+        if user_staff:
+            appointments = appointments.filter(staff=user_staff)
+            staff_members = [user_staff]
+            selected_staff_id = str(user_staff.id)
+        else:
+            appointments = appointments.none()
+            staff_members = []
+    elif selected_staff_id:
         appointments = appointments.filter(staff_id=selected_staff_id)
 
     return render(request, 'agenda/agenda.html', {
@@ -36,6 +55,7 @@ def agenda_view(request):
         'clients': clients,
         'appointments': appointments,
         'selected_staff_id': selected_staff_id,
+        'is_restricted_scope': (user_scope == 'OWN'),
     })
 
 @login_required
@@ -43,12 +63,29 @@ def appointment_create_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
+
+    if not request.user.has_module_access('agenda'):
+        messages.error(request, "No tienes permiso para agendar citas.")
+        return redirect('dashboard')
+
     clients = Client.objects.filter(business=business) if business else []
     staff_members = StaffMember.objects.filter(business=business, is_active=True) if business else []
     services = Service.objects.filter(business=business, is_active=True) if business else []
 
+    user_scope = getattr(request.user, 'appointment_scope', 'ALL')
+    user_staff = getattr(request.user, 'staff_profile', None)
+
+    if user_scope == 'OWN':
+        if user_staff:
+            staff_members = [user_staff]
+            selected_staff_id = str(user_staff.id)
+        else:
+            staff_members = []
+            selected_staff_id = ''
+    else:
+        selected_staff_id = request.GET.get('staff_id', '')
+
     selected_client_id = request.GET.get('client_id', '')
-    selected_staff_id = request.GET.get('staff_id', '')
     selected_service_id = request.GET.get('service_id', '')
     selected_date = request.GET.get('date', datetime.date.today().isoformat())
     selected_time = request.GET.get('start_time', '')
@@ -71,7 +108,12 @@ def appointment_create_view(request):
         notes = request.POST.get('notes', '')
         
         client = get_object_or_404(Client, id=client_id, business=business)
-        staff = get_object_or_404(StaffMember, id=staff_id, business=business)
+        
+        if user_scope == 'OWN' and user_staff:
+            staff = user_staff
+        else:
+            staff = get_object_or_404(StaffMember, id=staff_id, business=business)
+
         service = get_object_or_404(Service, id=service_id, business=business)
         
         st = datetime.datetime.strptime(start_time, "%H:%M")
@@ -104,7 +146,8 @@ def appointment_create_view(request):
         'selected_service_id': selected_service_id,
         'selected_time': selected_time,
         'rebook_info': rebook_info,
-        'title': 'Agendar Nueva Cita'
+        'title': 'Agendar Nueva Cita',
+        'is_restricted_scope': (user_scope == 'OWN'),
     })
 
 @login_required
@@ -113,13 +156,24 @@ def appointment_edit_view(request, appointment_id):
     if not business:
         return redirect('onboarding')
     appointment = get_object_or_404(Appointment, id=appointment_id, business=business)
+
+    user_scope = getattr(request.user, 'appointment_scope', 'ALL')
+    user_staff = getattr(request.user, 'staff_profile', None)
+
+    if user_scope == 'OWN' and user_staff and appointment.staff != user_staff:
+        messages.error(request, "No tienes permiso para ver ni editar citas asignadas a otros profesionales.")
+        return redirect('agenda')
+
     clients = Client.objects.filter(business=business)
-    staff_members = StaffMember.objects.filter(business=business, is_active=True)
+    staff_members = [user_staff] if (user_scope == 'OWN' and user_staff) else StaffMember.objects.filter(business=business, is_active=True)
     services = Service.objects.filter(business=business, is_active=True)
 
     if request.method == 'POST':
         appointment.client = get_object_or_404(Client, id=request.POST.get('client_id'), business=business)
-        appointment.staff = get_object_or_404(StaffMember, id=request.POST.get('staff_id'), business=business)
+        if user_scope == 'OWN' and user_staff:
+            appointment.staff = user_staff
+        else:
+            appointment.staff = get_object_or_404(StaffMember, id=request.POST.get('staff_id'), business=business)
         service = get_object_or_404(Service, id=request.POST.get('service_id'), business=business)
         appointment.service = service
         appointment.date = request.POST.get('date')
@@ -141,7 +195,8 @@ def appointment_edit_view(request, appointment_id):
         'clients': clients,
         'staff_members': staff_members,
         'services': services,
-        'title': f'Editar Cita: {appointment.client.full_name}'
+        'title': f'Editar Cita: {appointment.client.full_name}',
+        'is_restricted_scope': (user_scope == 'OWN'),
     })
 
 @login_required

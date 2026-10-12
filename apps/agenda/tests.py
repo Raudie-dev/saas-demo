@@ -1,17 +1,25 @@
 from decimal import Decimal
 from django.test import TestCase, Client
 from django.urls import reverse
-from apps.business.models import Business
+from apps.business.models import Business, User
 from apps.agenda.models import Service
 
 class ServiceViewsTestCase(TestCase):
     def setUp(self):
         self.client = Client()
+        self.user = User.objects.create_user(
+            username="testagenda",
+            email="agenda@example.com",
+            password="password123"
+        )
         self.business = Business.objects.create(
             name="Test Salon",
             slug="test-salon",
             currency="USD"
         )
+        self.user.business = self.business
+        self.user.save()
+        self.client.force_login(self.user)
 
     def test_service_create_view_with_empty_commission_rate(self):
         url = reverse('service_create')

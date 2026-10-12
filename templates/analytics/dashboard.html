@@ -7,6 +7,178 @@
 <div class="space-y-6">
 
     <!-- Header / Banner de Bienvenida y Acciones Rápidas -->
+    {% if is_professional_dashboard %}
+    <!-- Vista Especializada: Portal del Profesional -->
+    <!-- Header / Banner Profesional -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-slate-900 via-rose-950 to-slate-950 p-6 rounded-2xl text-white shadow-lg border border-rose-900/30">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">Portal Profesional</span>
+                <span class="text-xs text-slate-400 font-medium">{% now "l, j \d\e F \d\e Y" %}</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-black font-display mt-1 text-white">
+                ¡Hola, {{ request.user.first_name|default:request.user.username }}!
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-300 mt-0.5">
+                {% if user_staff %}{{ user_staff.role_title }} • {{ business.name }}{% else %}{{ business.name }}{% endif %}
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            <a href="{% url 'agenda' %}" class="flex-1 md:flex-initial px-4 py-2.5 bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                <i data-lucide="calendar" class="w-4 h-4"></i> Mi Agenda
+            </a>
+            <a href="{% url 'commission_report' %}" class="flex-1 md:flex-initial px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                <i data-lucide="dollar-sign" class="w-4 h-4 text-emerald-400"></i> Mis Comisiones
+            </a>
+        </div>
+    </div>
+
+    <!-- Professional Key Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Mis Citas Hoy -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-rose-900/40 transition group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Mis Citas Hoy</span>
+                <div class="p-2.5 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 group-hover:scale-105 transition">
+                    <i data-lucide="calendar" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ today_appointments_count }}</p>
+            <p class="text-xs text-rose-900 mt-1 font-semibold flex items-center gap-1">
+                <i data-lucide="clock" class="w-3.5 h-3.5"></i> Citas agendadas para ti hoy
+            </p>
+        </div>
+
+        <!-- 2. Atendidas este Mes -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-rose-900/40 transition group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Atendidas este Mes</span>
+                <div class="p-2.5 bg-blue-50 text-blue-700 rounded-xl border border-blue-200 group-hover:scale-105 transition">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ month_appointments_count }}</p>
+            <p class="text-xs text-slate-500 mt-1 font-medium">Turnos completados con éxito</p>
+        </div>
+
+        <!-- 3. Mis Comisiones Pendientes -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-rose-900/40 transition group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Comisiones Pendientes</span>
+                <div class="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200 group-hover:scale-105 transition">
+                    <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-extrabold font-display text-emerald-700 mt-3">{{ business.currency }}{{ pending_commissions|floatformat:2 }}</p>
+            <p class="text-xs text-emerald-700 mt-1 font-semibold">Por liquidar a tu cuenta</p>
+        </div>
+
+        <!-- 4. Sueldo Total Estimado -->
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-rose-900/40 transition group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Estimado</span>
+                <div class="p-2.5 bg-purple-50 text-purple-700 rounded-xl border border-purple-200 group-hover:scale-105 transition">
+                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ business.currency }}{{ estimated_total|floatformat:2 }}</p>
+            <p class="text-xs text-slate-500 mt-1 font-medium">Base + Comisiones pendientes</p>
+        </div>
+    </div>
+
+    <!-- Main Operational Split for Professional -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left: My appointments today -->
+        <div class="lg:col-span-8 glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 shrink-0">
+                        <i data-lucide="calendar" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base font-display">Mis Turnos de Hoy</h3>
+                        <p class="text-xs text-slate-500">Citas asignadas a ti para la jornada actual</p>
+                    </div>
+                </div>
+                <a href="{% url 'agenda' %}" class="shrink-0 w-fit inline-flex text-xs font-bold text-rose-900 hover:text-rose-950 items-center gap-1">
+                    Abrir Mi Agenda <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+
+            <div class="space-y-3 flex-1">
+                {% for app in recent_appointments %}
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 hover:bg-white hover:shadow-md transition flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3.5 min-w-0">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-900 to-slate-900 text-white font-extrabold flex flex-col items-center justify-center text-xs shrink-0 shadow-sm">
+                            <span class="text-[10px] font-medium text-rose-200">HORA</span>
+                            <span>{{ app.start_time|time:"H:i" }}</span>
+                        </div>
+                        <div class="truncate">
+                            <p class="text-sm font-bold text-slate-900 truncate">{{ app.client.full_name }}</p>
+                            <p class="text-xs text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                                <span class="font-medium text-rose-900">{{ app.service.name }}</span>
+                                {% if app.client.phone %}<span>• Tel: {{ app.client.phone }}</span>{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span class="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 block">
+                            {{ business.currency }}{{ app.total_price|floatformat:2 }}
+                        </span>
+                        <span class="text-[10px] font-semibold text-slate-400 mt-1 block uppercase">{{ app.get_status_display|default:"Confirmada" }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="py-12 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <i data-lucide="calendar-check" class="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
+                    <p class="text-sm font-bold text-slate-700">Sin citas asignadas para hoy</p>
+                    <p class="text-xs text-slate-400 mt-1">No tienes turnos pendientes en tu agenda para la fecha actual.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right: Professional Summary Card -->
+        <div class="lg:col-span-4 glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                    <div class="p-2 bg-slate-100 text-slate-800 rounded-xl border border-slate-200 shrink-0">
+                        <i data-lucide="user-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base font-display">Mi Ficha de Especialista</h3>
+                        <p class="text-xs text-slate-500">Condiciones y porcentajes</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 mt-4 text-xs">
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <span class="text-slate-500">Especialidad:</span>
+                        <span class="font-bold text-slate-900">{{ user_staff.role_title|default:'Especialista' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <span class="text-slate-500">Sueldo Base:</span>
+                        <span class="font-bold text-slate-900">{{ business.currency }}{{ base_salary|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <span class="text-slate-500">% Comisión por Servicio:</span>
+                        <span class="font-bold text-rose-900">{{ user_staff.commission_rate|default:'0' }}%</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                        <span class="text-emerald-800 font-medium">Comisiones Pendientes:</span>
+                        <span class="font-black text-emerald-700">{{ business.currency }}{{ pending_commissions|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <a href="{% url 'commission_report' %}" class="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold text-center transition flex items-center justify-center gap-2">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i> Ver Detalle de Mis Comisiones
+            </a>
+        </div>
+    </div>
+    {% else %}
+    <!-- Vista Administrativa / General -->
+    <!-- Header / Banner de Bienvenida y Acciones Rápidas -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-slate-900 via-rose-950 to-slate-950 p-6 rounded-2xl text-white shadow-lg border border-rose-900/30">
         <div>
             <div class="flex items-center gap-2">
@@ -22,7 +194,7 @@
                 <i data-lucide="calendar-plus" class="w-4 h-4"></i> Agendar Cita
             </a>
             {% endif %}
-            {% if modules_enabled.pos %}
+            {% if modules_enabled.pos and user_can_charge_pos %}
             <a href="{% url 'pos_terminal' %}" class="flex-1 md:flex-initial px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
                 <i data-lucide="shopping-bag" class="w-4 h-4"></i> Ventas POS
             </a>
@@ -185,6 +357,7 @@
         </div>
 
     </div>
+    {% endif %}
 
 
 </div>

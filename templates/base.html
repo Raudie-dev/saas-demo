@@ -231,68 +231,83 @@
                 </a>
                 {% endif %}
 
+                {% if not user_is_professional %}
                 <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'service' in request.resolver_match.url_name %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="scissors" class="w-5 h-5"></i>
                     <span>Servicios & Tarifas</span>
                 </a>
+                {% endif %}
 
+                {% if user_can_manage_settings %}
                 <a href="{% url 'staff_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'equipo' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="user-check" class="w-5 h-5"></i>
                     <span>Equipo & Profesionales</span>
                 </a>
+                {% endif %}
 
+                {% if modules_enabled.pos or modules_enabled.invoicing or modules_enabled.inventory or modules_enabled.commissions %}
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Administrar</div>
 
-                {% if modules_enabled.pos %}
+                {% if modules_enabled.pos and user_can_charge_pos %}
                 <a href="{% url 'pos_terminal' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'pos_terminal' %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="shopping-bag" class="w-5 h-5"></i>
                     <span>Ventas POS & Caja</span>
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.invoicing %}
+                {% if modules_enabled.invoicing and not user_is_professional %}
                 <a href="{% url 'invoice_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'facturacion' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="file-text" class="w-5 h-5"></i>
                     <span>Facturación & Gastos</span>
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.inventory %}
+                {% if modules_enabled.inventory and not user_is_professional %}
                 <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'inventario' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="package" class="w-5 h-5"></i>
                     <span>Inventario & Stock</span>
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.commissions %}
+                {% if modules_enabled.commissions and user_commission_scope != 'NONE' %}
                 <a href="{% url 'commission_report' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'commission_report' %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="dollar-sign" class="w-5 h-5"></i>
-                    <span>Comisiones</span>
+                    <span>{% if user_is_professional %}Mis Comisiones{% else %}Comisiones{% endif %}</span>
                 </a>
                 {% endif %}
+                {% endif %}
 
+                {% if modules_enabled.marketing or user_can_view_financial_reports %}
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Finanzas & Crecimiento</div>
 
-                {% if modules_enabled.marketing %}
+                {% if modules_enabled.marketing and not user_is_professional %}
                 <a href="{% url 'marketing_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'marketing' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="tag" class="w-5 h-5"></i>
                     <span>Marketing & Promociones</span>
                 </a>
                 {% endif %}
 
+                {% if user_can_view_financial_reports %}
                 <a href="{% url 'reports' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'reportes' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="wallet" class="w-5 h-5"></i>
                     <span>Finanzas</span>
                 </a>
-
+                {% endif %}
+                {% endif %}
 
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Configuración</div>
 
-
+                {% if user_can_manage_settings %}
                 <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'business_config' %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="building-2" class="w-5 h-5"></i>
                     <span>Empresa & Sucursales</span>
                 </a>
+
+                <a href="{% url 'user_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'usuarios' in request.path or 'perfiles' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="users-2" class="w-5 h-5"></i>
+                    <span>Usuarios & Perfiles</span>
+                </a>
+                {% endif %}
 
                 <a href="{% url 'user_profile_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'user_profile_config' %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="shield-check" class="w-5 h-5"></i>
@@ -398,49 +413,84 @@
                     <span>CRM & Clientes</span>
                 </a>
                 {% endif %}
+                {% if not user_is_professional %}
                 <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'service' in request.resolver_match.url_name %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="scissors" class="w-5 h-5"></i>
                     <span>Servicios & Tarifas</span>
                 </a>
+                {% endif %}
+
+                {% if user_can_manage_settings %}
                 <a href="{% url 'staff_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'equipo' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="user-check" class="w-5 h-5"></i>
                     <span>Equipo & Profesionales</span>
                 </a>
+                {% endif %}
+
+                {% if modules_enabled.pos or modules_enabled.invoicing or modules_enabled.inventory or modules_enabled.commissions %}
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Administrar</div>
-                {% if modules_enabled.pos %}
+
+                {% if modules_enabled.pos and user_can_charge_pos %}
                 <a href="{% url 'pos_terminal' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'pos_terminal' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="shopping-bag" class="w-5 h-5"></i>
                     <span>Ventas POS & Caja</span>
                 </a>
                 {% endif %}
-                {% if modules_enabled.invoicing %}
+
+                {% if modules_enabled.invoicing and not user_is_professional %}
                 <a href="{% url 'invoice_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'facturacion' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="file-text" class="w-5 h-5"></i>
                     <span>Facturación & Gastos</span>
                 </a>
                 {% endif %}
-                {% if modules_enabled.inventory %}
+
+                {% if modules_enabled.inventory and not user_is_professional %}
                 <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'inventario' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="package" class="w-5 h-5"></i>
                     <span>Inventario & Stock</span>
                 </a>
                 {% endif %}
-                {% if modules_enabled.commissions %}
+
+                {% if modules_enabled.commissions and user_commission_scope != 'NONE' %}
                 <a href="{% url 'commission_report' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'commission_report' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="dollar-sign" class="w-5 h-5"></i>
-                    <span>Comisiones</span>
+                    <span>{% if user_is_professional %}Mis Comisiones{% else %}Comisiones{% endif %}</span>
                 </a>
                 {% endif %}
+                {% endif %}
+
+                {% if modules_enabled.marketing or user_can_view_financial_reports %}
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Finanzas & Crecimiento</div>
+
+                {% if modules_enabled.marketing and not user_is_professional %}
+                <a href="{% url 'marketing_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'marketing' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="tag" class="w-5 h-5"></i>
+                    <span>Marketing & Promociones</span>
+                </a>
+                {% endif %}
+
+                {% if user_can_view_financial_reports %}
                 <a href="{% url 'reports' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'reportes' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="wallet" class="w-5 h-5"></i>
                     <span>Finanzas</span>
                 </a>
+                {% endif %}
+                {% endif %}
+
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Configuración</div>
+
+                {% if user_can_manage_settings %}
                 <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'business_config' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="building-2" class="w-5 h-5"></i>
                     <span>Empresa & Sucursales</span>
                 </a>
+
+                <a href="{% url 'user_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'usuarios' in request.path or 'perfiles' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="users-2" class="w-5 h-5"></i>
+                    <span>Usuarios & Perfiles</span>
+                </a>
+                {% endif %}
+
                 <a href="{% url 'user_profile_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'user_profile_config' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="shield-check" class="w-5 h-5"></i>
                     <span>Mi Cuenta & Seguridad</span>
