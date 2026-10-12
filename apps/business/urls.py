@@ -1,10 +1,17 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from .forms import CustomPasswordResetForm
 
 urlpatterns = [
     path('login/', views.login_view, name='login'),
-    path('recuperar-password/', auth_views.PasswordResetView.as_view(template_name='business/password_reset.html'), name='password_reset'),
+    path('recuperar-password/', auth_views.PasswordResetView.as_view(
+        template_name='business/password_reset.html',
+        form_class=CustomPasswordResetForm,
+        email_template_name='business/password_reset_email.txt',
+        html_email_template_name='business/password_reset_email.html',
+        subject_template_name='business/password_reset_subject.txt'
+    ), name='password_reset'),
     path('recuperar-password/enviado/', auth_views.PasswordResetDoneView.as_view(template_name='business/password_reset_done.html'), name='password_reset_done'),
     path('recuperar-password/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='business/password_reset_confirm.html'), name='password_reset_confirm'),
     path('recuperar-password/completo/', auth_views.PasswordResetCompleteView.as_view(template_name='business/password_reset_complete.html'), name='password_reset_complete'),
@@ -23,4 +30,5 @@ urlpatterns = [
     path('whatsapp-gateway/generate/', views.whatsapp_gateway_generate_api, name='whatsapp_gateway_generate'),
     path('whatsapp-gateway/unlink/', views.whatsapp_gateway_unlink_api, name='whatsapp_gateway_unlink'),
     path('whatsapp-gateway/send-reminder/', views.whatsapp_gateway_send_reminder_api, name='whatsapp_gateway_send_reminder'),
+    path('dismiss-announcement/<int:announcement_id>/', views.dismiss_announcement_view, name='dismiss_announcement'),
 ]

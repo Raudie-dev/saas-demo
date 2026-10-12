@@ -1,0 +1,196 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}SuperAdmin - Regiones y Pagos{% endblock %}
+{% block header_title %}Catálogo de Regiones y Métodos de Pago{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto pb-10">
+
+    <!-- Top Action & Info Bar -->
+    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold font-display text-slate-900">Regiones y Métodos de Pago</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Administra las regiones disponibles para las agencias y asigna qué métodos de pago aplican para cada una, tanto para ventas en el POS como para el cobro de la suscripción SaaS.</p>
+        </div>
+
+        <button type="button" onclick="openCreateRegionModal()" class="px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition cursor-pointer flex items-center gap-2 shadow-xs">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Nueva Región</span>
+        </button>
+    </div>
+
+    <!-- Regions Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% for data in regions_data %}
+        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+            
+            <!-- Region Header -->
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-900 font-bold border border-brand-100 font-display">
+                        {{ data.region.code }}
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                            {{ data.region.name }}
+                            {% if data.region.is_default %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 uppercase border border-blue-200">Default</span>
+                            {% endif %}
+                        </h3>
+                        <p class="text-[11px] text-slate-500 font-bold">Símbolo de Moneda: <span class="text-slate-800">{{ data.region.currency_symbol }}</span></p>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-end gap-2">
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border {% if data.region.is_active %}bg-emerald-50 text-emerald-800 border-emerald-200{% else %}bg-slate-100 text-slate-500 border-slate-300{% endif %}">
+                        {% if data.region.is_active %}Activa{% else %}Inactiva{% endif %}
+                    </span>
+                    <button type="button" onclick="openEditRegionModal('{{ data.region.id }}', '{{ data.region.name|escapejs }}', '{{ data.region.code|escapejs }}', '{{ data.region.currency_symbol|escapejs }}', '{{ data.region.country_codes|default:''|escapejs }}', {% if data.region.is_active %}true{% else %}false{% endif %})" class="text-[11px] font-bold text-brand-700 hover:text-brand-900 transition flex items-center gap-1 cursor-pointer">
+                        <i data-lucide="edit-2" class="w-3 h-3"></i> Editar Región
+                    </button>
+                </div>
+            </div>
+
+            <!-- Payment Methods Configuration -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-700 mb-3">Métodos para Cobro de Suscripción SaaS (Agencias te pagan a ti):</h4>
+                <form method="POST" action="{% url 'superadmin_regions' %}" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="UPDATE_PAYMENT_METHODS">
+                    <input type="hidden" name="region_id" value="{{ data.region.id }}">
+
+                    <div class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                        {% for method_data in data.methods %}
+                        <div class="p-3 rounded-xl border {% if method_data.region_config and method_data.region_config.use_for_billing %}border-brand-200 bg-brand-50/30{% else %}border-slate-100 bg-slate-50/50{% endif %}">
+                            
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" id="m_{{ data.region.id }}_{{ method_data.global_method.id }}_active" name="method_{{ method_data.global_method.id }}_active" class="w-3.5 h-3.5 rounded text-brand-900 focus:ring-brand-900" {% if method_data.region_config and method_data.region_config.use_for_billing %}checked{% endif %}>
+                                    <label for="m_{{ data.region.id }}_{{ method_data.global_method.id }}_active" class="font-bold text-xs text-slate-800">
+                                        {{ method_data.global_method.name }}
+                                    </label>
+                                </div>
+                                <span class="text-[9px] font-mono font-bold text-slate-400 bg-white px-1 border border-slate-200 rounded">{{ method_data.global_method.code }}</span>
+                            </div>
+
+                            <div class="pl-5 space-y-2">
+                                <textarea name="method_{{ method_data.global_method.id }}_instructions" rows="2" placeholder="Instrucciones (ej: CBU / Alias para esta región, email de MercadoPago...)" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-[11px] text-slate-700 focus:outline-none focus:border-brand-500">{% if method_data.region_config %}{{ method_data.region_config.instructions|default:'' }}{% else %}{{ method_data.global_method.description|default:'' }}{% endif %}</textarea>
+                            </div>
+
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="pt-2 flex justify-end">
+                        <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                            <i data-lucide="save" class="w-3.5 h-3.5"></i> Guardar Configuración
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+        {% empty %}
+        <div class="col-span-1 lg:col-span-2 p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 italic">
+            No hay regiones creadas en la plataforma.
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Modal para Crear / Editar Región -->
+<div id="regionModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transition-all transform scale-100">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="globe" class="w-5 h-5 text-rose-400"></i>
+                <h3 id="modalTitle" class="text-base font-bold font-display">Nueva Región</h3>
+            </div>
+            <button type="button" onclick="closeRegionModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Form -->
+        <form method="POST" action="{% url 'superadmin_regions' %}" class="p-6 space-y-4 text-xs">
+            {% csrf_token %}
+            <input type="hidden" id="region_action" name="action" value="CREATE">
+            <input type="hidden" id="region_id" name="region_id" value="">
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Nombre de la Región</label>
+                <input type="text" id="region_name" name="name" required placeholder="Ej: Argentina, Chile, Global..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Código (Único)</label>
+                    <input type="text" id="region_code" name="code" required placeholder="Ej: AR, CL" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-mono font-bold uppercase focus:outline-none focus:border-brand-900">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Símbolo de Moneda</label>
+                    <input type="text" id="region_currency" name="currency_symbol" required placeholder="Ej: $, AR$, CLP" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1">Códigos de País (Auto-detección)</label>
+                <input type="text" id="region_country_codes" name="country_codes" placeholder="Ej: AR, CL, UY" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
+                <p class="text-[10px] text-slate-500 mt-1">Separados por coma. Usado para autoseleccionar la región en la landing web.</p>
+            </div>
+
+            <div class="flex items-center gap-2 pt-2">
+                <input type="checkbox" id="region_is_active" name="is_active" checked class="w-4 h-4 rounded text-brand-900 focus:ring-brand-900">
+                <label for="region_is_active" class="font-bold text-slate-800">Región Activa</label>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeRegionModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 bg-brand-900 hover:bg-brand-950 text-white font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i> Guardar Región
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openCreateRegionModal() {
+    document.getElementById('modalTitle').innerText = 'Nueva Región';
+    document.getElementById('region_action').value = 'CREATE';
+    document.getElementById('region_id').value = '';
+    document.getElementById('region_name').value = '';
+    document.getElementById('region_code').value = '';
+    document.getElementById('region_code').readOnly = false;
+    document.getElementById('region_country_codes').value = '';
+    document.getElementById('region_currency').value = '$';
+    document.getElementById('region_is_active').checked = true;
+
+    document.getElementById('regionModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function openEditRegionModal(id, name, code, currency, countryCodes, isActive) {
+    document.getElementById('modalTitle').innerText = 'Editar Región: ' + name;
+    document.getElementById('region_action').value = 'UPDATE';
+    document.getElementById('region_id').value = id;
+    document.getElementById('region_name').value = name;
+    document.getElementById('region_code').value = code;
+    document.getElementById('region_code').readOnly = true;
+    document.getElementById('region_country_codes').value = countryCodes;
+    document.getElementById('region_currency').value = currency;
+    document.getElementById('region_is_active').checked = isActive;
+
+    document.getElementById('regionModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeRegionModal() {
+    document.getElementById('regionModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

@@ -11,4 +11,6 @@ urlpatterns = [
     path('suscripciones/', views.users_list_view, name='superadmin_subscriptions'),
     path('planes/', views.plans_management_view, name='superadmin_plans'),
     path('metodos-pago/', views.payment_methods_management_view, name='superadmin_payment_methods'),
+    path('regiones/', views.regions_management_view, name='superadmin_regions'),
+    path('modales/', views.announcements_management_view, name='superadmin_announcements'),
 ]

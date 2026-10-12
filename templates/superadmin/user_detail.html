@@ -175,6 +175,37 @@
                 </div>
             </div>
 
+            <!-- Region Assignment -->
+            <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                        <i data-lucide="globe" class="w-5 h-5 text-brand-900"></i>
+                        <span>Región Asignada</span>
+                    </h3>
+                </div>
+
+                <form method="POST" action="{% url 'superadmin_user_detail' business.id %}" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="UPDATE_REGION">
+                    
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1 text-xs">Región de la Agencia</label>
+                        <select name="region_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold text-xs focus:outline-none focus:border-brand-900">
+                            {% for region in all_regions %}
+                            <option value="{{ region.id }}" {% if business.region and business.region.id == region.id %}selected{% endif %}>{{ region.name }} ({{ region.code }})</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-slate-500 mt-1">La región define la moneda ({{ business.region.currency_symbol|default:'$' }}) y los métodos de pago para ventas y suscripción.</p>
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                        <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                            <i data-lucide="save" class="w-3.5 h-3.5"></i> Actualizar Región
+                        </button>
+                    </div>
+                </form>
+            </div>
+
             <!-- Staff Members List -->
             <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -250,6 +281,16 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="UPDATE_SUBSCRIPTION">
 
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block font-bold text-slate-800 mb-1">Estado de la Licencia</label>
+                            <select name="status" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
+                                <option value="ACTIVE" {% if subscription.status == 'ACTIVE' %}selected{% endif %}>Licencia Activa</option>
+                                <option value="TRIAL" {% if subscription.status == 'TRIAL' %}selected{% endif %}>En Período de Prueba</option>
+                                <option value="EXPIRED" {% if subscription.status == 'EXPIRED' %}selected{% endif %}>Licencia Vencida</option>
+                                <option value="SUSPENDED" {% if subscription.status == 'SUSPENDED' %}selected{% endif %}>Cuenta Suspendida</option>
+                            </select>
+                        </div>
                     <!-- Plan Selection (strictly from SubscriptionPlan model) -->
                     <div>
                         <label class="block font-bold text-slate-800 mb-1">Plan de Suscripción (Base de Datos)</label>

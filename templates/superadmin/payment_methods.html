@@ -46,7 +46,7 @@
                     </button>
                 </form>
 
-                <button type="button" onclick="openEditPaymentMethodModal('{{ pm.id }}', '{{ pm.name|escapejs }}', '{{ pm.code|escapejs }}', '{{ pm.description|escapejs }}', {% if pm.is_active %}true{% else %}false{% endif %})" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[11px] transition cursor-pointer">
+                <button type="button" onclick="openEditPaymentMethodModal('{{ pm.id }}', '{{ pm.name|escapejs }}', '{{ pm.code|escapejs }}', '{{ pm.description|escapejs }}', {% if pm.is_active %}true{% else %}false{% endif %}, '{{ pm.selected_regions_json|escapejs }}')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[11px] transition cursor-pointer">
                     Editar
                 </button>
             </div>
@@ -96,6 +96,20 @@
                 <textarea id="pm_description" name="description" rows="3" placeholder="Descripción explicativa de cómo opera este método..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900"></textarea>
             </div>
 
+            <div>
+                <label class="block font-bold text-slate-800 mb-2">Regiones donde estará disponible para Agencias</label>
+                <div class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                    {% for region in all_regions %}
+                    <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-white transition">
+                        <input type="checkbox" name="regions" value="{{ region.id }}" class="region-checkbox w-4 h-4 rounded text-brand-900 focus:ring-brand-900">
+                        <span class="text-[11px] font-bold text-slate-800">{{ region.name }} ({{ region.code }})</span>
+                    </label>
+                    {% empty %}
+                    <p class="text-[10px] text-slate-500 italic col-span-2">No hay regiones configuradas.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
             <div class="flex items-center gap-2 pt-1">
                 <input type="checkbox" id="pm_is_active" name="is_active" checked class="w-4 h-4 rounded text-brand-900 focus:ring-brand-900">
                 <label for="pm_is_active" class="font-bold text-slate-800">Habilitado Globalmente para Agencias</label>
@@ -124,11 +138,14 @@ function openCreatePaymentMethodModal() {
     document.getElementById('pm_description').value = '';
     document.getElementById('pm_is_active').checked = true;
 
+    // Uncheck all regions
+    document.querySelectorAll('.region-checkbox').forEach(cb => cb.checked = false);
+
     document.getElementById('paymentMethodModal').classList.remove('hidden');
     if (window.lucide) lucide.createIcons();
 }
 
-function openEditPaymentMethodModal(id, name, code, description, isActive) {
+function openEditPaymentMethodModal(id, name, code, description, isActive, selectedRegionsStr) {
     document.getElementById('modalTitle').innerText = 'Editar Método de Pago: ' + name;
     document.getElementById('pm_action').value = 'UPDATE';
     document.getElementById('pm_id').value = id;
@@ -137,6 +154,18 @@ function openEditPaymentMethodModal(id, name, code, description, isActive) {
     document.getElementById('pm_code').readOnly = true;
     document.getElementById('pm_description').value = description;
     document.getElementById('pm_is_active').checked = isActive;
+
+    let selectedRegions = [];
+    try {
+        selectedRegions = JSON.parse(selectedRegionsStr);
+    } catch (e) {
+        console.error("Error parsing regions JSON:", e);
+    }
+
+    // Check specific regions
+    document.querySelectorAll('.region-checkbox').forEach(cb => {
+        cb.checked = selectedRegions.includes(cb.value);
+    });
 
     document.getElementById('paymentMethodModal').classList.remove('hidden');
     if (window.lucide) lucide.createIcons();

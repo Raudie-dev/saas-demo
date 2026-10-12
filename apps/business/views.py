@@ -13,17 +13,72 @@ from django.contrib import messages
 from django.utils.text import slugify
 from django.utils import timezone
 from apps.business.models import Business, Branch, StaffMember, WorkSchedule, PaymentMethodConfig, User
+from apps.superadmin.models import SystemAnnouncement, AnnouncementDismissal
 from apps.core.utils import parse_decimal, parse_int
 
 @ensure_csrf_cookie
 def landing_view(request):
     if request.user.is_authenticated or request.GET.get('pwa') == '1' or request.GET.get('mode') == 'pwa':
         return redirect('dashboard')
-    from apps.superadmin.models import SubscriptionPlan
+    from apps.superadmin.models import SubscriptionPlan, Region, PlanRegionPricing
     from apps.superadmin.views import _ensure_default_plans
     _ensure_default_plans()
-    plans = SubscriptionPlan.objects.filter(is_active=True, show_on_landing=True).order_by('monthly_price')
-    return render(request, 'business/landing.html', {'plans': plans})
+
+    regions = Region.objects.filter(is_active=True).order_by('name')
+    selected_region_id = request.GET.get('region')
+    
+    current_region = None
+    if selected_region_id:
+        current_region = regions.filter(id=selected_region_id).first()
+        
+    if not current_region:
+        country_code = request.META.get('HTTP_CF_IPCOUNTRY') or request.META.get('HTTP_X_APPENGINE_COUNTRY') or request.META.get('HTTP_X_COUNTRY_CODE')
+        if country_code:
+            # First try matching by code exactly
+            current_region = regions.filter(code__iexact=country_code).first()
+            if not current_region:
+                # Try matching in country_codes field (comma separated)
+                for r in regions:
+                    if r.country_codes:
+                        codes = [c.strip().upper() for c in r.country_codes.split(',')]
+                        if country_code.upper() in codes:
+                            current_region = r
+                            break
+
+    if not current_region:
+        current_region = regions.filter(is_default=True).first() or regions.first()
+
+    base_plans = SubscriptionPlan.objects.filter(is_active=True, show_on_landing=True)
+    
+    # Enrich plans with regional pricing
+    plans = []
+    for plan in base_plans:
+        # Defaults
+        display_monthly = plan.monthly_price
+        display_annual = plan.annual_price
+        currency = "$"
+
+        if current_region:
+            currency = current_region.currency_symbol
+            rp = PlanRegionPricing.objects.filter(plan=plan, region=current_region).first()
+            if rp:
+                if not rp.is_active:
+                    continue  # Plan is not active in this region
+                display_monthly = rp.monthly_price
+                display_annual = rp.annual_price
+            
+        setattr(plan, 'display_monthly', display_monthly)
+        setattr(plan, 'display_annual', display_annual)
+        setattr(plan, 'currency', currency)
+        plans.append(plan)
+
+    plans.sort(key=lambda x: x.display_monthly)
+
+    return render(request, 'business/landing.html', {
+        'plans': plans,
+        'regions': regions,
+        'current_region': current_region
+    })
 
 
 @ensure_csrf_cookie
@@ -174,7 +229,17 @@ def onboarding_view(request):
         selected_modules = request.POST.getlist('enabled_modules')
         currency = request.POST.get('currency', '$')
         branding_color = request.POST.get('branding_color', '#881337')
-        phone = request.POST.get('phone', '').strip()
+        
+        phone_prefix = request.POST.get('phone_prefix', '')
+        phone_number = request.POST.get('phone_number', '').strip()
+        if phone_number:
+            if phone_number.startswith(phone_prefix) or phone_number.startswith('+'):
+                phone = phone_number
+            else:
+                phone = f"{phone_prefix} {phone_number}".strip()
+        else:
+            phone = ''
+        
         address = request.POST.get('address', '').strip()
 
         if agency_name:
@@ -192,6 +257,14 @@ def onboarding_view(request):
             selected_modules = allowed_modules
 
         business.business_type = business_type
+        
+        region_id = request.POST.get('region_id')
+        if region_id:
+            from apps.superadmin.models import Region
+            region = Region.objects.filter(id=region_id).first()
+            if region:
+                business.region = region
+
         business.primary_goal = primary_goal or "Gestionar y hacer crecer la agencia"
         business.enabled_modules = selected_modules
         business.currency = currency
@@ -284,11 +357,15 @@ def onboarding_view(request):
     ]
 
     all_modules = [m for m in raw_modules if m['code'] in allowed_codes]
+    
+    from apps.superadmin.models import Region
+    all_regions = Region.objects.filter(is_active=True).exclude(code='GLOBAL').order_by('name')
 
     return render(request, 'business/onboarding.html', {
         'business': business,
         'agency_profiles': agency_profiles,
         'all_modules': all_modules,
+        'all_regions': all_regions,
     })
 
 @login_required(login_url='login')
@@ -379,7 +456,25 @@ def business_config_view(request):
 
         business.tax_id = request.POST.get('tax_id', business.tax_id).strip()
         business.email = request.POST.get('email', business.email).strip()
-        business.phone = request.POST.get('phone', business.phone).strip()
+        
+        phone_prefix = request.POST.get('phone_prefix', '')
+        phone_number = request.POST.get('phone_number', '').strip()
+        if phone_number:
+            if phone_number.startswith(phone_prefix) or phone_number.startswith('+'):
+                business.phone = phone_number
+            else:
+                business.phone = f"{phone_prefix} {phone_number}".strip()
+        else:
+            # Fallback for old behaviour just in case
+            business.phone = request.POST.get('phone', business.phone).strip()
+            
+        if 'logo_url' in request.FILES:
+            business.logo_url = request.FILES['logo_url']
+        if 'banner_url' in request.FILES:
+            business.banner_url = request.FILES['banner_url']
+        business.description = request.POST.get('description', business.description).strip() or None
+        business.whatsapp_number = request.POST.get('whatsapp_number', business.whatsapp_number).strip() or None
+            
         business.address = request.POST.get('address', business.address).strip()
         business.currency = request.POST.get('currency', business.currency).strip()
         business.business_type = request.POST.get('business_type', business.business_type)
@@ -403,6 +498,13 @@ def business_config_view(request):
                 business.slug = new_slug
             else:
                 messages.warning(request, "El slug ingresado ya está en uso. Se mantuvo el anterior.")
+                
+        region_id = request.POST.get('region_id')
+        if region_id:
+            from apps.superadmin.models import Region
+            region = Region.objects.filter(id=region_id).first()
+            if region:
+                business.region = region
 
         # Save agency working hours schedule
         primary_staff = StaffMember.objects.filter(business=business).first()
@@ -441,25 +543,29 @@ def business_config_view(request):
     branches = Branch.objects.filter(business=business) if business else []
     payment_methods = PaymentMethodConfig.objects.filter(business=business) if business else []
 
-    # Cargar Métodos de Pago Globales creados por el SuperAdmin
-    from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, GlobalPaymentMethod
-    global_payment_methods = GlobalPaymentMethod.objects.filter(is_active=True)
+    # Cargar Métodos de Pago de la Región para Ventas POS
+    from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, RegionPaymentMethod, Region
     
-    # Sincronizar automáticamente los métodos globales en la empresa si no existen
-    if business and global_payment_methods.exists():
-        for gpm in global_payment_methods:
-            PaymentMethodConfig.objects.get_or_create(
-                business=business,
-                name=gpm.name,
-                defaults={
-                    'is_enabled': True,
-                    'instructions': gpm.description or ''
-                }
-            )
+    # Sincronizar automáticamente los métodos de la región en la empresa si no existen
+    if business and business.region:
+        region_methods = RegionPaymentMethod.objects.filter(region=business.region, is_active=True, use_for_sales=True)
+        if region_methods.exists():
+            for rm in region_methods:
+                PaymentMethodConfig.objects.get_or_create(
+                    business=business,
+                    name=rm.payment_method.name,
+                    defaults={
+                        'is_enabled': True,
+                        'instructions': rm.instructions or rm.payment_method.description or ''
+                    }
+                )
         payment_methods = PaymentMethodConfig.objects.filter(business=business)
+    else:
+        payment_methods = []
 
     subscription = getattr(business, 'subscription', None) if business else None
     available_plans = SubscriptionPlan.objects.filter(is_active=True)
+    all_regions = Region.objects.filter(is_active=True).exclude(code='GLOBAL').order_by('name')
 
     # Load working hours schedule
     primary_staff = StaffMember.objects.filter(business=business).first() if business else None
@@ -537,6 +643,7 @@ def business_config_view(request):
         'business_types': Business.BUSINESS_TYPE_CHOICES,
         'time_format_choices': getattr(Business, 'TIME_FORMAT_CHOICES', [('12h', '12 Horas'), ('24h', '24 Horas')]),
         'gw_status': gw_status,
+        'all_regions': all_regions,
     })
 
 @login_required(login_url='login')
@@ -602,14 +709,69 @@ def user_profile_config_view(request):
                 messages.error(request, "No se pudo procesar la solicitud de cambio de plan.")
             return redirect('user_profile_config')
 
-    from apps.superadmin.models import SubscriptionPlan, BusinessSubscription
+        elif action == 'REPORT_PAYMENT':
+            from apps.superadmin.models import RegionPaymentMethod, SubscriptionPayment, SubscriptionPlan, SystemAuditLog
+            amount = request.POST.get('amount')
+            reference = request.POST.get('reference', '').strip()
+            rpm_id = request.POST.get('region_payment_method_id')
+            plan_id = request.POST.get('plan_id')
+            
+            rpm = RegionPaymentMethod.objects.filter(id=rpm_id).first()
+            plan = SubscriptionPlan.objects.filter(id=plan_id).first()
+            
+            if business and amount and rpm:
+                SubscriptionPayment.objects.create(
+                    business=business,
+                    plan=plan,
+                    region_payment_method=rpm,
+                    amount=amount,
+                    reference=reference
+                )
+                SystemAuditLog.objects.create(
+                    actor_email=request.user.email or request.user.username,
+                    action="PAGO_REPORTADO",
+                    details=f"La agencia '{business.name}' informó un pago de {amount} mediante {rpm.payment_method.name}."
+                )
+                messages.success(request, "¡Tu pago ha sido informado con éxito! Un administrador lo revisará pronto para actualizar tu suscripción.")
+            else:
+                messages.error(request, "Error al informar el pago. Verifica los datos.")
+            return redirect('user_profile_config')
+
+    from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, RegionPaymentMethod, PlanRegionPricing
     subscription = getattr(business, 'subscription', None) if business else None
-    available_plans = SubscriptionPlan.objects.filter(is_active=True).order_by('monthly_price')
+    base_plans = SubscriptionPlan.objects.filter(is_active=True)
+    
+    available_plans = []
+    for plan in base_plans:
+        display_monthly = plan.monthly_price
+        display_annual = plan.annual_price
+        currency = "$"
+
+        if business and business.region:
+            currency = business.region.currency_symbol
+            rp = PlanRegionPricing.objects.filter(plan=plan, region=business.region).first()
+            if rp:
+                if not rp.is_active:
+                    continue
+                display_monthly = rp.monthly_price
+                display_annual = rp.annual_price
+        
+        setattr(plan, 'display_monthly', display_monthly)
+        setattr(plan, 'display_annual', display_annual)
+        setattr(plan, 'currency', currency)
+        available_plans.append(plan)
+
+    available_plans.sort(key=lambda x: x.display_monthly)
+    
+    billing_methods = []
+    if business and business.region:
+        billing_methods = RegionPaymentMethod.objects.filter(region=business.region, is_active=True, use_for_billing=True)
 
     return render(request, 'business/config_user.html', {
         'business': business,
         'subscription': subscription,
         'available_plans': available_plans,
+        'billing_methods': billing_methods,
     })
 
 @login_required
@@ -660,6 +822,9 @@ def staff_create_view(request):
             base_salary=base_salary,
             is_active=True
         )
+        if 'profile_picture' in request.FILES:
+            staff.profile_picture = request.FILES['profile_picture']
+            staff.save()
 
         if branch_ids:
             selected_branches = Branch.objects.filter(id__in=branch_ids, business=business)
@@ -708,6 +873,10 @@ def staff_edit_view(request, staff_id):
         branch_id = request.POST.get('branch_id')
         branch_ids = request.POST.getlist('branch_ids')
         staff.branch = Branch.objects.filter(id=branch_id, business=business).first() if branch_id else None
+        
+        if 'profile_picture' in request.FILES:
+            staff.profile_picture = request.FILES['profile_picture']
+            
         staff.save()
 
         if branch_ids:
@@ -846,6 +1015,17 @@ def whatsapp_gateway_send_reminder_api(request):
 
     fallback_url = f"https://api.whatsapp.com/send?phone={urllib.parse.quote(clean_phone)}&text={urllib.parse.quote(message)}"
     return JsonResponse({'success': True, 'sent_direct': False, 'fallback_url': fallback_url})
+
+@login_required
+@ensure_csrf_cookie
+def dismiss_announcement_view(request, announcement_id):
+    if request.method == 'POST':
+        announcement = get_object_or_404(SystemAnnouncement, id=announcement_id)
+        if announcement.is_dismissible:
+            AnnouncementDismissal.objects.get_or_create(announcement=announcement, user=request.user)
+            return JsonResponse({'success': True})
+        return JsonResponse({'success': False, 'error': 'No dismissible'}, status=400)
+    return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
 
 def manifest_view(request):
     from django.conf import settings
