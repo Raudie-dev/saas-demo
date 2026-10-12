@@ -268,11 +268,60 @@ def user_detail_view(request, business_id):
                 messages.success(request, f"¡Región de {business.name} actualizada a {region.name}!")
             return redirect('superadmin_user_detail', business_id=business.id)
 
+        elif action == 'APPROVE_SUBSCRIPTION_PAYMENT':
+            payment_id = request.POST.get('payment_id')
+            payment = get_object_or_404(SubscriptionPayment, id=payment_id, business=business)
+            payment.status = 'APPROVED'
+            payment.reviewed_at = timezone.now()
+            payment.reviewed_by = request.superadmin_user
+            payment.save()
+
+            subscription.status = 'ACTIVE'
+            if payment.plan:
+                subscription.plan = payment.plan
+                subscription.pending_plan = None
+
+            base_date = subscription.expiration_date if (subscription.expiration_date and subscription.expiration_date >= timezone.now().date()) else timezone.now().date()
+            if payment.billing_cycle == 'ANNUAL':
+                subscription.expiration_date = base_date + datetime.timedelta(days=365)
+            else:
+                subscription.expiration_date = base_date + datetime.timedelta(days=30)
+            subscription.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="PAGO_APROBADO",
+                details=f"SuperAdmin aprobó el pago #{payment.id} de {payment.amount} para {business.name}. Licencia extendida a {subscription.expiration_date}."
+            )
+            messages.success(request, f"¡Pago de {payment.amount} aprobado con éxito! Licencia renovada hasta {subscription.expiration_date}.")
+            return redirect('superadmin_user_detail', business_id=business.id)
+
+        elif action == 'REJECT_SUBSCRIPTION_PAYMENT':
+            payment_id = request.POST.get('payment_id')
+            reject_notes = request.POST.get('reject_notes', '').strip()
+            payment = get_object_or_404(SubscriptionPayment, id=payment_id, business=business)
+            payment.status = 'REJECTED'
+            payment.notes = reject_notes
+            payment.reviewed_at = timezone.now()
+            payment.reviewed_by = request.superadmin_user
+            payment.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="PAGO_RECHAZADO",
+                details=f"SuperAdmin rechazó el pago #{payment.id} de {business.name}. Motivo: {reject_notes}"
+            )
+            messages.warning(request, f"Pago #{payment.id} marcado como rechazado.")
+            return redirect('superadmin_user_detail', business_id=business.id)
+
     branches = business.branches.all()
     staff_members = business.staff_members.all()
     payment_methods = business.payment_methods.all()
     business_users = business.users.all()
     all_regions = Region.objects.filter(is_active=True).order_by('name')
+    subscription_payments = SubscriptionPayment.objects.filter(business=business).select_related(
+        'plan', 'region_payment_method', 'region_payment_method__payment_method'
+    ).order_by('-created_at')
 
     return render(request, 'superadmin/user_detail.html', {
         'business': business,
@@ -286,6 +335,7 @@ def user_detail_view(request, business_id):
         'payment_methods_count': payment_methods.count(),
         'business_users': business_users,
         'all_regions': all_regions,
+        'subscription_payments': subscription_payments,
     })
 
 @superadmin_required
@@ -570,6 +620,7 @@ def regions_management_view(request):
             for gm in global_methods:
                 if request.POST.get(f'method_{gm.id}_active') == 'on':
                     instructions = request.POST.get(f'method_{gm.id}_instructions', '').strip()
+                    payment_url = request.POST.get(f'method_{gm.id}_payment_url', '').strip()
                     
                     rpm, _ = RegionPaymentMethod.objects.update_or_create(
                         region=region,
@@ -577,6 +628,7 @@ def regions_management_view(request):
                         defaults={
                             'use_for_billing': True,
                             'instructions': instructions,
+                            'payment_url': payment_url,
                             'is_active': True
                         }
                     )

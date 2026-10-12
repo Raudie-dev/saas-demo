@@ -131,6 +131,7 @@ class RegionPaymentMethod(TimeStampedModel):
     region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name="payment_methods", verbose_name="Región")
     payment_method = models.ForeignKey(GlobalPaymentMethod, on_delete=models.CASCADE, related_name="region_configurations", verbose_name="Método de Pago Global")
     instructions = models.TextField(blank=True, null=True, verbose_name="Instrucciones para la Región (CBU, Alias, Link)")
+    payment_url = models.URLField(max_length=500, blank=True, null=True, verbose_name="Enlace de Pago Directo (Checkout/Link)")
     use_for_sales = models.BooleanField(default=True, verbose_name="Usar en Ventas (POS) de las Agencias")
     use_for_billing = models.BooleanField(default=False, verbose_name="Usar para Pagar Suscripción del SaaS")
     is_active = models.BooleanField(default=True, verbose_name="Activo en esta Región")
@@ -150,11 +151,18 @@ class SubscriptionPayment(TimeStampedModel):
         ('REJECTED', 'Pago Rechazado'),
     ]
 
+    CYCLE_CHOICES = [
+        ('MONTHLY', 'Mensual'),
+        ('ANNUAL', 'Anual'),
+    ]
+
     business = models.ForeignKey('business.Business', on_delete=models.CASCADE, related_name="subscription_payments", verbose_name="Agencia")
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Plan Abonado")
     region_payment_method = models.ForeignKey(RegionPaymentMethod, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Método de Pago Utilizado")
+    billing_cycle = models.CharField(max_length=20, choices=CYCLE_CHOICES, default='MONTHLY', verbose_name="Ciclo de Facturación")
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Monto Informado")
     reference = models.CharField(max_length=255, blank=True, null=True, verbose_name="N° Referencia / Comprobante")
+    receipt_file = models.FileField(upload_to='subscription_receipts/', blank=True, null=True, verbose_name="Comprobante Adjunto")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', verbose_name="Estado del Pago")
     paid_at = models.DateTimeField(default=timezone.now, verbose_name="Fecha de Pago Informada")
     reviewed_at = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de Revisión")

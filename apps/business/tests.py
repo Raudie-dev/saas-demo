@@ -8,7 +8,10 @@ from django.utils import timezone
 from apps.business.models import (
     Business, User, StaffMember, UserProfileRole, ensure_default_profiles
 )
-from apps.superadmin.models import SubscriptionPlan, BusinessSubscription
+from apps.superadmin.models import (
+    SubscriptionPlan, BusinessSubscription, Region, GlobalPaymentMethod,
+    RegionPaymentMethod, SubscriptionPayment, SuperAdminUser
+)
 from apps.crm.models import Client as CRMClient
 from apps.agenda.models import Service, Appointment
 from apps.commissions.models import CommissionRecord
@@ -387,3 +390,122 @@ class UserRolesAndPermissionsTestCase(TestCase):
         self.assertTrue('66,7%' in content or '66.7%' in content)
         self.assertTrue('33,3%' in content or '33.3%' in content)
         self.assertContains(response, 'width: 66.7%')
+
+    def test_subscription_billing_view_permissions_and_render(self):
+        """
+        Verify that subscription_billing_view is accessible to owner/admin,
+        hides/redirects for unauthorized staff, and shows region methods.
+        """
+        region_ar = Region.objects.create(
+            name="Argentina",
+            code="AR",
+            currency_symbol="$",
+            is_active=True
+        )
+        self.business.region = region_ar
+        self.business.save()
+
+        gpm = GlobalPaymentMethod.objects.create(
+            name="Transferencia Bancaria",
+            code="TRANSFER_AR",
+            description="CBU 0123456789 / Alias: NEGOCIO.SAAS",
+            is_active=True
+        )
+        rpm = RegionPaymentMethod.objects.create(
+            region=region_ar,
+            payment_method=gpm,
+            instructions="CBU: 07201234567890 / Alias: MIEMPRESA.PAGOS",
+            use_for_billing=True,
+            is_active=True
+        )
+
+        # 1. Non-permitted user cannot access
+        self.client.force_login(self.prof_user)
+        res_prof = self.client.get(reverse('subscription_billing'))
+        self.assertEqual(res_prof.status_code, 302)
+
+        # 2. Owner can access and sees region methods and currency
+        self.client.force_login(self.owner)
+        res_owner = self.client.get(reverse('subscription_billing'))
+        self.assertEqual(res_owner.status_code, 200)
+        self.assertContains(res_owner, "Región Activa: Argentina")
+        self.assertContains(res_owner, "MIEMPRESA.PAGOS")
+        self.assertContains(res_owner, "Transferencia Bancaria")
+
+    def test_subscription_billing_report_and_approve_payment(self):
+        """
+        Verify that an agency can report a payment and SuperAdmin can approve it,
+        extending the subscription and updating status to ACTIVE.
+        """
+        region_cl = Region.objects.create(
+            name="Chile",
+            code="CL",
+            currency_symbol="CLP$",
+            is_active=True
+        )
+        self.business.region = region_cl
+        self.business.save()
+
+        gpm = GlobalPaymentMethod.objects.create(
+            name="Webpay Plus",
+            code="WEBPAY_CL",
+            description="Pago con tarjetas chilenas",
+            is_active=True
+        )
+        rpm = RegionPaymentMethod.objects.create(
+            region=region_cl,
+            payment_method=gpm,
+            instructions="Transfiere a Banco de Chile Cta Cte 12345",
+            use_for_billing=True,
+            is_active=True
+        )
+
+        # Initial subscription is TRIAL and expires in 5 days
+        self.subscription.status = 'TRIAL'
+        self.subscription.expiration_date = timezone.now().date() + datetime.timedelta(days=5)
+        self.subscription.save()
+
+        # Agency reports payment
+        self.client.force_login(self.owner)
+        post_data = {
+            'action': 'REPORT_PAYMENT',
+            'plan_id': str(self.plan.id),
+            'region_payment_method_id': str(rpm.id),
+            'billing_cycle': 'MONTHLY',
+            'amount': '29.00',
+            'reference': 'OP-987654321',
+            'notes': 'Transferencia confirmada'
+        }
+        res_report = self.client.post(reverse('subscription_billing'), post_data)
+        self.assertEqual(res_report.status_code, 302)
+
+        # Verify payment created in DB
+        payment = SubscriptionPayment.objects.filter(business=self.business, reference='OP-987654321').first()
+        self.assertIsNotNone(payment)
+        self.assertEqual(payment.status, 'PENDING')
+        self.assertEqual(payment.amount, Decimal('29.00'))
+        self.assertEqual(payment.billing_cycle, 'MONTHLY')
+
+        # SuperAdmin approves payment
+        superadmin = SuperAdminUser.objects.create_superuser(
+            email="superadmin_test@raudie.net",
+            username="superadmintest",
+            password="adminpassword123"
+        )
+        session = self.client.session
+        session['superadmin_id'] = str(superadmin.id)
+        session.save()
+
+        res_approve = self.client.post(reverse('superadmin_user_detail', args=[self.business.id]), {
+            'action': 'APPROVE_SUBSCRIPTION_PAYMENT',
+            'payment_id': str(payment.id),
+        })
+        self.assertEqual(res_approve.status_code, 302)
+
+        # Refresh objects
+        payment.refresh_from_db()
+        self.subscription.refresh_from_db()
+
+        self.assertEqual(payment.status, 'APPROVED')
+        self.assertEqual(self.subscription.status, 'ACTIVE')
+        self.assertGreaterEqual(self.subscription.expiration_date, timezone.now().date() + datetime.timedelta(days=30))
