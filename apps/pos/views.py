@@ -1,5 +1,6 @@
 import datetime
 import csv
+import json
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
@@ -87,27 +88,94 @@ def pos_terminal_view(request):
             messages.success(request, "¡Caja cerrada correctamente!")
             return redirect('pos_terminal')
 
+        if action == 'open_register' and not active_register:
+            initial = parse_decimal(request.POST.get('initial_amount', request.POST.get('initial_register_amount')), '0.00')
+            default_user = request.user if (request.user and request.user.is_authenticated) else (business.users.first() if business else None)
+            active_register = CashRegister.objects.create(
+                business=business,
+                branch=current_branch,
+                opened_by=default_user,
+                initial_amount=initial,
+                status='OPEN'
+            )
+            messages.success(request, f"¡Caja abierta correctamente con fondo inicial de {business.currency}{initial}!")
+            return redirect('pos_terminal')
+
         client_id = request.POST.get('client_id')
         staff_id = request.POST.get('staff_id')
-        service_id = request.POST.get('service_id')
-        product_id = request.POST.get('product_id')
         post_app_id = request.POST.get('appointment_id')
         payment_method = request.POST.get('payment_method', 'Efectivo')
         is_split_payment = request.POST.get('is_split_payment') == 'true'
         tip_amount = parse_decimal(request.POST.get('tip_amount'), '0.00')
         discount_amount = parse_decimal(request.POST.get('discount_amount'), '0.00')
 
-        # Fallback if processing an appointment checkout without explicit service selection
-        if post_app_id and not service_id and not product_id:
+        # 1. Parse services to process: list of tuples (Service, quantity)
+        services_to_process = []
+        services_json = request.POST.get('services_data')
+        if services_json:
+            try:
+                s_list = json.loads(services_json)
+                for item in s_list:
+                    s_id = item.get('id')
+                    qty = max(1, int(item.get('quantity', 1)))
+                    srv = Service.objects.filter(id=s_id, business=business).first()
+                    if srv:
+                        services_to_process.append((srv, qty))
+            except Exception:
+                pass
+
+        if not services_to_process:
+            srv_ids = request.POST.getlist('service_ids')
+            if not srv_ids and request.POST.get('service_id'):
+                srv_ids = [request.POST.get('service_id')]
+            for s_id in srv_ids:
+                srv = Service.objects.filter(id=s_id, business=business).first()
+                if srv:
+                    services_to_process.append((srv, 1))
+
+        # 2. Parse products to process: list of tuples (Product, quantity)
+        products_to_process = []
+        products_json = request.POST.get('products_data')
+        if products_json:
+            try:
+                p_list = json.loads(products_json)
+                for item in p_list:
+                    p_id = item.get('id')
+                    qty = max(1, int(item.get('quantity', 1)))
+                    prod = Product.objects.filter(id=p_id, business=business).first()
+                    if prod:
+                        products_to_process.append((prod, qty))
+            except Exception:
+                pass
+
+        if not products_to_process:
+            prod_ids = request.POST.getlist('product_ids')
+            prod_qtys = request.POST.getlist('product_quantities')
+            if not prod_ids and request.POST.get('product_id'):
+                prod_ids = [request.POST.get('product_id')]
+                prod_qtys = [1]
+            for idx, p_id in enumerate(prod_ids):
+                prod = Product.objects.filter(id=p_id, business=business).first()
+                if prod:
+                    qty = 1
+                    if idx < len(prod_qtys):
+                        try:
+                            qty = max(1, int(prod_qtys[idx]))
+                        except (ValueError, TypeError):
+                            qty = 1
+                    products_to_process.append((prod, qty))
+
+        # 3. Fallback if processing an appointment checkout without explicit items
+        if post_app_id and not services_to_process and not products_to_process:
             app_obj = Appointment.objects.filter(id=post_app_id, business=business).first()
-            if app_obj:
-                service_id = str(app_obj.service_id)
-                if not client_id:
+            if app_obj and app_obj.service:
+                services_to_process.append((app_obj.service, 1))
+                if not client_id and app_obj.client_id:
                     client_id = str(app_obj.client_id)
-                if not staff_id:
+                if not staff_id and app_obj.staff_id:
                     staff_id = str(app_obj.staff_id)
 
-        if not service_id and not product_id:
+        if not services_to_process and not products_to_process:
             messages.error(request, "Debes seleccionar al menos un Servicio o un Producto para procesar la venta.")
             return redirect('pos_terminal')
         
@@ -115,79 +183,85 @@ def pos_terminal_view(request):
         staff = StaffMember.objects.filter(id=staff_id, business=business).first() if staff_id else None
         
         with transaction.atomic():
-            # Auto-open cash register if none is active
+            # Auto-open cash register if none is active with requested initial amount
             if not active_register:
+                initial_amt = parse_decimal(request.POST.get('initial_register_amount', request.POST.get('initial_amount')), '0.00')
                 default_user = request.user if (request.user and request.user.is_authenticated) else (business.users.first() if business else None)
                 active_register = CashRegister.objects.create(
                     business=business,
                     branch=current_branch,
                     opened_by=default_user,
-                    initial_amount=Decimal('0.00'),
+                    initial_amount=initial_amt,
                     status='OPEN'
                 )
 
             subtotal = Decimal('0.00')
+            app_instance = None
+            if post_app_id:
+                app_instance = Appointment.objects.filter(id=post_app_id, business=business).first()
+
             sale = Sale.objects.create(
                 business=business,
                 branch=current_branch,
                 cash_register=active_register,
                 client=client,
                 staff=staff,
+                appointment=app_instance if (app_instance and not hasattr(app_instance, 'sale')) else None,
                 payment_method=payment_method,
                 tip_amount=tip_amount,
                 discount_amount=discount_amount,
                 status='COMPLETED'
             )
             
-            if service_id:
-                srv = Service.objects.filter(id=service_id, business=business).first()
-                if srv:
-                    subtotal += srv.price
-                    SaleItem.objects.create(
-                        sale=sale,
-                        item_type='SERVICE',
-                        service=srv,
-                        unit_price=srv.price,
-                        quantity=1,
-                        total_price=srv.price
-                    )
-                    if staff:
-                        comm_rate = srv.commission_rate if srv.commission_rate > 0 else staff.commission_rate
-                        if comm_rate > 0:
-                            comm_amt = (srv.price * (comm_rate / Decimal('100.00')))
-                            CommissionRecord.objects.create(
-                                business=business,
-                                staff=staff,
-                                sale=sale,
-                                amount=comm_amt,
-                                concept=f"Comisión Servicio: {srv.name}"
-                            )
+            # Process services
+            for srv, qty in services_to_process:
+                line_price = srv.price * Decimal(str(qty))
+                subtotal += line_price
+                SaleItem.objects.create(
+                    sale=sale,
+                    item_type='SERVICE',
+                    service=srv,
+                    unit_price=srv.price,
+                    quantity=qty,
+                    total_price=line_price
+                )
+                if staff:
+                    comm_rate = srv.commission_rate if srv.commission_rate > 0 else staff.commission_rate
+                    if comm_rate > 0:
+                        comm_amt = (line_price * (comm_rate / Decimal('100.00')))
+                        CommissionRecord.objects.create(
+                            business=business,
+                            staff=staff,
+                            sale=sale,
+                            amount=comm_amt,
+                            concept=f"Comisión Servicio: {srv.name}" + (f" (x{qty})" if qty > 1 else "")
+                        )
                         
-            if product_id:
-                prod = Product.objects.filter(id=product_id, business=business).first()
-                if prod:
-                    subtotal += prod.sale_price
-                    SaleItem.objects.create(
-                        sale=sale,
-                        item_type='PRODUCT',
-                        product=prod,
-                        unit_price=prod.sale_price,
-                        quantity=1,
-                        total_price=prod.sale_price
-                    )
-                    old_stock = prod.stock
-                    prod.stock -= 1
-                    prod.save()
-                    StockMovement.objects.create(
-                        product=prod,
-                        movement_type='SALE',
-                        quantity=1,
-                        previous_stock=old_stock,
-                        new_stock=prod.stock,
-                        notes=f"Venta POS #{str(sale.id)[:8]}"
-                    )
+            # Process products
+            for prod, qty in products_to_process:
+                line_price = prod.sale_price * Decimal(str(qty))
+                subtotal += line_price
+                SaleItem.objects.create(
+                    sale=sale,
+                    item_type='PRODUCT',
+                    product=prod,
+                    unit_price=prod.sale_price,
+                    quantity=qty,
+                    total_price=line_price
+                )
+                old_stock = prod.stock
+                prod.stock = max(0, prod.stock - qty)
+                prod.save(update_fields=['stock'])
+                StockMovement.objects.create(
+                    product=prod,
+                    movement_type='SALE',
+                    quantity=qty,
+                    previous_stock=old_stock,
+                    new_stock=prod.stock,
+                    notes=f"Venta POS #{str(sale.id)[:8]}"
+                )
 
-            total = (subtotal - discount_amount) + tip_amount
+            total = max(Decimal('0.00'), (subtotal - discount_amount) + tip_amount)
             sale.subtotal = subtotal
             sale.total_amount = total
 
@@ -215,7 +289,7 @@ def pos_terminal_view(request):
             
             if client:
                 client.total_spent += total
-                client.save()
+                client.save(update_fields=['total_spent'])
 
                 # Otorgar Puntos de Fidelización
                 from apps.marketing.models import LoyaltyProgram, LoyaltyCard
@@ -225,13 +299,13 @@ def pos_terminal_view(request):
                     if points_earned > 0:
                         card, _ = LoyaltyCard.objects.get_or_create(program=loyalty_program, client=client)
                         card.points += points_earned
-                        card.save()
+                        card.save(update_fields=['points'])
 
             if post_app_id:
                 app_obj = Appointment.objects.filter(id=post_app_id, business=business).first()
                 if app_obj:
                     app_obj.status = 'COMPLETED'
-                    app_obj.save()
+                    app_obj.save(update_fields=['status'])
 
             # Record cash movement in cash register
             CashMovement.objects.create(
@@ -246,8 +320,9 @@ def pos_terminal_view(request):
             if client:
                 request.session['completed_sale_client_id'] = str(client.id)
                 request.session['completed_sale_client_name'] = client.full_name
-                request.session['completed_sale_service_id'] = str(service_id) if service_id else ''
-                request.session['completed_sale_staff_id'] = str(staff_id) if staff_id else ''
+                first_srv = services_to_process[0][0] if services_to_process else None
+                request.session['completed_sale_service_id'] = str(first_srv.id) if first_srv else ''
+                request.session['completed_sale_staff_id'] = str(staff.id) if staff else ''
 
         return redirect('pos_terminal')
 

@@ -76,18 +76,44 @@
             </button>
         </div>
         {% else %}
-        <form method="POST" autocomplete="off" class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+        <form id="open-register-form" method="POST" autocomplete="off" class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
             {% csrf_token %}
             <input type="hidden" name="action" value="open">
-            <div class="flex-1 max-w-xs">
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Monto Inicial en Efectivo (Fondo de Caja)</label>
-                <input type="number" step="0.01" name="initial_amount" value="100.00" required class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-900">
-            </div>
-            <button type="submit" class="px-6 py-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
+            <input type="hidden" name="initial_amount" id="initial_amount_input">
+            <button type="button" onclick="openOpenRegisterModal()" class="px-6 py-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
                 <i data-lucide="unlock" class="w-4 h-4"></i>
                 Abrir Caja Ahora
             </button>
         </form>
+
+        <!-- Open Register Confirmation Modal -->
+        <div id="open-register-modal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md p-6 sm:p-7 space-y-6 relative animate-in fade-in zoom-in-95 duration-200">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold">
+                            <i data-lucide="unlock" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-display font-bold text-base text-slate-900">¿Abrir Caja?</h3>
+                            <p class="text-xs text-slate-500">Se abrirá una nueva caja para el cobro POS. Indique el fondo inicial.</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeOpenRegisterModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Fondo Inicial</label>
+                    <input type="number" step="0.01" min="0" id="modal-initial-amount" value="100.00" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-rose-900" placeholder="Ej. 100.00" required>
+                    <p id="modal-initial-amount-error" class="hidden text-rose-600 font-bold text-xs mt-1">Por favor ingrese el monto inicial para abrir la caja.</p>
+                </div>
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeOpenRegisterModal()" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">Cancelar</button>
+                    <button type="button" onclick="confirmOpenRegister()" class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs">Confirmar</button>
+                </div>
+            </div>
+        </div>
         {% endif %}
     </div>
 
@@ -517,7 +543,31 @@
             }
         }
     }
-
+function openOpenRegisterModal(){
+    document.getElementById('open-register-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+function closeOpenRegisterModal(){
+    document.getElementById('open-register-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+function confirmOpenRegister(){
+    const input = document.getElementById('modal-initial-amount');
+    const amount = input ? input.value.trim() : '';
+    const errEl = document.getElementById('modal-initial-amount-error');
+    if(!amount){
+        if (errEl) errEl.classList.remove('hidden');
+        if (input) {
+            input.classList.add('border-rose-500', 'ring-2', 'ring-rose-500');
+            input.focus();
+        }
+        return;
+    }
+    if (errEl) errEl.classList.add('hidden');
+    if (input) input.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500');
+    document.getElementById('initial_amount_input').value = amount;
+    document.getElementById('open-register-form').submit();
+}
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('action-btns-container');
         if (container) handleActionScroll(container);
