@@ -23,6 +23,7 @@ urlpatterns = [
     path('config/', views.business_config_view, name='business_config'),
     path('config/empresa/', views.business_config_view),
     path('config/cuenta/', views.user_profile_config_view, name='user_profile_config'),
+    path('config/suscripcion/', views.subscription_billing_view, name='subscription_billing'),
     path('cambiar-sucursal/', views.switch_branch_view, name='switch_branch'),
     path('equipo/', views.staff_list_view, name='staff_list'),
     path('equipo/crear/', views.staff_create_view, name='staff_create'),

@@ -751,6 +751,9 @@ def user_profile_config_view(request):
             reference = request.POST.get('reference', '').strip()
             rpm_id = request.POST.get('region_payment_method_id')
             plan_id = request.POST.get('plan_id')
+            billing_cycle = request.POST.get('billing_cycle', 'MONTHLY')
+            receipt_file = request.FILES.get('receipt_file')
+            notes = request.POST.get('notes', '').strip()
             
             rpm = RegionPaymentMethod.objects.filter(id=rpm_id).first()
             plan = SubscriptionPlan.objects.filter(id=plan_id).first()
@@ -760,18 +763,21 @@ def user_profile_config_view(request):
                     business=business,
                     plan=plan,
                     region_payment_method=rpm,
+                    billing_cycle=billing_cycle,
                     amount=amount,
-                    reference=reference
+                    reference=reference,
+                    receipt_file=receipt_file,
+                    notes=notes
                 )
                 SystemAuditLog.objects.create(
                     actor_email=request.user.email or request.user.username,
                     action="PAGO_REPORTADO",
-                    details=f"La agencia '{business.name}' informó un pago de {amount} mediante {rpm.payment_method.name}."
+                    details=f"La agencia '{business.name}' informó un pago de {amount} mediante {rpm.payment_method.name} ({billing_cycle})."
                 )
                 messages.success(request, "¡Tu pago ha sido informado con éxito! Un administrador lo revisará pronto para actualizar tu suscripción.")
             else:
                 messages.error(request, "Error al informar el pago. Verifica los datos.")
-            return redirect('user_profile_config')
+            return redirect('subscription_billing')
 
     from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, RegionPaymentMethod, PlanRegionPricing
     subscription = getattr(business, 'subscription', None) if business else None
@@ -808,6 +814,183 @@ def user_profile_config_view(request):
         'subscription': subscription,
         'available_plans': available_plans,
         'billing_methods': billing_methods,
+    })
+
+@login_required(login_url='login')
+@ensure_csrf_cookie
+def subscription_billing_view(request):
+    """
+    Vista dedicada para la gestión y pago de suscripción adaptada a los
+    métodos de pago e importes de la región asignada a la empresa.
+    """
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permiso para acceder a la facturación y suscripción del negocio.")
+        return redirect('business_config')
+
+    from apps.superadmin.models import (
+        SubscriptionPlan, BusinessSubscription, RegionPaymentMethod, 
+        PlanRegionPricing, Region, SubscriptionPayment, SystemAuditLog
+    )
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'UPDATE_REGION':
+            region_id = request.POST.get('region_id')
+            if region_id:
+                new_region = Region.objects.filter(id=region_id, is_active=True).first()
+                if new_region:
+                    business.region = new_region
+                    business.save()
+                    SystemAuditLog.objects.create(
+                        actor_email=request.user.email or request.user.username,
+                        action="CAMBIO_REGION_EMPRESA",
+                        details=f"La agencia '{business.name}' actualizó su región de facturación a '{new_region.name}'."
+                    )
+                    messages.success(request, f"¡Región actualizada a {new_region.name}! Ahora se muestran los métodos y moneda correspondientes ({new_region.currency_symbol}).")
+            return redirect('subscription_billing')
+
+        elif action == 'REQUEST_PLAN_CHANGE':
+            plan_id = request.POST.get('plan_id')
+            target_plan = SubscriptionPlan.objects.filter(id=plan_id, is_active=True).first()
+            if target_plan:
+                sub, _ = BusinessSubscription.objects.get_or_create(
+                    business=business,
+                    defaults={'status': 'TRIAL', 'start_date': timezone.now().date(), 'expiration_date': timezone.now().date() + datetime.timedelta(days=14)}
+                )
+                sub.pending_plan = target_plan
+                sub.save()
+
+                SystemAuditLog.objects.create(
+                    actor_email=request.user.email or request.user.username,
+                    action="SOLICITUD_CAMBIO_PLAN",
+                    details=f"La agencia '{business.name}' solicitó cambiar al plan '{target_plan.name}'."
+                )
+                messages.success(request, f"¡Solicitud enviada! Has solicitado el plan '{target_plan.name}'. Un administrador la revisará a la brevedad.")
+            return redirect('subscription_billing')
+
+        elif action == 'REPORT_PAYMENT':
+            amount = request.POST.get('amount')
+            reference = request.POST.get('reference', '').strip()
+            rpm_id = request.POST.get('region_payment_method_id')
+            plan_id = request.POST.get('plan_id')
+            billing_cycle = request.POST.get('billing_cycle', 'MONTHLY')
+            receipt_file = request.FILES.get('receipt_file')
+            notes = request.POST.get('notes', '').strip()
+
+            rpm = RegionPaymentMethod.objects.filter(id=rpm_id).first()
+            plan = SubscriptionPlan.objects.filter(id=plan_id).first()
+
+            if amount and rpm:
+                payment = SubscriptionPayment.objects.create(
+                    business=business,
+                    plan=plan,
+                    region_payment_method=rpm,
+                    billing_cycle=billing_cycle,
+                    amount=amount,
+                    reference=reference,
+                    receipt_file=receipt_file,
+                    notes=notes
+                )
+                SystemAuditLog.objects.create(
+                    actor_email=request.user.email or request.user.username,
+                    action="PAGO_REPORTADO",
+                    details=f"La agencia '{business.name}' informó un pago de {amount} mediante {rpm.payment_method.name} ({billing_cycle})."
+                )
+                messages.success(request, "¡Tu pago ha sido informado con éxito! Un administrador lo revisará a la brevedad para verificar la acreditación y renovar tu suscripción.")
+            else:
+                messages.error(request, "Por favor completa el método de pago y el importe para informar el pago.")
+            return redirect('subscription_billing')
+
+    subscription, _ = BusinessSubscription.objects.get_or_create(
+        business=business,
+        defaults={
+            'status': 'TRIAL',
+            'start_date': timezone.now().date(),
+            'expiration_date': timezone.now().date() + datetime.timedelta(days=14)
+        }
+    )
+
+    current_region = business.region
+    if not current_region:
+        current_region = Region.objects.filter(is_default=True).first() or Region.objects.first()
+
+    all_regions = Region.objects.filter(is_active=True).exclude(code='GLOBAL').order_by('name')
+
+    base_plans = SubscriptionPlan.objects.filter(is_active=True)
+    available_plans = []
+    currency_symbol = current_region.currency_symbol if current_region else "$"
+
+    for plan in base_plans:
+        display_monthly = plan.monthly_price
+        display_annual = plan.annual_price
+
+        if current_region:
+            rp = PlanRegionPricing.objects.filter(plan=plan, region=current_region).first()
+            if rp:
+                if not rp.is_active:
+                    continue
+                display_monthly = rp.monthly_price
+                display_annual = rp.annual_price
+
+        setattr(plan, 'display_monthly', display_monthly)
+        setattr(plan, 'display_annual', display_annual)
+        setattr(plan, 'currency', currency_symbol)
+
+        try:
+            full_year = display_monthly * 12
+            if full_year > display_annual and full_year > 0:
+                savings_pct = int(round((1 - (display_annual / full_year)) * 100))
+            else:
+                savings_pct = 0
+        except Exception:
+            savings_pct = 0
+        setattr(plan, 'savings_pct', savings_pct)
+
+        available_plans.append(plan)
+
+    available_plans.sort(key=lambda x: x.display_monthly)
+
+    billing_methods = []
+    if current_region:
+        billing_methods = RegionPaymentMethod.objects.filter(
+            region=current_region, 
+            is_active=True, 
+            use_for_billing=True
+        ).select_related('payment_method')
+
+    # If the region has no billing methods configured, also check default or global region methods as fallback
+    if not billing_methods and current_region.code != 'GLOBAL':
+        global_region = Region.objects.filter(code='GLOBAL').first()
+        if global_region:
+            billing_methods = RegionPaymentMethod.objects.filter(
+                region=global_region,
+                is_active=True,
+                use_for_billing=True
+            ).select_related('payment_method')
+
+    payment_history = SubscriptionPayment.objects.filter(business=business).select_related(
+        'plan', 'region_payment_method', 'region_payment_method__payment_method'
+    ).order_by('-created_at')[:20]
+
+    current_users_count = business.users.count()
+    current_branches_count = business.branches.count()
+
+    return render(request, 'business/subscription_billing.html', {
+        'business': business,
+        'subscription': subscription,
+        'current_region': current_region,
+        'all_regions': all_regions,
+        'currency_symbol': currency_symbol,
+        'available_plans': available_plans,
+        'billing_methods': billing_methods,
+        'payment_history': payment_history,
+        'current_users_count': current_users_count,
+        'current_branches_count': current_branches_count,
     })
 
 @login_required

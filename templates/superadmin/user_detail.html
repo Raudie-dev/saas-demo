@@ -372,6 +372,100 @@
 
     </div>
 
+    <!-- Pagos de Suscripción Informados por la Agencia -->
+    <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-5 h-5 text-brand-900"></i>
+                    <span>Pagos de Suscripción Informados por {{ business.name }}</span>
+                </h3>
+                <p class="text-xs text-slate-500">Revisa los comprobantes enviados por la agencia y valida la acreditación para activar o extender la licencia automáticamente.</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-700">
+                Total: {{ subscription_payments|length }}
+            </span>
+        </div>
+
+        {% if subscription_payments %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-950 text-white uppercase font-bold text-[10px] tracking-wider">
+                        <th class="py-2.5 px-3">Fecha</th>
+                        <th class="py-2.5 px-3">Plan / Ciclo</th>
+                        <th class="py-2.5 px-3">Método Regional</th>
+                        <th class="py-2.5 px-3">Monto</th>
+                        <th class="py-2.5 px-3">Referencia</th>
+                        <th class="py-2.5 px-3 text-center">Comprobante</th>
+                        <th class="py-2.5 px-3 text-center">Estado</th>
+                        <th class="py-2.5 px-3 text-right">Acción</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-sans">
+                    {% for p in subscription_payments %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-3 font-mono text-slate-500 text-[11px]">{{ p.created_at|date:"d/m/Y H:i" }}</td>
+                        <td class="py-3 px-3 font-bold text-slate-900">
+                            {{ p.plan.name|default:"Plan" }}
+                            <span class="block text-[10px] text-slate-400 font-mono font-semibold">{{ p.get_billing_cycle_display }}</span>
+                        </td>
+                        <td class="py-3 px-3 text-slate-700">{{ p.region_payment_method.payment_method.name|default:"Transferencia" }}</td>
+                        <td class="py-3 px-3 font-bold text-brand-900 font-display">${{ p.amount }}</td>
+                        <td class="py-3 px-3 font-mono text-slate-700 select-all">{{ p.reference|default:"-" }}</td>
+                        <td class="py-3 px-3 text-center">
+                            {% if p.receipt_file %}
+                            <a href="{{ p.receipt_file.url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-[11px] border border-blue-200 transition">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Ver Comprobante
+                            </a>
+                            {% else %}
+                            <span class="text-slate-400 italic text-[11px]">Sin archivo</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            {% if p.status == 'APPROVED' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Aprobado</span>
+                            {% elif p.status == 'REJECTED' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300" title="{{ p.notes }}">Rechazado</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-right">
+                            {% if p.status == 'PENDING' %}
+                            <div class="flex items-center justify-end gap-1.5">
+                                <form method="POST" action="{% url 'superadmin_user_detail' business.id %}" onsubmit="return confirm('¿Aprobar pago de {{ p.amount }} y renovar la licencia de {{ business.name }}?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="APPROVE_SUBSCRIPTION_PAYMENT">
+                                    <input type="hidden" name="payment_id" value="{{ p.id }}">
+                                    <button type="submit" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] transition flex items-center gap-1 cursor-pointer">
+                                        <i data-lucide="check" class="w-3 h-3"></i> Aprobar
+                                    </button>
+                                </form>
+                                <form method="POST" action="{% url 'superadmin_user_detail' business.id %}" onsubmit="return confirm('¿Rechazar este pago?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="REJECT_SUBSCRIPTION_PAYMENT">
+                                    <input type="hidden" name="payment_id" value="{{ p.id }}">
+                                    <input type="hidden" name="reject_notes" value="Pago no acreditado o comprobante no legible">
+                                    <button type="submit" class="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-lg text-[11px] transition flex items-center gap-1 cursor-pointer">
+                                        <i data-lucide="x" class="w-3 h-3"></i> Rechazar
+                                    </button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <span class="text-[11px] text-slate-400 font-mono">{{ p.reviewed_at|date:"d/m/Y" }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-xs text-slate-400 italic py-4 text-center">La agencia aún no ha informado pagos de suscripción.</p>
+        {% endif %}
+    </div>
+
 </div>
 
 <script>

@@ -74,7 +74,8 @@
                             </div>
 
                             <div class="pl-5 space-y-2">
-                                <textarea name="method_{{ method_data.global_method.id }}_instructions" rows="2" placeholder="Instrucciones (ej: CBU / Alias para esta región, email de MercadoPago...)" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-[11px] text-slate-700 focus:outline-none focus:border-brand-500">{% if method_data.region_config %}{{ method_data.region_config.instructions|default:'' }}{% else %}{{ method_data.global_method.description|default:'' }}{% endif %}</textarea>
+                                <textarea name="method_{{ method_data.global_method.id }}_instructions" rows="2" placeholder="Instrucciones (ej: CBU / Alias para esta región, CUIT, datos bancarios...)" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-[11px] text-slate-700 focus:outline-none focus:border-brand-500">{% if method_data.region_config %}{{ method_data.region_config.instructions|default:'' }}{% else %}{{ method_data.global_method.description|default:'' }}{% endif %}</textarea>
+                                <input type="url" name="method_{{ method_data.global_method.id }}_payment_url" value="{% if method_data.region_config %}{{ method_data.region_config.payment_url|default:'' }}{% endif %}" placeholder="Enlace directo de pago / Checkout (Opcional, ej: https://mpago.la/... o Stripe)" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-700 focus:outline-none focus:border-brand-500">
                             </div>
 
                         </div>
