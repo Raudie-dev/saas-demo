@@ -76,6 +76,49 @@
             background: #cbd5e1;
             border-radius: 4px;
         }
+
+        /* Modal & Dialog Entrance Animations */
+        @keyframes modalBackdropFadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes modalPopIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.92) translateY(14px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Backdrop animation for modal overlays */
+        .fixed.inset-0.z-50:not(.hidden):not(#mobile-sidebar-drawer),
+        .fixed.inset-0[class*="z-50"]:not(.hidden):not(#mobile-sidebar-drawer) {
+            animation: modalBackdropFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        /* Modal card pop-in animation */
+        .fixed.inset-0.z-50:not(.hidden):not(#mobile-sidebar-drawer) > div,
+        .fixed.inset-0[class*="z-50"]:not(.hidden):not(#mobile-sidebar-drawer) > div,
+        .modal-animate-in,
+        .animate-in.zoom-in-95,
+        .animate-in.zoom-in {
+            animation: modalPopIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+            transform-origin: center center;
+            will-change: transform, opacity;
+        }
+
+        /* General fade-in utility */
+        .animate-in.fade-in:not(.zoom-in-95):not(.zoom-in) {
+            animation: modalBackdropFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -481,34 +524,188 @@
             </div>
         </header>
 
-        <!-- Page Content Area (Light Base) -->
-        <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 custom-scrollbar bg-slate-50">
+        <!-- Global Toast Notifications Container -->
+        <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col gap-3 max-w-sm sm:max-w-md w-full pointer-events-none px-4 sm:px-0">
             {% if messages %}
-            <div class="mb-4 space-y-2 max-w-7xl mx-auto">
                 {% for message in messages %}
-                <div class="p-4 rounded-2xl text-xs font-bold border flex items-center justify-between shadow-xs transition animate-in fade-in duration-200
-                    {% if message.tags == 'success' %}bg-emerald-50 text-emerald-950 border-emerald-200/90
-                    {% elif message.tags == 'error' %}bg-rose-50 text-rose-950 border-rose-200/90
-                    {% elif message.tags == 'warning' %}bg-amber-50 text-amber-950 border-amber-200/90
-                    {% else %}bg-blue-50 text-blue-950 border-blue-200/90{% endif %}">
-                    <div class="flex items-center gap-2.5">
-                        <i data-lucide="{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}alert-circle{% elif message.tags == 'warning' %}alert-triangle{% else %}info{% endif %}" class="w-4 h-4"></i>
-                        <span>{{ message }}</span>
+                <div class="toast-item pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border flex items-start gap-3 transition-all duration-300 ease-out transform translate-x-0 opacity-100 relative overflow-hidden group
+                    {% if message.tags == 'success' %}border-emerald-200 text-emerald-950 shadow-emerald-500/10
+                    {% elif message.tags == 'error' %}border-rose-200 text-rose-950 shadow-rose-500/10
+                    {% elif message.tags == 'warning' %}border-amber-200 text-amber-950 shadow-amber-500/10
+                    {% else %}border-blue-200 text-blue-950 shadow-blue-500/10{% endif %}"
+                    role="alert">
+                    
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0
+                        {% if message.tags == 'success' %}bg-emerald-100 text-emerald-700
+                        {% elif message.tags == 'error' %}bg-rose-100 text-rose-700
+                        {% elif message.tags == 'warning' %}bg-amber-100 text-amber-700
+                        {% else %}bg-blue-100 text-blue-700{% endif %}">
+                        <i data-lucide="{% if message.tags == 'success' %}check-circle-2{% elif message.tags == 'error' %}alert-circle{% elif message.tags == 'warning' %}alert-triangle{% else %}info{% endif %}" class="w-5 h-5"></i>
                     </div>
-                    <button onclick="this.parentElement.remove()" class="p-1 hover:opacity-75 rounded-lg">
+
+                    <div class="flex-1 pt-0.5 min-w-0 pr-2">
+                        <p class="text-2xs font-extrabold uppercase tracking-wider mb-0.5
+                            {% if message.tags == 'success' %}text-emerald-700
+                            {% elif message.tags == 'error' %}text-rose-700
+                            {% elif message.tags == 'warning' %}text-amber-700
+                            {% else %}text-blue-700{% endif %}">
+                            {% if message.tags == 'success' %}Éxito
+                            {% elif message.tags == 'error' %}Atención
+                            {% elif message.tags == 'warning' %}Aviso
+                            {% else %}Información{% endif %}
+                        </p>
+                        <p class="text-xs font-semibold text-slate-800 leading-snug break-words">{{ message }}</p>
+                    </div>
+
+                    <button type="button" onclick="dismissToast(this.closest('.toast-item'))" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition shrink-0" title="Cerrar">
                         <i data-lucide="x" class="w-4 h-4"></i>
                     </button>
+
+                    <div class="toast-progress absolute bottom-0 left-0 h-1 bg-current opacity-20 rounded-full transition-all linear"></div>
                 </div>
                 {% endfor %}
-            </div>
             {% endif %}
+        </div>
 
+        <!-- Page Content Area (Light Base) -->
+        <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 custom-scrollbar bg-slate-50">
             {% block content %}{% endblock %}
         </main>
     </div>
 
     <script>
         lucide.createIcons();
+
+        // Toast Management System
+        function dismissToast(toastEl) {
+            if (!toastEl) return;
+            toastEl.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            toastEl.style.opacity = '0';
+            toastEl.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                toastEl.remove();
+            }, 320);
+        }
+
+        function initToastAutoDismiss(toastEl, duration = 5000) {
+            if (!toastEl) return;
+            let remaining = duration;
+            let startTime = Date.now();
+            let timer = null;
+            const progressEl = toastEl.querySelector('.toast-progress');
+
+            if (progressEl) {
+                progressEl.style.transition = `width ${duration}ms linear`;
+                progressEl.style.width = '100%';
+                requestAnimationFrame(() => {
+                    progressEl.style.width = '0%';
+                });
+            }
+
+            const startTimer = () => {
+                startTime = Date.now();
+                timer = setTimeout(() => {
+                    dismissToast(toastEl);
+                }, remaining);
+            };
+
+            const pauseTimer = () => {
+                clearTimeout(timer);
+                remaining -= Date.now() - startTime;
+                if (progressEl) {
+                    const computedWidth = getComputedStyle(progressEl).width;
+                    progressEl.style.transition = 'none';
+                    progressEl.style.width = computedWidth;
+                }
+            };
+
+            toastEl.addEventListener('mouseenter', pauseTimer);
+            toastEl.addEventListener('mouseleave', () => {
+                if (remaining > 0) {
+                    if (progressEl) {
+                        progressEl.style.transition = `width ${remaining}ms linear`;
+                        progressEl.style.width = '0%';
+                    }
+                    startTimer();
+                } else {
+                    dismissToast(toastEl);
+                }
+            });
+
+            startTimer();
+        }
+
+        document.querySelectorAll('#toast-container .toast-item').forEach(toast => {
+            initToastAutoDismiss(toast);
+        });
+
+        window.showToast = function(message, type = 'success', duration = 5000) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const config = {
+                success: {
+                    title: 'Éxito',
+                    icon: 'check-circle-2',
+                    border: 'border-emerald-200 text-emerald-950 shadow-emerald-500/10',
+                    iconBg: 'bg-emerald-100 text-emerald-700',
+                    badgeText: 'text-emerald-700'
+                },
+                error: {
+                    title: 'Atención',
+                    icon: 'alert-circle',
+                    border: 'border-rose-200 text-rose-950 shadow-rose-500/10',
+                    iconBg: 'bg-rose-100 text-rose-700',
+                    badgeText: 'text-rose-700'
+                },
+                warning: {
+                    title: 'Aviso',
+                    icon: 'alert-triangle',
+                    border: 'border-amber-200 text-amber-950 shadow-amber-500/10',
+                    iconBg: 'bg-amber-100 text-amber-700',
+                    badgeText: 'text-amber-700'
+                },
+                info: {
+                    title: 'Información',
+                    icon: 'info',
+                    border: 'border-blue-200 text-blue-950 shadow-blue-500/10',
+                    iconBg: 'bg-blue-100 text-blue-700',
+                    badgeText: 'text-blue-700'
+                }
+            };
+
+            const currentConf = config[type] || config.info;
+
+            const toast = document.createElement('div');
+            toast.className = `toast-item pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border flex items-start gap-3 transition-all duration-300 ease-out transform translate-x-full opacity-0 relative overflow-hidden group ${currentConf.border}`;
+            toast.setAttribute('role', 'alert');
+
+            toast.innerHTML = `
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${currentConf.iconBg}">
+                    <i data-lucide="${currentConf.icon}" class="w-5 h-5"></i>
+                </div>
+                <div class="flex-1 pt-0.5 min-w-0 pr-2">
+                    <p class="text-2xs font-extrabold uppercase tracking-wider mb-0.5 ${currentConf.badgeText}">${currentConf.title}</p>
+                    <p class="text-xs font-semibold text-slate-800 leading-snug break-words">${message}</p>
+                </div>
+                <button type="button" onclick="dismissToast(this.closest('.toast-item'))" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition shrink-0" title="Cerrar">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+                <div class="toast-progress absolute bottom-0 left-0 h-1 bg-current opacity-20 rounded-full transition-all linear"></div>
+            `;
+
+            container.appendChild(toast);
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
+            requestAnimationFrame(() => {
+                toast.style.transform = 'translateX(0)';
+                toast.style.opacity = '1';
+            });
+
+            initToastAutoDismiss(toast, duration);
+        };
 
         // Mobile Sidebar Drawer Controller
         const mobileMenuToggleBtn = document.getElementById('mobile-menu-toggle-btn');

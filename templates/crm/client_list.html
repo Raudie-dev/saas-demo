@@ -21,6 +21,9 @@
                 </form>
             </div>
             <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto shrink-0">
+                <button type="button" onclick="openImportModal()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer">
+                    <i data-lucide="upload" class="w-4 h-4"></i> Importar Excel
+                </button>
                 <a href="{% url 'export_clients_excel' %}" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0">
                     <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Excel
                 </a>
@@ -136,4 +139,268 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Modal: Importar Clientes desde Excel / CSV -->
+<div id="importClientsModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4" onclick="if(event.target === this) closeImportModal()">
+    <div class="relative bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl p-6 sm:p-7 space-y-6 animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <!-- Modal Header -->
+        <div class="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-rose-100 text-rose-900 flex items-center justify-center shrink-0 border border-rose-200 shadow-2xs">
+                    <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 font-display">Importar Clientes</h3>
+                    <p class="text-xs text-slate-500">Carga masiva rápida desde Excel (.xlsx) o archivos CSV</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeImportModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Plantilla Descargable Notice -->
+        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-start gap-2.5">
+                <i data-lucide="info" class="w-5 h-5 text-emerald-700 shrink-0 mt-0.5"></i>
+                <div class="text-xs text-emerald-900 leading-relaxed">
+                    <span class="font-bold">¿Primera vez importando?</span>
+                    <p class="text-emerald-800 text-2xs mt-0.5">Descarga nuestra plantilla oficial con encabezados organizados y filas de muestra.</p>
+                </div>
+            </div>
+            <a href="{% url 'client_template_download' %}" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition shrink-0">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> Plantilla .XLSX
+            </a>
+        </div>
+
+        <!-- Formulario de Carga -->
+        <form action="{% url 'client_import' %}" method="POST" enctype="multipart/form-data" id="import-client-form" class="space-y-5" onsubmit="handleImportSubmit(event)">
+            {% csrf_token %}
+
+            <!-- Dropzone Area -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">Archivo Excel o CSV <span class="text-rose-600">*</span></label>
+                
+                <div id="dropzone-area" 
+                     onclick="document.getElementById('client-file-input').click()"
+                     ondragover="handleDragOver(event)" 
+                     ondragleave="handleDragLeave(event)" 
+                     ondrop="handleFileDrop(event)"
+                     class="border-2 border-dashed border-slate-300 hover:border-rose-900 rounded-2xl p-6 sm:p-8 text-center bg-slate-50 hover:bg-rose-50/20 transition cursor-pointer flex flex-col items-center justify-center gap-2.5 group">
+                    
+                    <input type="file" name="file" id="client-file-input" accept=".xlsx,.xls,.csv" class="hidden" required onchange="handleFileInputChange(this)">
+                    
+                    <div class="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-center group-hover:scale-105 group-hover:border-rose-300 transition text-slate-500 group-hover:text-rose-900">
+                        <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+                    </div>
+                    
+                    <div id="dropzone-text" class="space-y-1">
+                        <p class="text-sm font-bold text-slate-800">
+                            Arrastra tu archivo aquí o <span class="text-rose-900 underline decoration-rose-300">haz clic para examinar</span>
+                        </p>
+                        <p class="text-xs text-slate-400">Soporta libros Microsoft Excel (.xlsx, .xls) y archivos CSV</p>
+                    </div>
+
+                    <!-- Selected File Info Preview -->
+                    <div id="selected-file-info" class="hidden w-full max-w-md bg-white border border-slate-200 rounded-xl p-3 items-center justify-between shadow-2xs gap-3">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <i data-lucide="file-check" class="w-5 h-5 text-emerald-600 shrink-0"></i>
+                            <div class="truncate text-left">
+                                <p id="selected-file-name" class="text-xs font-bold text-slate-900 truncate">archivo.xlsx</p>
+                                <p id="selected-file-size" class="text-2xs text-slate-400">0 KB</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="clearSelectedFile(event)" class="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-rose-600 transition shrink-0" title="Quitar archivo">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opciones avanzadas de importación -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div>
+                    <label for="default_prefix" class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                        <i data-lucide="phone" class="w-3.5 h-3.5 text-slate-400"></i> Prefijo Telefónico por Defecto
+                    </label>
+                    <select name="default_prefix" id="default_prefix" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium rounded-xl p-2.5 focus:ring-2 focus:ring-rose-800">
+                        <option value="+54" selected>+54 (Argentina)</option>
+                        <option value="+56">+56 (Chile)</option>
+                        <option value="+57">+57 (Colombia)</option>
+                        <option value="+52">+52 (México)</option>
+                        <option value="+58">+58 (Venezuela)</option>
+                        <option value="+598">+598 (Uruguay)</option>
+                        <option value="+595">+595 (Paraguay)</option>
+                        <option value="+591">+591 (Bolivia)</option>
+                        <option value="+51">+51 (Perú)</option>
+                        <option value="+593">+593 (Ecuador)</option>
+                        <option value="+507">+507 (Panamá)</option>
+                        <option value="+506">+506 (Costa Rica)</option>
+                        <option value="+502">+502 (Guatemala)</option>
+                        <option value="+34">+34 (España)</option>
+                        <option value="+1">+1 (EE.UU. / Canadá)</option>
+                    </select>
+                    <p class="text-2xs text-slate-400 mt-1">Se aplica si el número no trae código de país (+).</p>
+                </div>
+
+                <div>
+                    <label for="duplicate_mode" class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                        <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400"></i> Tratamiento de Duplicados
+                    </label>
+                    <select name="duplicate_mode" id="duplicate_mode" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium rounded-xl p-2.5 focus:ring-2 focus:ring-rose-800">
+                        <option value="skip" selected>Omitir duplicados (Recomendado)</option>
+                        <option value="update">Actualizar cliente existente</option>
+                        <option value="create">Crear todos (permitir duplicados)</option>
+                    </select>
+                    <p class="text-2xs text-slate-400 mt-1">Detecta coincidencias por WhatsApp, email o DNI.</p>
+                </div>
+            </div>
+
+            <!-- Modal Footer Buttons -->
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeImportModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition">
+                    Cancelar
+                </button>
+                <button type="submit" id="btn-submit-import" class="px-5 py-2.5 rounded-xl bg-slate-950 hover:bg-black text-white font-bold text-xs transition flex items-center gap-2 shadow-sm">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Iniciar Importación</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+    function openImportModal() {
+        const modal = document.getElementById('importClientsModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+    }
+
+    function closeImportModal() {
+        const modal = document.getElementById('importClientsModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    function formatBytes(bytes) {
+        if (!+bytes) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+    }
+
+    function handleFileInputChange(input) {
+        if (input.files && input.files[0]) {
+            displaySelectedFileInfo(input.files[0]);
+        }
+    }
+
+    function displaySelectedFileInfo(file) {
+        const preview = document.getElementById('selected-file-info');
+        const textContainer = document.getElementById('dropzone-text');
+        const nameEl = document.getElementById('selected-file-name');
+        const sizeEl = document.getElementById('selected-file-size');
+
+        if (nameEl) nameEl.textContent = file.name;
+        if (sizeEl) sizeEl.textContent = formatBytes(file.size);
+
+        if (preview) {
+            preview.classList.remove('hidden');
+            preview.classList.add('flex');
+        }
+        if (textContainer) {
+            textContainer.classList.add('hidden');
+        }
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    }
+
+    function clearSelectedFile(event) {
+        if (event) event.stopPropagation();
+        const input = document.getElementById('client-file-input');
+        const preview = document.getElementById('selected-file-info');
+        const textContainer = document.getElementById('dropzone-text');
+
+        if (input) input.value = '';
+        if (preview) {
+            preview.classList.add('hidden');
+            preview.classList.remove('flex');
+        }
+        if (textContainer) {
+            textContainer.classList.remove('hidden');
+        }
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const zone = document.getElementById('dropzone-area');
+        if (zone) {
+            zone.classList.add('border-rose-900', 'bg-rose-50/40');
+        }
+    }
+
+    function handleDragLeave(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const zone = document.getElementById('dropzone-area');
+        if (zone) {
+            zone.classList.remove('border-rose-900', 'bg-rose-50/40');
+        }
+    }
+
+    function handleFileDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const zone = document.getElementById('dropzone-area');
+        if (zone) {
+            zone.classList.remove('border-rose-900', 'bg-rose-50/40');
+        }
+
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            const input = document.getElementById('client-file-input');
+            if (input) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+                displaySelectedFileInfo(file);
+            }
+        }
+    }
+
+    function handleImportSubmit(e) {
+        const input = document.getElementById('client-file-input');
+        if (!input || !input.files || !input.files[0]) {
+            e.preventDefault();
+            alert('Por favor selecciona o arrastra un archivo Excel o CSV.');
+            return false;
+        }
+
+        const btn = document.getElementById('btn-submit-import');
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-70', 'cursor-not-allowed');
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando importación...`;
+        }
+        return true;
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeImportModal();
+        }
+    });
+</script>
 {% endblock %}
+
