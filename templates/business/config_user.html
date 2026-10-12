@@ -7,6 +7,7 @@
 <div class="space-y-6 max-w-4xl mx-auto">
 
     <!-- Subheader Module Tabs -->
+    {% if user_can_manage_settings %}
     <div class="glass-card bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
         <a href="{% url 'business_config' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50">
             <i data-lucide="building-2" class="w-4 h-4 text-slate-500"></i>
@@ -17,6 +18,7 @@
             <span>Mi Cuenta & Seguridad</span>
         </a>
     </div>
+    {% endif %}
 
     <!-- User Profile Details Card -->
     <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
@@ -106,6 +108,7 @@
         </form>
     </div>
 
+    {% if user_can_manage_settings %}
     <!-- Subscription Plan & Upgrade Request Card -->
     <div id="subscription-section" class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm scroll-mt-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
@@ -267,6 +270,7 @@
         </div>
         {% endif %}
     </div>
+    {% endif %}
 
 </div>
 

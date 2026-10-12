@@ -26,6 +26,10 @@ def pos_terminal_view(request):
     current_branch = getattr(request, 'current_branch', None)
     if not business:
         return redirect('onboarding')
+
+    if not request.user.has_module_access('pos') or not request.user.has_perm_flag('can_charge_pos'):
+        messages.error(request, "No tienes permiso para operar ventas ni cobrar en el punto de venta (POS).")
+        return redirect('dashboard')
     
     # Load enabled payment methods for business (ensure defaults if none)
     payment_methods = list(PaymentMethodConfig.objects.filter(business=business, is_enabled=True))
@@ -379,6 +383,10 @@ def cash_register_view(request):
     current_branch = getattr(request, 'current_branch', None)
     if not business:
         return redirect('onboarding')
+
+    if not request.user.has_module_access('pos') or not request.user.has_perm_flag('can_charge_pos'):
+        messages.error(request, "No tienes permiso para operar ni gestionar la caja de cobro.")
+        return redirect('dashboard')
 
     register_qs = CashRegister.objects.filter(business=business)
     if current_branch:

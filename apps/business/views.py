@@ -12,7 +12,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib import messages
 from django.utils.text import slugify
 from django.utils import timezone
-from apps.business.models import Business, Branch, StaffMember, WorkSchedule, PaymentMethodConfig, User
+from apps.business.models import Business, Branch, StaffMember, WorkSchedule, PaymentMethodConfig, User, UserProfileRole, ensure_default_profiles
+from django.db.models import Count
 from apps.core.utils import parse_decimal, parse_int
 
 @ensure_csrf_cookie
@@ -385,12 +386,14 @@ def switch_branch_view(request):
 
 @login_required(login_url='login')
 @ensure_csrf_cookie
-@login_required(login_url='login')
-@ensure_csrf_cookie
 def business_config_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permisos para acceder a la configuración de la empresa.")
+        return redirect('dashboard')
 
     if request.method == 'POST' and business:
         action = request.POST.get('action')
@@ -713,6 +716,10 @@ def user_profile_config_view(request):
             return redirect('user_profile_config')
 
         elif action == 'REQUEST_PLAN_CHANGE':
+            if not request.user.has_perm_flag('can_manage_settings'):
+                messages.error(request, "No tienes permiso para solicitar cambios de plan de la empresa.")
+                return redirect('user_profile_config')
+
             plan_id = request.POST.get('plan_id')
             from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, SystemAuditLog
             target_plan = SubscriptionPlan.objects.filter(id=plan_id, is_active=True).first()
@@ -735,6 +742,10 @@ def user_profile_config_view(request):
             return redirect('user_profile_config')
 
         elif action == 'REPORT_PAYMENT':
+            if not request.user.has_perm_flag('can_manage_settings'):
+                messages.error(request, "No tienes permiso para reportar pagos de suscripción de la empresa.")
+                return redirect('user_profile_config')
+
             from apps.superadmin.models import RegionPaymentMethod, SubscriptionPayment, SubscriptionPlan, SystemAuditLog
             amount = request.POST.get('amount')
             reference = request.POST.get('reference', '').strip()
@@ -1164,4 +1175,414 @@ def booking_portal_toggle_api(request):
     })
 
 
+# ==============================================================================
+# GESTIÓN DE USUARIOS Y PERFILES CONFIGURABLES (RBAC)
+# ==============================================================================
 
+ALL_SYSTEM_MODULES = [
+    {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar', 'desc': 'Calendario interactivo, turnos y citas de clientes.'},
+    {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'desc': 'Fichas de clientes, historial de visitas y datos de contacto.'},
+    {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'desc': 'Cobro rápido, apertura/cierre de caja y emisión de comprobantes.'},
+    {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'desc': 'Gestión de comprobantes, egresos y cuentas.'},
+    {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package', 'desc': 'Control de productos, existencias y alertas de stock.'},
+    {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign', 'desc': 'Cálculo de comisiones por servicios y liquidaciones.'},
+    {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag', 'desc': 'Campañas, promociones y fidelización.'},
+    {'code': 'booking', 'name': 'Portal de Reservas Online', 'icon': 'globe', 'desc': 'Enlace público 24/7 para que los clientes reserven.'},
+    {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles', 'desc': 'Herramientas de inteligencia artificial.'},
+]
+
+@login_required(login_url='login')
+def user_list_view(request):
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    if not business:
+        return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permiso para administrar usuarios ni perfiles.")
+        return redirect('dashboard')
+
+    ensure_default_profiles(business)
+
+    users = User.objects.filter(business=business).select_related('profile_role', 'staff_profile').order_by('first_name', 'username')
+    roles = UserProfileRole.objects.filter(business=business).annotate(users_count=Count('users')).order_by('name')
+
+    subscription = getattr(business, 'subscription', None)
+    plan = subscription.plan if subscription else None
+    max_users = plan.max_users if plan else 5
+    current_users_count = users.count()
+    can_create_user = current_users_count < max_users
+
+    active_tab = request.GET.get('tab', 'users')
+
+    return render(request, 'business/user_list.html', {
+        'business': business,
+        'users': users,
+        'roles': roles,
+        'current_users_count': current_users_count,
+        'max_users': max_users,
+        'can_create_user': can_create_user,
+        'plan': plan,
+        'active_tab': active_tab,
+    })
+
+
+@login_required(login_url='login')
+def user_create_view(request):
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    if not business:
+        return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permiso para crear usuarios.")
+        return redirect('dashboard')
+
+    ensure_default_profiles(business)
+
+    subscription = getattr(business, 'subscription', None)
+    plan = subscription.plan if subscription else None
+    max_users = plan.max_users if plan else 5
+    current_users_count = User.objects.filter(business=business).count()
+
+    if current_users_count >= max_users:
+        messages.error(
+            request,
+            f"Has alcanzado el límite máximo de {max_users} usuarios incluido en tu plan actual. "
+            "Para agregar más usuarios al equipo, actualiza tu plan de suscripción."
+        )
+        return redirect('user_list')
+
+    roles = UserProfileRole.objects.filter(business=business).order_by('name')
+    available_staff = StaffMember.objects.filter(business=business, is_active=True).select_related('user').order_by('first_name')
+
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        phone = request.POST.get('phone', '').strip()
+        password = request.POST.get('password', '')
+        password_confirm = request.POST.get('password_confirm', '')
+        profile_role_id = request.POST.get('profile_role_id')
+        staff_member_id = request.POST.get('staff_member_id')
+        create_staff_profile = request.POST.get('create_staff_profile') == '1'
+
+        if not email or not password:
+            messages.error(request, "El correo electrónico y la contraseña son obligatorios.")
+        elif password != password_confirm:
+            messages.error(request, "Las contraseñas no coinciden.")
+        elif len(password) < 6:
+            messages.error(request, "La contraseña debe tener al menos 6 caracteres.")
+        elif User.objects.filter(email__iexact=email).exists() or User.objects.filter(username__iexact=email).exists():
+            messages.error(request, "Ya existe un usuario registrado con este correo electrónico.")
+        else:
+            profile_role = UserProfileRole.objects.filter(id=profile_role_id, business=business).first() if profile_role_id else None
+
+            # Legacy role determination
+            legacy_role = 'ADMIN'
+            if profile_role:
+                if profile_role.scope_appointments == 'OWN':
+                    legacy_role = 'PROFESSIONAL'
+                elif profile_role.can_charge_pos and not profile_role.can_view_financial_reports:
+                    legacy_role = 'RECEPTIONIST'
+                elif profile_role.can_manage_settings:
+                    legacy_role = 'ADMIN'
+
+            new_user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                business=business,
+                role=legacy_role,
+                profile_role=profile_role
+            )
+
+            # Link with StaffMember if selected or requested
+            if staff_member_id:
+                staff = StaffMember.objects.filter(id=staff_member_id, business=business).first()
+                if staff:
+                    staff.user = new_user
+                    staff.save()
+            elif create_staff_profile or legacy_role == 'PROFESSIONAL':
+                StaffMember.objects.create(
+                    business=business,
+                    user=new_user,
+                    first_name=first_name or "Profesional",
+                    last_name=last_name or "",
+                    email=email,
+                    phone=phone,
+                    role_title=profile_role.name if profile_role else "Especialista",
+                    commission_rate=Decimal("0.00"),
+                    is_active=True
+                )
+
+            messages.success(request, f"¡Usuario {new_user.get_full_name() or new_user.email} creado exitosamente!")
+            return redirect('user_list')
+
+    return render(request, 'business/user_form.html', {
+        'business': business,
+        'roles': roles,
+        'available_staff': available_staff,
+        'edit_user': None,
+        'title': 'Crear Nuevo Usuario',
+    })
+
+
+@login_required(login_url='login')
+def user_edit_view(request, user_id):
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    if not business:
+        return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permiso para editar usuarios.")
+        return redirect('dashboard')
+
+    user_obj = get_object_or_404(User, id=user_id, business=business)
+    roles = UserProfileRole.objects.filter(business=business).order_by('name')
+    available_staff = StaffMember.objects.filter(business=business).select_related('user').order_by('first_name')
+
+    is_editing_self = (request.user.id == user_obj.id)
+    is_owner = (user_obj.role == 'OWNER')
+
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        new_password = request.POST.get('new_password', '').strip()
+        profile_role_id = request.POST.get('profile_role_id')
+        staff_member_id = request.POST.get('staff_member_id')
+        is_active_val = request.POST.get('is_active') == '1'
+
+        user_obj.first_name = first_name
+        user_obj.last_name = last_name
+        user_obj.phone = phone
+
+        if not is_owner and not is_editing_self:
+            user_obj.is_active = is_active_val
+            if profile_role_id:
+                profile_role = UserProfileRole.objects.filter(id=profile_role_id, business=business).first()
+                user_obj.profile_role = profile_role
+                if profile_role:
+                    if profile_role.scope_appointments == 'OWN':
+                        user_obj.role = 'PROFESSIONAL'
+                    elif profile_role.can_charge_pos and not profile_role.can_view_financial_reports:
+                        user_obj.role = 'RECEPTIONIST'
+                    elif profile_role.can_manage_settings:
+                        user_obj.role = 'ADMIN'
+            else:
+                user_obj.profile_role = None
+
+        if new_password:
+            if len(new_password) < 6:
+                messages.error(request, "La nueva contraseña debe tener al menos 6 caracteres.")
+                return redirect('user_edit', user_id=user_id)
+            user_obj.set_password(new_password)
+            if is_editing_self:
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, user_obj)
+
+        user_obj.save()
+
+        # Update StaffMember link
+        current_staff = getattr(user_obj, 'staff_profile', None)
+        if staff_member_id:
+            new_staff = StaffMember.objects.filter(id=staff_member_id, business=business).first()
+            if new_staff and new_staff != current_staff:
+                if current_staff:
+                    current_staff.user = None
+                    current_staff.save()
+                new_staff.user = user_obj
+                new_staff.save()
+        elif staff_member_id == '' and current_staff:
+            current_staff.user = None
+            current_staff.save()
+
+        messages.success(request, f"¡Usuario {user_obj.email} actualizado correctamente!")
+        return redirect('user_list')
+
+    return render(request, 'business/user_form.html', {
+        'business': business,
+        'roles': roles,
+        'available_staff': available_staff,
+        'edit_user': user_obj,
+        'is_editing_self': is_editing_self,
+        'is_owner': is_owner,
+        'title': f'Editar Usuario: {user_obj.get_full_name() or user_obj.username}',
+    })
+
+
+@login_required(login_url='login')
+def user_delete_view(request, user_id):
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    if not business:
+        return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permiso para eliminar usuarios.")
+        return redirect('dashboard')
+
+    user_obj = get_object_or_404(User, id=user_id, business=business)
+
+    if user_obj.id == request.user.id:
+        messages.error(request, "No puedes eliminar tu propia cuenta de usuario en uso.")
+        return redirect('user_list')
+
+    if user_obj.role == 'OWNER':
+        messages.error(request, "No se puede eliminar la cuenta principal del propietario de la empresa.")
+        return redirect('user_list')
+
+    if request.method == 'POST':
+        # Unlink staff profile if any
+        if hasattr(user_obj, 'staff_profile') and user_obj.staff_profile:
+            staff = user_obj.staff_profile
+            staff.user = None
+            staff.save()
+
+        user_email = user_obj.email
+        user_obj.delete()
+        messages.success(request, f"Usuario '{user_email}' eliminado correctamente.")
+
+    return redirect('user_list')
+
+
+@login_required(login_url='login')
+def role_list_view(request):
+    return redirect('/business/usuarios/?tab=roles')
+
+
+@login_required(login_url='login')
+def role_create_view(request):
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    if not business:
+        return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permiso para crear perfiles de acceso.")
+        return redirect('dashboard')
+
+    allowed_plan_modules = business.get_allowed_modules()
+    available_modules = [m for m in ALL_SYSTEM_MODULES if m['code'] in allowed_plan_modules]
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        selected_modules = request.POST.getlist('allowed_modules')
+        scope_appointments = request.POST.get('scope_appointments', 'ALL')
+        scope_commissions = request.POST.get('scope_commissions', 'NONE')
+        can_charge_pos = request.POST.get('can_charge_pos') in ['1', 'true', 'on', True]
+        can_view_financial_reports = request.POST.get('can_view_financial_reports') in ['1', 'true', 'on', True]
+        can_manage_settings = request.POST.get('can_manage_settings') in ['1', 'true', 'on', True]
+        can_manage_clients = request.POST.get('can_manage_clients') in ['1', 'true', 'on', True]
+        can_manage_inventory = request.POST.get('can_manage_inventory') in ['1', 'true', 'on', True]
+
+        if not name:
+            messages.error(request, "El nombre del perfil es obligatorio.")
+        else:
+            # Filter strictly against subscription modules
+            filtered_modules = [m for m in selected_modules if m in allowed_plan_modules]
+
+            role = UserProfileRole.objects.create(
+                business=business,
+                name=name,
+                description=description,
+                is_system_default=False,
+                allowed_modules=filtered_modules,
+                scope_appointments=scope_appointments,
+                scope_commissions=scope_commissions,
+                can_charge_pos=can_charge_pos,
+                can_view_financial_reports=can_view_financial_reports,
+                can_manage_settings=can_manage_settings,
+                can_manage_clients=can_manage_clients,
+                can_manage_inventory=can_manage_inventory,
+            )
+            messages.success(request, f"Perfil '{role.name}' creado exitosamente.")
+            return redirect('/business/usuarios/?tab=roles')
+
+    return render(request, 'business/role_form.html', {
+        'business': business,
+        'role': None,
+        'available_modules': available_modules,
+        'title': 'Crear Perfil de Acceso',
+    })
+
+
+@login_required(login_url='login')
+def role_edit_view(request, role_id):
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    if not business:
+        return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permiso para editar perfiles.")
+        return redirect('dashboard')
+
+    role_obj = get_object_or_404(UserProfileRole, id=role_id, business=business)
+    allowed_plan_modules = business.get_allowed_modules()
+    available_modules = [m for m in ALL_SYSTEM_MODULES if m['code'] in allowed_plan_modules]
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        selected_modules = request.POST.getlist('allowed_modules')
+        scope_appointments = request.POST.get('scope_appointments', 'ALL')
+        scope_commissions = request.POST.get('scope_commissions', 'NONE')
+        can_charge_pos = request.POST.get('can_charge_pos') in ['1', 'true', 'on', True]
+        can_view_financial_reports = request.POST.get('can_view_financial_reports') in ['1', 'true', 'on', True]
+        can_manage_settings = request.POST.get('can_manage_settings') in ['1', 'true', 'on', True]
+        can_manage_clients = request.POST.get('can_manage_clients') in ['1', 'true', 'on', True]
+        can_manage_inventory = request.POST.get('can_manage_inventory') in ['1', 'true', 'on', True]
+
+        if not name:
+            messages.error(request, "El nombre del perfil es obligatorio.")
+        else:
+            role_obj.name = name
+            role_obj.description = description
+            role_obj.allowed_modules = [m for m in selected_modules if m in allowed_plan_modules]
+            role_obj.scope_appointments = scope_appointments
+            role_obj.scope_commissions = scope_commissions
+            role_obj.can_charge_pos = can_charge_pos
+            role_obj.can_view_financial_reports = can_view_financial_reports
+            role_obj.can_manage_settings = can_manage_settings
+            role_obj.can_manage_clients = can_manage_clients
+            role_obj.can_manage_inventory = can_manage_inventory
+            role_obj.save()
+
+            messages.success(request, f"Perfil '{role_obj.name}' actualizado correctamente.")
+            return redirect('/business/usuarios/?tab=roles')
+
+    return render(request, 'business/role_form.html', {
+        'business': business,
+        'role': role_obj,
+        'available_modules': available_modules,
+        'title': f'Editar Perfil: {role_obj.name}',
+    })
+
+
+@login_required(login_url='login')
+def role_delete_view(request, role_id):
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    if not business:
+        return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permiso para eliminar perfiles.")
+        return redirect('dashboard')
+
+    role_obj = get_object_or_404(UserProfileRole, id=role_id, business=business)
+
+    if role_obj.users.exists():
+        messages.error(
+            request,
+            f"No se puede eliminar el perfil '{role_obj.name}' porque actualmente tiene {role_obj.users.count()} usuarios asignados. "
+            "Reasigna estos usuarios a otro perfil antes de eliminarlo."
+        )
+        return redirect('/business/usuarios/?tab=roles')
+
+    if request.method == 'POST':
+        role_name = role_obj.name
+        role_obj.delete()
+        messages.success(request, f"Perfil '{role_name}' eliminado correctamente.")
+
+    return redirect('/business/usuarios/?tab=roles')
