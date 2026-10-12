@@ -7,6 +7,7 @@
 <div class="space-y-6 max-w-4xl mx-auto">
 
     <!-- Subheader Module Tabs -->
+    {% if user_can_manage_settings %}
     <div class="glass-card bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
         <a href="{% url 'business_config' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50">
             <i data-lucide="building-2" class="w-4 h-4 text-slate-500"></i>
@@ -16,7 +17,12 @@
             <i data-lucide="shield-check" class="w-4 h-4"></i>
             <span>Mi Cuenta & Seguridad</span>
         </a>
+        <a href="{% url 'subscription_billing' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50">
+            <i data-lucide="credit-card" class="w-4 h-4 text-slate-500"></i>
+            <span>Suscripción & Pagos Regionales</span>
+        </a>
     </div>
+    {% endif %}
 
     <!-- User Profile Details Card -->
     <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
@@ -106,6 +112,7 @@
         </form>
     </div>
 
+    {% if user_can_manage_settings %}
     <!-- Subscription Plan & Upgrade Request Card -->
     <div id="subscription-section" class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm scroll-mt-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
@@ -116,16 +123,22 @@
                 </h3>
                 <p class="text-xs text-slate-500 mt-0.5">Consulta tu tipo de suscripción actual y solicita cambios de plan al Administrador</p>
             </div>
-            {% if subscription.pending_plan %}
-            <span class="w-fit inline-flex px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 items-center gap-1.5 animate-pulse">
-                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-                <span>Solicitud Pendiente: {{ subscription.pending_plan.name }}</span>
-            </span>
-            {% else %}
-            <span class="w-fit inline-flex px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                Plan Activo: {{ subscription.plan.name|default:'Plan Inicial' }}
-            </span>
-            {% endif %}
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{% url 'subscription_billing' %}" class="px-4 py-1.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5">
+                    <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+                    <span>Ir a Pagos & Facturación Regional →</span>
+                </a>
+                {% if subscription.pending_plan %}
+                <span class="w-fit inline-flex px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 items-center gap-1.5 animate-pulse">
+                    <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                    <span>Solicitud Pendiente: {{ subscription.pending_plan.name }}</span>
+                </span>
+                {% else %}
+                <span class="w-fit inline-flex px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    Plan Activo: {{ subscription.plan.name|default:'Plan Inicial' }}
+                </span>
+                {% endif %}
+            </div>
         </div>
 
         {% if subscription.pending_plan %}
@@ -236,15 +249,17 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Plan Pagado</label>
-                    <select name="plan_id" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-900">
+                    <select id="userConfigPlan" name="plan_id" required onchange="handleUserConfigPlanChange(this)" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-900 cursor-pointer">
                         {% for plan in available_plans %}
-                        <option value="{{ plan.id }}">{{ plan.name }} ({{ plan.currency }}{{ plan.display_monthly }})</option>
+                        <option value="{{ plan.id }}" data-monthly="{{ plan.display_monthly }}" data-annual="{{ plan.display_annual }}" data-currency="{{ plan.currency }}">{{ plan.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Monto Pagado</label>
-                    <input type="number" step="0.01" name="amount" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-900">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Monto y Período Pagado</label>
+                    <select id="userConfigAmount" name="amount" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-brand-900 cursor-pointer">
+                        <!-- Populated dynamically via JS -->
+                    </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">N° de Comprobante / Referencia</label>
@@ -267,11 +282,41 @@
         </div>
         {% endif %}
     </div>
+    {% endif %}
 
 </div>
 
 <script>
+function handleUserConfigPlanChange(selectPlan) {
+    const amountSelect = document.getElementById('userConfigAmount');
+    if (!amountSelect || !selectPlan) return;
+    amountSelect.innerHTML = '';
+
+    const selectedOpt = selectPlan.options[selectPlan.selectedIndex];
+    if (selectedOpt) {
+        const monthly = selectedOpt.getAttribute('data-monthly');
+        const annual = selectedOpt.getAttribute('data-annual');
+        const currency = selectedOpt.getAttribute('data-currency') || '$';
+
+        if (monthly) {
+            const optM = document.createElement('option');
+            optM.value = parseFloat(monthly).toFixed(2);
+            optM.textContent = `${currency} ${parseFloat(monthly).toFixed(2)} — Pago Mensual`;
+            amountSelect.appendChild(optM);
+        }
+        if (annual) {
+            const optA = document.createElement('option');
+            optA.value = parseFloat(annual).toFixed(2);
+            optA.textContent = `${currency} ${parseFloat(annual).toFixed(2)} — Pago Anual`;
+            amountSelect.appendChild(optA);
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    const planSel = document.getElementById('userConfigPlan');
+    if (planSel) handleUserConfigPlanChange(planSel);
+
     const instructionsMap = {
         {% for rm in billing_methods %}
         "{{ rm.id }}": "{{ rm.instructions|escapejs }}",

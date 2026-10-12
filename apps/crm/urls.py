@@ -11,6 +11,8 @@ urlpatterns = [
     path('proveedores/<uuid:supplier_id>/editar/', views.supplier_edit_view, name='supplier_edit'),
     path('clientes/exportar/excel/', views.export_clients_excel, name='export_clients_excel'),
     path('clientes/exportar/pdf/', views.export_clients_pdf, name='export_clients_pdf'),
+    path('clientes/importar/', views.client_import_view, name='client_import'),
+    path('clientes/plantilla/', views.client_template_download_view, name='client_template_download'),
     path('clientes/<uuid:client_id>/anotaciones-servicio/', views.add_client_service_note_view, name='add_client_service_note'),
     path('anotaciones-servicio/<str:note_id>/eliminar/', views.delete_client_service_note_view, name='delete_client_service_note'),
 ]

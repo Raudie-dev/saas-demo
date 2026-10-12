@@ -41,6 +41,7 @@ class Business(TimeStampedModel):
     time_format = models.CharField(max_length=10, choices=TIME_FORMAT_CHOICES, default='12h', verbose_name="Formato de Hora")
     allow_editing_client_history = models.BooleanField(default=True, verbose_name="Permitir editar el historial de servicios de clientes")
     region = models.ForeignKey('superadmin.Region', on_delete=models.SET_NULL, null=True, blank=True, related_name='businesses', verbose_name="Región")
+    is_booking_enabled = models.BooleanField(default=True, verbose_name="Portal de Reservas Público Activo")
 
     class Meta:
         verbose_name = "Negocio"
@@ -60,6 +61,8 @@ class Business(TimeStampedModel):
         return module_name in allowed
 
     def is_module_enabled(self, module_name):
+        if module_name == 'booking' and not getattr(self, 'is_booking_enabled', True):
+            return False
         if not self.is_module_allowed_by_plan(module_name):
             return False
         if not self.enabled_modules:
@@ -99,6 +102,106 @@ class Branch(TimeStampedModel):
     def __str__(self):
         return f"{self.business.name} - {self.name}"
 
+class UserProfileRole(TimeStampedModel):
+    SCOPE_APPOINTMENTS_CHOICES = [
+        ('OWN', 'Solo sus propias citas asignadas'),
+        ('ALL', 'Todas las citas de la clínica / sucursal'),
+    ]
+    SCOPE_COMMISSIONS_CHOICES = [
+        ('OWN', 'Solo sus propias comisiones'),
+        ('ALL', 'Todas las comisiones del equipo'),
+        ('NONE', 'Sin acceso a comisiones'),
+    ]
+
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="role_profiles", verbose_name="Agencia / Clínica")
+    name = models.CharField(max_length=100, verbose_name="Nombre del Perfil")
+    description = models.TextField(blank=True, null=True, verbose_name="Descripción del Perfil")
+    is_system_default = models.BooleanField(default=False, verbose_name="Perfil Base del Sistema")
+    allowed_modules = models.JSONField(default=list, blank=True, verbose_name="Módulos Habilitados")
+    scope_appointments = models.CharField(max_length=10, choices=SCOPE_APPOINTMENTS_CHOICES, default='ALL', verbose_name="Alcance de Citas")
+    scope_commissions = models.CharField(max_length=10, choices=SCOPE_COMMISSIONS_CHOICES, default='NONE', verbose_name="Alcance de Comisiones")
+    can_charge_pos = models.BooleanField(default=False, verbose_name="Permitir Cobrar y Operar POS / Caja")
+    can_view_financial_reports = models.BooleanField(default=False, verbose_name="Permitir Ver Reportes Financieros")
+    can_manage_settings = models.BooleanField(default=False, verbose_name="Permitir Configurar Empresa y Gestionar Usuarios")
+    can_manage_clients = models.BooleanField(default=True, verbose_name="Permitir Gestionar Clientes (CRM)")
+    can_manage_inventory = models.BooleanField(default=False, verbose_name="Permitir Gestionar Inventario")
+
+    class Meta:
+        verbose_name = "Perfil de Usuario"
+        verbose_name_plural = "Perfiles de Usuario"
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.business.name})"
+
+    def clean_modules_against_subscription(self):
+        """Asegura que los módulos permitidos no excedan los contratados en el plan."""
+        allowed_in_plan = self.business.get_allowed_modules()
+        self.allowed_modules = [m for m in (self.allowed_modules or []) if m in allowed_in_plan]
+
+def ensure_default_profiles(business):
+    """Crea los 3 perfiles base estándar para una clínica o negocio si no existen."""
+    if not business:
+        return
+    allowed_plan_modules = business.get_allowed_modules()
+    
+    # 1. Profesional / Especialista
+    prof_modules = [m for m in ['agenda', 'commissions'] if m in allowed_plan_modules]
+    UserProfileRole.objects.get_or_create(
+        business=business,
+        name='Profesional / Especialista',
+        defaults={
+            'description': 'Acceso exclusivo a sus citas asignadas y sus comisiones personales.',
+            'is_system_default': True,
+            'allowed_modules': prof_modules,
+            'scope_appointments': 'OWN',
+            'scope_commissions': 'OWN',
+            'can_charge_pos': False,
+            'can_view_financial_reports': False,
+            'can_manage_settings': False,
+            'can_manage_clients': True,
+            'can_manage_inventory': False,
+        }
+    )
+
+    # 2. Recepción & Caja
+    recep_modules = [m for m in ['agenda', 'crm', 'pos'] if m in allowed_plan_modules]
+    UserProfileRole.objects.get_or_create(
+        business=business,
+        name='Recepción & Caja',
+        defaults={
+            'description': 'Control de agenda de la clínica, gestión de clientes y cobro en POS / Caja.',
+            'is_system_default': True,
+            'allowed_modules': recep_modules,
+            'scope_appointments': 'ALL',
+            'scope_commissions': 'NONE',
+            'can_charge_pos': True,
+            'can_view_financial_reports': False,
+            'can_manage_settings': False,
+            'can_manage_clients': True,
+            'can_manage_inventory': False,
+        }
+    )
+
+    # 3. Administrador de Clínica
+    UserProfileRole.objects.get_or_create(
+        business=business,
+        name='Administrador de Clínica',
+        defaults={
+            'description': 'Acceso total a todos los módulos y herramientas de configuración del negocio.',
+            'is_system_default': True,
+            'allowed_modules': list(allowed_plan_modules),
+            'scope_appointments': 'ALL',
+            'scope_commissions': 'ALL',
+            'can_charge_pos': True,
+            'can_view_financial_reports': True,
+            'can_manage_settings': True,
+            'can_manage_clients': True,
+            'can_manage_inventory': True,
+        }
+    )
+    return list(UserProfileRole.objects.filter(business=business))
+
 class User(AbstractUser):
     ROLE_CHOICES = [
         ('OWNER', 'Propietario / Dueño'),
@@ -109,10 +212,72 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     phone = models.CharField(max_length=50, blank=True, null=True, verbose_name="Teléfono")
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='OWNER', verbose_name="Rol en el Sistema")
+    profile_role = models.ForeignKey(UserProfileRole, on_delete=models.SET_NULL, null=True, blank=True, related_name="users", verbose_name="Perfil / Rol de Acceso")
     business = models.ForeignKey(Business, on_delete=models.SET_NULL, null=True, blank=True, related_name="users")
 
     def __str__(self):
-        return f"{self.get_full_name() or self.username} ({self.role})"
+        role_label = self.profile_role.name if self.profile_role else self.get_role_display()
+        return f"{self.get_full_name() or self.username} ({role_label})"
+
+    def has_module_access(self, module_code):
+        if not self.business:
+            return False
+        if not self.business.is_module_enabled(module_code):
+            return False
+        if self.is_superuser or self.role == 'OWNER':
+            return True
+        if self.profile_role:
+            return module_code in (self.profile_role.allowed_modules or [])
+        if self.role == 'ADMIN':
+            return True
+        elif self.role == 'PROFESSIONAL':
+            return module_code in ['agenda', 'commissions', 'crm']
+        elif self.role == 'RECEPTIONIST':
+            return module_code in ['agenda', 'crm', 'pos']
+        return False
+
+    def has_perm_flag(self, flag_name):
+        if self.is_superuser or self.role == 'OWNER':
+            return True
+        if self.profile_role:
+            return getattr(self.profile_role, flag_name, False)
+        if self.role == 'ADMIN':
+            return True
+        elif self.role == 'PROFESSIONAL':
+            if flag_name in ['scope_appointments', 'scope_commissions']:
+                return 'OWN'
+            return False
+        elif self.role == 'RECEPTIONIST':
+            if flag_name in ['can_charge_pos', 'can_manage_clients']:
+                return True
+            return False
+        return False
+
+    @property
+    def appointment_scope(self):
+        if self.is_superuser or (self.role in ['OWNER', 'ADMIN'] and not self.profile_role):
+            return 'ALL'
+        if self.profile_role:
+            return self.profile_role.scope_appointments
+        if self.role == 'PROFESSIONAL':
+            return 'OWN'
+        return 'ALL'
+
+    @property
+    def commission_scope(self):
+        if self.is_superuser or (self.role in ['OWNER', 'ADMIN'] and not self.profile_role):
+            return 'ALL'
+        if self.profile_role:
+            return self.profile_role.scope_commissions
+        if self.role == 'PROFESSIONAL':
+            return 'OWN'
+        if self.role == 'RECEPTIONIST':
+            return 'NONE'
+        return 'ALL'
+
+    @property
+    def is_restricted_professional(self):
+        return self.appointment_scope == 'OWN' or self.role == 'PROFESSIONAL'
 
 class StaffMember(TimeStampedModel):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="staff_members")

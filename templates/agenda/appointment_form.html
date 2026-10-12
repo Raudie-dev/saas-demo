@@ -53,7 +53,7 @@
         <form method="POST" autocomplete="off" class="space-y-6">
             {% csrf_token %}
 
-            <div>
+            <div class="space-y-3 relative">
                 <div class="flex items-center justify-between mb-1.5">
                     <label class="block text-xs font-semibold text-slate-700">Cliente *</label>
                     <button type="button" onclick="openQuickClientModal()" class="px-3 py-1 bg-rose-900 hover:bg-rose-950 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
@@ -61,23 +61,128 @@
                         <span>+ Nuevo Cliente</span>
                     </button>
                 </div>
-                <select id="client_id_select" name="client_id" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+
+                <!-- Select nativo oculto para mantener validación requerida y envío del formulario -->
+                <select id="client_id_select" name="client_id" required class="hidden">
                     <option value="" disabled {% if not appointment and not selected_client_id %}selected{% endif %}>Seleccionar Cliente</option>
                     {% for client in clients %}
-                    <option value="{{ client.id }}" {% if appointment and appointment.client.id == client.id or selected_client_id == client.id|stringformat:"s" %}selected{% endif %}>{{ client.full_name }} {% if client.phone %}({{ client.phone }}){% endif %}</option>
+                    <option value="{{ client.id }}" 
+                            data-name="{{ client.full_name|escape }}" 
+                            data-phone="{% if client.phone %}{{ client.phone|escape }}{% endif %}"
+                            data-taxid="{% if client.tax_id %}{{ client.tax_id|escape }}{% endif %}"
+                            data-status="{{ client.status }}"
+                            {% if appointment and appointment.client.id == client.id or selected_client_id == client.id|stringformat:"s" %}selected{% endif %}>
+                        {{ client.full_name }} {% if client.phone %}({{ client.phone }}){% endif %}
+                    </option>
                     {% endfor %}
                 </select>
+
+                <!-- Campo Interactivo con Búsqueda en Vivo -->
+                <div class="relative" id="appointment-client-combobox-wrapper">
+                    <div class="relative flex items-center">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+                        <input type="text" 
+                               id="client-search-input" 
+                               autocomplete="off"
+                               placeholder="Escribe para buscar cliente (nombre, WhatsApp, DNI)..." 
+                               class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-10 pr-20 py-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900 font-medium transition cursor-text placeholder:text-slate-400"
+                               onfocus="openClientDropdown()"
+                               oninput="filterClients(this.value)"
+                               onkeydown="handleClientKeydown(event)">
+                        
+                        <div class="absolute right-2.5 flex items-center gap-1">
+                            <button type="button" 
+                                    id="client-clear-btn" 
+                                    onclick="clearClientSelection(event)" 
+                                    class="hidden p-1.5 rounded-lg text-slate-400 hover:text-rose-700 hover:bg-slate-100 transition" 
+                                    title="Quitar cliente">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                            <button type="button" 
+                                    id="client-toggle-btn"
+                                    onclick="toggleClientDropdown(event)" 
+                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition" 
+                                    title="Ver lista de clientes">
+                                <i data-lucide="chevron-down" id="client-chevron-icon" class="w-4 h-4 transition-transform duration-200"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel Flotante de Resultados con Scroll Suave -->
+                    <div id="client-dropdown-results" 
+                         class="hidden absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-72 overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+                    </div>
+                </div>
+
+                <!-- Resumen Visual del Cliente Seleccionado -->
+                <div id="selected-client-badge" class="hidden items-center justify-between p-2.5 rounded-xl bg-rose-50/70 border border-rose-200/80 text-xs">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-7 h-7 rounded-lg bg-rose-900 text-white font-extrabold flex items-center justify-center text-2xs shrink-0" id="selected-client-initials">
+                            CL
+                        </div>
+                        <div class="truncate">
+                            <span class="font-bold text-slate-900" id="selected-client-name">Cliente</span>
+                            <span class="text-slate-500 font-mono text-2xs ml-1.5" id="selected-client-phone"></span>
+                        </div>
+                    </div>
+                    <span class="text-2xs font-bold text-rose-900 uppercase tracking-wider bg-rose-100/80 px-2 py-0.5 rounded-md">Asignado</span>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Servicio a Realizar</label>
-                    <select name="service_id" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Servicio a Realizar *</label>
+                    
+                    <!-- Select nativo oculto para mantener validación requerida y envío del formulario -->
+                    <select id="service_id_select" name="service_id" required class="hidden">
                         <option value="" disabled {% if not appointment and not selected_service_id %}selected{% endif %}>Seleccionar Servicio</option>
                         {% for srv in services %}
-                        <option value="{{ srv.id }}" {% if appointment and appointment.service.id == srv.id or selected_service_id == srv.id|stringformat:"s" %}selected{% endif %}>{{ srv.name }} - {{ business.currency }}{{ srv.price }} ({{ srv.duration_minutes }} min)</option>
+                        <option value="{{ srv.id }}" 
+                                data-name="{{ srv.name|escape }}" 
+                                data-price="{{ srv.price }}" 
+                                data-duration="{{ srv.duration_minutes }}"
+                                {% if appointment and appointment.service.id == srv.id or selected_service_id == srv.id|stringformat:"s" %}selected{% endif %}>
+                            {{ srv.name }} - {{ business.currency }}{{ srv.price }} ({{ srv.duration_minutes }} min)
+                        </option>
                         {% endfor %}
                     </select>
+
+                    <!-- Campo Interactivo con Búsqueda en Vivo -->
+                    <div class="relative" id="appointment-service-combobox-wrapper">
+                        <div class="relative flex items-center">
+                            <i data-lucide="scissors" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+                            <input type="text" 
+                                   id="service-search-input" 
+                                   autocomplete="off"
+                                   placeholder="Escribe para buscar servicio (corte, color, precio)..." 
+                                   class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-10 pr-20 py-3 text-sm focus:ring-2 focus:ring-rose-900 focus:border-rose-900 font-medium transition cursor-text placeholder:text-slate-400"
+                                   onfocus="openServiceDropdown()"
+                                   oninput="filterServices(this.value)"
+                                   onkeydown="handleServiceKeydown(event)">
+                            
+                            <div class="absolute right-2.5 flex items-center gap-1">
+                                <button type="button" 
+                                        id="service-clear-btn" 
+                                        onclick="clearServiceSelection(event)" 
+                                        class="hidden p-1.5 rounded-lg text-slate-400 hover:text-rose-700 hover:bg-slate-100 transition" 
+                                        title="Quitar servicio">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                                <button type="button" 
+                                        id="service-toggle-btn"
+                                        onclick="toggleServiceDropdown(event)" 
+                                        class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition" 
+                                        title="Ver lista de servicios">
+                                    <i data-lucide="chevron-down" id="service-chevron-icon" class="w-4 h-4 transition-transform duration-200"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Panel Flotante de Resultados con Scroll Suave -->
+                        <div id="service-dropdown-results" 
+                             class="hidden absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl border border-slate-200 shadow-2xl z-40 max-h-72 overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Especialista / Profesional</label>
@@ -277,8 +382,14 @@
                 const select = document.getElementById('client_id_select');
                 const phoneText = data.phone ? ` (${data.phone})` : '';
                 const newOption = new Option(`${data.full_name}${phoneText}`, data.client_id, true, true);
+                newOption.setAttribute('data-name', data.full_name);
+                newOption.setAttribute('data-phone', data.phone || '');
                 select.add(newOption);
                 select.value = data.client_id;
+
+                if (typeof registerAndSelectNewClient === 'function') {
+                    registerAndSelectNewClient(data.client_id, data.full_name, data.phone);
+                }
 
                 document.getElementById('qc-first-name').value = '';
                 document.getElementById('qc-last-name').value = '';
@@ -312,5 +423,479 @@
         const dd = String(baseDate.getDate()).padStart(2, '0');
         dateInput.value = `${yyyy}-${mm}-${dd}`;
     }
+
+    // --- Live Search Client Combobox Logic ---
+    let allClients = [];
+    let highlightedIndex = -1;
+    let visibleFilteredClients = [];
+
+    function initClientCombobox() {
+        const select = document.getElementById('client_id_select');
+        if (!select) return;
+
+        allClients = [];
+        Array.from(select.options).forEach(opt => {
+            if (opt.value) {
+                const name = opt.getAttribute('data-name') || opt.text.split('(')[0].trim();
+                const phone = opt.getAttribute('data-phone') || '';
+                const taxid = opt.getAttribute('data-taxid') || '';
+                const status = opt.getAttribute('data-status') || '';
+                const words = name.split(' ').filter(w => w.length > 0);
+                const initials = words.length > 1 ? (words[0][0] + words[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+
+                allClients.push({
+                    id: opt.value,
+                    name: name,
+                    phone: phone,
+                    taxid: taxid,
+                    status: status,
+                    initials: initials || 'CL',
+                    isGeneral: false
+                });
+            }
+        });
+
+        const selectedVal = select.value;
+        if (selectedVal) {
+            const found = allClients.find(c => c.id === selectedVal);
+            if (found) {
+                selectClientItem(found, false);
+            }
+        }
+    }
+
+    function normalizeSearchText(txt) {
+        if (!txt) return '';
+        return txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    }
+
+    function filterClients(query) {
+        openClientDropdown();
+        const normQuery = normalizeSearchText(query);
+        const resultsContainer = document.getElementById('client-dropdown-results');
+        if (!resultsContainer) return;
+
+        if (!normQuery) {
+            visibleFilteredClients = allClients.slice(0, 30);
+        } else {
+            visibleFilteredClients = allClients.filter(c => {
+                const normName = normalizeSearchText(c.name);
+                const normPhone = c.phone.replace(/[\s\+\-]/g, '');
+                const cleanQueryDigits = query.replace(/[\s\+\-]/g, '');
+                const normTax = normalizeSearchText(c.taxid);
+                return normName.includes(normQuery) || 
+                       (cleanQueryDigits.length > 1 && normPhone.includes(cleanQueryDigits)) || 
+                       (normTax && normTax.includes(normQuery));
+            }).slice(0, 40);
+        }
+
+        highlightedIndex = -1;
+        renderClientDropdown();
+    }
+
+    function renderClientDropdown() {
+        const resultsContainer = document.getElementById('client-dropdown-results');
+        if (!resultsContainer) return;
+
+        if (visibleFilteredClients.length === 0) {
+            resultsContainer.innerHTML = `
+                <div class="p-4 text-center text-slate-500 text-xs">
+                    <p class="font-bold text-slate-700">No se encontraron clientes</p>
+                    <p class="text-2xs text-slate-400 mt-0.5">Puedes crear uno nuevo con el botón "+ Nuevo Cliente".</p>
+                </div>
+            `;
+            return;
+        }
+
+        resultsContainer.innerHTML = visibleFilteredClients.map((c, idx) => {
+            const isSelected = document.getElementById('client_id_select').value === c.id;
+            const isHighlighted = idx === highlightedIndex;
+            return `
+                <div class="client-result-item flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition select-none ${
+                    isHighlighted ? 'bg-rose-100/70' : (isSelected ? 'bg-rose-50' : 'hover:bg-slate-50')
+                }" 
+                data-idx="${idx}"
+                onclick="selectClientItem(visibleFilteredClients[${idx}], true)">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-xl ${
+                            c.status === 'VIP' ? 'bg-amber-100 text-amber-900 border border-amber-200' : 'bg-rose-100 text-rose-900 border border-rose-200'
+                        } font-extrabold flex items-center justify-center text-xs shrink-0">
+                            ${c.initials}
+                        </div>
+                        <div class="truncate text-left">
+                            <p class="text-xs font-bold text-slate-900 truncate">${c.name}</p>
+                            <p class="text-2xs text-slate-500 font-mono truncate">
+                                ${c.phone ? c.phone : 'Sin teléfono'}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        ${c.taxid ? `<span class="text-2xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono">DNI: ${c.taxid}</span>` : ''}
+                        ${c.status === 'VIP' ? `<span class="text-2xs bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded-md">VIP</span>` : ''}
+                        ${isSelected ? `<i data-lucide="check" class="w-4 h-4 text-rose-900 ml-1"></i>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function openClientDropdown() {
+        const resultsContainer = document.getElementById('client-dropdown-results');
+        const chevron = document.getElementById('client-chevron-icon');
+        if (resultsContainer) {
+            resultsContainer.classList.remove('hidden');
+            if (visibleFilteredClients.length === 0) {
+                visibleFilteredClients = allClients.slice(0, 30);
+                renderClientDropdown();
+            }
+        }
+        if (chevron) chevron.classList.add('rotate-180');
+    }
+
+    function closeClientDropdown() {
+        const resultsContainer = document.getElementById('client-dropdown-results');
+        const chevron = document.getElementById('client-chevron-icon');
+        if (resultsContainer) {
+            resultsContainer.classList.add('hidden');
+        }
+        if (chevron) chevron.classList.remove('rotate-180');
+    }
+
+    function toggleClientDropdown(e) {
+        if (e) e.stopPropagation();
+        const resultsContainer = document.getElementById('client-dropdown-results');
+        if (resultsContainer && resultsContainer.classList.contains('hidden')) {
+            openClientDropdown();
+            document.getElementById('client-search-input').focus();
+        } else {
+            closeClientDropdown();
+        }
+    }
+
+    function selectClientItem(client, shouldClose = true) {
+        if (!client) return;
+        const select = document.getElementById('client_id_select');
+        const input = document.getElementById('client-search-input');
+        const clearBtn = document.getElementById('client-clear-btn');
+        const badge = document.getElementById('selected-client-badge');
+        const badgeName = document.getElementById('selected-client-name');
+        const badgePhone = document.getElementById('selected-client-phone');
+        const badgeInitials = document.getElementById('selected-client-initials');
+
+        select.value = client.id;
+        input.value = `${client.name}${client.phone ? ' (' + client.phone + ')' : ''}`;
+
+        if (clearBtn) {
+            clearBtn.classList.remove('hidden');
+        }
+
+        if (badge) {
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+            if (badgeName) badgeName.textContent = client.name;
+            if (badgePhone) badgePhone.textContent = client.phone || 'Sin teléfono';
+            if (badgeInitials) badgeInitials.textContent = client.initials;
+        }
+
+        if (shouldClose) {
+            closeClientDropdown();
+        }
+        select.dispatchEvent(new Event('change'));
+    }
+
+    function clearClientSelection(e) {
+        if (e) e.stopPropagation();
+        const select = document.getElementById('client_id_select');
+        const input = document.getElementById('client-search-input');
+        const clearBtn = document.getElementById('client-clear-btn');
+        const badge = document.getElementById('selected-client-badge');
+
+        select.value = '';
+        input.value = '';
+        input.placeholder = 'Escribe para buscar cliente (nombre, WhatsApp, DNI)...';
+
+        if (clearBtn) clearBtn.classList.add('hidden');
+        if (badge) {
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+        }
+        input.focus();
+        select.dispatchEvent(new Event('change'));
+    }
+
+    function handleClientKeydown(e) {
+        const resultsContainer = document.getElementById('client-dropdown-results');
+        if (!resultsContainer || resultsContainer.classList.contains('hidden')) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                openClientDropdown();
+                e.preventDefault();
+            }
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            highlightedIndex = Math.min(highlightedIndex + 1, visibleFilteredClients.length - 1);
+            renderClientDropdown();
+            scrollHighlightedIntoView();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            highlightedIndex = Math.max(highlightedIndex - 1, 0);
+            renderClientDropdown();
+            scrollHighlightedIntoView();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedIndex >= 0 && highlightedIndex < visibleFilteredClients.length) {
+                selectClientItem(visibleFilteredClients[highlightedIndex], true);
+            }
+        } else if (e.key === 'Escape') {
+            closeClientDropdown();
+        }
+    }
+
+    function scrollHighlightedIntoView() {
+        const resultsContainer = document.getElementById('client-dropdown-results');
+        if (!resultsContainer) return;
+        const highlightedEl = resultsContainer.querySelector(`[data-idx="${highlightedIndex}"]`);
+        if (highlightedEl) {
+            highlightedEl.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function registerAndSelectNewClient(clientId, fullName, phone) {
+        const name = fullName.trim();
+        const words = name.split(' ').filter(w => w.length > 0);
+        const initials = words.length > 1 ? (words[0][0] + words[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+        const newClientObj = {
+            id: clientId,
+            name: name,
+            phone: phone || '',
+            taxid: '',
+            status: 'ACTIVE',
+            initials: initials || 'CL',
+            isGeneral: false
+        };
+        allClients.unshift(newClientObj);
+        selectClientItem(newClientObj, true);
+    }
+
+    // ==========================================
+    // SERVICIOS: COMBOBOX CON BÚSQUEDA EN TIEMPO REAL
+    // ==========================================
+    let allServices = [];
+    let highlightedServiceIndex = -1;
+    let visibleFilteredServices = [];
+
+    function initServiceCombobox() {
+        const select = document.getElementById('service_id_select');
+        if (!select) return;
+
+        allServices = [];
+        let preselectedService = null;
+
+        Array.from(select.options).forEach(opt => {
+            if (opt.value) {
+                const srvObj = {
+                    id: opt.value,
+                    name: opt.getAttribute('data-name') || opt.text.split(' - ')[0].trim(),
+                    price: parseFloat(opt.getAttribute('data-price')) || 0,
+                    duration: parseInt(opt.getAttribute('data-duration')) || 0
+                };
+                allServices.push(srvObj);
+
+                if (opt.selected) {
+                    preselectedService = srvObj;
+                }
+            }
+        });
+
+        if (preselectedService) {
+            selectServiceItem(preselectedService, false);
+        }
+    }
+
+    function filterServices(query) {
+        openServiceDropdown();
+        const normQuery = normalizeSearchText(query);
+        const resultsContainer = document.getElementById('service-dropdown-results');
+        if (!resultsContainer) return;
+
+        if (!normQuery) {
+            visibleFilteredServices = allServices.slice(0, 30);
+        } else {
+            visibleFilteredServices = allServices.filter(s => {
+                const normName = normalizeSearchText(s.name);
+                const priceStr = String(s.price);
+                const durationStr = String(s.duration);
+                return normName.includes(normQuery) || priceStr.includes(normQuery) || durationStr.includes(normQuery);
+            }).slice(0, 40);
+        }
+
+        highlightedServiceIndex = -1;
+        renderServiceDropdown();
+    }
+
+    function renderServiceDropdown() {
+        const resultsContainer = document.getElementById('service-dropdown-results');
+        if (!resultsContainer) return;
+
+        if (visibleFilteredServices.length === 0) {
+            resultsContainer.innerHTML = `
+                <div class="p-4 text-center text-slate-500 text-xs">
+                    <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
+                        <i data-lucide="scissors" class="w-4 h-4"></i>
+                    </div>
+                    <p class="font-bold text-slate-700">No se encontraron servicios</p>
+                    <p class="text-2xs text-slate-400 mt-0.5">Intenta con otro término.</p>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        const currentSelectedId = document.getElementById('service_id_select').value;
+
+        resultsContainer.innerHTML = visibleFilteredServices.map((s, idx) => {
+            const isSelected = currentSelectedId === s.id;
+            const isHighlighted = idx === highlightedServiceIndex;
+            return `
+                <div class="service-item flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition select-none ${
+                    isHighlighted ? 'bg-rose-100/70 text-rose-950' : (isSelected ? 'bg-rose-50 border border-rose-200/60' : 'hover:bg-slate-50')
+                }" 
+                data-idx="${idx}"
+                onclick="selectServiceItem(visibleFilteredServices[${idx}], true)">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-xl ${isSelected ? 'bg-rose-900 text-white' : 'bg-rose-100 text-rose-900'} font-extrabold flex items-center justify-center text-xs shrink-0">
+                            <i data-lucide="scissors" class="w-4 h-4"></i>
+                        </div>
+                        <div class="truncate">
+                            <p class="text-xs font-bold text-slate-900 truncate">${s.name}</p>
+                            <div class="flex items-center gap-2 text-2xs mt-0.5">
+                                <span class="font-bold text-rose-900 font-mono">${businessCurrency}${s.price.toFixed(2)}</span>
+                                ${s.duration ? `<span class="text-slate-400 font-medium">• ${s.duration} min</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    ${isSelected ? `
+                        <span class="text-2xs font-extrabold text-rose-900 bg-rose-200/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <i data-lucide="check" class="w-3 h-3"></i> Seleccionado
+                        </span>
+                    ` : `
+                        <span class="text-2xs text-slate-400 font-medium group-hover:text-slate-600">Elegir</span>
+                    `}
+                </div>
+            `;
+        }).join('');
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function openServiceDropdown() {
+        const resultsContainer = document.getElementById('service-dropdown-results');
+        const chevron = document.getElementById('service-chevron-icon');
+        if (resultsContainer) {
+            resultsContainer.classList.remove('hidden');
+            if (visibleFilteredServices.length === 0) {
+                visibleFilteredServices = allServices.slice(0, 30);
+                renderServiceDropdown();
+            }
+        }
+        if (chevron) chevron.classList.add('rotate-180');
+    }
+
+    function closeServiceDropdown() {
+        const resultsContainer = document.getElementById('service-dropdown-results');
+        const chevron = document.getElementById('service-chevron-icon');
+        if (resultsContainer) {
+            resultsContainer.classList.add('hidden');
+        }
+        if (chevron) chevron.classList.remove('rotate-180');
+    }
+
+    function toggleServiceDropdown(e) {
+        if (e) e.stopPropagation();
+        const resultsContainer = document.getElementById('service-dropdown-results');
+        if (resultsContainer && resultsContainer.classList.contains('hidden')) {
+            openServiceDropdown();
+            document.getElementById('service-search-input').focus();
+        } else {
+            closeServiceDropdown();
+        }
+    }
+
+    function selectServiceItem(srv, shouldClose = true) {
+        if (!srv) return;
+        const select = document.getElementById('service_id_select');
+        const input = document.getElementById('service-search-input');
+        const clearBtn = document.getElementById('service-clear-btn');
+
+        select.value = srv.id;
+        input.value = `${srv.name} — ${businessCurrency}${srv.price.toFixed(2)}${srv.duration ? ' (' + srv.duration + ' min)' : ''}`;
+
+        if (clearBtn) clearBtn.classList.remove('hidden');
+        if (shouldClose) closeServiceDropdown();
+        select.dispatchEvent(new Event('change'));
+    }
+
+    function clearServiceSelection(e) {
+        if (e) e.stopPropagation();
+        const select = document.getElementById('service_id_select');
+        const input = document.getElementById('service-search-input');
+        const clearBtn = document.getElementById('service-clear-btn');
+
+        select.value = '';
+        input.value = '';
+        input.placeholder = 'Escribe para buscar servicio (corte, color, precio)...';
+
+        if (clearBtn) clearBtn.classList.add('hidden');
+        input.focus();
+        select.dispatchEvent(new Event('change'));
+    }
+
+    function handleServiceKeydown(e) {
+        const resultsContainer = document.getElementById('service-dropdown-results');
+        if (!resultsContainer || resultsContainer.classList.contains('hidden')) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                openServiceDropdown();
+                e.preventDefault();
+            }
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            highlightedServiceIndex = Math.min(highlightedServiceIndex + 1, visibleFilteredServices.length - 1);
+            renderServiceDropdown();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            highlightedServiceIndex = Math.max(highlightedServiceIndex - 1, 0);
+            renderServiceDropdown();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedServiceIndex >= 0 && highlightedServiceIndex < visibleFilteredServices.length) {
+                selectServiceItem(visibleFilteredServices[highlightedServiceIndex], true);
+            }
+        } else if (e.key === 'Escape') {
+            closeServiceDropdown();
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        const wrapper = document.getElementById('appointment-client-combobox-wrapper');
+        if (wrapper && !wrapper.contains(e.target)) {
+            closeClientDropdown();
+        }
+        const srvWrapper = document.getElementById('appointment-service-combobox-wrapper');
+        if (srvWrapper && !srvWrapper.contains(e.target)) {
+            closeServiceDropdown();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initClientCombobox();
+        initServiceCombobox();
+    });
 </script>
 {% endblock %}

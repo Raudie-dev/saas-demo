@@ -6,10 +6,11 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum, Count
+from django.utils.text import slugify
 from apps.business.models import Business, User, StaffMember, Branch
 from apps.agenda.models import Appointment
 from apps.invoicing.models import Invoice
-from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, SystemAuditLog, SuperAdminUser, GlobalPaymentMethod, Region, RegionPaymentMethod, SubscriptionPayment, SystemAnnouncement, AnnouncementDismissal, PlanRegionPricing
+from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, SystemAuditLog, SuperAdminUser, GlobalPaymentMethod, Region, RegionPaymentMethod, SubscriptionPayment, PlanRegionPricing
 
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth import authenticate, login, logout
@@ -267,11 +268,60 @@ def user_detail_view(request, business_id):
                 messages.success(request, f"¡Región de {business.name} actualizada a {region.name}!")
             return redirect('superadmin_user_detail', business_id=business.id)
 
+        elif action == 'APPROVE_SUBSCRIPTION_PAYMENT':
+            payment_id = request.POST.get('payment_id')
+            payment = get_object_or_404(SubscriptionPayment, id=payment_id, business=business)
+            payment.status = 'APPROVED'
+            payment.reviewed_at = timezone.now()
+            payment.reviewed_by = request.superadmin_user
+            payment.save()
+
+            subscription.status = 'ACTIVE'
+            if payment.plan:
+                subscription.plan = payment.plan
+                subscription.pending_plan = None
+
+            base_date = subscription.expiration_date if (subscription.expiration_date and subscription.expiration_date >= timezone.now().date()) else timezone.now().date()
+            if payment.billing_cycle == 'ANNUAL':
+                subscription.expiration_date = base_date + datetime.timedelta(days=365)
+            else:
+                subscription.expiration_date = base_date + datetime.timedelta(days=30)
+            subscription.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="PAGO_APROBADO",
+                details=f"SuperAdmin aprobó el pago #{payment.id} de {payment.amount} para {business.name}. Licencia extendida a {subscription.expiration_date}."
+            )
+            messages.success(request, f"¡Pago de {payment.amount} aprobado con éxito! Licencia renovada hasta {subscription.expiration_date}.")
+            return redirect('superadmin_user_detail', business_id=business.id)
+
+        elif action == 'REJECT_SUBSCRIPTION_PAYMENT':
+            payment_id = request.POST.get('payment_id')
+            reject_notes = request.POST.get('reject_notes', '').strip()
+            payment = get_object_or_404(SubscriptionPayment, id=payment_id, business=business)
+            payment.status = 'REJECTED'
+            payment.notes = reject_notes
+            payment.reviewed_at = timezone.now()
+            payment.reviewed_by = request.superadmin_user
+            payment.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="PAGO_RECHAZADO",
+                details=f"SuperAdmin rechazó el pago #{payment.id} de {business.name}. Motivo: {reject_notes}"
+            )
+            messages.warning(request, f"Pago #{payment.id} marcado como rechazado.")
+            return redirect('superadmin_user_detail', business_id=business.id)
+
     branches = business.branches.all()
     staff_members = business.staff_members.all()
     payment_methods = business.payment_methods.all()
     business_users = business.users.all()
     all_regions = Region.objects.filter(is_active=True).order_by('name')
+    subscription_payments = SubscriptionPayment.objects.filter(business=business).select_related(
+        'plan', 'region_payment_method', 'region_payment_method__payment_method'
+    ).order_by('-created_at')
 
     return render(request, 'superadmin/user_detail.html', {
         'business': business,
@@ -285,6 +335,7 @@ def user_detail_view(request, business_id):
         'payment_methods_count': payment_methods.count(),
         'business_users': business_users,
         'all_regions': all_regions,
+        'subscription_payments': subscription_payments,
     })
 
 @superadmin_required
@@ -536,10 +587,11 @@ def regions_management_view(request):
             if Region.objects.filter(code=code).exists():
                 messages.error(request, f"Ya existe una región con el código '{code}'.")
             else:
+                country_codes = ",".join(request.POST.getlist('country_codes'))
                 Region.objects.create(
                     name=name,
                     code=code,
-                    country_codes=request.POST.get('country_codes', '').strip(),
+                    country_codes=country_codes,
                     currency_symbol=currency_symbol,
                     is_active=is_active
                 )
@@ -550,7 +602,7 @@ def regions_management_view(request):
             region_id = request.POST.get('region_id')
             region = get_object_or_404(Region, id=region_id)
             region.name = request.POST.get('name', '').strip() or region.name
-            region.country_codes = request.POST.get('country_codes', '').strip()
+            region.country_codes = ",".join(request.POST.getlist('country_codes'))
             region.currency_symbol = request.POST.get('currency_symbol', '$').strip()
             region.is_active = request.POST.get('is_active') == 'on'
             region.save()
@@ -568,6 +620,7 @@ def regions_management_view(request):
             for gm in global_methods:
                 if request.POST.get(f'method_{gm.id}_active') == 'on':
                     instructions = request.POST.get(f'method_{gm.id}_instructions', '').strip()
+                    payment_url = request.POST.get(f'method_{gm.id}_payment_url', '').strip()
                     
                     rpm, _ = RegionPaymentMethod.objects.update_or_create(
                         region=region,
@@ -575,6 +628,7 @@ def regions_management_view(request):
                         defaults={
                             'use_for_billing': True,
                             'instructions': instructions,
+                            'payment_url': payment_url,
                             'is_active': True
                         }
                     )
@@ -658,72 +712,4 @@ def _sync_business_subscriptions():
                 expiration_date=default_exp
             )
 
-@superadmin_required
-@ensure_csrf_cookie
-def announcements_management_view(request):
-    """
-    Vista para gestionar modales y comunicados.
-    """
-    if request.method == 'POST':
-        action = request.POST.get('action')
 
-        if action == 'CREATE':
-            title = request.POST.get('title', '').strip()
-            message = request.POST.get('message', '').strip()
-            ann_type = request.POST.get('type', 'INFO')
-            is_active = request.POST.get('is_active') == 'on'
-            is_dismissible = request.POST.get('is_dismissible') == 'on'
-            
-            action_button_text = request.POST.get('action_button_text', '').strip()
-            action_button_url = request.POST.get('action_button_url', '').strip()
-            
-            target_region_ids = request.POST.getlist('target_regions')
-            target_missing_region = request.POST.get('target_missing_region') == 'on'
-
-            ann = SystemAnnouncement.objects.create(
-                title=title,
-                message=message,
-                type=ann_type,
-                is_active=is_active,
-                is_dismissible=is_dismissible,
-                action_button_text=action_button_text,
-                action_button_url=action_button_url,
-                target_missing_region=target_missing_region
-            )
-            
-            if target_region_ids:
-                regions = Region.objects.filter(id__in=target_region_ids)
-                ann.target_regions.set(regions)
-
-            SystemAuditLog.objects.create(
-                actor_email=request.superadmin_user.email or request.superadmin_user.username,
-                action="CREAR_COMUNICADO",
-                details=f"Modal '{ann.title}' creado."
-            )
-            messages.success(request, f"Comunicado '{ann.title}' creado exitosamente.")
-            return redirect('superadmin_announcements')
-
-        elif action == 'TOGGLE_STATUS':
-            ann_id = request.POST.get('announcement_id')
-            ann = get_object_or_404(SystemAnnouncement, id=ann_id)
-            ann.is_active = not ann.is_active
-            ann.save()
-            status_str = "activado" if ann.is_active else "pausado"
-            messages.info(request, f"Comunicado '{ann.title}' {status_str}.")
-            return redirect('superadmin_announcements')
-
-        elif action == 'DELETE':
-            ann_id = request.POST.get('announcement_id')
-            ann = get_object_or_404(SystemAnnouncement, id=ann_id)
-            ann_title = ann.title
-            ann.delete()
-            messages.warning(request, f"Comunicado '{ann_title}' eliminado.")
-            return redirect('superadmin_announcements')
-
-    announcements = SystemAnnouncement.objects.all()
-    regions = Region.objects.filter(is_active=True)
-
-    return render(request, 'superadmin/announcements.html', {
-        'announcements': announcements,
-        'regions': regions,
-    })

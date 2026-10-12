@@ -8,23 +8,48 @@ from django.db.models import Sum
 from apps.business.models import Business, StaffMember
 from apps.commissions.models import CommissionRecord, PayrollSettlement
 
+from django.contrib import messages
+
 @login_required
 def commission_report_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    staff_members = StaffMember.objects.filter(business=business) if business else []
-    
-    selected_staff_id = request.GET.get('staff_id', '')
-    records = CommissionRecord.objects.filter(business=business).select_related('staff')
-    
-    if selected_staff_id:
-        records = records.filter(staff_id=selected_staff_id)
+
+    commission_scope = getattr(request.user, 'commission_scope', 'ALL')
+    if commission_scope == 'NONE':
+        messages.error(request, "No tienes permiso para consultar el reporte de comisiones.")
+        return redirect('dashboard')
+
+    user_staff = getattr(request.user, 'staff_profile', None)
+    is_own_scope = (commission_scope == 'OWN')
+
+    if is_own_scope:
+        if user_staff:
+            staff_members = [user_staff]
+            selected_staff_id = str(user_staff.id)
+            records = CommissionRecord.objects.filter(business=business, staff=user_staff).select_related('staff')
+            settlements = PayrollSettlement.objects.filter(business=business, staff=user_staff).order_by('-settled_at')
+        else:
+            staff_members = []
+            selected_staff_id = ''
+            records = CommissionRecord.objects.none()
+            settlements = PayrollSettlement.objects.none()
+    else:
+        staff_members = StaffMember.objects.filter(business=business) if business else []
+        selected_staff_id = request.GET.get('staff_id', '')
+        records = CommissionRecord.objects.filter(business=business).select_related('staff')
+        if selected_staff_id:
+            records = records.filter(staff_id=selected_staff_id)
+        settlements = PayrollSettlement.objects.filter(business=business).order_by('-settled_at')
         
     total_unsettled = records.filter(is_settled=False).aggregate(total=Sum('amount'))['total'] or 0
-    settlements = PayrollSettlement.objects.filter(business=business).order_by('-settled_at')
     
     if request.method == 'POST':
+        if is_own_scope and not request.user.has_perm_flag('can_manage_settings'):
+            messages.error(request, "Solo los administradores pueden liquidar comisiones de nómina.")
+            return redirect('commission_report')
+
         staff_id = request.POST.get('staff_id')
         staff = get_object_or_404(StaffMember, id=staff_id, business=business)
         
@@ -41,6 +66,7 @@ def commission_report_view(request):
                 notes="Liquidación de comisiones realizada desde BusinessOS"
             )
             unsettled_staff_records.update(is_settled=True, settlement=settlement)
+            messages.success(request, f"Liquidación de {staff.full_name} por ${total_comm:,.2f} completada exitosamente.")
             
         return redirect('commission_report')
 
@@ -61,6 +87,7 @@ def commission_report_view(request):
         'settlements': settlements_page_obj,
         'settlements_page_obj': settlements_page_obj,
         'selected_staff_id': selected_staff_id,
+        'is_restricted_scope': is_own_scope,
     })
 
 @login_required
@@ -68,10 +95,20 @@ def export_commissions_excel(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    selected_staff_id = request.GET.get('staff_id', '')
+
+    commission_scope = getattr(request.user, 'commission_scope', 'ALL')
+    if commission_scope == 'NONE':
+        return HttpResponse("No autorizado", status=403)
+
+    user_staff = getattr(request.user, 'staff_profile', None)
     records = CommissionRecord.objects.filter(business=business).select_related('staff')
-    if selected_staff_id:
-        records = records.filter(staff_id=selected_staff_id)
+
+    if commission_scope == 'OWN':
+        records = records.filter(staff=user_staff) if user_staff else CommissionRecord.objects.none()
+    else:
+        selected_staff_id = request.GET.get('staff_id', '')
+        if selected_staff_id:
+            records = records.filter(staff_id=selected_staff_id)
         
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="comisiones_reporte.csv"'
@@ -98,10 +135,20 @@ def export_commissions_pdf(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    selected_staff_id = request.GET.get('staff_id', '')
+
+    commission_scope = getattr(request.user, 'commission_scope', 'ALL')
+    if commission_scope == 'NONE':
+        return HttpResponse("No autorizado", status=403)
+
+    user_staff = getattr(request.user, 'staff_profile', None)
     records = CommissionRecord.objects.filter(business=business).select_related('staff')
-    if selected_staff_id:
-        records = records.filter(staff_id=selected_staff_id)
+
+    if commission_scope == 'OWN':
+        records = records.filter(staff=user_staff) if user_staff else CommissionRecord.objects.none()
+    else:
+        selected_staff_id = request.GET.get('staff_id', '')
+        if selected_staff_id:
+            records = records.filter(staff_id=selected_staff_id)
         
     rows = []
     total_amt = Decimal('0.00')

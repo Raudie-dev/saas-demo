@@ -1,0 +1,834 @@
+{% extends 'base.html' %}
+
+{% block title %}Suscripción & Métodos de Pago Regionales - BusinessOS{% endblock %}
+{% block header_title %}Suscripción & Facturación de la Empresa{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-6xl mx-auto pb-12">
+
+    <!-- Subheader Module Tabs -->
+    <div class="glass-card bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
+        <a href="{% url 'business_config' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50">
+            <i data-lucide="building-2" class="w-4 h-4 text-slate-500"></i>
+            <span>Empresa, Sucursales & Módulos</span>
+        </a>
+        <a href="{% url 'user_profile_config' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50">
+            <i data-lucide="shield-check" class="w-4 h-4 text-slate-500"></i>
+            <span>Mi Cuenta & Seguridad</span>
+        </a>
+        <a href="{% url 'subscription_billing' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-900 text-white shadow-md">
+            <i data-lucide="credit-card" class="w-4 h-4"></i>
+            <span>Suscripción & Pagos Regionales</span>
+        </a>
+    </div>
+
+    <!-- Region Selector Header Bar -->
+    <div class="glass-card bg-gradient-to-r from-slate-900 via-slate-800 to-rose-950 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-rose-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div>
+                <div class="flex items-center gap-2.5 mb-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-400/30 flex items-center gap-1.5 backdrop-blur-sm">
+                        <i data-lucide="globe-2" class="w-3.5 h-3.5"></i>
+                        <span>Región Activa: {{ current_region.name }}</span>
+                    </span>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-white/10 text-white border border-white/20">
+                        Moneda: {{ currency_symbol }} ({{ current_region.code }})
+                    </span>
+                </div>
+                <h2 class="text-2xl font-black font-display tracking-tight text-white">
+                    Planes & Métodos de Pago de tu Región
+                </h2>
+                <p class="text-xs text-slate-300 max-w-2xl mt-1 leading-relaxed">
+                    Las tarifas, bancos e instrucciones de cobro se adaptan a tu ubicación geográfica. Elige tu plan y abona mediante canales locales verificados (CBU, Mercado Pago, transferencias o pasarelas locales).
+                </p>
+            </div>
+
+            <!-- Verified Region Status & Protected Change Button -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
+                <div class="px-4 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                    <div class="flex items-center gap-2 text-xs font-bold text-slate-300">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                        <span>Región Asignada</span>
+                    </div>
+                    <div class="text-sm font-black font-display text-white mt-0.5 flex items-center gap-2">
+                        <span>{{ current_region.name }}</span>
+                        <span class="text-xs font-mono font-bold text-rose-300">({{ current_region.currency_symbol }})</span>
+                    </div>
+                </div>
+
+                <button type="button" onclick="openRegionChangeModal()" class="px-3.5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white border border-white/15 text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-2xs">
+                    <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-300"></i>
+                    <span>Cambiar Región</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Card: Current Subscription Status -->
+    <div class="glass-card bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-4">
+            <div>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 flex items-center justify-center">
+                        <i data-lucide="crown" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black font-display text-slate-900">Estado de tu Licencia SaaS</h3>
+                        <p class="text-xs text-slate-500">Plan contratado y parámetros de vigencia de la cuenta</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                {% if subscription.status == 'ACTIVE' %}
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Licencia Activa</span>
+                </span>
+                {% elif subscription.status == 'TRIAL' %}
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>Período de Prueba</span>
+                </span>
+                {% elif subscription.status == 'EXPIRED' %}
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-300">
+                    <span class="w-2 h-2 rounded-full bg-rose-600"></span>
+                    <span>Licencia Vencida</span>
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                    <span>{{ subscription.get_status_display }}</span>
+                </span>
+                {% endif %}
+
+                {% if subscription.pending_plan %}
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                    <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                    <span>Solicitud: {{ subscription.pending_plan.name }}</span>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Plan Name -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Plan Actual</span>
+                <span class="text-lg font-black text-slate-900 mt-0.5 block font-display">
+                    {{ subscription.plan.name|default:'Plan Inicial' }}
+                </span>
+                <span class="text-[11px] font-semibold text-rose-900 mt-1 block">
+                    {{ currency_symbol }}{{ subscription.plan.monthly_price|default:'0' }}/mes
+                </span>
+            </div>
+
+            <!-- Expiration Date & Remaining Days -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Vencimiento / Renovación</span>
+                <span class="text-lg font-black text-slate-900 mt-0.5 block font-display">
+                    {{ subscription.expiration_date|date:"d M Y"|default:"Indefinido" }}
+                </span>
+                <span class="text-[11px] font-bold mt-1 inline-flex items-center gap-1 {% if subscription.days_remaining < 5 %}text-rose-700{% else %}text-emerald-700{% endif %}">
+                    <i data-lucide="calendar" class="w-3 h-3"></i>
+                    {{ subscription.days_remaining }} días restantes
+                </span>
+            </div>
+
+            <!-- Users Quota -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Usuarios del Equipo</span>
+                <div class="flex items-baseline gap-1 mt-0.5">
+                    <span class="text-lg font-black text-slate-900 font-display">{{ current_users_count }}</span>
+                    <span class="text-xs text-slate-400 font-bold">/ {{ subscription.plan.max_users|default:'5' }} permitidos</span>
+                </div>
+                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div class="bg-rose-900 h-full rounded-full" style="width: {% widthratio current_users_count subscription.plan.max_users|default:5 100 %}%;"></div>
+                </div>
+            </div>
+
+            <!-- Branches Quota -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Sucursales Activas</span>
+                <div class="flex items-baseline gap-1 mt-0.5">
+                    <span class="text-lg font-black text-slate-900 font-display">{{ current_branches_count }}</span>
+                    <span class="text-xs text-slate-400 font-bold">/ {{ subscription.plan.max_branches|default:'2' }} permitidas</span>
+                </div>
+                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div class="bg-rose-900 h-full rounded-full" style="width: {% widthratio current_branches_count subscription.plan.max_branches|default:2 100 %}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- License Key Display with copy -->
+        <div class="p-4 rounded-2xl bg-rose-50/50 border border-rose-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-3">
+                <i data-lucide="key" class="w-4 h-4 text-rose-900 shrink-0"></i>
+                <div>
+                    <span class="font-bold text-rose-950">Token de Licencia del Negocio:</span>
+                    <span class="font-mono text-slate-600 ml-1 select-all font-semibold" id="licenseToken">{{ subscription.license_key }}</span>
+                </div>
+            </div>
+            <button type="button" onclick="copyToClipboard('{{ subscription.license_key }}', this)" class="px-3 py-1.5 bg-white hover:bg-rose-100 text-rose-900 border border-rose-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-2xs cursor-pointer w-fit">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span>Copiar Token</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Section: Pricing Plans with Regional Pricing -->
+    <div class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h3 class="text-lg font-black font-display text-slate-900 flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-rose-900"></i>
+                    <span>Planes de Suscripción en {{ current_region.name }}</span>
+                </h3>
+                <p class="text-xs text-slate-500">Selecciona el plan que mejor se adapte a tu operativa para pagar o renovar</p>
+            </div>
+
+            <!-- Frequency Switcher (Monthly / Annual) -->
+            <div class="inline-flex p-1 bg-slate-200/80 rounded-2xl border border-slate-300/60 self-start sm:self-auto">
+                <button type="button" id="btnCycleMonthly" onclick="setBillingCycle('MONTHLY')" class="px-4 py-1.5 rounded-xl text-xs font-black transition cursor-pointer bg-white text-slate-900 shadow-xs">
+                    Pago Mensual
+                </button>
+                <button type="button" id="btnCycleAnnual" onclick="setBillingCycle('ANNUAL')" class="px-4 py-1.5 rounded-xl text-xs font-black transition cursor-pointer text-slate-600 hover:text-slate-900 flex items-center gap-1.5">
+                    <span>Pago Anual</span>
+                    <span class="px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">Ahorro</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Plans Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for plan in available_plans %}
+            <div class="p-6 rounded-3xl border transition relative flex flex-col justify-between space-y-5 {% if subscription.plan and subscription.plan.id == plan.id %}border-rose-800 bg-rose-50/30 shadow-md ring-2 ring-rose-900/20{% elif subscription.pending_plan and subscription.pending_plan.id == plan.id %}border-amber-400 bg-amber-50/40{% else %}border-slate-200 bg-white hover:border-slate-300 hover:shadow-md{% endif %}" id="planCard-{{ plan.id }}">
+                
+                <!-- Plan Badges -->
+                {% if subscription.plan and subscription.plan.id == plan.id %}
+                <span class="absolute -top-3 right-6 px-3 py-1 bg-rose-900 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
+                    <i data-lucide="check" class="w-3 h-3"></i> Plan Actual
+                </span>
+                {% elif subscription.pending_plan and subscription.pending_plan.id == plan.id %}
+                <span class="absolute -top-3 right-6 px-3 py-1 bg-amber-600 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm">
+                    Solicitud Pendiente
+                </span>
+                {% endif %}
+
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="font-display font-black text-lg text-slate-900">{{ plan.name }}</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">{{ plan.code }}</span>
+                    </div>
+
+                    <!-- Price Display (dynamic JS toggle) -->
+                    <div class="mt-3">
+                        <div class="price-monthly flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-slate-900 font-display">{{ plan.currency }}{{ plan.display_monthly }}</span>
+                            <span class="text-xs font-semibold text-slate-500">/ mes</span>
+                        </div>
+                        <div class="price-annual hidden flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-slate-900 font-display">{{ plan.currency }}{{ plan.display_annual }}</span>
+                            <span class="text-xs font-semibold text-slate-500">/ año</span>
+                        </div>
+                        {% if plan.savings_pct > 0 %}
+                        <span class="price-annual hidden text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 mt-1 inline-block">
+                            🎉 Ahorras {{ plan.savings_pct }}% facturando anualmente
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Plan Features -->
+                    <div class="mt-5 pt-4 border-t border-slate-100 space-y-2.5 text-xs text-slate-600">
+                        <div class="flex items-center gap-2 font-bold text-slate-800">
+                            <i data-lucide="users" class="w-4 h-4 text-rose-700 shrink-0"></i>
+                            <span>Hasta {{ plan.max_users }} Usuarios de equipo</span>
+                        </div>
+                        <div class="flex items-center gap-2 font-bold text-slate-800">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-rose-700 shrink-0"></i>
+                            <span>Hasta {{ plan.max_branches }} Sucursales activas</span>
+                        </div>
+                        <div class="pt-2">
+                            <span class="text-[11px] font-bold text-slate-700 block mb-1.5">Módulos habilitados:</span>
+                            <div class="flex flex-wrap gap-1">
+                                {% for mod_code in plan.included_modules %}
+                                <span class="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-700">
+                                    {{ mod_code|upper }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="pt-3">
+                    <button type="button" 
+                            onclick="selectPlanToPay('{{ plan.id }}', '{{ plan.name|escapejs }}', '{{ plan.display_monthly }}', '{{ plan.display_annual }}', '{{ plan.currency|escapejs }}')"
+                            class="w-full py-2.5 rounded-2xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer {% if subscription.plan and subscription.plan.id == plan.id %}bg-rose-900 hover:bg-rose-950 text-white{% else %}bg-slate-900 hover:bg-slate-800 text-white{% endif %}">
+                        <i data-lucide="credit-card" class="w-4 h-4"></i>
+                        <span>{% if subscription.plan and subscription.plan.id == plan.id %}Pagar Renovación{% else %}Elegir y Pagar{% endif %}</span>
+                    </button>
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Section: Regional Payment Methods Available -->
+    <div class="space-y-4 pt-4">
+        <div class="flex items-center justify-between border-b border-slate-200/80 pb-3">
+            <div>
+                <h3 class="text-lg font-black font-display text-slate-900 flex items-center gap-2">
+                    <i data-lucide="wallet" class="w-5 h-5 text-rose-900"></i>
+                    <span>Canales de Pago Autorizados para {{ current_region.name }}</span>
+                </h3>
+                <p class="text-xs text-slate-500">Realiza tu pago utilizando cualquiera de estas opciones habilitadas y luego sube tu comprobante a continuación</p>
+            </div>
+        </div>
+
+        {% if billing_methods %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for rm in billing_methods %}
+            <div class="glass-card bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 hover:border-rose-200 transition">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 border border-slate-200 flex items-center justify-center font-bold">
+                            <i data-lucide="landmark" class="w-4 h-4 text-rose-900"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-sm font-display">{{ rm.payment_method.name }}</h4>
+                            <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">{{ rm.payment_method.code }}</span>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+                        Habilitado en {{ current_region.code }}
+                    </span>
+                </div>
+
+                <!-- Instructions Block -->
+                {% if rm.instructions %}
+                <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
+                    <div class="text-xs text-slate-700 whitespace-pre-line leading-relaxed font-sans">{{ rm.instructions }}</div>
+                    
+                    <!-- Quick Copy Button for instructions -->
+                    <div class="pt-2 flex flex-wrap gap-2">
+                        <button type="button" onclick="copyToClipboard('{{ rm.instructions|escapejs }}', this)" class="px-3 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
+                            <i data-lucide="copy" class="w-3 h-3 text-slate-500"></i>
+                            <span>Copiar Datos Bancarios</span>
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Direct Payment Link if available -->
+                {% if rm.payment_url %}
+                <div class="pt-1">
+                    <a href="{{ rm.payment_url }}" target="_blank" rel="noopener noreferrer" class="w-full py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-xs">
+                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        <span>Pagar Ahora en Línea (Pasarela Externa)</span>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-8 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-300 space-y-3">
+            <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center mx-auto">
+                <i data-lucide="alert-circle" class="w-6 h-6"></i>
+            </div>
+            <h4 class="font-bold text-slate-800 text-sm">No hay métodos automáticos para {{ current_region.name }}</h4>
+            <p class="text-xs text-slate-500 max-w-md mx-auto">
+                El administrador aún no ha configurado métodos de cobro para esta región. Puedes cambiar tu región arriba o contactar al equipo de soporte para coordinar tu pago.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Section: Report Payment Form (Informar Pago) -->
+    <div id="payment-form-section" class="glass-card bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 scroll-mt-6">
+        <div class="border-b border-slate-100 pb-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-900 border border-rose-200 flex items-center justify-center">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black font-display text-slate-900">Informar y Registrar Pago de Suscripción</h3>
+                    <p class="text-xs text-slate-500">Notifica el pago realizado adjuntando el comprobante para su validación inmediata por el equipo administrativo.</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{% url 'subscription_billing' %}" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="REPORT_PAYMENT">
+            <input type="hidden" id="formBillingCycle" name="billing_cycle" value="MONTHLY">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                
+                <!-- Plan to Pay -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">1. Plan que estás abonando *</label>
+                    <select id="selectPlan" name="plan_id" required onchange="handlePlanSelectionChange()" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition cursor-pointer">
+                        <option value="">-- Seleccionar Plan --</option>
+                        {% for plan in available_plans %}
+                        <option value="{{ plan.id }}" 
+                                data-monthly="{{ plan.display_monthly }}" 
+                                data-annual="{{ plan.display_annual }}" 
+                                data-currency="{{ plan.currency }}"
+                                {% if subscription.plan and subscription.plan.id == plan.id %}selected{% endif %}>
+                            {{ plan.name }} ({{ plan.currency }}{{ plan.display_monthly }}/m)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Payment Method -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">2. Método de Pago Utilizado *</label>
+                    <select id="selectMethod" name="region_payment_method_id" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition cursor-pointer">
+                        <option value="">-- Seleccionar Método de Pago --</option>
+                        {% for rm in billing_methods %}
+                        <option value="{{ rm.id }}">{{ rm.payment_method.name }} ({{ current_region.name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Amount (Select Directo) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">3. Monto y Período a Abonar (en {{ currency_symbol }}) *</label>
+                    <div class="relative">
+                        <select id="selectAmount" onchange="handleAmountChange(this)" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition cursor-pointer">
+                            <!-- Populated dynamically via JS -->
+                        </select>
+                    </div>
+
+                    <!-- Input oculto para enviar el monto numérico final -->
+                    <input type="hidden" id="hiddenAmount" name="amount" value="">
+
+                    <!-- Input para monto personalizado si elige 'CUSTOM' -->
+                    <div id="customAmountContainer" class="hidden mt-2 relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500">{{ currency_symbol }}</span>
+                        <input type="number" step="0.01" id="inputCustomAmount" placeholder="Ingresa el monto exacto" oninput="document.getElementById('hiddenAmount').value = this.value" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 pl-8 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition">
+                    </div>
+
+                    <span class="text-[10px] text-slate-400 block mt-1">Escoge directamente en este selector si deseas pagar la cuota mensual o el total anual.</span>
+                </div>
+
+                <!-- Transaction Reference -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">4. N° de Comprobante / Transacción / Referencia *</label>
+                    <input type="text" name="reference" required placeholder="Ej: 00049281, OP-84920, o ID de Mercado Pago" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition">
+                    <span class="text-[10px] text-slate-400 block mt-1">Número de operación bancaria o identificador del pago.</span>
+                </div>
+
+                <!-- Receipt Voucher File Upload -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">5. Adjuntar Comprobante de Pago (Imagen o PDF)</label>
+                    <div class="border-2 border-dashed border-slate-300 hover:border-rose-700 rounded-2xl p-5 text-center bg-slate-50/50 hover:bg-slate-50 transition relative cursor-pointer" onclick="document.getElementById('receiptFileInput').click()">
+                        <input type="file" id="receiptFileInput" name="receipt_file" accept="image/*,application/pdf" class="hidden" onchange="handleFileSelected(this)">
+                        
+                        <div id="fileUploadPrompt" class="space-y-2">
+                            <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-900 flex items-center justify-center mx-auto">
+                                <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                            </div>
+                            <p class="text-xs font-bold text-slate-700">Haz clic aquí para seleccionar el archivo de comprobante</p>
+                            <p class="text-[10px] text-slate-400">Archivos permitidos: JPG, PNG, WEBP o PDF (Máximo 10 MB)</p>
+                        </div>
+
+                        <div id="fileUploadPreview" class="hidden flex items-center justify-center gap-3 text-xs font-bold text-emerald-800">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600"></i>
+                            <span id="fileNameDisplay">comprobante.pdf</span>
+                            <button type="button" onclick="event.stopPropagation(); clearReceiptFile();" class="text-rose-700 hover:underline text-[11px] font-bold ml-2">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes / Comments -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Observaciones adicionales (Opcional)</label>
+                    <input type="text" name="notes" placeholder="Ej: Pago realizado desde cuenta de titular Juan Pérez..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 focus:outline-none focus:border-rose-900 focus:bg-white transition">
+                </div>
+
+            </div>
+
+            <!-- Submit Button Bar -->
+            <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                <span class="text-[11px] text-slate-500">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 inline text-emerald-600 mr-1"></i>
+                    Tu reporte será recibido por la administración central para validar y activar la extensión.
+                </span>
+                <button type="submit" class="px-6 py-3 rounded-2xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    <span>Informar Pago de Licencia</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Section: Payment History Table -->
+    <div class="glass-card bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h3 class="text-lg font-black font-display text-slate-900 flex items-center gap-2">
+                    <i data-lucide="history" class="w-5 h-5 text-rose-900"></i>
+                    <span>Historial de Pagos Informados</span>
+                </h3>
+                <p class="text-xs text-slate-500">Registro cronológico de pagos enviados para tu cuenta y estado de revisión</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                Total: {{ payment_history|length }} pagos
+            </span>
+        </div>
+
+        {% if payment_history %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-700 uppercase font-black text-[10px] tracking-wider border-b border-slate-200">
+                        <th class="py-3 px-4">Fecha</th>
+                        <th class="py-3 px-4">Plan / Ciclo</th>
+                        <th class="py-3 px-4">Método Regional</th>
+                        <th class="py-3 px-4">Monto</th>
+                        <th class="py-3 px-4">Referencia</th>
+                        <th class="py-3 px-4 text-center">Comprobante</th>
+                        <th class="py-3 px-4 text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-sans">
+                    {% for p in payment_history %}
+                    <tr class="hover:bg-slate-50/60 transition">
+                        <td class="py-3.5 px-4 font-mono text-slate-600 text-[11px]">
+                            {{ p.created_at|date:"d/m/Y H:i" }}
+                        </td>
+                        <td class="py-3.5 px-4 font-bold text-slate-900">
+                            {{ p.plan.name|default:"Suscripción" }}
+                            <span class="block text-[10px] font-mono text-slate-400 font-semibold uppercase">{{ p.get_billing_cycle_display }}</span>
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-700">
+                            {{ p.region_payment_method.payment_method.name|default:"Transferencia" }}
+                        </td>
+                        <td class="py-3.5 px-4 font-black text-rose-900 font-display">
+                            {{ currency_symbol }}{{ p.amount }}
+                        </td>
+                        <td class="py-3.5 px-4 font-mono text-slate-600 select-all">
+                            {{ p.reference|default:"Sin número" }}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if p.receipt_file %}
+                            <a href="{{ p.receipt_file.url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-rose-50 text-rose-900 font-bold text-[11px] border border-slate-200 transition">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                <span>Ver Adjunto</span>
+                            </a>
+                            {% else %}
+                            <span class="text-slate-400 italic text-[11px]">Sin archivo</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if p.status == 'APPROVED' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                <i data-lucide="check" class="w-3 h-3"></i> Aprobado
+                            </span>
+                            {% elif p.status == 'REJECTED' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300" title="{{ p.notes }}">
+                                <i data-lucide="x" class="w-3 h-3"></i> Rechazado
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                                <i data-lucide="clock" class="w-3 h-3"></i> Pendiente
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="py-8 text-center text-slate-400 italic text-xs">
+            No tienes pagos de suscripción registrados previamente.
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Modal Protegido para Cambio de Región -->
+<div id="regionChangeModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transition-all transform scale-100">
+        <!-- Header -->
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black font-display text-white">Cambiar Región Comercial</h3>
+                    <p class="text-[11px] text-slate-400">Acción de configuración avanzada</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeRegionChangeModal()" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Form & Warning -->
+        <form method="POST" action="{% url 'subscription_billing' %}" class="p-6 space-y-5 text-xs">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="UPDATE_REGION">
+
+            <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 space-y-2">
+                <div class="font-bold flex items-center gap-1.5 text-amber-900">
+                    <i data-lucide="info" class="w-4 h-4 text-amber-700 shrink-0"></i>
+                    <span>Información importante:</span>
+                </div>
+                <ul class="list-disc pl-5 space-y-1 text-[11px] text-amber-900/90 leading-relaxed">
+                    <li>La moneda oficial de tus suscripciones y de tu punto de venta (POS) cambiará a la de la nueva región.</li>
+                    <li>Las cuentas bancarias y métodos de cobro habilitados se actualizarán según el país seleccionado.</li>
+                </ul>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-800 mb-1.5">Seleccionar Nueva Región Comercial *</label>
+                <select name="region_id" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition cursor-pointer">
+                    {% for reg in all_regions %}
+                    <option value="{{ reg.id }}" {% if current_region.id == reg.id %}selected{% endif %}>
+                        {{ reg.name }} — Moneda: {{ reg.currency_symbol }} ({{ reg.code }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <label class="flex items-start gap-2.5 cursor-pointer">
+                    <input type="checkbox" id="confirmRegionChange" required class="mt-0.5 w-4 h-4 rounded text-rose-900 focus:ring-rose-900 border-slate-300">
+                    <span class="text-[11px] font-bold text-slate-700">
+                        Confirmo que deseo modificar la región de facturación de mi empresa y entiendo los cambios en la moneda.
+                    </span>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeRegionChangeModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2.5 bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Confirmar Cambio</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Interactive JS Script -->
+<script>
+let currentCycle = 'MONTHLY';
+
+function openRegionChangeModal() {
+    const modal = document.getElementById('regionChangeModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+function closeRegionChangeModal() {
+    const modal = document.getElementById('regionChangeModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+const plansData = {
+    {% for plan in available_plans %}
+    "{{ plan.id }}": {
+        name: "{{ plan.name|escapejs }}",
+        monthly: "{{ plan.display_monthly }}",
+        annual: "{{ plan.display_annual }}",
+        currency: "{{ plan.currency|escapejs }}",
+        savings: "{{ plan.savings_pct|default:0 }}"
+    },
+    {% endfor %}
+};
+
+function updateAmountOptions(preferredCycle = currentCycle) {
+    const selectPlan = document.getElementById('selectPlan');
+    const selectAmount = document.getElementById('selectAmount');
+    const hiddenAmount = document.getElementById('hiddenAmount');
+    const customContainer = document.getElementById('customAmountContainer');
+    const formBillingCycle = document.getElementById('formBillingCycle');
+
+    const planId = selectPlan.value;
+    selectAmount.innerHTML = '';
+
+    if (!planId || !plansData[planId]) {
+        const opt = document.createElement('option');
+        opt.value = "";
+        opt.textContent = "-- Primero selecciona un plan --";
+        selectAmount.appendChild(opt);
+        hiddenAmount.value = "";
+        return;
+    }
+
+    const plan = plansData[planId];
+    const monthlyNum = parseFloat(plan.monthly).toFixed(2);
+    const annualNum = parseFloat(plan.annual).toFixed(2);
+
+    // Option 1: Monthly
+    const optMonthly = document.createElement('option');
+    optMonthly.value = monthlyNum;
+    optMonthly.setAttribute('data-cycle', 'MONTHLY');
+    optMonthly.textContent = `${plan.currency} ${monthlyNum} — Cuota Mensual (${plan.name})`;
+
+    // Option 2: Annual
+    const optAnnual = document.createElement('option');
+    optAnnual.value = annualNum;
+    optAnnual.setAttribute('data-cycle', 'ANNUAL');
+    const savingsTxt = plan.savings > 0 ? ` (Ahorro ${plan.savings}%)` : '';
+    optAnnual.textContent = `${plan.currency} ${annualNum} — Cuota Anual${savingsTxt} (${plan.name})`;
+
+    // Option 3: Custom
+    const optCustom = document.createElement('option');
+    optCustom.value = 'CUSTOM';
+    optCustom.textContent = 'Otro monto personalizado...';
+
+    selectAmount.appendChild(optMonthly);
+    selectAmount.appendChild(optAnnual);
+    selectAmount.appendChild(optCustom);
+
+    if (preferredCycle === 'ANNUAL') {
+        optAnnual.selected = true;
+        hiddenAmount.value = optAnnual.value;
+        formBillingCycle.value = 'ANNUAL';
+    } else {
+        optMonthly.selected = true;
+        hiddenAmount.value = optMonthly.value;
+        formBillingCycle.value = 'MONTHLY';
+    }
+
+    customContainer.classList.add('hidden');
+}
+
+function handleAmountChange(selectElem) {
+    const hiddenAmount = document.getElementById('hiddenAmount');
+    const customContainer = document.getElementById('customAmountContainer');
+    const customInput = document.getElementById('inputCustomAmount');
+    const formBillingCycle = document.getElementById('formBillingCycle');
+
+    if (selectElem.value === 'CUSTOM') {
+        customContainer.classList.remove('hidden');
+        hiddenAmount.value = customInput.value || '';
+        customInput.focus();
+    } else {
+        customContainer.classList.add('hidden');
+        hiddenAmount.value = selectElem.value;
+        const selectedOpt = selectElem.options[selectElem.selectedIndex];
+        const cycle = selectedOpt.getAttribute('data-cycle');
+        if (cycle) {
+            formBillingCycle.value = cycle;
+        }
+    }
+}
+
+function setBillingCycle(cycle) {
+    currentCycle = cycle;
+    document.getElementById('formBillingCycle').value = cycle;
+
+    const btnM = document.getElementById('btnCycleMonthly');
+    const btnA = document.getElementById('btnCycleAnnual');
+    const monthlyPrices = document.querySelectorAll('.price-monthly');
+    const annualPrices = document.querySelectorAll('.price-annual');
+
+    if(cycle === 'MONTHLY') {
+        btnM.className = 'px-4 py-1.5 rounded-xl text-xs font-black transition cursor-pointer bg-white text-slate-900 shadow-xs';
+        btnA.className = 'px-4 py-1.5 rounded-xl text-xs font-black transition cursor-pointer text-slate-600 hover:text-slate-900 flex items-center gap-1.5';
+        monthlyPrices.forEach(el => el.classList.remove('hidden'));
+        annualPrices.forEach(el => el.classList.add('hidden'));
+    } else {
+        btnA.className = 'px-4 py-1.5 rounded-xl text-xs font-black transition cursor-pointer bg-white text-slate-900 shadow-xs flex items-center gap-1.5';
+        btnM.className = 'px-4 py-1.5 rounded-xl text-xs font-black transition cursor-pointer text-slate-600 hover:text-slate-900';
+        monthlyPrices.forEach(el => el.classList.add('hidden'));
+        annualPrices.forEach(el => el.classList.remove('hidden'));
+    }
+
+    updateAmountOptions(cycle);
+}
+
+function selectPlanToPay(planId, planName, monthlyPrice, annualPrice, currency) {
+    const selectPlan = document.getElementById('selectPlan');
+    selectPlan.value = planId;
+    
+    updateAmountOptions(currentCycle);
+
+    const formSection = document.getElementById('payment-form-section');
+    formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function handlePlanSelectionChange() {
+    updateAmountOptions(currentCycle);
+}
+
+function copyToClipboard(text, btnElement) {
+    navigator.clipboard.writeText(text).then(() => {
+        const originalHTML = btnElement.innerHTML;
+        btnElement.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i><span class="text-emerald-700">¡Copiado!</span>';
+        if(window.lucide) lucide.createIcons();
+        setTimeout(() => {
+            btnElement.innerHTML = originalHTML;
+            if(window.lucide) lucide.createIcons();
+        }, 2000);
+    }).catch(err => {
+        console.error('Error al copiar:', err);
+    });
+}
+
+function handleFileSelected(input) {
+    const prompt = document.getElementById('fileUploadPrompt');
+    const preview = document.getElementById('fileUploadPreview');
+    const nameDisplay = document.getElementById('fileNameDisplay');
+
+    if(input.files && input.files[0]) {
+        nameDisplay.innerText = input.files[0].name;
+        prompt.classList.add('hidden');
+        preview.classList.remove('hidden');
+    }
+}
+
+function clearReceiptFile() {
+    const input = document.getElementById('receiptFileInput');
+    input.value = '';
+    document.getElementById('fileUploadPrompt').classList.remove('hidden');
+    document.getElementById('fileUploadPreview').classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    handlePlanSelectionChange();
+    if(window.lucide) lucide.createIcons();
+
+    const form = document.querySelector('form[action="{% url 'subscription_billing' %}"]');
+    if(form) {
+        form.addEventListener('submit', function(e) {
+            const selectAmount = document.getElementById('selectAmount');
+            const hiddenAmount = document.getElementById('hiddenAmount');
+            const customInput = document.getElementById('inputCustomAmount');
+            
+            if(selectAmount.value === 'CUSTOM') {
+                hiddenAmount.value = customInput.value ? customInput.value.trim() : '';
+            } else {
+                hiddenAmount.value = selectAmount.value;
+            }
+
+            if(!hiddenAmount.value || parseFloat(hiddenAmount.value) <= 0 || isNaN(parseFloat(hiddenAmount.value))) {
+                e.preventDefault();
+                alert('Por favor selecciona o ingresa un monto válido a abonar.');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
