@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load l10n %}
 
 {% block title %}{{ title }} - BusinessOS{% endblock %}
 {% block header_title %}{{ title }}{% endblock %}
@@ -37,11 +38,11 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Precio de Costo ({{ business.currency }})</label>
-                    <input type="number" step="0.01" name="cost_price" value="{% if product %}{{ product.cost_price }}{% endif %}" placeholder="6.00" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                    <input type="number" step="0.01" name="cost_price" value="{% if product %}{{ product.cost_price|unlocalize }}{% endif %}" placeholder="6.00" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Precio de Venta ({{ business.currency }})</label>
-                    <input type="number" step="0.01" name="sale_price" value="{% if product %}{{ product.sale_price }}{% endif %}" placeholder="14.00" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                    <input type="number" step="0.01" name="sale_price" value="{% if product %}{{ product.sale_price|unlocalize }}{% endif %}" placeholder="14.00" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
                 </div>
             </div>
 

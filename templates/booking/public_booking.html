@@ -770,8 +770,13 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             <input type="text" name="client_name" placeholder="Nombre completo *" required 
                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
-                            <input type="tel" name="client_phone" placeholder="WhatsApp / Teléfono *" required 
-                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
+                            <div class="flex rounded-xl overflow-hidden border border-slate-200 focus-within:border-rose-900 bg-white">
+                                <select name="client_phone_prefix" class="bg-slate-100 text-slate-800 text-xs font-bold px-2 py-2 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0">
+                                    {% include 'components/phone_prefix_options.html' with selected_prefix=default_phone_prefix|default:'+54' %}
+                                </select>
+                                <input type="tel" name="client_phone" placeholder="WhatsApp / Teléfono *" required 
+                                       class="w-full bg-slate-50 text-slate-800 p-2.5 text-xs placeholder-slate-400 focus:outline-none focus:bg-white transition">
+                            </div>
                         </div>
                         <input type="email" name="client_email" placeholder="Correo electrónico (opcional)" 
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">

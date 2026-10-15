@@ -363,6 +363,37 @@
             </div>
         </div>
 
+        {% if gateway_methods %}
+        {% for gm in gateway_methods %}
+        <div class="rounded-2xl border border-sky-200 bg-sky-50/60 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h4 class="text-sm font-black text-slate-900 flex items-center gap-2"><i data-lucide="credit-card" class="w-4 h-4 text-sky-600"></i> Pagar online con {{ gm.payment_method.name }}</h4>
+                <p class="text-xs text-slate-600 mt-1">Selecciona el plan y el período abajo (pasos 1 y 3) y paga de forma inmediata. La licencia se activará automáticamente al confirmarse la transacción.</p>
+            </div>
+            <form method="POST" action="{% url 'subscription_billing' %}" onsubmit="return prepareGatewayPayment(this)">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="PAY_GATEWAY">
+                <input type="hidden" name="region_payment_method_id" value="{{ gm.id }}">
+                <input type="hidden" name="plan_id" value="">
+                <input type="hidden" name="billing_cycle" value="MONTHLY">
+                <button type="submit" class="px-6 py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                    <i data-lucide="wallet" class="w-4 h-4"></i>
+                    <span>{{ gm.gateway.button_label|default:"Pagar con Mercado Pago" }}</span>
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+        <script>
+            function prepareGatewayPayment(form) {
+                var planId = document.getElementById('selectPlan').value;
+                if (!planId) { alert('Selecciona primero el plan que deseas abonar.'); return false; }
+                form.plan_id.value = planId;
+                form.billing_cycle.value = document.getElementById('formBillingCycle').value || 'MONTHLY';
+                return true;
+            }
+        </script>
+        {% endif %}
+
         <form method="POST" action="{% url 'subscription_billing' %}" enctype="multipart/form-data" class="space-y-6">
             {% csrf_token %}
             <input type="hidden" name="action" value="REPORT_PAYMENT">
