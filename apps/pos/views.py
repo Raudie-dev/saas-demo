@@ -172,8 +172,12 @@ def pos_terminal_view(request):
         # 3. Fallback if processing an appointment checkout without explicit items
         if post_app_id and not services_to_process and not products_to_process:
             app_obj = Appointment.objects.filter(id=post_app_id, business=business).first()
-            if app_obj and app_obj.service:
-                services_to_process.append((app_obj.service, 1))
+            if app_obj:
+                if app_obj.appointment_services.exists():
+                    for app_srv in app_obj.appointment_services.all():
+                        services_to_process.append((app_srv.service, app_srv.quantity))
+                elif app_obj.service:
+                    services_to_process.append((app_obj.service, 1))
                 if not client_id and app_obj.client_id:
                     client_id = str(app_obj.client_id)
                 if not staff_id and app_obj.staff_id:
@@ -536,7 +540,8 @@ def api_quick_create_client_view(request):
             'success': True,
             'client_id': client.id,
             'full_name': client.full_name,
-            'phone': client.phone or ''
+            'phone': client.phone or '',
+            'tax_id': client.tax_id or '',
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)

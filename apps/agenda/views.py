@@ -1,9 +1,10 @@
 from decimal import Decimal
 import datetime
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from apps.business.models import Business, StaffMember
-from apps.agenda.models import Service, ServiceCategory, Appointment, ScheduleBlock
+from apps.agenda.models import Service, ServiceCategory, Appointment, ScheduleBlock, AppointmentService
 from apps.crm.models import Client
 from django.contrib import messages
 from apps.core.utils import parse_decimal, parse_int
@@ -30,7 +31,7 @@ def agenda_view(request):
     services = Service.objects.filter(business=business, is_active=True) if business else []
     clients = Client.objects.filter(business=business) if business else []
     
-    appointments = Appointment.objects.filter(business=business, date=selected_date).select_related('client', 'staff', 'service')
+    appointments = Appointment.objects.filter(business=business, date=selected_date).select_related('client', 'staff', 'service').prefetch_related('appointment_services__service')
 
     # Aislamiento para Profesionales (Solo sus propias citas)
     user_scope = getattr(request.user, 'appointment_scope', 'ALL')
@@ -57,6 +58,35 @@ def agenda_view(request):
         'selected_staff_id': selected_staff_id,
         'is_restricted_scope': (user_scope == 'OWN'),
     })
+
+def _parse_services_from_post(request, business):
+    services_items = []
+    services_data = request.POST.get('services_data')
+    if services_data:
+        try:
+            parsed = json.loads(services_data)
+            if isinstance(parsed, list):
+                for item in parsed:
+                    s_id = item.get('id')
+                    try:
+                        qty = max(1, int(item.get('quantity', 1)))
+                    except (ValueError, TypeError):
+                        qty = 1
+                    srv = Service.objects.filter(id=s_id, business=business).first()
+                    if srv:
+                        services_items.append((srv, qty))
+        except (json.JSONDecodeError, TypeError, ValueError):
+            pass
+
+    if not services_items:
+        service_id = request.POST.get('service_id')
+        if service_id:
+            srv = Service.objects.filter(id=service_id, business=business).first()
+            if srv:
+                services_items.append((srv, 1))
+
+    return services_items
+
 
 @login_required
 def appointment_create_view(request):
@@ -101,9 +131,9 @@ def appointment_create_view(request):
     if request.method == 'POST':
         client_id = request.POST.get('client_id')
         staff_id = request.POST.get('staff_id')
-        service_id = request.POST.get('service_id')
         app_date = request.POST.get('date')
         start_time = request.POST.get('start_time')
+        end_time_input = request.POST.get('end_time')
         status = request.POST.get('status', 'CONFIRMED')
         notes = request.POST.get('notes', '')
         
@@ -114,25 +144,62 @@ def appointment_create_view(request):
         else:
             staff = get_object_or_404(StaffMember, id=staff_id, business=business)
 
-        service = get_object_or_404(Service, id=service_id, business=business)
-        
-        st = datetime.datetime.strptime(start_time, "%H:%M")
-        et = st + datetime.timedelta(minutes=service.duration_minutes)
-        end_time = et.strftime("%H:%M")
-        
-        Appointment.objects.create(
+        services_items = _parse_services_from_post(request, business)
+        if not services_items:
+            messages.error(request, "Debes seleccionar al menos un servicio para la cita.")
+            return redirect(request.path)
+
+        total_duration = sum(srv.duration_minutes * qty for srv, qty in services_items)
+        total_price = sum(srv.price * qty for srv, qty in services_items)
+        primary_service = services_items[0][0]
+
+        if end_time_input:
+            end_time = end_time_input
+        else:
+            try:
+                st = datetime.datetime.strptime(start_time, "%H:%M")
+                et = st + datetime.timedelta(minutes=max(total_duration, 15))
+                end_time = et.strftime("%H:%M")
+            except (ValueError, TypeError):
+                end_time = "10:45"
+
+        appointment = Appointment.objects.create(
             business=business,
             client=client,
             staff=staff,
-            service=service,
+            service=primary_service,
             date=app_date,
             start_time=start_time,
             end_time=end_time,
-            total_price=service.price,
+            total_price=total_price,
             status=status,
             notes=notes
         )
+
+        for srv, qty in services_items:
+            AppointmentService.objects.create(
+                appointment=appointment,
+                service=srv,
+                quantity=qty,
+                unit_price=srv.price,
+                duration_minutes=srv.duration_minutes
+            )
+
+        messages.success(request, f"¡Cita registrada correctamente con {len(services_items)} servicio(s)!")
         return redirect('agenda')
+
+    existing_services = []
+    if selected_service_id:
+        srv = Service.objects.filter(id=selected_service_id, business=business).first()
+        if srv:
+            existing_services.append({
+                'id': str(srv.id),
+                'name': srv.name,
+                'price': float(srv.price),
+                'duration': srv.duration_minutes,
+                'quantity': 1,
+            })
+    existing_services_json = json.dumps(existing_services)
 
     return render(request, 'agenda/appointment_form.html', {
         'business': business,
@@ -140,6 +207,7 @@ def appointment_create_view(request):
         'clients': clients,
         'staff_members': staff_members,
         'services': services,
+        'existing_services_json': existing_services_json,
         'today_date': selected_date,
         'selected_client_id': selected_client_id,
         'selected_staff_id': selected_staff_id,
@@ -169,25 +237,77 @@ def appointment_edit_view(request, appointment_id):
     services = Service.objects.filter(business=business, is_active=True)
 
     if request.method == 'POST':
-        appointment.client = get_object_or_404(Client, id=request.POST.get('client_id'), business=business)
+        client = get_object_or_404(Client, id=request.POST.get('client_id'), business=business)
         if user_scope == 'OWN' and user_staff:
-            appointment.staff = user_staff
+            staff = user_staff
         else:
-            appointment.staff = get_object_or_404(StaffMember, id=request.POST.get('staff_id'), business=business)
-        service = get_object_or_404(Service, id=request.POST.get('service_id'), business=business)
-        appointment.service = service
-        appointment.date = request.POST.get('date')
+            staff = get_object_or_404(StaffMember, id=request.POST.get('staff_id'), business=business)
+
+        services_items = _parse_services_from_post(request, business)
+        if not services_items:
+            messages.error(request, "Debes seleccionar al menos un servicio para la cita.")
+            return redirect(request.path)
+
+        total_duration = sum(srv.duration_minutes * qty for srv, qty in services_items)
+        total_price = sum(srv.price * qty for srv, qty in services_items)
+        primary_service = services_items[0][0]
+
         start_time = request.POST.get('start_time')
+        end_time_input = request.POST.get('end_time')
+        if end_time_input:
+            end_time = end_time_input
+        else:
+            try:
+                st = datetime.datetime.strptime(start_time, "%H:%M")
+                et = st + datetime.timedelta(minutes=max(total_duration, 15))
+                end_time = et.strftime("%H:%M")
+            except (ValueError, TypeError):
+                end_time = appointment.end_time or "10:45"
+
+        appointment.client = client
+        appointment.staff = staff
+        appointment.service = primary_service
+        appointment.date = request.POST.get('date')
         appointment.start_time = start_time
-        
-        st = datetime.datetime.strptime(start_time, "%H:%M")
-        et = st + datetime.timedelta(minutes=service.duration_minutes)
-        appointment.end_time = et.strftime("%H:%M")
-        appointment.total_price = service.price
+        appointment.end_time = end_time
+        appointment.total_price = total_price
         appointment.status = request.POST.get('status')
         appointment.notes = request.POST.get('notes', '')
         appointment.save()
+
+        appointment.appointment_services.all().delete()
+        for srv, qty in services_items:
+            AppointmentService.objects.create(
+                appointment=appointment,
+                service=srv,
+                quantity=qty,
+                unit_price=srv.price,
+                duration_minutes=srv.duration_minutes
+            )
+
+        messages.success(request, "Cita actualizada correctamente.")
         return redirect('agenda')
+
+    existing_services = []
+    items = list(appointment.appointment_services.select_related('service').all())
+    if items:
+        for it in items:
+            existing_services.append({
+                'id': str(it.service.id),
+                'name': it.service.name,
+                'price': float(it.unit_price),
+                'duration': it.duration_minutes,
+                'quantity': it.quantity,
+            })
+    elif appointment.service:
+        existing_services.append({
+            'id': str(appointment.service.id),
+            'name': appointment.service.name,
+            'price': float(appointment.service.price),
+            'duration': appointment.service.duration_minutes,
+            'quantity': 1,
+        })
+    existing_services_json = json.dumps(existing_services)
 
     return render(request, 'agenda/appointment_form.html', {
         'business': business,
@@ -195,6 +315,7 @@ def appointment_edit_view(request, appointment_id):
         'clients': clients,
         'staff_members': staff_members,
         'services': services,
+        'existing_services_json': existing_services_json,
         'title': f'Editar Cita: {appointment.client.full_name}',
         'is_restricted_scope': (user_scope == 'OWN'),
     })
@@ -354,7 +475,7 @@ def appointment_events_api(request):
         return JsonResponse([], safe=False)
     staff_id = request.GET.get('staff_id', '')
 
-    appointments = Appointment.objects.filter(business=business).select_related('client', 'staff', 'service')
+    appointments = Appointment.objects.filter(business=business).select_related('client', 'staff', 'service').prefetch_related('appointment_services__service')
     if staff_id:
         appointments = appointments.filter(staff_id=staff_id)
 
@@ -363,10 +484,11 @@ def appointment_events_api(request):
         start_dt = f"{app.date.isoformat()}T{app.start_time.strftime('%H:%M:%S')}"
         end_dt = f"{app.date.isoformat()}T{app.end_time.strftime('%H:%M:%S')}"
         color = "#10b981" if app.status == 'COMPLETED' else ("#6366f1" if app.status == 'CONFIRMED' else "#f59e0b")
+        srv_name = app.services_summary
         
         events.append({
             'id': str(app.id),
-            'title': f"{app.client.full_name} - {app.service.name}",
+            'title': f"{app.client.full_name} - {srv_name}",
             'start': start_dt,
             'end': end_dt,
             'url': f"/agenda/{app.id}/editar/",
@@ -374,7 +496,7 @@ def appointment_events_api(request):
             'borderColor': color,
             'extendedProps': {
                 'client': app.client.full_name,
-                'service': app.service.name,
+                'service': srv_name,
                 'staff': app.staff.full_name,
                 'status': app.get_status_display(),
                 'price': str(app.total_price)

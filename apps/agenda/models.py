@@ -46,7 +46,8 @@ class Appointment(TimeStampedModel):
     branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name="appointments")
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="appointments")
     staff = models.ForeignKey(StaffMember, on_delete=models.CASCADE, related_name="appointments")
-    service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name="appointments")
+    service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name="appointments")
+    related_property = models.ForeignKey('properties.Property', on_delete=models.SET_NULL, null=True, blank=True, related_name="appointments", verbose_name="Inmueble / Propiedad")
     date = models.DateField(verbose_name="Fecha de Cita")
     start_time = models.TimeField(verbose_name="Hora Inicio")
     end_time = models.TimeField(verbose_name="Hora Fin")
@@ -63,6 +64,55 @@ class Appointment(TimeStampedModel):
 
     def __str__(self):
         return f"Cita: {self.client.full_name} con {self.staff.full_name} ({self.date} {self.start_time})"
+
+    @property
+    def services_summary(self):
+        items = list(self.appointment_services.select_related('service').all())
+        if items:
+            parts = []
+            for item in items:
+                if item.quantity > 1:
+                    parts.append(f"{item.service.name} (x{item.quantity})")
+                else:
+                    parts.append(item.service.name)
+            return ", ".join(parts)
+        if self.service:
+            return self.service.name
+        return "Sin servicio"
+
+    @property
+    def total_duration_minutes(self):
+        items = list(self.appointment_services.all())
+        if items:
+            return sum(item.duration_minutes * item.quantity for item in items)
+        if self.service:
+            return self.service.duration_minutes
+        return 0
+
+    @property
+    def primary_service(self):
+        if self.service:
+            return self.service
+        first_item = self.appointment_services.first()
+        return first_item.service if first_item else None
+
+class AppointmentService(TimeStampedModel):
+    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name="appointment_services")
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name="appointment_items")
+    quantity = models.PositiveIntegerField(default=1, verbose_name="Cantidad")
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio Unitario")
+    duration_minutes = models.IntegerField(default=0, verbose_name="Duración (minutos)")
+
+    class Meta:
+        verbose_name = "Servicio de Cita"
+        verbose_name_plural = "Servicios de Citas"
+
+    @property
+    def subtotal(self):
+        return self.unit_price * self.quantity
+
+    def __str__(self):
+        return f"{self.quantity}x {self.service.name} ({self.appointment})"
 
 class ScheduleBlock(TimeStampedModel):
     staff = models.ForeignKey(StaffMember, on_delete=models.CASCADE, related_name="blocks")

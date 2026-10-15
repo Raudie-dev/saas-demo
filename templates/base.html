@@ -126,7 +126,7 @@
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="h-full font-sans antialiased bg-slate-50 text-slate-900 flex flex-col md:flex-row custom-scrollbar">
+<body class="h-full md:h-screen md:overflow-hidden font-sans antialiased bg-slate-50 text-slate-900 flex flex-col md:flex-row">
 
     <!-- Offline Alert Banner -->
     <div id="pwa-offline-banner" class="hidden bg-amber-500 text-slate-950 text-xs font-bold px-4 py-2 text-center flex items-center justify-center gap-2 shadow-sm z-50 w-full fixed top-0 left-0">
@@ -136,7 +136,7 @@
 
     <!-- Sidebar Navigation (Sleek Black & Vinotinto Sidebar) -->
 
-    <aside class="w-64 h-screen sticky top-0 bg-slate-950 border-r border-slate-800 flex flex-col justify-between hidden md:flex shrink-0 overflow-hidden">
+    <aside class="w-64 h-full bg-slate-950 border-r border-slate-800 flex flex-col justify-between hidden md:flex shrink-0 overflow-hidden">
         <div class="flex flex-col flex-1 min-h-0">
             <!-- Brand Logo -->
             <div class="h-16 flex items-center px-6 border-b border-slate-800 justify-between shrink-0">
@@ -232,6 +232,13 @@
                 <a href="{% url 'client_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'crm' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="users" class="w-5 h-5"></i>
                     <span>CRM & Clientes</span>
+                </a>
+                {% endif %}
+
+                {% if modules_enabled.properties or is_real_estate %}
+                <a href="{% url 'property_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'propiedades' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="building-2" class="w-5 h-5"></i>
+                    <span>Propiedades</span>
                 </a>
                 {% endif %}
 
@@ -424,6 +431,13 @@
                     <span>CRM & Clientes</span>
                 </a>
                 {% endif %}
+
+                {% if modules_enabled.properties or is_real_estate %}
+                <a href="{% url 'property_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'propiedades' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="building-2" class="w-5 h-5"></i>
+                    <span>Propiedades</span>
+                </a>
+                {% endif %}
                 {% if not user_is_professional %}
                 <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'service' in request.resolver_match.url_name %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="scissors" class="w-5 h-5"></i>
@@ -527,7 +541,7 @@
     </div>
 
     <!-- Main Content Area (Light Slate Background) -->
-    <div class="flex-1 flex flex-col min-w-0 min-h-screen md:h-screen overflow-x-hidden">
+    <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <!-- Topbar Header (Clean White / Light Slate) -->
         <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 shrink-0 shadow-sm sticky top-0 z-30">
             <div class="flex items-center gap-2 min-w-0 flex-1 mr-2">
@@ -636,7 +650,7 @@
         </div>
 
         <!-- Page Content Area (Light Base) -->
-        <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 custom-scrollbar bg-slate-50">
+        <main class="flex-1 overflow-y-auto min-h-0 p-3.5 sm:p-6 custom-scrollbar bg-slate-50">
             {% block content %}{% endblock %}
         </main>
     </div>

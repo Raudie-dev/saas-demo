@@ -84,6 +84,14 @@
             <i data-lucide="bookmark" class="w-4 h-4 text-amber-600"></i>
             <span>Notas & Preferencias Generales</span>
         </button>
+
+        {% if client.owned_properties.exists %}
+        <button onclick="switchClientTab('properties')" id="client-tab-properties" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="building-2" class="w-4 h-4 text-rose-800"></i>
+            <span>Inmuebles en Venta / Alquiler</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 text-[10px] font-bold">{{ client.owned_properties.count }}</span>
+        </button>
+        {% endif %}
     </div>
 
     <!-- TAB CONTENT 1: Anotaciones por Servicio / Tratamiento (Full Width & Spacious) -->
@@ -117,7 +125,7 @@
                     <select name="appointment_id" class="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white">
                         <option value="">Sin vinculación específica</option>
                         {% for app in appointments %}
-                        <option value="{{ app.id }}">Cita el {{ app.date|date:"d/m/Y" }} - {{ app.service.name }}</option>
+                        <option value="{{ app.id }}">Cita el {{ app.date|date:"d/m/Y" }} - {{ app.services_summary }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -190,7 +198,7 @@
             <div class="p-5 rounded-2xl border border-slate-200/90 bg-slate-50 hover:bg-white transition space-y-2">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="space-y-1">
-                        <h4 class="font-extrabold text-base text-slate-900">{{ app.service.name }}</h4>
+                        <h4 class="font-extrabold text-base text-slate-900">{{ app.services_summary }}</h4>
                         <p class="text-xs text-slate-600 flex flex-wrap items-center gap-3">
                             <span>📅 {{ app.date|date:"d/m/Y" }} • {{ app.start_time|time:"H:i" }} hs</span>
                             <span>• Profesional: <strong class="text-brand-900">{{ app.staff.full_name }}</strong></span>
@@ -266,6 +274,58 @@
             {{ client.notes|default:"Sin notas generales o preferencias registradas." }}
         </div>
     </div>
+
+    {% if client.owned_properties.exists %}
+    <!-- TAB CONTENT 5: Propiedades en Cartera (Cliente Propietario / Vendedor) -->
+    <div id="client-content-properties" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
+                    <i data-lucide="building-2" class="w-5 h-5 text-rose-800"></i>
+                    <span>Inmuebles Comercializados (Cliente Propietario / Vendedor)</span>
+                </h3>
+                <p class="text-xs text-slate-500">Propiedades en cartera donde este cliente figura como titular o comitente</p>
+            </div>
+            <a href="{% url 'property_create' %}" class="px-4 py-2 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 text-xs font-bold hover:bg-rose-100 transition flex items-center gap-1.5 shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i> Cargar Nueva Propiedad
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for prop in client.owned_properties.all %}
+            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-white transition flex items-center justify-between gap-3 shadow-sm">
+                <div class="flex items-center gap-3.5 min-w-0">
+                    <img src="{% if prop.main_photo_url %}{{ prop.main_photo_url }}{% else %}/static/images/property_placeholder.png{% endif %}" class="w-16 h-14 rounded-xl object-cover border border-slate-200 shrink-0">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full {% if prop.operation_type == 'SALE' %}bg-emerald-100 text-emerald-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ prop.get_operation_type_display }}
+                            </span>
+                            <span class="text-[10px] font-semibold text-slate-500">{{ prop.get_status_display }}</span>
+                        </div>
+                        <h4 class="font-bold text-xs sm:text-sm text-slate-900 truncate mt-1">
+                            <a href="{% url 'property_detail' prop.id %}" class="hover:text-rose-900 hover:underline">{{ prop.title }}</a>
+                        </h4>
+                        <p class="text-[11px] text-slate-500 truncate">{{ prop.address }} · <strong class="text-slate-700">{{ prop.zone }}</strong></p>
+                        {% if prop.agent %}
+                        <p class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                            <i data-lucide="user-check" class="w-3 h-3 text-rose-800"></i> Asesor asignado: <strong class="text-slate-700">{{ prop.agent.full_name }}</strong>
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="text-right shrink-0 space-y-1">
+                    <span class="font-fun font-black text-sm sm:text-base text-rose-950 block">{{ prop.formatted_price }}</span>
+                    <a href="{% url 'property_detail' prop.id %}" class="inline-flex items-center gap-1 text-[11px] font-bold text-rose-900 hover:text-rose-950 hover:underline">
+                        <span>Ver Ficha</span>
+                        <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
 </div>
 
