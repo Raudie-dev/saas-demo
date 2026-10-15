@@ -270,28 +270,16 @@ def user_detail_view(request, business_id):
         elif action == 'APPROVE_SUBSCRIPTION_PAYMENT':
             payment_id = request.POST.get('payment_id')
             payment = get_object_or_404(SubscriptionPayment, id=payment_id, business=business)
-            payment.status = 'APPROVED'
-            payment.reviewed_at = timezone.now()
-            payment.reviewed_by = request.superadmin_user
-            payment.save()
-
-            subscription.status = 'ACTIVE'
-            if payment.plan:
-                subscription.plan = payment.plan
-                subscription.pending_plan = None
-
-            base_date = subscription.expiration_date if (subscription.expiration_date and subscription.expiration_date >= timezone.now().date()) else timezone.now().date()
-            if payment.billing_cycle == 'ANNUAL':
-                subscription.expiration_date = base_date + datetime.timedelta(days=365)
-            else:
-                subscription.expiration_date = base_date + datetime.timedelta(days=30)
-            subscription.save()
-
-            SystemAuditLog.objects.create(
+            from apps.superadmin.mercadopago import apply_approved_payment
+            updated = apply_approved_payment(
+                payment,
+                reviewer=request.superadmin_user,
                 actor_email=request.superadmin_user.email or request.superadmin_user.username,
-                action="PAGO_APROBADO",
-                details=f"SuperAdmin aprobó el pago #{payment.id} de {payment.amount} para {business.name}. Licencia extendida a {subscription.expiration_date}."
             )
+            if updated is None:
+                messages.info(request, f"El pago #{payment.id} ya estaba aprobado.")
+                return redirect('superadmin_user_detail', business_id=business.id)
+            subscription = updated
             messages.success(request, f"¡Pago de {payment.amount} aprobado con éxito! Licencia renovada hasta {subscription.expiration_date}.")
             return redirect('superadmin_user_detail', business_id=business.id)
 
@@ -592,6 +580,7 @@ def regions_management_view(request):
                     code=code,
                     country_codes=country_codes,
                     currency_symbol=currency_symbol,
+                    currency_code=request.POST.get('currency_code', '').strip().upper()[:3],
                     is_active=is_active
                 )
                 messages.success(request, f"¡Región '{name}' creada exitosamente!")
@@ -603,6 +592,7 @@ def regions_management_view(request):
             region.name = request.POST.get('name', '').strip() or region.name
             region.country_codes = ",".join(request.POST.getlist('country_codes'))
             region.currency_symbol = request.POST.get('currency_symbol', '$').strip()
+            region.currency_code = request.POST.get('currency_code', '').strip().upper()[:3]
             region.is_active = request.POST.get('is_active') == 'on'
             region.save()
             messages.success(request, f"¡Región '{region.name}' actualizada correctamente!")
@@ -634,6 +624,8 @@ def regions_management_view(request):
             messages.success(request, f"¡Métodos de pago para la región '{region.name}' actualizados!")
             return redirect('superadmin_regions')
 
+    _ensure_default_payment_methods()
+    from apps.superadmin.payment_gateways import is_available
     regions = Region.objects.all().order_by('name')
     global_methods = GlobalPaymentMethod.objects.filter(is_active=True)
     
@@ -645,7 +637,8 @@ def regions_management_view(request):
         for gm in global_methods:
             methods_data.append({
                 'global_method': gm,
-                'region_config': region_methods.get(gm.id)
+                'region_config': region_methods.get(gm.id),
+                'credentials_ok': is_available(gm.provider, region) if gm.provider else None,
             })
         regions_data.append({
             'region': region,
@@ -659,11 +652,19 @@ def regions_management_view(request):
 
 # Helpers
 def _ensure_default_payment_methods():
+    from apps.superadmin.payment_gateways import ensure_integrated_methods
+    ensure_integrated_methods()
     default_methods = [
-        {'code': 'Efectivo', 'name': 'Efectivo', 'description': 'Cobro directo en efectivo / caja física.'},
-        {'code': 'Tarjeta', 'name': 'Tarjeta de Débito / Crédito', 'description': 'Pago con tarjeta mediante POS físico o terminal web.'},
-        {'code': 'MercadoPago / QR', 'name': 'MercadoPago / Código QR', 'description': 'Cobro digital escaneando código QR o billetera virtual.'},
-        {'code': 'Transferencia', 'name': 'Transferencia Bancaria', 'description': 'Transferencia bancaria directa con CBU / Alias.'},
+        {
+            'code': 'PAGOMOVIL',
+            'name': 'Pago Móvil',
+            'description': 'Validación manual: Pago mediante Pago Móvil interbancario (Cédula, Teléfono, Banco).'
+        },
+        {
+            'code': 'TRANSFERENCIA',
+            'name': 'Transferencia Bancaria',
+            'description': 'Validación manual: Transferencia bancaria directa con CBU / Alias / Número de Cuenta.'
+        },
     ]
 
     for item in default_methods:

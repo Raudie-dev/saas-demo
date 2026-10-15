@@ -121,20 +121,55 @@ def product_edit_view(request, product_id):
     suppliers = Supplier.objects.filter(business=business)
 
     if request.method == 'POST':
-        product.name = request.POST.get('name')
-        product.sku = request.POST.get('sku')
-        product.cost_price = parse_decimal(request.POST.get('cost_price'), '0.00')
-        product.sale_price = parse_decimal(request.POST.get('sale_price'), '0.00')
-        product.stock = parse_int(request.POST.get('stock'), 0)
-        product.min_stock = parse_int(request.POST.get('min_stock'), 5)
-        product.unit = request.POST.get('unit', 'Unidad')
+        name = request.POST.get('name')
+        if name and name.strip():
+            product.name = name.strip()
+
+        sku = request.POST.get('sku')
+        if sku and sku.strip():
+            product.sku = sku.strip()
+
+        cost_price_raw = request.POST.get('cost_price')
+        if cost_price_raw and cost_price_raw.strip():
+            product.cost_price = parse_decimal(cost_price_raw, product.cost_price)
+
+        sale_price_raw = request.POST.get('sale_price')
+        if sale_price_raw and sale_price_raw.strip():
+            product.sale_price = parse_decimal(sale_price_raw, product.sale_price)
+
+        stock_raw = request.POST.get('stock')
+        if stock_raw and stock_raw.strip():
+            product.stock = parse_int(stock_raw, product.stock)
+
+        min_stock_raw = request.POST.get('min_stock')
+        if min_stock_raw and min_stock_raw.strip():
+            product.min_stock = parse_int(min_stock_raw, product.min_stock)
+
+        unit = request.POST.get('unit')
+        if unit and unit.strip():
+            product.unit = unit.strip()
+
         category_id = request.POST.get('category_id')
+        if category_id is not None:
+            if category_id.strip():
+                product.category = ProductCategory.objects.filter(id=category_id, business=business).first()
+            else:
+                product.category = None
+
         supplier_id = request.POST.get('supplier_id')
+        if supplier_id is not None:
+            if supplier_id.strip():
+                product.supplier = Supplier.objects.filter(id=supplier_id, business=business).first()
+            else:
+                product.supplier = None
+
         branch_id = request.POST.get('branch_id')
-        
-        product.category = ProductCategory.objects.filter(id=category_id, business=business).first() if category_id else None
-        product.supplier = Supplier.objects.filter(id=supplier_id, business=business).first() if supplier_id else None
-        product.branch = Branch.objects.filter(id=branch_id, business=business).first() if branch_id else None
+        if branch_id is not None:
+            if branch_id.strip():
+                product.branch = Branch.objects.filter(id=branch_id, business=business).first()
+            else:
+                product.branch = None
+
         product.save()
         return redirect('inventory_list')
 

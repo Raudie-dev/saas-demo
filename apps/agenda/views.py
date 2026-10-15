@@ -265,14 +265,37 @@ def service_edit_view(request, service_id):
     categories = ServiceCategory.objects.filter(business=business)
 
     if request.method == 'POST':
-        service.name = request.POST.get('name')
+        name = request.POST.get('name')
+        if name and name.strip():
+            service.name = name.strip()
+
         category_id = request.POST.get('category_id')
-        service.category = ServiceCategory.objects.filter(id=category_id, business=business).first() if category_id else None
-        service.price = parse_decimal(request.POST.get('price'), '0.00')
-        service.duration_minutes = parse_int(request.POST.get('duration_minutes'), 45)
-        service.description = request.POST.get('description', '')
-        service.commission_rate = parse_decimal(request.POST.get('commission_rate'), '0.00')
+        if category_id is not None:
+            if category_id.strip():
+                service.category = ServiceCategory.objects.filter(id=category_id, business=business).first()
+            else:
+                service.category = None
+
+        price_raw = request.POST.get('price')
+        if price_raw and price_raw.strip():
+            service.price = parse_decimal(price_raw, service.price)
+
+        duration_raw = request.POST.get('duration_minutes')
+        if duration_raw and duration_raw.strip():
+            service.duration_minutes = parse_int(duration_raw, service.duration_minutes)
+
+        description_raw = request.POST.get('description')
+        if description_raw is not None:
+            service.description = description_raw.strip()
+
+        comm_raw = request.POST.get('commission_rate')
+        if comm_raw and comm_raw.strip():
+            service.commission_rate = parse_decimal(comm_raw, service.commission_rate)
+        elif comm_raw is not None and comm_raw.strip() == '':
+            service.commission_rate = Decimal('0.00')
+
         service.save()
+        messages.success(request, f"Servicio '{service.name}' actualizado exitosamente.")
         return redirect('service_list')
 
     return render(request, 'agenda/service_form.html', {

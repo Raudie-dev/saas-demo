@@ -7,6 +7,7 @@ from apps.business.models import Business, StaffMember, WorkSchedule, Branch
 from apps.agenda.models import Service, Appointment, ServiceCategory
 from apps.crm.models import Client
 from apps.ai_engine.models import AIAutomationLog
+from apps.core.utils import format_phone_with_prefix, split_phone_number
 
 def api_available_slots_view(request, business_slug):
     from django.http import Http404
@@ -164,6 +165,8 @@ def public_booking_view(request, business_slug):
     appointment_created = None
     portal_error_message = None
 
+    default_phone_prefix, _ = split_phone_number(business.phone if business else '')
+
     if request.method == 'POST':
         service_id = request.POST.get('service_id')
         staff_id = request.POST.get('staff_id')
@@ -178,7 +181,9 @@ def public_booking_view(request, business_slug):
             if len(parts) > 1 and not last_name:
                 last_name = parts[1]
         
-        phone = (request.POST.get('phone') or request.POST.get('client_phone', '')).strip()
+        client_phone_prefix = request.POST.get('client_phone_prefix', '').strip() or default_phone_prefix
+        raw_phone = (request.POST.get('phone') or request.POST.get('client_phone', '')).strip()
+        phone = format_phone_with_prefix(client_phone_prefix, raw_phone)
         email = (request.POST.get('email') or request.POST.get('client_email', '')).strip()
         
         service = Service.objects.filter(id=service_id, business=business).first() if service_id else services.first()
@@ -250,5 +255,6 @@ def public_booking_view(request, business_slug):
         'booking_success': booking_success,
         'appointment': appointment_created,
         'today_date': datetime.date.today().isoformat(),
+        'default_phone_prefix': default_phone_prefix,
         'portal_error_message': portal_error_message
     })
