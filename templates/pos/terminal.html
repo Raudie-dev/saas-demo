@@ -83,7 +83,7 @@
             </div>
             <div>
                 <span class="text-[11px] font-extrabold uppercase tracking-wider text-rose-200">Cobrando Cita Agendada</span>
-                <h4 class="font-extrabold text-sm">{{ appointment.client.full_name }} — {{ appointment.service.name }}</h4>
+                <h4 class="font-extrabold text-sm">{{ appointment.client.full_name }} — {{ appointment.services_summary }}</h4>
                 <p class="text-xs text-rose-100">Fecha: {{ appointment.date }} • Hora: {{ appointment.start_time }} • Importe: {{ business.currency }}{{ appointment.total_price }}</p>
             </div>
         </div>
@@ -1899,13 +1899,22 @@
         initServiceCombobox();
         initProductCombobox();
 
-        {% if appointment and appointment.service %}
-        selectedServices.push({
-            id: "{{ appointment.service.id }}",
-            name: "{{ appointment.service.name|escapejs }}",
-            price: parseFloat("{{ appointment.service.price|unlocalize }}") || 0,
-            quantity: 1
-        });
+        {% if appointment and appointment.appointment_services.exists %}
+            {% for app_srv in appointment.appointment_services.all %}
+            selectedServices.push({
+                id: "{{ app_srv.service.id }}",
+                name: "{{ app_srv.service.name|escapejs }}",
+                price: parseFloat("{{ app_srv.unit_price|unlocalize }}") || 0,
+                quantity: {{ app_srv.quantity }}
+            });
+            {% endfor %}
+        {% elif appointment and appointment.service %}
+            selectedServices.push({
+                id: "{{ appointment.service.id }}",
+                name: "{{ appointment.service.name|escapejs }}",
+                price: parseFloat("{{ appointment.service.price|unlocalize }}") || 0,
+                quantity: 1
+            });
         {% elif selected_service_id %}
         const preSrvOption = document.querySelector(`#service-selector option[value="{{ selected_service_id }}"]`);
         if (preSrvOption) {

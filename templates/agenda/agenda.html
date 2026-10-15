@@ -60,8 +60,18 @@
                                 {{ app.get_status_display }}
                             </span>
                         </div>
-                        <p class="text-sm text-slate-700 mt-1 font-medium">{{ app.service.name }}</p>
-                        <p class="text-xs text-slate-500 mt-0.5">Especialista: <span class="text-rose-900 font-bold">{{ app.staff.full_name }}</span> • Duración: {{ app.service.duration_minutes }} min</p>
+                        <p class="text-sm text-slate-800 mt-1 font-bold">{{ app.services_summary }}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">Especialista: <span class="text-rose-900 font-bold">{{ app.staff.full_name }}</span> • Duración total: {{ app.total_duration_minutes }} min</p>
+                        {% if app.appointment_services.all|length > 1 or app.appointment_services.first.quantity > 1 %}
+                        <div class="flex flex-wrap gap-1.5 mt-2">
+                            {% for item in app.appointment_services.all %}
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold bg-rose-50 text-rose-950 px-2 py-0.5 rounded-md border border-rose-200">
+                                <i data-lucide="scissors" class="w-3 h-3 text-rose-800"></i>
+                                {{ item.service.name }} <span class="font-extrabold text-rose-900">x{{ item.quantity }}</span>
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -83,7 +93,7 @@
                                 '{{ app.client.phone|escapejs }}',
                                 '{{ app.client.first_name|escapejs }}',
                                 '{{ app.client.full_name|escapejs }}',
-                                '{{ app.service.name|escapejs }}',
+                                '{{ app.services_summary|escapejs }}',
                                 '{{ app.date|date:'d/m/Y' }}',
                                 '{{ app.start_time }}',
                                 '{{ app.staff.full_name|escapejs }}',
@@ -109,7 +119,7 @@
                         <div id="export-menu-{{ app.id }}" class="hidden absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 z-30 py-1 font-medium text-xs">
                             <button type="button"
                                     onclick="exportToGoogleCalendar(
-                                        'Cita: {{ app.service.name|escapejs }} - {{ app.client.full_name|escapejs }}',
+                                        'Cita: {{ app.services_summary|escapejs }} - {{ app.client.full_name|escapejs }}',
                                         '{{ app.date|date:'Y-m-d'|default:app.date }}',
                                         '{{ app.start_time }}',
                                         '{{ app.end_time }}',
@@ -127,7 +137,7 @@
                             </button>
                             <button type="button"
                                     onclick="exportToAppleCalendar(
-                                        'Cita: {{ app.service.name|escapejs }} - {{ app.client.full_name|escapejs }}',
+                                        'Cita: {{ app.services_summary|escapejs }} - {{ app.client.full_name|escapejs }}',
                                         '{{ app.date|date:'Y-m-d'|default:app.date }}',
                                         '{{ app.start_time }}',
                                         '{{ app.end_time }}',

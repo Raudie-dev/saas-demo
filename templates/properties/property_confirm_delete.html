@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Propiedad · {{ current_business.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-12">
+    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center space-y-5">
+        <div class="w-16 h-16 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto border-2 border-red-100 shadow-inner">
+            <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+        </div>
+
+        <div class="space-y-1">
+            <h2 class="text-xl font-fun font-black text-slate-900">¿Eliminar Propiedad?</h2>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Estás a punto de eliminar <strong class="text-slate-800">{{ property.title }}</strong>. Esta acción no se puede deshacer.
+            </p>
+        </div>
+
+        {% if property.main_photo_url %}
+        <div class="aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+            <img src="{{ property.main_photo_url }}" class="w-full h-full object-cover">
+        </div>
+        {% endif %}
+
+        <form method="POST" class="flex items-center gap-3 pt-2">
+            {% csrf_token %}
+            <a href="{% url 'property_list' %}" class="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 transition text-center">
+                Cancelar
+            </a>
+            <button type="submit" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md transition">
+                Sí, Eliminar
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
