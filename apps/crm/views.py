@@ -12,6 +12,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from apps.business.models import Business
 from apps.crm.models import Client, ClientNote, Supplier
+from apps.core.utils import split_phone_number, format_phone_with_prefix
 
 @login_required
 def client_list_view(request):
@@ -35,32 +36,21 @@ def client_list_view(request):
         'query': query
     })
 
-def split_phone_number(phone_str):
-    if not phone_str:
-        return '+54', ''
-    prefixes = ['+598', '+595', '+591', '+593', '+507', '+506', '+502', '+503', '+504', '+505', '+592', '+597', '+54', '+56', '+51', '+57', '+52', '+58', '+34', '+55', '+1']
-    for p in prefixes:
-        if phone_str.startswith(p):
-            return p, phone_str[len(p):]
-    return '+54', phone_str
-
 @login_required
 def client_create_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
     
+    default_prefix, _ = split_phone_number(business.phone if business else '')
+
     if request.method == 'POST':
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
-        phone_prefix = request.POST.get('phone_prefix', '+54').strip()
+        phone_prefix = request.POST.get('phone_prefix', default_prefix).strip()
         phone_number = request.POST.get('phone_number', '').strip()
         
-        if phone_number.startswith('+'):
-            phone = phone_number
-        else:
-            clean_num = ''.join(filter(str.isdigit, phone_number))
-            phone = f"{phone_prefix}{clean_num}" if clean_num else "Sin teléfono"
+        phone = format_phone_with_prefix(phone_prefix, phone_number, default_prefix=default_prefix) or "Sin teléfono"
 
         email = request.POST.get('email', '')
         tax_id = request.POST.get('tax_id', '')
@@ -84,7 +74,7 @@ def client_create_view(request):
     return render(request, 'crm/client_form.html', {
         'business': business,
         'client': None,
-        'phone_prefix': '+54',
+        'phone_prefix': default_prefix,
         'phone_number': '',
         'title': 'Crear Nuevo Cliente'
     })
@@ -95,18 +85,15 @@ def client_edit_view(request, client_id):
     if not business:
         return redirect('onboarding')
     client = get_object_or_404(Client, id=client_id, business=business)
-    
+    default_prefix, _ = split_phone_number(business.phone if business else '')
+
     if request.method == 'POST':
         client.first_name = request.POST.get('first_name', '').strip()
         client.last_name = request.POST.get('last_name', '').strip()
         
-        phone_prefix = request.POST.get('phone_prefix', '+54').strip()
+        phone_prefix = request.POST.get('phone_prefix', default_prefix).strip()
         phone_number = request.POST.get('phone_number', '').strip()
-        if phone_number.startswith('+'):
-            client.phone = phone_number
-        else:
-            clean_num = ''.join(filter(str.isdigit, phone_number))
-            client.phone = f"{phone_prefix}{clean_num}" if clean_num else "Sin teléfono"
+        client.phone = format_phone_with_prefix(phone_prefix, phone_number, default_prefix=default_prefix) or "Sin teléfono"
 
         client.email = request.POST.get('email', '')
         client.tax_id = request.POST.get('tax_id', '')
@@ -225,12 +212,16 @@ def supplier_create_view(request):
     if not business:
         return redirect('onboarding')
     
+    default_prefix, _ = split_phone_number(business.phone if business else '')
+
     if request.method == 'POST':
         company_name = request.POST.get('company_name')
         contact_name = request.POST.get('contact_name', '')
         tax_id = request.POST.get('tax_id', '')
         email = request.POST.get('email', '')
-        phone = request.POST.get('phone', '')
+        phone_prefix = request.POST.get('phone_prefix', default_prefix).strip()
+        phone_number = request.POST.get('phone_number', '').strip() or request.POST.get('phone', '').strip()
+        phone = format_phone_with_prefix(phone_prefix, phone_number, default_prefix=default_prefix)
         address = request.POST.get('address', '')
         category = request.POST.get('category', 'Insumos Generales')
         
@@ -249,6 +240,8 @@ def supplier_create_view(request):
     return render(request, 'crm/supplier_form.html', {
         'business': business,
         'supplier': None,
+        'phone_prefix': default_prefix,
+        'phone_number': '',
         'title': 'Crear Nuevo Proveedor'
     })
 
@@ -258,21 +251,28 @@ def supplier_edit_view(request, supplier_id):
     if not business:
         return redirect('onboarding')
     supplier = get_object_or_404(Supplier, id=supplier_id, business=business)
-    
+    default_prefix, _ = split_phone_number(business.phone if business else '')
+
     if request.method == 'POST':
         supplier.company_name = request.POST.get('company_name')
         supplier.contact_name = request.POST.get('contact_name', '')
         supplier.tax_id = request.POST.get('tax_id', '')
         supplier.email = request.POST.get('email', '')
-        supplier.phone = request.POST.get('phone', '')
+        phone_prefix = request.POST.get('phone_prefix', default_prefix).strip()
+        phone_number = request.POST.get('phone_number', '').strip() or request.POST.get('phone', '').strip()
+        supplier.phone = format_phone_with_prefix(phone_prefix, phone_number, default_prefix=default_prefix)
         supplier.address = request.POST.get('address', '')
         supplier.category = request.POST.get('category', 'Insumos Generales')
         supplier.save()
         return redirect('supplier_list')
         
+    supp_prefix, supp_num = split_phone_number(supplier.phone, default_prefix=default_prefix)
+
     return render(request, 'crm/supplier_form.html', {
         'business': business,
         'supplier': supplier,
+        'phone_prefix': supp_prefix,
+        'phone_number': supp_num,
         'title': 'Editar Proveedor'
     })
 

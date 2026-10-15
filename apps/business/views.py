@@ -8,13 +8,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.utils.text import slugify
 from django.utils import timezone
 from apps.business.models import Business, Branch, StaffMember, WorkSchedule, PaymentMethodConfig, User, UserProfileRole, ensure_default_profiles
 from django.db.models import Count
-from apps.core.utils import parse_decimal, parse_int
+from apps.core.utils import parse_decimal, parse_int, format_phone_with_prefix, split_phone_number
 
 @ensure_csrf_cookie
 def landing_view(request):
@@ -118,7 +119,9 @@ def register_view(request):
         last_name = request.POST.get('last_name', '').strip()
         email = request.POST.get('email', '').strip().lower()
         password = request.POST.get('password', '')
-        phone = request.POST.get('phone', '').strip()
+        phone_prefix = request.POST.get('phone_prefix', '+54').strip()
+        phone_number = request.POST.get('phone_number', '').strip() or request.POST.get('phone', '').strip()
+        phone = format_phone_with_prefix(phone_prefix, phone_number)
         role = request.POST.get('role', 'OWNER')
 
         if User.objects.filter(email__iexact=email).exists() or User.objects.filter(username__iexact=email).exists():
@@ -127,6 +130,8 @@ def register_view(request):
                 'first_name': first_name,
                 'last_name': last_name,
                 'email': email,
+                'phone_prefix': phone_prefix,
+                'phone_number': phone_number,
                 'phone': phone,
             })
 
@@ -230,13 +235,10 @@ def onboarding_view(request):
         currency = request.POST.get('currency', '$')
         branding_color = request.POST.get('branding_color', '#881337')
         
-        phone_prefix = request.POST.get('phone_prefix', '')
+        phone_prefix = request.POST.get('phone_prefix', '').strip()
         phone_number = request.POST.get('phone_number', '').strip()
         if phone_number:
-            if phone_number.startswith(phone_prefix) or phone_number.startswith('+'):
-                phone = phone_number
-            else:
-                phone = f"{phone_prefix} {phone_number}".strip()
+            phone = format_phone_with_prefix(phone_prefix, phone_number)
         else:
             phone = ''
         
@@ -361,8 +363,12 @@ def onboarding_view(request):
     from apps.superadmin.models import Region
     all_regions = Region.objects.filter(is_active=True).exclude(code='GLOBAL').order_by('name')
 
+    biz_prefix, biz_num = split_phone_number(business.phone if business else '')
+
     return render(request, 'business/onboarding.html', {
         'business': business,
+        'business_phone_prefix': biz_prefix,
+        'business_phone_number': biz_num,
         'agency_profiles': agency_profiles,
         'all_modules': all_modules,
         'all_regions': all_regions,
@@ -402,7 +408,9 @@ def business_config_view(request):
             branch_id = request.POST.get('branch_id')
             b_name = request.POST.get('branch_name', '').strip()
             b_address = request.POST.get('branch_address', '').strip()
-            b_phone = request.POST.get('branch_phone', '').strip()
+            b_prefix = request.POST.get('branch_phone_prefix', '').strip()
+            b_phone_raw = request.POST.get('branch_phone', '').strip()
+            b_phone = format_phone_with_prefix(b_prefix, b_phone_raw) if b_phone_raw else ''
             b_maps_url = request.POST.get('google_maps_url', '').strip()
             is_main = request.POST.get('is_main') in ['on', 'true', '1']
 
@@ -459,16 +467,12 @@ def business_config_view(request):
         business.tax_id = request.POST.get('tax_id', business.tax_id).strip()
         business.email = request.POST.get('email', business.email).strip()
         
-        phone_prefix = request.POST.get('phone_prefix', '')
+        phone_prefix = request.POST.get('phone_prefix', '').strip()
         phone_number = request.POST.get('phone_number', '').strip()
         if phone_number:
-            if phone_number.startswith(phone_prefix) or phone_number.startswith('+'):
-                business.phone = phone_number
-            else:
-                business.phone = f"{phone_prefix} {phone_number}".strip()
-        else:
-            # Fallback for old behaviour just in case
-            business.phone = request.POST.get('phone', business.phone).strip()
+            business.phone = format_phone_with_prefix(phone_prefix, phone_number)
+        elif request.POST.get('phone'):
+            business.phone = request.POST.get('phone').strip()
         import base64
         from django.core.files.base import ContentFile
 
@@ -660,8 +664,12 @@ def business_config_view(request):
     except Exception:
         gw_status = {'online': False, 'status': 'offline'}
 
+    biz_prefix, biz_num = split_phone_number(business.phone if business else '')
+
     return render(request, 'business/config_company.html', {
         'business': business,
+        'business_phone_prefix': biz_prefix,
+        'business_phone_number': biz_num,
         'branches': branches,
         'payment_methods': payment_methods,
         'all_modules': all_modules,
@@ -704,13 +712,14 @@ def user_profile_config_view(request):
         elif action == 'UPDATE_PROFILE':
             user_first_name = request.POST.get('user_first_name', '').strip()
             user_last_name = request.POST.get('user_last_name', '').strip()
-            user_phone = request.POST.get('user_phone', '').strip()
+            user_phone_prefix = request.POST.get('user_phone_prefix', '').strip()
+            user_phone_number = request.POST.get('user_phone_number', '').strip() or request.POST.get('user_phone', '').strip()
             if user_first_name:
                 request.user.first_name = user_first_name
             if user_last_name:
                 request.user.last_name = user_last_name
-            if user_phone:
-                request.user.phone = user_phone
+            if user_phone_number:
+                request.user.phone = format_phone_with_prefix(user_phone_prefix, user_phone_number)
             request.user.save()
             messages.success(request, "¡Información de tu perfil actualizada correctamente!")
             return redirect('user_profile_config')
@@ -809,11 +818,17 @@ def user_profile_config_view(request):
     if business and business.region:
         billing_methods = RegionPaymentMethod.objects.filter(region=business.region, is_active=True, use_for_billing=True)
 
+    default_prefix, _ = split_phone_number(business.phone if business else '')
+    user_prefix, user_num = split_phone_number(request.user.phone, default_prefix=default_prefix)
+
     return render(request, 'business/config_user.html', {
         'business': business,
         'subscription': subscription,
         'available_plans': available_plans,
         'billing_methods': billing_methods,
+        'default_phone_prefix': default_prefix,
+        'user_phone_prefix': user_prefix,
+        'user_phone_number': user_num,
     })
 
 @login_required(login_url='login')
@@ -906,6 +921,67 @@ def subscription_billing_view(request):
                 messages.error(request, "Por favor completa el método de pago y el importe para informar el pago.")
             return redirect('subscription_billing')
 
+        elif action == 'PAY_GATEWAY':
+            from apps.superadmin import payment_gateways as gateways
+            plan_id = request.POST.get('plan_id')
+            billing_cycle = 'ANNUAL' if request.POST.get('billing_cycle') == 'ANNUAL' else 'MONTHLY'
+            plan = SubscriptionPlan.objects.filter(id=plan_id, is_active=True).first()
+            if not plan:
+                messages.error(request, "Selecciona un plan válido para pagar.")
+                return redirect('subscription_billing')
+
+            # Solo se aceptan pasarelas habilitadas para la región de la empresa (o GLOBAL como fallback)
+            allowed_regions = [c for c in [getattr(business.region, 'code', None), 'GLOBAL'] if c]
+            rpm = RegionPaymentMethod.objects.filter(
+                id=request.POST.get('region_payment_method_id'),
+                region__code__in=allowed_regions, is_active=True, use_for_billing=True,
+                payment_method__is_active=True,
+            ).exclude(payment_method__provider='').select_related('payment_method').first()
+            provider = rpm.payment_method.provider if rpm else None
+            if not rpm or not gateways.is_available(provider, business.region):
+                messages.error(request, "Este método de pago no está disponible en tu región.")
+                return redirect('subscription_billing')
+
+            amount = plan.annual_price if billing_cycle == 'ANNUAL' else plan.monthly_price
+            rp = PlanRegionPricing.objects.filter(plan=plan, region=business.region, is_active=True).first()
+            if rp:
+                amount = rp.annual_price if billing_cycle == 'ANNUAL' else rp.monthly_price
+
+            try:
+                redirect_url = gateways.start(
+                    provider, request=request, business=business, plan=plan,
+                    billing_cycle=billing_cycle, amount=amount, rpm=rpm,
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).exception("Error iniciando pasarela %s", provider)
+                messages.error(request, f"No se pudo iniciar el pago con {rpm.payment_method.name}. Intenta nuevamente.")
+                return redirect('subscription_billing')
+
+            SystemAuditLog.objects.create(
+                actor_email=request.user.email or request.user.username,
+                action="PAGO_PASARELA_INICIADO",
+                details=f"La agencia '{business.name}' inició un pago de {amount} ({billing_cycle}) vía {rpm.payment_method.name}.",
+            )
+            return redirect(redirect_url)
+
+        elif action == 'CANCEL_RECURRING':
+            from apps.superadmin import mercadopago as mp
+            sub = BusinessSubscription.objects.filter(business=business).first()
+            if sub and sub.has_active_recurring:
+                try:
+                    if sub.gateway_provider == 'MERCADOPAGO_SUBSCRIPTION':
+                        mp.cancel_subscription(sub)
+                    SystemAuditLog.objects.create(
+                        actor_email=request.user.email or request.user.username,
+                        action="DEBITO_AUTOMATICO_CANCELADO",
+                        details=f"La agencia '{business.name}' canceló su débito automático ({sub.gateway_subscription_id}).",
+                    )
+                    messages.success(request, "Débito automático cancelado. Tu licencia sigue vigente hasta su fecha de vencimiento.")
+                except mp.MercadoPagoError:
+                    messages.error(request, "No se pudo cancelar el débito automático. Intenta nuevamente.")
+            return redirect('subscription_billing')
+
     subscription, _ = BusinessSubscription.objects.get_or_create(
         business=business,
         defaults={
@@ -980,6 +1056,17 @@ def subscription_billing_view(request):
     current_users_count = business.users.count()
     current_branches_count = business.branches.count()
 
+    from apps.superadmin.payment_gateways import is_available, get_provider
+    gateway_methods, manual_methods = [], []
+    for rm in billing_methods:
+        provider = rm.payment_method.provider
+        if provider:
+            if rm.payment_method.is_active and is_available(provider, business.region):
+                rm.gateway = get_provider(provider)
+                gateway_methods.append(rm)
+        else:
+            manual_methods.append(rm)
+
     return render(request, 'business/subscription_billing.html', {
         'business': business,
         'subscription': subscription,
@@ -987,11 +1074,93 @@ def subscription_billing_view(request):
         'all_regions': all_regions,
         'currency_symbol': currency_symbol,
         'available_plans': available_plans,
-        'billing_methods': billing_methods,
+        'billing_methods': manual_methods,
+        'gateway_methods': gateway_methods,
         'payment_history': payment_history,
         'current_users_count': current_users_count,
         'current_branches_count': current_branches_count,
     })
+
+
+@login_required(login_url='login')
+def mercadopago_return_view(request):
+    """Retorno del usuario desde Mercado Pago. Verifica el estado contra la API de MP."""
+    from apps.superadmin import mercadopago as mp
+    business = getattr(request, 'current_business', None) or request.user.business
+    region = getattr(business, 'region', None)
+
+    # Retorno de suscripción (débito automático)
+    preapproval_id = request.GET.get('preapproval_id')
+    if request.GET.get('type') == 'subscription' or preapproval_id:
+        status = None
+        if preapproval_id:
+            try:
+                sub = mp.sync_preapproval(preapproval_id, region)
+                if sub and sub.business_id == getattr(business, 'id', None):
+                    status = sub.recurring_status
+            except mp.MercadoPagoError:
+                pass
+        if status == 'authorized':
+            messages.success(request, "¡Débito automático activado! La licencia se renovará con cada cobro aprobado.")
+        elif status == 'cancelled':
+            messages.error(request, "La suscripción con débito automático no se completó.")
+        else:
+            messages.info(request, "Estamos esperando la confirmación de Mercado Pago. Tu licencia se actualizará automáticamente.")
+        return redirect('subscription_billing')
+
+    # Retorno de Checkout Pro (pago único)
+    mp_payment_id = request.GET.get('payment_id') or request.GET.get('collection_id')
+    status = request.GET.get('status') or request.GET.get('collection_status')
+    if mp_payment_id and mp_payment_id != 'null':
+        try:
+            payment = mp.sync_payment_from_mp(mp_payment_id, region)
+            if payment and payment.business_id == getattr(business, 'id', None):
+                status = payment.mp_status or status
+        except mp.MercadoPagoError:
+            pass
+
+    if status == 'approved':
+        messages.success(request, "¡Pago aprobado por Mercado Pago! Tu suscripción fue renovada automáticamente.")
+    elif status in ('pending', 'in_process'):
+        messages.info(request, "Tu pago está pendiente de acreditación en Mercado Pago. Se activará automáticamente al confirmarse.")
+    else:
+        messages.error(request, "El pago no se completó en Mercado Pago. Puedes intentarlo nuevamente.")
+    return redirect('subscription_billing')
+
+
+@csrf_exempt
+@require_POST
+def mercadopago_webhook_view(request):
+    """
+    Webhook de notificaciones de Mercado Pago. Siempre consulta el recurso en la API
+    (fuente de verdad), por lo que no se confía en el contenido de la notificación.
+    `?region=XX` indica qué credenciales usar.
+    """
+    from django.http import HttpResponse
+    from apps.superadmin import mercadopago as mp
+
+    region = request.GET.get('region') or None
+    topic = request.GET.get('type') or request.GET.get('topic')
+    resource_id = request.GET.get('data.id') or request.GET.get('id')
+    try:
+        body = json.loads(request.body or b'{}')
+        topic = body.get('type') or body.get('topic') or topic
+        resource_id = (body.get('data') or {}).get('id') or resource_id
+    except (ValueError, AttributeError):
+        pass
+
+    if not resource_id:
+        return HttpResponse(status=200)
+    try:
+        if topic == 'payment':
+            mp.sync_payment_from_mp(resource_id, region)
+        elif topic in ('subscription_preapproval', 'preapproval'):
+            mp.sync_preapproval(resource_id, region)
+        elif topic in ('subscription_authorized_payment', 'authorized_payment'):
+            mp.sync_authorized_payment(resource_id, region)
+    except mp.MercadoPagoError:
+        return HttpResponse(status=500)  # MP reintentará
+    return HttpResponse(status=200)
 
 @login_required
 def staff_list_view(request):
@@ -1017,11 +1186,15 @@ def staff_create_view(request):
         return redirect('onboarding')
     branches = Branch.objects.filter(business=business) if business else []
     
+    default_prefix, _ = split_phone_number(business.phone if business else '')
+
     if request.method == 'POST':
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
         email = request.POST.get('email', '')
-        phone = request.POST.get('phone', '')
+        phone_prefix = request.POST.get('phone_prefix', default_prefix).strip()
+        phone_number = request.POST.get('phone_number', '').strip() or request.POST.get('phone', '').strip()
+        phone = format_phone_with_prefix(phone_prefix, phone_number, default_prefix=default_prefix)
         role_title = request.POST.get('role_title', 'Especialista')
         commission_rate = parse_decimal(request.POST.get('commission_rate'), '0.00')
         base_salary = parse_decimal(request.POST.get('base_salary'), '0.00')
@@ -1070,6 +1243,9 @@ def staff_create_view(request):
         'business': business,
         'staff': None,
         'branches': branches,
+        'default_phone_prefix': default_prefix,
+        'staff_phone_prefix': default_prefix,
+        'staff_phone_number': '',
         'title': 'Registrar Nuevo Profesional / Empleado'
     })
 
@@ -1080,12 +1256,15 @@ def staff_edit_view(request, staff_id):
         return redirect('onboarding')
     staff = get_object_or_404(StaffMember, id=staff_id, business=business)
     branches = Branch.objects.filter(business=business)
-    
+    default_prefix, _ = split_phone_number(business.phone if business else '')
+
     if request.method == 'POST':
         staff.first_name = request.POST.get('first_name')
         staff.last_name = request.POST.get('last_name')
         staff.email = request.POST.get('email', '')
-        staff.phone = request.POST.get('phone', '')
+        phone_prefix = request.POST.get('phone_prefix', default_prefix).strip()
+        phone_number = request.POST.get('phone_number', '').strip() or request.POST.get('phone', '').strip()
+        staff.phone = format_phone_with_prefix(phone_prefix, phone_number, default_prefix=default_prefix)
         staff.role_title = request.POST.get('role_title', 'Especialista')
         staff.commission_rate = parse_decimal(request.POST.get('commission_rate'), '0.00')
         staff.base_salary = parse_decimal(request.POST.get('base_salary'), '0.00')
@@ -1109,10 +1288,15 @@ def staff_edit_view(request, staff_id):
 
         return redirect('staff_list')
         
+    staff_prefix, staff_num = split_phone_number(staff.phone, default_prefix=default_prefix)
+
     return render(request, 'business/staff_form.html', {
         'business': business,
         'staff': staff,
         'branches': branches,
+        'default_phone_prefix': default_prefix,
+        'staff_phone_prefix': staff_prefix,
+        'staff_phone_number': staff_num,
         'title': f'Editar Profesional: {staff.full_name}'
     })
 
@@ -1322,17 +1506,26 @@ def booking_portal_config_view(request):
             elif 'banner_url' in request.FILES:
                 business.banner_url = request.FILES['banner_url']
 
-            business.description = request.POST.get('description', business.description).strip() or None
-            business.whatsapp_number = request.POST.get('whatsapp_number', business.whatsapp_number).strip() or None
+            wa_pfx = request.POST.get('whatsapp_prefix', '').strip()
+            wa_num = request.POST.get('whatsapp_number', '').strip()
+            if wa_num:
+                business.whatsapp_number = format_phone_with_prefix(wa_pfx, wa_num)
+            else:
+                business.whatsapp_number = None
             business.save()
             messages.success(request, "¡Detalles y personalización del perfil público actualizados!")
             return redirect('booking_portal_config')
 
     full_booking_url = request.build_absolute_uri(f"/reservas/{business.slug}/")
+    default_prefix, _ = split_phone_number(business.phone if business else '')
+    wa_prefix, wa_number = split_phone_number(business.whatsapp_number or '', default_prefix=default_prefix)
 
     return render(request, 'business/booking_portal_config.html', {
         'business': business,
         'full_booking_url': full_booking_url,
+        'default_phone_prefix': default_prefix,
+        'wa_prefix': wa_prefix,
+        'wa_number': wa_number,
     })
 
 
@@ -1437,11 +1630,15 @@ def user_create_view(request):
     roles = UserProfileRole.objects.filter(business=business).order_by('name')
     available_staff = StaffMember.objects.filter(business=business, is_active=True).select_related('user').order_by('first_name')
 
+    default_prefix, _ = split_phone_number(business.phone if business else '')
+
     if request.method == 'POST':
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         email = request.POST.get('email', '').strip().lower()
-        phone = request.POST.get('phone', '').strip()
+        phone_prefix = request.POST.get('phone_prefix', default_prefix).strip()
+        phone_number = request.POST.get('phone_number', '').strip() or request.POST.get('phone', '').strip()
+        phone = format_phone_with_prefix(phone_prefix, phone_number, default_prefix=default_prefix)
         password = request.POST.get('password', '')
         password_confirm = request.POST.get('password_confirm', '')
         profile_role_id = request.POST.get('profile_role_id')
@@ -1508,6 +1705,9 @@ def user_create_view(request):
         'roles': roles,
         'available_staff': available_staff,
         'edit_user': None,
+        'default_phone_prefix': default_prefix,
+        'user_phone_prefix': default_prefix,
+        'user_phone_number': '',
         'title': 'Crear Nuevo Usuario',
     })
 
@@ -1529,10 +1729,14 @@ def user_edit_view(request, user_id):
     is_editing_self = (request.user.id == user_obj.id)
     is_owner = (user_obj.role == 'OWNER')
 
+    default_prefix, _ = split_phone_number(business.phone if business else '')
+
     if request.method == 'POST':
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
-        phone = request.POST.get('phone', '').strip()
+        phone_prefix = request.POST.get('phone_prefix', default_prefix).strip()
+        phone_number = request.POST.get('phone_number', '').strip() or request.POST.get('phone', '').strip()
+        user_obj.phone = format_phone_with_prefix(phone_prefix, phone_number, default_prefix=default_prefix)
         new_password = request.POST.get('new_password', '').strip()
         profile_role_id = request.POST.get('profile_role_id')
         staff_member_id = request.POST.get('staff_member_id')
@@ -1540,7 +1744,6 @@ def user_edit_view(request, user_id):
 
         user_obj.first_name = first_name
         user_obj.last_name = last_name
-        user_obj.phone = phone
 
         if not is_owner and not is_editing_self:
             user_obj.is_active = is_active_val
@@ -1585,6 +1788,8 @@ def user_edit_view(request, user_id):
         messages.success(request, f"¡Usuario {user_obj.email} actualizado correctamente!")
         return redirect('user_list')
 
+    user_prefix, user_num = split_phone_number(user_obj.phone, default_prefix=default_prefix)
+
     return render(request, 'business/user_form.html', {
         'business': business,
         'roles': roles,
@@ -1592,6 +1797,9 @@ def user_edit_view(request, user_id):
         'edit_user': user_obj,
         'is_editing_self': is_editing_self,
         'is_owner': is_owner,
+        'default_phone_prefix': default_prefix,
+        'user_phone_prefix': user_prefix,
+        'user_phone_number': user_num,
         'title': f'Editar Usuario: {user_obj.get_full_name() or user_obj.username}',
     })
 

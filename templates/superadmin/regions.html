@@ -45,7 +45,7 @@
                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border {% if data.region.is_active %}bg-emerald-50 text-emerald-800 border-emerald-200{% else %}bg-slate-100 text-slate-500 border-slate-300{% endif %}">
                         {% if data.region.is_active %}Activa{% else %}Inactiva{% endif %}
                     </span>
-                    <button type="button" onclick="openEditRegionModal('{{ data.region.id }}', '{{ data.region.name|escapejs }}', '{{ data.region.code|escapejs }}', '{{ data.region.currency_symbol|escapejs }}', '{{ data.region.country_codes|default:''|escapejs }}', {% if data.region.is_active %}true{% else %}false{% endif %})" class="text-[11px] font-bold text-brand-700 hover:text-brand-900 transition flex items-center gap-1 cursor-pointer">
+                    <button type="button" onclick="openEditRegionModal('{{ data.region.id }}', '{{ data.region.name|escapejs }}', '{{ data.region.code|escapejs }}', '{{ data.region.currency_symbol|escapejs }}', '{{ data.region.country_codes|default:''|escapejs }}', {% if data.region.is_active %}true{% else %}false{% endif %}, '{{ data.region.currency_code|default:''|escapejs }}')" class="text-[11px] font-bold text-brand-700 hover:text-brand-900 transition flex items-center gap-1 cursor-pointer">
                         <i data-lucide="edit-2" class="w-3 h-3"></i> Editar Región
                     </button>
                 </div>
@@ -73,10 +73,21 @@
                                 <span class="text-[9px] font-mono font-bold text-slate-400 bg-white px-1 border border-slate-200 rounded">{{ method_data.global_method.code }}</span>
                             </div>
 
+                            {% if method_data.global_method.is_integrated %}
+                            <div class="pl-5 flex flex-wrap items-center gap-2 text-[10px] font-bold">
+                                <span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-800">Pasarela online</span>
+                                {% if method_data.credentials_ok %}
+                                <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">Credenciales listas</span>
+                                {% else %}
+                                <span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">Falta token (MERCADOPAGO_ACCESS_TOKEN o MERCADOPAGO_ACCESS_TOKEN_{{ data.region.code }})</span>
+                                {% endif %}
+                            </div>
+                            {% else %}
                             <div class="pl-5 space-y-2">
                                 <textarea name="method_{{ method_data.global_method.id }}_instructions" rows="2" placeholder="Instrucciones (ej: CBU / Alias para esta región, CUIT, datos bancarios...)" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-[11px] text-slate-700 focus:outline-none focus:border-brand-500">{% if method_data.region_config %}{{ method_data.region_config.instructions|default:'' }}{% else %}{{ method_data.global_method.description|default:'' }}{% endif %}</textarea>
                                 <input type="url" name="method_{{ method_data.global_method.id }}_payment_url" value="{% if method_data.region_config %}{{ method_data.region_config.payment_url|default:'' }}{% endif %}" placeholder="Enlace directo de pago / Checkout (Opcional, ej: https://mpago.la/... o Stripe)" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-700 focus:outline-none focus:border-brand-500">
                             </div>
+                            {% endif %}
 
                         </div>
                         {% endfor %}
@@ -134,6 +145,10 @@
                     <label class="block font-bold text-slate-800 mb-1">Símbolo de Moneda</label>
                     <input type="text" id="region_currency" name="currency_symbol" required placeholder="Ej: $, AR$, CLP" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
                 </div>
+                <div class="col-span-2">
+                    <label class="block font-bold text-slate-800 mb-1">Moneda ISO para pasarelas (Mercado Pago, etc.)</label>
+                    <input type="text" id="region_currency_code" name="currency_code" maxlength="3" placeholder="Ej: ARS, CLP, MXN, UYU" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-mono font-bold uppercase focus:outline-none focus:border-brand-900">
+                </div>
             </div>
 
             <div>
@@ -186,13 +201,14 @@ function openCreateRegionModal() {
         select.options[i].selected = false;
     }
     document.getElementById('region_currency').value = '$';
+    document.getElementById('region_currency_code').value = '';
     document.getElementById('region_is_active').checked = true;
 
     document.getElementById('regionModal').classList.remove('hidden');
     if (window.lucide) lucide.createIcons();
 }
 
-function openEditRegionModal(id, name, code, currency, countryCodes, isActive) {
+function openEditRegionModal(id, name, code, currency, countryCodes, isActive, currencyCode) {
     document.getElementById('modalTitle').innerText = 'Editar Región: ' + name;
     document.getElementById('region_action').value = 'UPDATE';
     document.getElementById('region_id').value = id;
@@ -205,6 +221,7 @@ function openEditRegionModal(id, name, code, currency, countryCodes, isActive) {
         select.options[i].selected = selectedCodes.includes(select.options[i].value);
     }
     document.getElementById('region_currency').value = currency;
+    document.getElementById('region_currency_code').value = currencyCode || '';
     document.getElementById('region_is_active').checked = isActive;
 
     document.getElementById('regionModal').classList.remove('hidden');

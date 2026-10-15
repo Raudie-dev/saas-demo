@@ -46,6 +46,13 @@ class BusinessSubscription(TimeStampedModel):
     expiration_date = models.DateField(verbose_name="Fecha de Expiración")
     auto_renew = models.BooleanField(default=True, verbose_name="Renovación Automática")
     notes = models.TextField(blank=True, null=True, verbose_name="Notas Internas de Administración")
+    gateway_provider = models.CharField(max_length=50, blank=True, null=True, verbose_name="Pasarela de Cobro Recurrente")
+    gateway_subscription_id = models.CharField(max_length=100, blank=True, null=True, db_index=True, verbose_name="ID Suscripción en Pasarela")
+    recurring_status = models.CharField(max_length=30, blank=True, null=True, verbose_name="Estado Débito Automático")
+
+    @property
+    def has_active_recurring(self):
+        return bool(self.gateway_subscription_id) and self.recurring_status in ('pending', 'authorized')
 
     class Meta:
         verbose_name = "Suscripción de Agencia"
@@ -86,6 +93,7 @@ class GlobalPaymentMethod(TimeStampedModel):
     name = models.CharField(max_length=100, unique=True, verbose_name="Nombre del Método de Pago")
     code = models.CharField(max_length=50, unique=True, verbose_name="Código Identificador (ej: CASH, CARD, MERCADOPAGO)")
     description = models.TextField(blank=True, null=True, verbose_name="Descripción o Instrucciones Generales")
+    provider = models.CharField(max_length=50, blank=True, default='', verbose_name="Integración (pasarela por código)")
     is_active = models.BooleanField(default=True, verbose_name="Habilitado Globalmente")
 
     class Meta:
@@ -96,11 +104,16 @@ class GlobalPaymentMethod(TimeStampedModel):
     def __str__(self):
         return f"{self.name} ({'Activo' if self.is_active else 'Inactivo'})"
 
+    @property
+    def is_integrated(self):
+        return bool(self.provider)
+
 class Region(TimeStampedModel):
     name = models.CharField(max_length=100, unique=True, verbose_name="Nombre de la Región")
     code = models.CharField(max_length=50, unique=True, verbose_name="Código (ej: AR, CL, GLOBAL)")
     country_codes = models.CharField(max_length=200, blank=True, null=True, verbose_name="Códigos de País para Auto-detección (ej: AR, CL, UY)")
     currency_symbol = models.CharField(max_length=10, default="$", verbose_name="Símbolo de Moneda Default")
+    currency_code = models.CharField(max_length=3, blank=True, default='', verbose_name="Moneda ISO para pasarelas (ej: ARS, CLP, MXN)")
     is_active = models.BooleanField(default=True, verbose_name="Región Activa")
     is_default = models.BooleanField(default=False, verbose_name="Región por Defecto")
 
@@ -168,6 +181,9 @@ class SubscriptionPayment(TimeStampedModel):
     reviewed_at = models.DateTimeField(blank=True, null=True, verbose_name="Fecha de Revisión")
     reviewed_by = models.ForeignKey('SuperAdminUser', on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_payments")
     notes = models.TextField(blank=True, null=True, verbose_name="Notas del Administrador")
+    mp_preference_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="ID Preferencia Mercado Pago")
+    mp_payment_id = models.CharField(max_length=100, blank=True, null=True, db_index=True, verbose_name="ID Pago Mercado Pago")
+    mp_status = models.CharField(max_length=30, blank=True, null=True, verbose_name="Estado en Mercado Pago")
 
     class Meta:
         verbose_name = "Pago de Suscripción"
