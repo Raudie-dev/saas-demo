@@ -16,7 +16,7 @@ if not SECRET_KEY:
         raise ValueError("CRITICAL: SECRET_KEY must be set in environment variables for production!")
     SECRET_KEY = 'django-insecure-dev-key-change-me'
 
-DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
+DEBUG = False
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
