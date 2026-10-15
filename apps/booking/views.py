@@ -1,10 +1,11 @@
 import datetime
 from decimal import Decimal
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from apps.business.models import Business, StaffMember, WorkSchedule, Branch
-from apps.agenda.models import Service, Appointment, ServiceCategory
+from apps.agenda.models import Service, Appointment, ServiceCategory, AppointmentService
 from apps.crm.models import Client
 from apps.ai_engine.models import AIAutomationLog
 from apps.core.utils import format_phone_with_prefix, split_phone_number
@@ -161,6 +162,43 @@ def public_booking_view(request, business_slug):
         )
         staff_members = StaffMember.objects.filter(business=business, is_active=True)
     
+    # Check if business is real estate or has properties module enabled
+    from apps.properties.models import Property
+    is_real_estate = (business.business_type == 'REAL_ESTATE') or business.is_module_enabled('properties') or Property.objects.filter(business=business).exists()
+    
+    properties_qs = Property.objects.none()
+    properties_catalog_json = "[]"
+    if is_real_estate or business.is_module_enabled('properties'):
+        properties_qs = Property.objects.filter(business=business, status='AVAILABLE').order_by('-is_featured', '-created_at')
+        properties_catalog_json = json.dumps([
+            {
+                'id': str(p.id),
+                'title': p.title,
+                'reference_code': p.reference_code or '',
+                'operation_type': p.operation_type,
+                'operation_display': p.get_operation_type_display(),
+                'property_type': p.property_type,
+                'type_display': p.get_property_type_display(),
+                'price': float(p.price),
+                'formatted_price': p.formatted_price,
+                'currency': p.currency,
+                'expenses': p.formatted_expenses or '',
+                'address': p.address,
+                'zone': p.zone,
+                'bedrooms': p.bedrooms,
+                'bathrooms': p.bathrooms,
+                'garages': p.garages,
+                'total_surface': float(p.total_surface) if p.total_surface else 0,
+                'covered_surface': float(p.covered_surface) if p.covered_surface else 0,
+                'portal_url': p.portal_url or '',
+                'portal_display_name': p.portal_display_name,
+                'photos': [photo['url'] for photo in p.photos_list],
+                'main_photo': p.main_photo_url or '/static/images/property_placeholder.png',
+                'description': p.description or '',
+            }
+            for p in properties_qs
+        ])
+
     booking_success = False
     appointment_created = None
     portal_error_message = None
@@ -168,7 +206,6 @@ def public_booking_view(request, business_slug):
     default_phone_prefix, _ = split_phone_number(business.phone if business else '')
 
     if request.method == 'POST':
-        service_id = request.POST.get('service_id')
         staff_id = request.POST.get('staff_id')
         date_str = request.POST.get('date') or request.POST.get('booking_date') or datetime.date.today().isoformat()
         time_str = request.POST.get('time') or request.POST.get('booking_time') or '10:00'
@@ -185,10 +222,55 @@ def public_booking_view(request, business_slug):
         raw_phone = (request.POST.get('phone') or request.POST.get('client_phone', '')).strip()
         phone = format_phone_with_prefix(client_phone_prefix, raw_phone)
         email = (request.POST.get('email') or request.POST.get('client_email', '')).strip()
+
+        # Check for property booking (inmobiliaria visit)
+        property_id = request.POST.get('property_id')
+        selected_property = None
+        if property_id:
+            selected_property = Property.objects.filter(id=property_id, business=business).first()
         
-        service = Service.objects.filter(id=service_id, business=business).first() if service_id else services.first()
-        if not service:
-            service = services.first()
+        # Parse multiple services or same service multiple times
+        services_items = []
+        services_data = request.POST.get('services_data')
+        if services_data:
+            try:
+                parsed = json.loads(services_data)
+                if isinstance(parsed, list):
+                    for item in parsed:
+                        s_id = item.get('id')
+                        try:
+                            qty = max(1, int(item.get('quantity', 1)))
+                        except (ValueError, TypeError):
+                            qty = 1
+                        srv = Service.objects.filter(id=s_id, business=business).first()
+                        if srv:
+                            services_items.append((srv, qty))
+            except Exception:
+                pass
+
+        # Fallback to single service_id
+        if not services_items and not selected_property:
+            service_id = request.POST.get('service_id')
+            service = Service.objects.filter(id=service_id, business=business).first() if service_id else services.first()
+            if service:
+                services_items.append((service, 1))
+
+        # Real estate visit fallback service if no services provided
+        if not services_items and selected_property:
+            visit_service, _ = Service.objects.get_or_create(
+                business=business,
+                name="Visita a Propiedad",
+                defaults={
+                    'description': f"Coordinación de visita a {selected_property.title}",
+                    'duration_minutes': 45,
+                    'price': Decimal('0.00'),
+                    'is_active': True
+                }
+            )
+            services_items.append((visit_service, 1))
+
+        if not services_items and services.exists():
+            services_items.append((services.first(), 1))
 
         staff = StaffMember.objects.filter(id=staff_id, business=business).first() if staff_id else staff_members.first()
         if not staff:
@@ -206,48 +288,89 @@ def public_booking_view(request, business_slug):
             }
         )
         
+        total_duration = sum(srv.duration_minutes * qty for srv, qty in services_items)
+        total_price = sum(srv.price * qty for srv, qty in services_items)
+        primary_service = services_items[0][0] if services_items else None
+
         # calculate end time
         try:
             st = datetime.datetime.strptime(time_str, "%H:%M")
         except ValueError:
             st = datetime.datetime.strptime("10:00", "%H:%M")
 
-        duration = service.duration_minutes if service else 45
+        duration = max(total_duration, 15)
         et = st + datetime.timedelta(minutes=duration)
         end_time = et.strftime("%H:%M")
         
+        notes_text = f"Visita a propiedad: {selected_property.title} ({selected_property.address})" if selected_property else None
+
         appointment_created = Appointment.objects.create(
             business=business,
             client=client,
             staff=staff,
-            service=service,
+            service=primary_service,
+            related_property=selected_property,
             date=date_str,
             start_time=time_str,
             end_time=end_time,
-            total_price=service.price if service else Decimal("0.00"),
-            deposit_amount=(service.price * Decimal('0.30')) if service and hasattr(service, 'price') else Decimal("0.00"),
-            status='CONFIRMED'
+            total_price=total_price,
+            deposit_amount=(total_price * Decimal('0.30')),
+            status='CONFIRMED',
+            notes=notes_text
         )
+
+        for srv, qty in services_items:
+            AppointmentService.objects.create(
+                appointment=appointment_created,
+                service=srv,
+                quantity=qty,
+                unit_price=srv.price,
+                duration_minutes=srv.duration_minutes
+            )
         
         branch_addr = selected_branch.address if selected_branch else business.address
+        
         # Trigger simulated WhatsApp confirmation message
-        wa_msg = f"✅ *¡Cita Confirmada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n💇‍♂️ Especialista: {staff.full_name if staff else 'Equipo'}\n💈 Servicio: {service.name if service else 'Reserva'}\n📍 Sucursal / Dirección: {branch_addr}"
+        if selected_property:
+            wa_msg = f"🏡 *¡Visita Coordinada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n👤 Asesor Inmobiliario: {staff.full_name if staff else 'Equipo'}\n🏠 Propiedad: {selected_property.title}\n📍 Ubicación: {selected_property.address} ({selected_property.zone})\n🔗 Portal: {selected_property.portal_url or 'Publicación Inmobiliaria'}"
+            prompt_label = f"Confirmación de Visita a Propiedad para {client.full_name}"
+        else:
+            services_text = appointment_created.services_summary
+            wa_msg = f"✅ *¡Cita Confirmada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n💇‍♂️ Especialista: {staff.full_name if staff else 'Equipo'}\n💈 Servicios: {services_text}\n📍 Sucursal / Dirección: {branch_addr}"
+            prompt_label = f"Confirmación de Reserva para {client.full_name}"
+
         AIAutomationLog.objects.create(
             business=business,
             target_client=client,
             action_type='WHATSAPP_REMINDER',
-            prompt_used=f"Confirmación de Reserva para {client.full_name}",
+            prompt_used=prompt_label,
             response_generated=wa_msg,
             status='SIMULATED'
         )
         
         booking_success = True
 
+    services_catalog_json = json.dumps([
+        {
+            'id': str(s.id),
+            'name': s.name,
+            'price': float(s.price),
+            'duration': s.duration_minutes,
+            'description': s.description or '',
+            'category': s.category.name if s.category else 'Otros'
+        }
+        for s in services
+    ])
+
     return render(request, 'booking/public_booking.html', {
         'business': business,
         'branches': branches,
         'selected_branch': selected_branch,
+        'is_real_estate': is_real_estate,
+        'properties': properties_qs,
+        'properties_catalog_json': properties_catalog_json,
         'services': services,
+        'services_catalog_json': services_catalog_json,
         'total_services_count': services.count(),
         'category_data': category_data,
         'uncategorized_services': uncategorized_services,
@@ -257,4 +380,96 @@ def public_booking_view(request, business_slug):
         'today_date': datetime.date.today().isoformat(),
         'default_phone_prefix': default_phone_prefix,
         'portal_error_message': portal_error_message
+    })
+
+
+def api_seller_register_view(request, business_slug):
+    """
+    Endpoint AJAX para registrar solicitudes de propietarios interesados
+    en vender, alquilar o tasar su inmueble a través de la inmobiliaria.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido.'}, status=405)
+
+    business = get_object_or_404(Business, slug=business_slug)
+
+    full_name = request.POST.get('name', '').strip()
+    phone_prefix = request.POST.get('phone_prefix', '+54').strip()
+    phone_number = request.POST.get('phone_number', '').strip()
+    email = request.POST.get('email', '').strip()
+    operation_type = request.POST.get('operation_type', 'Vender').strip()
+    property_type = request.POST.get('property_type', 'Departamento').strip()
+    address_zone = request.POST.get('address_zone', '').strip()
+    rooms = request.POST.get('rooms', '').strip()
+    estimated_price = request.POST.get('estimated_price', '').strip()
+    comments = request.POST.get('comments', '').strip()
+
+    if not full_name:
+        return JsonResponse({'success': False, 'error': 'Por favor ingresa tu nombre completo.'})
+    if not phone_number:
+        return JsonResponse({'success': False, 'error': 'Por favor ingresa tu número de WhatsApp / teléfono.'})
+    if not address_zone:
+        return JsonResponse({'success': False, 'error': 'Por favor ingresa la ubicación o barrio del inmueble.'})
+
+    formatted_phone = format_phone_with_prefix(phone_prefix, phone_number)
+
+    # Split name
+    name_parts = full_name.split(' ', 1)
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+    lead_details = [
+        f"Operación: {operation_type}",
+        f"Tipo: {property_type}",
+        f"Ubicación: {address_zone}",
+    ]
+    if rooms:
+        lead_details.append(f"Ambientes: {rooms}")
+    if estimated_price:
+        lead_details.append(f"Precio estimado: {estimated_price}")
+    if comments:
+        lead_details.append(f"Comentarios: {comments}")
+
+    lead_note = f"[PROPIETARIO - SOLICITUD DE {operation_type.upper()}]: " + " · ".join(lead_details)
+
+    # Create or update Client in CRM
+    client = Client.objects.filter(business=business, phone=formatted_phone).first()
+    if not client:
+        client = Client.objects.create(
+            business=business,
+            first_name=first_name,
+            last_name=last_name,
+            phone=formatted_phone,
+            email=email or None,
+            notes=lead_note
+        )
+    else:
+        existing_notes = client.notes or ''
+        client.notes = f"{existing_notes}\n\n{lead_note}".strip()
+        if email and not client.email:
+            client.email = email
+        client.save()
+
+    # Log automation / lead notification
+    wa_notification = (
+        f"🏡 *¡Nuevo Propietario para {operation_type.upper()} en {business.name}!* \n"
+        f"👤 Propietario: {client.full_name}\n"
+        f"📞 WhatsApp: {formatted_phone}\n"
+        f"🏢 Inmueble: {property_type} en {address_zone}\n"
+        f"📝 Detalles: {' · '.join(lead_details)}"
+    )
+
+    AIAutomationLog.objects.create(
+        business=business,
+        target_client=client,
+        action_type='LEAD_GENERATED',
+        prompt_used=f"Propietario registrado para {operation_type} ({client.full_name})",
+        response_generated=wa_notification,
+        status='SUCCESS'
+    )
+
+    return JsonResponse({
+        'success': True,
+        'first_name': client.first_name,
+        'message': f'¡Gracias {client.first_name}! Recibimos la información de tu propiedad. Un asesor de {business.name} se contactará contigo a la brevedad.'
     })

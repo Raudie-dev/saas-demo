@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'apps.analytics',
     'apps.ai_engine',
     'apps.marketing',
+    'apps.properties',
     'apps.superadmin',
 ]
 

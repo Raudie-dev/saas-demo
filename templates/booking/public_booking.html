@@ -174,10 +174,20 @@
 
             <!-- Nav Links -->
             <nav class="flex items-center gap-3 sm:gap-5 text-xs font-bold text-slate-600">
-                <a href="#servicios" class="hidden sm:inline hover:text-rose-900 transition">Servicios</a>
+                <a href="#{% if is_real_estate or properties.exists %}propiedades{% else %}servicios{% endif %}" class="hidden sm:inline hover:text-rose-900 transition">
+                    {% if is_real_estate or properties.exists %}Propiedades{% else %}Servicios{% endif %}
+                </a>
                 <a href="#sobre" class="hidden sm:inline hover:text-rose-900 transition">Sobre</a>
-                <a href="#equipo" class="hidden sm:inline hover:text-rose-900 transition">Especialistas</a>
+                <a href="#equipo" class="hidden sm:inline hover:text-rose-900 transition">
+                    {% if is_real_estate or properties.exists %}Asesores{% else %}Especialistas{% endif %}
+                </a>
                 <a href="#mapa" class="hidden sm:inline hover:text-rose-900 transition">Ubicación</a>
+                {% if is_real_estate or properties.exists %}
+                <button type="button" onclick="openSellerRegisterModal()" class="hidden md:inline-flex items-center gap-1.5 text-xs font-bold text-rose-900 hover:text-rose-950 transition cursor-pointer">
+                    <i data-lucide="key" class="w-3.5 h-3.5"></i>
+                    <span>Vender Propiedad</span>
+                </button>
+                {% endif %}
                 
                 <!-- Share button -->
                 <button type="button" onclick="shareBusinessProfile()" title="Compartir perfil"
@@ -187,9 +197,9 @@
                 </button>
 
                 <!-- Booking CTA button -->
-                <a href="#servicios" class="px-4 py-1.5 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white font-bold transition shadow-sm hover:shadow flex items-center gap-1.5">
+                <a href="#{% if is_real_estate or properties.exists %}propiedades{% else %}servicios{% endif %}" class="px-4 py-1.5 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white font-bold transition shadow-sm hover:shadow flex items-center gap-1.5">
                     <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-                    <span>Agendar</span>
+                    <span>{% if is_real_estate or properties.exists %}Ver Inmuebles{% else %}Agendar{% endif %}</span>
                 </a>
             </nav>
         </div>
@@ -215,19 +225,56 @@
 
             <!-- Receipt Card -->
             <div class="bg-[#fdf2f4] p-5 rounded-2xl border border-rose-100 text-left space-y-3">
-                <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
-                    <span class="text-slate-500 font-medium">Servicio:</span>
-                    <span class="font-bold text-slate-900">{{ appointment.service.name }}</span>
+                {% if appointment.related_property %}
+                <div class="flex flex-col text-sm pb-2 border-b border-rose-100 space-y-1">
+                    <div class="flex justify-between items-start gap-2">
+                        <span class="text-slate-500 font-medium">Inmueble:</span>
+                        <span class="font-bold text-slate-900 text-right">{{ appointment.related_property.title }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs pt-0.5">
+                        <span class="font-bold text-rose-900">{{ appointment.related_property.formatted_price }} ({{ appointment.related_property.get_operation_type_display }})</span>
+                        {% if appointment.related_property.portal_url %}
+                        <a href="{{ appointment.related_property.portal_url }}" target="_blank" class="text-rose-800 hover:underline font-bold inline-flex items-center gap-1">
+                            <i data-lucide="external-link" class="w-3 h-3"></i>
+                            <span>Ver en {{ appointment.related_property.portal_display_name }}</span>
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
+                {% else %}
+                <div class="flex flex-col text-sm pb-2 border-b border-rose-100 space-y-1">
+                    <div class="flex justify-between items-start gap-2">
+                        <span class="text-slate-500 font-medium">Servicios:</span>
+                        <span class="font-bold text-slate-900 text-right">{{ appointment.services_summary }}</span>
+                    </div>
+                    {% if appointment.appointment_services.count > 1 or appointment.appointment_services.first.quantity > 1 %}
+                    <div class="flex flex-wrap gap-1.5 justify-end pt-1">
+                        {% for it in appointment.appointment_services.all %}
+                        <span class="text-2xs bg-white text-rose-950 border border-rose-200 px-2 py-0.5 rounded-md font-bold">
+                            {{ it.service.name }} x{{ it.quantity }} ({{ business.currency }}{{ it.subtotal }})
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
-                    <span class="text-slate-500 font-medium">Especialista:</span>
+                    <span class="text-slate-500 font-medium">{% if is_real_estate or appointment.related_property %}Asesor Inmobiliario:{% else %}Especialista:{% endif %}</span>
                     <span class="font-bold text-rose-900">{{ appointment.staff.full_name }}</span>
                 </div>
                 <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
                     <span class="text-slate-500 font-medium">Fecha y Hora:</span>
                     <span class="font-bold text-slate-900">{{ appointment.date }} · {{ appointment.start_time }} hs</span>
                 </div>
-                {% if selected_branch or business.address %}
+                {% if appointment.related_property %}
+                <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
+                    <span class="text-slate-500 font-medium">Lugar de Visita:</span>
+                    <span class="text-slate-700 text-right text-xs max-w-[200px] truncate">
+                        {{ appointment.related_property.address }} ({{ appointment.related_property.zone }})
+                    </span>
+                </div>
+                {% elif selected_branch or business.address %}
                 <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
                     <span class="text-slate-500 font-medium">Lugar:</span>
                     <span class="text-slate-700 text-right text-xs max-w-[200px] truncate">
@@ -235,21 +282,23 @@
                     </span>
                 </div>
                 {% endif %}
+                {% if not appointment.related_property %}
                 <div class="flex justify-between text-sm pt-1">
                     <span class="text-slate-500 font-medium">Total:</span>
                     <span class="font-extrabold text-rose-950 text-base">{{ business.currency }}{{ appointment.total_price }}</span>
                 </div>
+                {% endif %}
             </div>
 
             <!-- Calendar Export Actions -->
             <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
                 <button type="button" 
-                        onclick="exportToGoogleCalendar('{{ appointment.service.name }} en {{ business.name }}', '{{ appointment.date }}', '{{ appointment.start_time }}', '{{ appointment.end_time }}', 'Reserva con {{ appointment.staff.full_name }}', '{{ business.address|default:'' }}')"
+                        onclick="exportToGoogleCalendar('{{ appointment.services_summary|escapejs }} en {{ business.name }}', '{{ appointment.date }}', '{{ appointment.start_time }}', '{{ appointment.end_time }}', 'Reserva con {{ appointment.staff.full_name }}', '{{ business.address|default:'' }}')"
                         class="px-4 py-2.5 rounded-full bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-2 border border-slate-300 shadow-sm transition">
                     <i data-lucide="calendar" class="w-4 h-4 text-rose-800"></i> Google Calendar
                 </button>
                 <button type="button" 
-                        onclick="exportToAppleCalendar('{{ appointment.service.name }} en {{ business.name }}', '{{ appointment.date }}', '{{ appointment.start_time }}', '{{ appointment.end_time }}', 'Reserva con {{ appointment.staff.full_name }}', '{{ business.address|default:'' }}')"
+                        onclick="exportToAppleCalendar('{{ appointment.services_summary|escapejs }} en {{ business.name }}', '{{ appointment.date }}', '{{ appointment.start_time }}', '{{ appointment.end_time }}', 'Reserva con {{ appointment.staff.full_name }}', '{{ business.address|default:'' }}')"
                         class="px-4 py-2.5 rounded-full bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-2 border border-slate-300 shadow-sm transition">
                     <i data-lucide="download" class="w-4 h-4 text-slate-600"></i> Descargar iCal (.ics)
                 </button>
@@ -319,11 +368,19 @@
 
                     <!-- QUICK ACTION BUTTONS: Agendar Cita + WhatsApp Directo + Ver Mapa -->
                     <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
-                        <a href="#servicios" 
+                        <a href="#{% if is_real_estate or properties.exists %}propiedades{% else %}servicios{% endif %}" 
                            class="px-5 py-2.5 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
-                            <i data-lucide="calendar" class="w-4 h-4"></i>
-                            <span>Agendar Cita</span>
+                            <i data-lucide="{% if is_real_estate or properties.exists %}building-2{% else %}calendar{% endif %}" class="w-4 h-4"></i>
+                            <span>{% if is_real_estate or properties.exists %}Ver Propiedades{% else %}Agendar Cita{% endif %}</span>
                         </a>
+
+                        {% if is_real_estate or properties.exists %}
+                        <button type="button" onclick="openSellerRegisterModal()"
+                                class="px-5 py-2.5 rounded-full bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-sm hover:shadow transition transform hover:-translate-y-0.5 cursor-pointer">
+                            <i data-lucide="key" class="w-4 h-4 text-rose-800"></i>
+                            <span>Vender mi Propiedad</span>
+                        </button>
+                        {% endif %}
 
                         {% with wa=business.whatsapp_number|default:business.phone %}
                         {% if wa %}
@@ -435,6 +492,207 @@
                 </div>
 
             </div>
+
+            {% if is_real_estate or properties.exists %}
+            <!-- ROW 3 (INMOBILIARIA): CARTERA DE PROPIEDADES -->
+            <div class="card-clean p-6 sm:p-8 space-y-6 shadow-md" id="propiedades">
+                
+                <!-- Section Header -->
+                <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-rose-900 block">Cartera Inmobiliaria</span>
+                        <h2 class="font-fun font-black text-2xl text-slate-900">
+                            <span class="title-underline-left">Propiedades Disponibles</span>
+                        </h2>
+                    </div>
+                    <i data-lucide="building-2" class="w-6 h-6 text-rose-900"></i>
+                </div>
+
+                <!-- BANNER: ¿QUIERES VENDER O ALQUILAR TU PROPIEDAD? -->
+                <div class="rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-slate-900 via-rose-950 to-slate-950 text-white shadow-md relative overflow-hidden border border-rose-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="space-y-1.5 max-w-lg relative z-10">
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-bold uppercase tracking-wider">
+                            <i data-lucide="key" class="w-3 h-3 text-rose-400"></i>
+                            <span>Servicio Exclusivo a Propietarios</span>
+                        </div>
+                        <h3 class="font-fun font-bold text-lg sm:text-xl text-white tracking-tight">
+                            ¿Quieres vender o alquilar tu propiedad?
+                        </h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Tasamos tu inmueble, encontramos clientes calificados y te acompañamos en todo el proceso de comercialización.
+                        </p>
+                    </div>
+                    <button type="button" onclick="openSellerRegisterModal()"
+                            class="relative z-10 shrink-0 px-5 py-3 rounded-2xl bg-white hover:bg-rose-50 text-rose-950 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition transform hover:-translate-y-0.5 cursor-pointer">
+                        <i data-lucide="home" class="w-4 h-4 text-rose-800"></i>
+                        <span>Registrar mi Propiedad</span>
+                    </button>
+                    <!-- Background ambient glow -->
+                    <div class="absolute -right-6 -bottom-6 w-36 h-36 bg-rose-700/25 rounded-full blur-2xl pointer-events-none"></div>
+                </div>
+
+                <!-- Search and Operation Filters -->
+                <div class="space-y-3">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="propertySearch" placeholder="Buscar por barrio, dirección o tipo (ej: Palermo, Casa, 3 amb)..." 
+                               class="w-full bg-slate-50 border border-slate-200 rounded-full py-2.5 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 focus:ring-1 focus:ring-rose-900 transition">
+                    </div>
+
+                    <!-- Category Pills -->
+                    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pt-1" id="propertyOperationChips">
+                        <button type="button" data-op="all" 
+                                class="prop-chip active px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap bg-[#881337] text-white shadow-sm">
+                            Todas ({{ properties.count }})
+                        </button>
+                        <button type="button" data-op="SALE" 
+                                class="prop-chip px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-900 border border-slate-200">
+                            En Venta
+                        </button>
+                        <button type="button" data-op="RENT" 
+                                class="prop-chip px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-900 border border-slate-200">
+                            En Alquiler
+                        </button>
+                        <button type="button" data-op="TEMPORARY_RENT" 
+                                class="prop-chip px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-900 border border-slate-200">
+                            Temporario
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PROPERTIES GRID -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2" id="publicPropertiesContainer">
+                    {% for prop in properties %}
+                    <div class="public-property-card rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-rose-200 transition-all duration-200 overflow-hidden flex flex-col group cursor-pointer"
+                         data-op="{{ prop.operation_type }}"
+                         data-title="{{ prop.title|lower }}"
+                         data-zone="{{ prop.zone|lower }}"
+                         data-type="{{ prop.get_property_type_display|lower }}"
+                         onclick="openPropertyDetailModal('{{ prop.id }}')">
+                        
+                        <!-- Thumbnail Header -->
+                        <div class="relative aspect-[16/10] bg-slate-900 overflow-hidden">
+                            <img id="pub-prop-img-{{ prop.id }}" 
+                                 src="{% if prop.main_photo_url %}{{ prop.main_photo_url }}{% else %}/static/images/property_placeholder.png{% endif %}" 
+                                 alt="{{ prop.title }}" 
+                                 class="w-full h-full object-cover transition duration-300 group-hover:scale-105">
+
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-slate-950/30 pointer-events-none"></div>
+
+                            <!-- Top Badges -->
+                            <div class="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-auto">
+                                <span class="px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider shadow-sm
+                                    {% if prop.operation_type == 'SALE' %}bg-emerald-600 text-white
+                                    {% elif prop.operation_type == 'RENT' %}bg-blue-600 text-white
+                                    {% else %}bg-purple-600 text-white{% endif %}">
+                                    {{ prop.get_operation_type_display }}
+                                </span>
+
+                                <span class="text-[11px] bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-full text-slate-200 font-semibold border border-white/10 shadow-sm">
+                                    {{ prop.get_property_type_display }}
+                                </span>
+                            </div>
+
+                            <!-- Bottom Photo Info Pill -->
+                            {% if prop.photos_count > 1 %}
+                            <div class="absolute bottom-2.5 right-3 pointer-events-none">
+                                <span class="bg-black/60 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+                                    <i data-lucide="camera" class="w-3 h-3"></i> {{ prop.photos_count }}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Card Body (Summarized) -->
+                        <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+                            <div class="space-y-1.5">
+                                <!-- Price & Featured -->
+                                <div class="flex items-baseline justify-between gap-2">
+                                    <div>
+                                        <span class="font-fun font-black text-xl text-slate-900 tracking-tight">
+                                            {{ prop.formatted_price }}
+                                        </span>
+                                        {% if prop.formatted_expenses %}
+                                        <span class="text-[11px] text-slate-500 font-medium ml-1">+ {{ prop.formatted_expenses }} exp.</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if prop.is_featured %}
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1 shrink-0">
+                                        <i data-lucide="sparkles" class="w-3 h-3 text-amber-600"></i> Destacado
+                                    </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Title -->
+                                <h3 class="font-fun font-bold text-sm text-slate-900 leading-snug line-clamp-1 group-hover:text-rose-900 transition">
+                                    {{ prop.title }}
+                                </h3>
+
+                                <!-- Address / Zone -->
+                                <p class="text-xs text-slate-500 flex items-center gap-1 truncate">
+                                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-800 shrink-0"></i>
+                                    <span class="truncate">{{ prop.address }} · <strong class="text-slate-700">{{ prop.zone }}</strong></span>
+                                </p>
+
+                                <!-- Compact Key Specs -->
+                                <div class="flex items-center flex-wrap gap-x-2.5 gap-y-1 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                                    <span class="flex items-center gap-1" title="Dormitorios">
+                                        <i data-lucide="bed" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        <span><strong>{{ prop.bedrooms }}</strong> dorm</span>
+                                    </span>
+                                    <span class="text-slate-300">·</span>
+                                    <span class="flex items-center gap-1" title="Baños">
+                                        <i data-lucide="bath" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        <span><strong>{{ prop.bathrooms }}</strong> bñ</span>
+                                    </span>
+                                    <span class="text-slate-300">·</span>
+                                    <span class="flex items-center gap-1" title="Superficie total">
+                                        <i data-lucide="maximize" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        <span><strong>{{ prop.total_surface|floatformat:0 }}</strong> m²</span>
+                                    </span>
+                                    {% if prop.garages > 0 %}
+                                    <span class="text-slate-300">·</span>
+                                    <span class="flex items-center gap-1" title="Cocheras">
+                                        <i data-lucide="car" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        <span><strong>{{ prop.garages }}</strong> coch</span>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- CTAs: Ver Ficha + Coordinar Visita -->
+                            <div class="pt-2.5 border-t border-slate-100 flex items-center gap-2">
+                                <button type="button" 
+                                        onclick="event.stopPropagation(); openPropertyDetailModal('{{ prop.id }}');"
+                                        class="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-200">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5 text-rose-800"></i>
+                                    <span>Ver Ficha</span>
+                                </button>
+
+                                <button type="button" 
+                                        onclick="event.stopPropagation(); openPropertyBookingModal('{{ prop.id }}', '{{ prop.title|escapejs }}', '{{ prop.formatted_price|escapejs }}', '{{ prop.address|escapejs }} ({{ prop.zone|escapejs }})', '{{ prop.main_photo_url|default:''|escapejs }}');"
+                                        class="flex-1 py-2 px-3 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold transition shadow-sm hover:shadow flex items-center justify-center gap-1.5">
+                                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                    <span>Coordinar Visita</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                    {% empty %}
+                    <div class="col-span-full p-8 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                        No hay propiedades disponibles en este momento.
+                    </div>
+                    {% endfor %}
+
+                    <div id="noPropertiesMatchMessage" class="hidden col-span-full p-8 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                        No se encontraron propiedades que coincidan con los filtros aplicados.
+                    </div>
+                </div>
+
+            </div>
+
+            {% else %}
 
             <!-- ROW 3: SERVICIOS / SHOWCASE (Antes de la Ubicación) -->
             <div class="card-clean p-6 sm:p-8 space-y-6 shadow-md" id="servicios">
@@ -584,6 +842,7 @@
                 </div>
 
             </div>
+            {% endif %}
 
             <!-- ROW 4: UBICACIÓN Y VISTA DE GOOGLE MAPS (Ahora después de los Servicios) -->
             <div class="card-clean p-6 space-y-4 shadow-md" id="mapa">
@@ -683,6 +942,24 @@
         </div>
     </div>
 
+    <!-- Floating Bar for Selected Services (Shown when visitor browses services with items in selection) -->
+    <div id="floatingBookingBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white backdrop-blur-md px-4 py-2.5 sm:px-6 sm:py-3 rounded-full shadow-2xl flex items-center gap-3 sm:gap-4 border border-slate-700 transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none">
+        <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-rose-800 text-white flex items-center justify-center text-xs font-black" id="floatingBarCount">1</span>
+            <div class="text-xs">
+                <span class="font-bold block" id="floatingBarSummary">1 servicio seleccionado</span>
+                <span class="text-[10px] text-slate-300" id="floatingBarTotals">Total: {{ business.currency }}0.00</span>
+            </div>
+        </div>
+        <button type="button" onclick="openBookingModal()" class="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold transition shadow flex items-center gap-1.5">
+            <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+            <span>Ver y Reservar</span>
+        </button>
+        <button type="button" onclick="clearBookingServices()" title="Vaciar selección" class="text-slate-400 hover:text-white p-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        </button>
+    </div>
+
     <!-- Interactive Booking Modal (Platform Vinotinto look) -->
     <div id="bookingModal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 modal-overlay" onclick="closeBookingModal()"></div>
@@ -692,9 +969,9 @@
             <!-- Modal Header -->
             <div class="p-5 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-20 sm:rounded-t-3xl rounded-t-3xl">
                 <div>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-rose-900 block">Agendar Cita</span>
-                    <h3 class="font-fun font-extrabold text-lg text-slate-900" id="modalServiceTitle">Servicio</h3>
-                    <p class="text-xs text-slate-500 mt-0.5" id="modalServiceSubtitle">45 min · {{ business.currency }}0.00</p>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-rose-900 block">Agendar Cita Online</span>
+                    <h3 class="font-fun font-extrabold text-lg text-slate-900" id="modalServiceTitle">Servicios a Reservar</h3>
+                    <p class="text-xs text-slate-500 mt-0.5" id="modalServiceSubtitle">0 min · {{ business.currency }}0.00</p>
                 </div>
                 <button type="button" onclick="closeBookingModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200 flex items-center justify-center transition">
                     <i data-lucide="x" class="w-4 h-4"></i>
@@ -706,15 +983,64 @@
                 <form method="POST" id="bookingForm" class="space-y-5">
                     {% csrf_token %}
                     <input type="hidden" name="service_id" id="modalServiceId" value="">
+                    <input type="hidden" name="services_data" id="modalServicesData" value="[]">
+                    <input type="hidden" name="property_id" id="modalPropertyId" value="">
                     {% if selected_branch %}
                     <input type="hidden" name="branch_id" value="{{ selected_branch.id }}">
                     {% endif %}
 
-                    <!-- Step 1: Specialist Selection -->
-                    <div class="space-y-2.5">
+                    <!-- Real Estate Property Info Card (Visible when booking a property visit) -->
+                    <div id="modalPropertyCard" class="hidden bg-[#fdf2f4] p-3.5 sm:p-4 rounded-2xl border border-rose-200 space-y-2">
+                        <div class="flex items-center gap-3">
+                            <img id="modalPropertyImg" src="" class="w-16 h-12 rounded-lg object-cover border border-rose-200 shrink-0">
+                            <div class="min-w-0 flex-1">
+                                <span class="text-[10px] font-bold text-rose-900 uppercase tracking-wider block">Inmueble a Visitar</span>
+                                <h4 class="font-bold text-xs sm:text-sm text-slate-900 truncate" id="modalPropertyTitle"></h4>
+                                <p class="text-[11px] text-slate-600 truncate" id="modalPropertyAddress"></p>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="font-fun font-black text-xs sm:text-sm text-rose-950 block" id="modalPropertyPrice"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Services Selection & Quantities -->
+                    <div id="modalServicesStepContainer" class="space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">1</span>
+                                Servicios a Realizar
+                            </label>
+                            <span class="text-xs font-bold text-rose-900" id="modalTotalDurationBadge">0 min</span>
+                        </div>
+
+                        <!-- Selected Services List -->
+                        <div id="modalSelectedServicesList" class="space-y-2">
+                            <!-- Injected dynamically via JS -->
+                        </div>
+
+                        <!-- Add another service dropdown selector -->
+                        <div class="pt-1 flex items-center gap-2">
+                            <select id="modalAddServiceSelect" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-rose-900 transition">
+                                <option value="">+ Agregar otro servicio a la cita...</option>
+                                {% for s in services %}
+                                <option value="{{ s.id }}">
+                                    {{ s.name }} ({{ business.currency }}{{ s.price }} · {{ s.duration_minutes }} min)
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" onclick="handleAddServiceFromDropdown()" class="px-3.5 py-2 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-900 text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                <span>Añadir</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Specialist Selection -->
+                    <div class="space-y-2.5 pt-2 border-t border-slate-100">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                            <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">1</span>
-                            Elige Especialista
+                            <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">2</span>
+                            <span id="modalSpecialistStepLabel">{% if is_real_estate or properties.exists %}Elige Asesor Inmobiliario{% else %}Elige Especialista{% endif %}</span>
                         </label>
                         <div class="grid grid-cols-2 gap-2.5 max-h-44 overflow-y-auto pr-1 no-scrollbar">
                             {% for staff in staff_members %}
@@ -737,10 +1063,10 @@
                         </div>
                     </div>
 
-                    <!-- Step 2: Date & Available Time Slots -->
-                    <div class="space-y-2.5">
+                    <!-- Step 3: Date & Available Time Slots -->
+                    <div class="space-y-2.5 pt-2 border-t border-slate-100">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                            <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">2</span>
+                            <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">3</span>
                             Fecha y Horario
                         </label>
                         
@@ -761,10 +1087,10 @@
                         <input type="hidden" name="booking_time" id="booking_time" required>
                     </div>
 
-                    <!-- Step 3: Client Contact Details -->
+                    <!-- Step 4: Client Contact Details -->
                     <div class="space-y-2.5 pt-2 border-t border-slate-100">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                            <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">3</span>
+                            <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">4</span>
                             Tus Datos
                         </label>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -779,13 +1105,14 @@
                             </div>
                         </div>
                         <input type="email" name="client_email" placeholder="Correo electrónico (opcional)" 
-                               class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
                     </div>
 
                     <div class="pt-2">
                         <button type="submit" id="submitBookingBtn" disabled 
-                                class="w-full py-3 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white font-bold text-sm shadow-md transition disabled:opacity-40 disabled:cursor-not-allowed">
-                            Confirmar Reserva
+                                class="w-full py-3 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white font-bold text-sm shadow-md transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                            <span>Confirmar Reserva</span>
+                            <span id="submitBtnAmountBadge" class="bg-white/20 px-2 py-0.5 rounded-full text-xs font-semibold"></span>
                         </button>
                     </div>
 
@@ -794,6 +1121,227 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- MODAL: DETALLE COMPLETO DE PROPIEDAD -->
+    <div id="propertyDetailModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-auto flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div class="flex items-center gap-2">
+                    <span id="pdmOperationBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider text-white bg-emerald-600">
+                        Venta
+                    </span>
+                    <span id="pdmTypeBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200 text-slate-800">
+                        Departamento
+                    </span>
+                    <span id="pdmRefBadge" class="text-[11px] font-mono text-slate-400 font-medium"></span>
+                </div>
+                <button type="button" onclick="closePropertyDetailModal()" class="w-8 h-8 rounded-full bg-white hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition border border-slate-200 shadow-sm" title="Cerrar (Esc)">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="overflow-y-auto p-5 sm:p-6 space-y-5 no-scrollbar flex-1">
+                <!-- Gallery Showcase -->
+                <div class="space-y-2">
+                    <div class="relative aspect-video sm:aspect-[16/10] bg-slate-950 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
+                        <img id="pdmMainPhoto" src="/static/images/property_placeholder.png" alt="Propiedad" class="w-full h-full object-cover transition duration-300">
+                    </div>
+                    <!-- Thumbnails row -->
+                    <div id="pdmThumbnailsContainer" class="flex items-center gap-2 overflow-x-auto py-1 no-scrollbar">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Price & Title Section -->
+                <div class="space-y-1.5 pb-3 border-b border-slate-100">
+                    <div class="flex items-baseline justify-between flex-wrap gap-2">
+                        <div class="flex items-baseline gap-2">
+                            <span id="pdmPrice" class="font-fun font-black text-2xl sm:text-3xl text-slate-900 tracking-tight"></span>
+                            <span id="pdmExpenses" class="text-xs sm:text-sm text-slate-500 font-medium"></span>
+                        </div>
+                        <div id="pdmPortalContainer">
+                            <!-- External portal button populated by JS -->
+                        </div>
+                    </div>
+                    <h2 id="pdmTitle" class="font-fun font-bold text-lg sm:text-xl text-slate-900 leading-snug"></h2>
+                    <p class="text-xs sm:text-sm text-slate-500 flex items-center gap-1.5 pt-0.5">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-rose-800 shrink-0"></i>
+                        <span id="pdmLocation"></span>
+                    </p>
+                </div>
+
+                <!-- Features / Specs Grid -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Características Principales</h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                            <span class="text-slate-400 block text-[11px] font-medium flex items-center justify-center gap-1 mb-0.5">
+                                <i data-lucide="bed" class="w-3.5 h-3.5"></i> Dormitorios
+                            </span>
+                            <span id="pdmBedrooms" class="font-black text-slate-900 text-base">0</span>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                            <span class="text-slate-400 block text-[11px] font-medium flex items-center justify-center gap-1 mb-0.5">
+                                <i data-lucide="bath" class="w-3.5 h-3.5"></i> Baños
+                            </span>
+                            <span id="pdmBathrooms" class="font-black text-slate-900 text-base">0</span>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                            <span class="text-slate-400 block text-[11px] font-medium flex items-center justify-center gap-1 mb-0.5">
+                                <i data-lucide="maximize" class="w-3.5 h-3.5"></i> Sup. Total
+                            </span>
+                            <span id="pdmTotalSurface" class="font-black text-slate-900 text-base">0 m²</span>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                            <span class="text-slate-400 block text-[11px] font-medium flex items-center justify-center gap-1 mb-0.5">
+                                <i data-lucide="car" class="w-3.5 h-3.5"></i> Cochera
+                            </span>
+                            <span id="pdmGarages" class="font-black text-slate-900 text-base">0</span>
+                        </div>
+                    </div>
+                    <div id="pdmCoveredSurfaceWrapper" class="text-xs text-slate-500 pt-1 flex items-center justify-end gap-1">
+                        <span>Superficie cubierta:</span>
+                        <strong id="pdmCoveredSurface" class="text-slate-700"></strong>
+                    </div>
+                </div>
+
+                <!-- Description Block -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Descripción</h4>
+                    <div id="pdmDescription" class="bg-slate-50/70 p-4 rounded-2xl border border-slate-100 text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line max-h-48 overflow-y-auto">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer Actions -->
+            <div class="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3">
+                <button type="button" onclick="closePropertyDetailModal()" class="py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition border border-slate-200">
+                    Cerrar
+                </button>
+                <button type="button" id="pdmVisitBtn" onclick="bookFromDetailModal()" class="flex-1 py-3 px-5 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white text-xs sm:text-sm font-bold transition shadow-md hover:shadow flex items-center justify-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                    <span>Coordinar Visita Presencial</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRO DE PROPIETARIOS PARA VENDER / ALQUILAR -->
+    <div id="sellerRegisterModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-auto flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-rose-950 to-slate-900 text-white">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
+                        <i data-lucide="building-2" class="w-5 h-5 text-rose-300"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-fun font-bold text-base leading-tight">Vender o Alquilar mi Propiedad</h3>
+                        <p class="text-xs text-rose-200/80">Conecta con los asesores de {{ business.name }}</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSellerRegisterModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition border border-white/20" title="Cerrar (Esc)">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Form Container -->
+            <div class="p-6 overflow-y-auto flex-1 no-scrollbar">
+                <!-- Success Message Alert (Hidden by default) -->
+                <div id="sellerSuccessAlert" class="hidden text-center py-8 space-y-4">
+                    <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+                        <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <h4 class="font-fun font-bold text-lg text-slate-900">¡Solicitud Enviada con Éxito!</h4>
+                        <p class="text-xs text-slate-600 max-w-sm mx-auto leading-relaxed">
+                            Recibimos los datos de tu inmueble. Un asesor de <strong class="text-slate-800">{{ business.name }}</strong> se comunicará contigo a la brevedad por WhatsApp.
+                        </p>
+                    </div>
+                    <button type="button" onclick="closeSellerRegisterModal()" class="py-2.5 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow">
+                        Aceptar y Cerrar
+                    </button>
+                </div>
+
+                <!-- Form -->
+                <form id="sellerRegisterForm" onsubmit="submitSellerRegisterForm(event)" class="space-y-4">
+                    <!-- Error notice -->
+                    <div id="sellerErrorNotice" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium"></div>
+
+                    <!-- Step 1: Owner Info -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">Tus Datos de Contacto</label>
+                        <input type="text" name="name" placeholder="Tu nombre completo *" required
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div class="flex rounded-xl overflow-hidden border border-slate-200 focus-within:border-rose-900 bg-white">
+                                <select name="phone_prefix" class="bg-slate-100 text-slate-800 text-xs font-bold px-2 py-2 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0">
+                                    {% include 'components/phone_prefix_options.html' with selected_prefix=default_phone_prefix|default:'+54' %}
+                                </select>
+                                <input type="tel" name="phone_number" placeholder="WhatsApp / Móvil *" required
+                                       class="w-full bg-slate-50 text-slate-800 p-2.5 text-xs placeholder-slate-400 focus:outline-none focus:bg-white transition">
+                            </div>
+                            <input type="email" name="email" placeholder="Correo electrónico (opcional)"
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Property Info -->
+                    <div class="space-y-2 pt-2 border-t border-slate-100">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">Datos de la Propiedad</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] text-slate-500 font-medium mb-1">¿Qué deseas hacer?</label>
+                                <select name="operation_type" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-rose-900 transition font-medium">
+                                    <option value="Vender">Quiero Vender</option>
+                                    <option value="Alquilar">Quiero Alquilar</option>
+                                    <option value="Tasar">Tasar mi propiedad</option>
+                                    <option value="Alquiler Temporario">Alquiler Temporario</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-slate-500 font-medium mb-1">Tipo de inmueble</label>
+                                <select name="property_type" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-rose-900 transition font-medium">
+                                    <option value="Departamento">Departamento</option>
+                                    <option value="Casa">Casa</option>
+                                    <option value="PH">PH</option>
+                                    <option value="Terreno / Lote">Terreno / Lote</option>
+                                    <option value="Local Comercial">Local Comercial</option>
+                                    <option value="Oficina">Oficina</option>
+                                    <option value="Galpón / Depósito">Galpón / Depósito</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input type="text" name="address_zone" placeholder="Dirección / Barrio / Zona *" required
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
+                            <input type="text" name="rooms" placeholder="Ambientes o Dormitorios (ej: 3 amb)"
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
+                        </div>
+
+                        <input type="text" name="estimated_price" placeholder="Precio estimado / pretensión (opcional, ej: USD 120.000)"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
+
+                        <textarea name="comments" rows="2" placeholder="Detalles adicionales (amenities, estado, comodidades, etc.)..."
+                                  class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition resize-none"></textarea>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" id="sellerSubmitBtn"
+                                class="w-full py-3 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>Enviar Solicitud a la Inmobiliaria</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notification for Link Copying -->
     <div id="shareToast" class="fixed bottom-24 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
@@ -858,7 +1406,7 @@
             }, 3000);
         }
 
-        // Live Search & Category Filter
+        // Live Search & Category Filter (Services)
         const searchInput = document.getElementById('serviceSearch');
         const categoryChips = document.querySelectorAll('.category-chip');
         const serviceRows = document.querySelectorAll('.service-row');
@@ -910,9 +1458,337 @@
             }
         }
 
-        // Modal Logic
+        // Live Search & Operation Filter (Real Estate Properties)
+        const propSearchInput = document.getElementById('propertySearch');
+        const propChips = document.querySelectorAll('.prop-chip');
+        const propCards = document.querySelectorAll('.public-property-card');
+        const noPropResultsMsg = document.getElementById('noPropertiesMatchMessage');
+        let activePropOp = 'all';
+
+        if (propSearchInput) {
+            propSearchInput.addEventListener('input', filterProperties);
+        }
+
+        propChips.forEach(chip => {
+            chip.addEventListener('click', function() {
+                propChips.forEach(c => {
+                    c.classList.remove('active', 'bg-[#881337]', 'text-white', 'shadow-sm');
+                    c.classList.add('bg-slate-100', 'text-slate-700', 'border', 'border-slate-200');
+                });
+                this.classList.add('active', 'bg-[#881337]', 'text-white', 'shadow-sm');
+                this.classList.remove('bg-slate-100', 'text-slate-700', 'border', 'border-slate-200');
+                activePropOp = this.getAttribute('data-op');
+                filterProperties();
+            });
+        });
+
+        function filterProperties() {
+            const term = propSearchInput ? propSearchInput.value.toLowerCase().trim() : '';
+            let visibleCount = 0;
+
+            propCards.forEach(card => {
+                const op = card.getAttribute('data-op');
+                const title = card.getAttribute('data-title') || '';
+                const zone = card.getAttribute('data-zone') || '';
+                const type = card.getAttribute('data-type') || '';
+                
+                const matchesOp = (activePropOp === 'all') || (op === activePropOp);
+                const matchesSearch = !term || title.includes(term) || zone.includes(term) || type.includes(term);
+
+                if (matchesOp && matchesSearch) {
+                    card.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            if (noPropResultsMsg) {
+                if (visibleCount === 0) {
+                    noPropResultsMsg.classList.remove('hidden');
+                } else {
+                    noPropResultsMsg.classList.add('hidden');
+                }
+            }
+        }
+
+        function setPublicCardPhoto(propId, photoUrl) {
+            const img = document.getElementById(`pub-prop-img-${propId}`);
+            if (img && photoUrl) {
+                img.src = photoUrl;
+            }
+        }
+
+        // Modal Logic & Multi-Service State
         const IS_PORTAL_PAUSED = false;
         const modal = document.getElementById('bookingModal');
+        const bookingForm = document.getElementById('bookingForm');
+        const servicesCatalog = {{ services_catalog_json|safe }};
+        const propertiesCatalog = {{ properties_catalog_json|default:'[]'|safe }};
+        let activeDetailProperty = null;
+        const CURRENCY = '{{ business.currency }}';
+        let selectedBookingServices = [];
+
+        function findCatalogService(serviceId) {
+            return servicesCatalog.find(s => String(s.id) === String(serviceId));
+        }
+
+        function findCatalogProperty(propId) {
+            return propertiesCatalog.find(p => String(p.id) === String(propId));
+        }
+
+        function openPropertyDetailModal(propId) {
+            const prop = findCatalogProperty(propId);
+            if (!prop) return;
+
+            activeDetailProperty = prop;
+
+            // Badges
+            const opBadge = document.getElementById('pdmOperationBadge');
+            if (opBadge) {
+                opBadge.innerText = prop.operation_display || prop.operation_type;
+                if (prop.operation_type === 'SALE') {
+                    opBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider text-white bg-emerald-600';
+                } else if (prop.operation_type === 'RENT') {
+                    opBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider text-white bg-blue-600';
+                } else {
+                    opBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider text-white bg-purple-600';
+                }
+            }
+
+            const typeBadge = document.getElementById('pdmTypeBadge');
+            if (typeBadge) typeBadge.innerText = prop.type_display || prop.property_type;
+
+            const refBadge = document.getElementById('pdmRefBadge');
+            if (refBadge) {
+                refBadge.innerText = prop.reference_code ? `REF: ${prop.reference_code}` : '';
+            }
+
+            // Photos & Gallery
+            const mainPhotoImg = document.getElementById('pdmMainPhoto');
+            if (mainPhotoImg) {
+                mainPhotoImg.src = prop.main_photo || (prop.photos && prop.photos.length > 0 ? prop.photos[0] : '/static/images/property_placeholder.png');
+            }
+
+            const thumbsContainer = document.getElementById('pdmThumbnailsContainer');
+            if (thumbsContainer) {
+                thumbsContainer.innerHTML = '';
+                const photos = (prop.photos && prop.photos.length > 0) ? prop.photos : [prop.main_photo];
+                if (photos.length > 1) {
+                    photos.forEach((photoUrl, idx) => {
+                        const thumbBtn = document.createElement('button');
+                        thumbBtn.type = 'button';
+                        thumbBtn.className = `w-16 h-12 rounded-xl overflow-hidden border-2 transition shrink-0 ${idx === 0 ? 'border-rose-900 shadow-sm' : 'border-slate-200 opacity-60 hover:opacity-100'}`;
+                        thumbBtn.innerHTML = `<img src="${photoUrl}" class="w-full h-full object-cover">`;
+                        thumbBtn.onclick = () => {
+                            if (mainPhotoImg) mainPhotoImg.src = photoUrl;
+                            thumbsContainer.querySelectorAll('button').forEach(b => {
+                                b.className = 'w-16 h-12 rounded-xl overflow-hidden border-2 transition shrink-0 border-slate-200 opacity-60 hover:opacity-100';
+                            });
+                            thumbBtn.className = 'w-16 h-12 rounded-xl overflow-hidden border-2 transition shrink-0 border-rose-900 shadow-sm';
+                        };
+                        thumbsContainer.appendChild(thumbBtn);
+                    });
+                }
+            }
+
+            // Price & Expenses
+            const priceEl = document.getElementById('pdmPrice');
+            if (priceEl) priceEl.innerText = prop.formatted_price;
+
+            const expEl = document.getElementById('pdmExpenses');
+            if (expEl) {
+                expEl.innerText = prop.expenses ? `+ ${prop.expenses} expensas` : '';
+            }
+
+            // External Portal link
+            const portalContainer = document.getElementById('pdmPortalContainer');
+            if (portalContainer) {
+                if (prop.portal_url) {
+                    portalContainer.innerHTML = `
+                        <a href="${prop.portal_url}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-200">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5 text-rose-800"></i>
+                            <span>Ver en ${prop.portal_display_name}</span>
+                        </a>
+                    `;
+                } else {
+                    portalContainer.innerHTML = '';
+                }
+            }
+
+            // Title & Location
+            const titleEl = document.getElementById('pdmTitle');
+            if (titleEl) titleEl.innerText = prop.title;
+
+            const locEl = document.getElementById('pdmLocation');
+            if (locEl) locEl.innerText = `${prop.address} · ${prop.zone}`;
+
+            // Specs
+            const bedEl = document.getElementById('pdmBedrooms');
+            if (bedEl) bedEl.innerText = prop.bedrooms || 0;
+
+            const bathEl = document.getElementById('pdmBathrooms');
+            if (bathEl) bathEl.innerText = prop.bathrooms || 0;
+
+            const totSurfEl = document.getElementById('pdmTotalSurface');
+            if (totSurfEl) totSurfEl.innerText = `${Math.round(prop.total_surface || 0)} m²`;
+
+            const garEl = document.getElementById('pdmGarages');
+            if (garEl) garEl.innerText = prop.garages || 0;
+
+            const covWrapper = document.getElementById('pdmCoveredSurfaceWrapper');
+            const covEl = document.getElementById('pdmCoveredSurface');
+            if (covWrapper && covEl) {
+                if (prop.covered_surface && prop.covered_surface > 0) {
+                    covEl.innerText = `${Math.round(prop.covered_surface)} m²`;
+                    covWrapper.classList.remove('hidden');
+                } else {
+                    covWrapper.classList.add('hidden');
+                }
+            }
+
+            // Description
+            const descEl = document.getElementById('pdmDescription');
+            if (descEl) {
+                descEl.innerText = prop.description || 'Sin descripción detallada por el momento.';
+            }
+
+            const detailModal = document.getElementById('propertyDetailModal');
+            if (detailModal) {
+                detailModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+            lucide.createIcons();
+        }
+
+        function closePropertyDetailModal() {
+            const detailModal = document.getElementById('propertyDetailModal');
+            if (detailModal) {
+                detailModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function bookFromDetailModal() {
+            if (!activeDetailProperty) return;
+            const prop = activeDetailProperty;
+            closePropertyDetailModal();
+            openPropertyBookingModal(
+                prop.id,
+                prop.title,
+                prop.formatted_price,
+                `${prop.address} (${prop.zone})`,
+                prop.main_photo
+            );
+        }
+
+        // Seller Registration Modal Logic
+        function openSellerRegisterModal() {
+            const sellerModal = document.getElementById('sellerRegisterModal');
+            const alert = document.getElementById('sellerSuccessAlert');
+            const form = document.getElementById('sellerRegisterForm');
+            const errNotice = document.getElementById('sellerErrorNotice');
+
+            if (alert) alert.classList.add('hidden');
+            if (errNotice) {
+                errNotice.innerText = '';
+                errNotice.classList.add('hidden');
+            }
+            if (form) {
+                form.classList.remove('hidden');
+                form.reset();
+            }
+
+            if (sellerModal) {
+                sellerModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+            lucide.createIcons();
+        }
+
+        function closeSellerRegisterModal() {
+            const sellerModal = document.getElementById('sellerRegisterModal');
+            if (sellerModal) {
+                sellerModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function submitSellerRegisterForm(e) {
+            e.preventDefault();
+            const form = document.getElementById('sellerRegisterForm');
+            const submitBtn = document.getElementById('sellerSubmitBtn');
+            const errNotice = document.getElementById('sellerErrorNotice');
+            const alert = document.getElementById('sellerSuccessAlert');
+
+            if (!form) return;
+
+            const formData = new FormData(form);
+            const originalBtnHtml = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Enviando solicitud...</span>';
+            lucide.createIcons();
+
+            fetch("{% url 'api_seller_register' business.slug %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+                lucide.createIcons();
+
+                if (data.success) {
+                    form.classList.add('hidden');
+                    alert.classList.remove('hidden');
+                    lucide.createIcons();
+                } else {
+                    if (errNotice) {
+                        errNotice.innerText = data.error || 'Ocurrió un error al procesar tu solicitud.';
+                        errNotice.classList.remove('hidden');
+                    }
+                }
+            })
+            .catch(err => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+                lucide.createIcons();
+                if (errNotice) {
+                    errNotice.innerText = 'Error de conexión. Inténtalo nuevamente.';
+                    errNotice.classList.remove('hidden');
+                }
+            });
+        }
+
+        // Close on background click
+        window.addEventListener('DOMContentLoaded', () => {
+            const pdmModal = document.getElementById('propertyDetailModal');
+            if (pdmModal) {
+                pdmModal.addEventListener('click', function(e) {
+                    if (e.target === pdmModal) closePropertyDetailModal();
+                });
+            }
+            const srmModal = document.getElementById('sellerRegisterModal');
+            if (srmModal) {
+                srmModal.addEventListener('click', function(e) {
+                    if (e.target === srmModal) closeSellerRegisterModal();
+                });
+            }
+        });
+
+        // Close on Esc key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePropertyDetailModal();
+                closeSellerRegisterModal();
+                closeBookingModal();
+                closePortalPausedModal();
+            }
+        });
 
         function showPortalPausedModal(serviceName) {
             const pausedModal = document.getElementById('portalPausedModal');
@@ -934,16 +1810,95 @@
             }
         }
 
-        function openBookingModal(serviceId, serviceName, servicePrice, serviceDuration, preselectedStaffId) {
+        function openPropertyBookingModal(propertyId, propertyTitle, propertyPrice, propertyAddress, propertyPhoto) {
             if (IS_PORTAL_PAUSED) {
-                showPortalPausedModal(serviceName);
+                showPortalPausedModal(`Visita a ${propertyTitle || 'Propiedad'}`);
                 return;
             }
 
-            document.getElementById('modalServiceId').value = serviceId;
-            document.getElementById('modalServiceTitle').innerText = serviceName;
-            document.getElementById('modalServiceSubtitle').innerText = `${serviceDuration} min · {{ business.currency }}${servicePrice}`;
-            
+            const propCard = document.getElementById('modalPropertyCard');
+            const servicesStep = document.getElementById('modalServicesStepContainer');
+            const modalPropId = document.getElementById('modalPropertyId');
+            const modalPropImg = document.getElementById('modalPropertyImg');
+            const modalPropTitle = document.getElementById('modalPropertyTitle');
+            const modalPropAddress = document.getElementById('modalPropertyAddress');
+            const modalPropPrice = document.getElementById('modalPropertyPrice');
+            const headerTitle = document.getElementById('modalServiceTitle');
+            const headerSubtitle = document.getElementById('modalServiceSubtitle');
+            const submitBadge = document.getElementById('submitBtnAmountBadge');
+
+            if (modalPropId) modalPropId.value = propertyId;
+            if (propCard) propCard.classList.remove('hidden');
+            if (servicesStep) servicesStep.classList.add('hidden');
+
+            if (modalPropImg) {
+                modalPropImg.src = propertyPhoto || '/static/images/property_placeholder.png';
+            }
+            if (modalPropTitle) modalPropTitle.innerText = propertyTitle || 'Inmueble';
+            if (modalPropAddress) modalPropAddress.innerText = propertyAddress || '';
+            if (modalPropPrice) modalPropPrice.innerText = propertyPrice || '';
+
+            if (headerTitle) headerTitle.innerText = "Coordinar Visita Inmobiliaria";
+            if (headerSubtitle) headerSubtitle.innerText = `${propertyTitle} · ${propertyPrice}`;
+            if (submitBadge) submitBadge.innerText = "Visita";
+
+            hideFloatingBar();
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+            fetchAvailableSlots();
+        }
+
+        function openBookingModal(serviceId, serviceName, servicePrice, serviceDuration, preselectedStaffId) {
+            if (IS_PORTAL_PAUSED) {
+                showPortalPausedModal(serviceName || 'Servicio');
+                return;
+            }
+
+            // Reset property mode
+            const propCard = document.getElementById('modalPropertyCard');
+            const servicesStep = document.getElementById('modalServicesStepContainer');
+            const modalPropId = document.getElementById('modalPropertyId');
+            if (modalPropId) modalPropId.value = '';
+            if (propCard) propCard.classList.add('hidden');
+            if (servicesStep) servicesStep.classList.remove('hidden');
+
+            if (serviceId) {
+                const existing = selectedBookingServices.find(s => String(s.id) === String(serviceId));
+                if (existing) {
+                    existing.quantity += 1;
+                } else {
+                    const catSvc = findCatalogService(serviceId);
+                    if (catSvc) {
+                        selectedBookingServices.push({
+                            id: String(catSvc.id),
+                            name: catSvc.name,
+                            price: parseFloat(catSvc.price),
+                            duration: parseInt(catSvc.duration) || 30,
+                            quantity: 1
+                        });
+                    } else if (serviceName) {
+                        selectedBookingServices.push({
+                            id: String(serviceId),
+                            name: serviceName,
+                            price: parseFloat(servicePrice) || 0,
+                            duration: parseInt(serviceDuration) || 30,
+                            quantity: 1
+                        });
+                    }
+                }
+            } else if (selectedBookingServices.length === 0 && servicesCatalog.length > 0) {
+                const first = servicesCatalog[0];
+                selectedBookingServices.push({
+                    id: String(first.id),
+                    name: first.name,
+                    price: parseFloat(first.price),
+                    duration: parseInt(first.duration) || 30,
+                    quantity: 1
+                });
+            }
+
             if (preselectedStaffId) {
                 const staffRadio = document.querySelector(`input[name="staff_id"][value="${preselectedStaffId}"]`);
                 if (staffRadio) {
@@ -951,6 +1906,8 @@
                 }
             }
 
+            renderBookingModalServices();
+            hideFloatingBar();
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             fetchAvailableSlots();
@@ -961,18 +1918,7 @@
                 showPortalPausedModal(staffName ? `Atención con ${staffName}` : '');
                 return;
             }
-
-            const firstRow = document.querySelector('.service-row');
-            if (firstRow) {
-                firstRow.click();
-                setTimeout(() => {
-                    const r = document.querySelector(`input[name="staff_id"][value="${staffId}"]`);
-                    if (r) {
-                        r.checked = true;
-                        fetchAvailableSlots();
-                    }
-                }, 50);
-            }
+            openBookingModal(null, null, null, null, staffId);
         }
 
         function closeBookingModal() {
@@ -980,6 +1926,220 @@
                 modal.classList.add('hidden');
                 document.body.style.overflow = '';
             }
+            const modalPropId = document.getElementById('modalPropertyId');
+            if (modalPropId) modalPropId.value = '';
+            const propCard = document.getElementById('modalPropertyCard');
+            if (propCard) propCard.classList.add('hidden');
+            const servicesStep = document.getElementById('modalServicesStepContainer');
+            if (servicesStep) servicesStep.classList.remove('hidden');
+
+            if (selectedBookingServices.length > 0) {
+                showFloatingBar();
+            } else {
+                hideFloatingBar();
+            }
+        }
+
+        function showFloatingBar() {
+            const bar = document.getElementById('floatingBookingBar');
+            if (!bar) return;
+            bar.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+            bar.classList.add('translate-y-0', 'opacity-100');
+        }
+
+        function hideFloatingBar() {
+            const bar = document.getElementById('floatingBookingBar');
+            if (!bar) return;
+            bar.classList.remove('translate-y-0', 'opacity-100');
+            bar.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+        }
+
+        function clearBookingServices() {
+            selectedBookingServices = [];
+            renderBookingModalServices();
+            hideFloatingBar();
+        }
+
+        function changeServiceQty(serviceId, delta) {
+            const item = selectedBookingServices.find(s => String(s.id) === String(serviceId));
+            if (!item) return;
+            const newQty = item.quantity + delta;
+            if (newQty <= 0) {
+                removeServiceFromBooking(serviceId);
+            } else {
+                item.quantity = newQty;
+                renderBookingModalServices();
+            }
+        }
+
+        function removeServiceFromBooking(serviceId) {
+            selectedBookingServices = selectedBookingServices.filter(s => String(s.id) !== String(serviceId));
+            renderBookingModalServices();
+        }
+
+        function handleAddServiceFromDropdown() {
+            const select = document.getElementById('modalAddServiceSelect');
+            if (!select || !select.value) return;
+            const serviceId = select.value;
+            const existing = selectedBookingServices.find(s => String(s.id) === String(serviceId));
+            if (existing) {
+                existing.quantity += 1;
+            } else {
+                const catSvc = findCatalogService(serviceId);
+                if (catSvc) {
+                    selectedBookingServices.push({
+                        id: String(catSvc.id),
+                        name: catSvc.name,
+                        price: parseFloat(catSvc.price),
+                        duration: parseInt(catSvc.duration) || 30,
+                        quantity: 1
+                    });
+                }
+            }
+            select.value = "";
+            renderBookingModalServices();
+        }
+
+        function renderBookingModalServices() {
+            const listContainer = document.getElementById('modalSelectedServicesList');
+            const headerTitle = document.getElementById('modalServiceTitle');
+            const headerSubtitle = document.getElementById('modalServiceSubtitle');
+            const badgeDuration = document.getElementById('modalTotalDurationBadge');
+            const submitBtn = document.getElementById('submitBookingBtn');
+            const submitBadge = document.getElementById('submitBtnAmountBadge');
+            const hiddenData = document.getElementById('modalServicesData');
+            const hiddenServiceId = document.getElementById('modalServiceId');
+            const timeInput = document.getElementById('booking_time');
+            const modalPropId = document.getElementById('modalPropertyId');
+            const isPropertyVisit = modalPropId && modalPropId.value;
+
+            if (isPropertyVisit) {
+                // If it's a property visit, header and badge are handled by openPropertyBookingModal
+                lucide.createIcons();
+                return;
+            }
+
+            let totalDuration = 0;
+            let totalPrice = 0;
+            let totalItemsCount = 0;
+
+            selectedBookingServices.forEach(item => {
+                totalDuration += item.duration * item.quantity;
+                totalPrice += item.price * item.quantity;
+                totalItemsCount += item.quantity;
+            });
+
+            if (hiddenData) {
+                hiddenData.value = JSON.stringify(selectedBookingServices.map(s => ({ id: s.id, quantity: s.quantity })));
+            }
+            if (hiddenServiceId) {
+                hiddenServiceId.value = selectedBookingServices.length > 0 ? selectedBookingServices[0].id : '';
+            }
+
+            // Update Header
+            if (headerTitle) {
+                if (selectedBookingServices.length === 0) {
+                    headerTitle.innerText = "Selecciona tus Servicios";
+                } else if (selectedBookingServices.length === 1 && selectedBookingServices[0].quantity === 1) {
+                    headerTitle.innerText = selectedBookingServices[0].name;
+                } else {
+                    headerTitle.innerText = `${totalItemsCount} Servicios Seleccionados`;
+                }
+            }
+            if (headerSubtitle) {
+                headerSubtitle.innerText = `${totalDuration} min · ${CURRENCY}${totalPrice.toFixed(2)}`;
+            }
+            if (badgeDuration) {
+                badgeDuration.innerText = `⏱ ${totalDuration} min`;
+            }
+            if (submitBadge) {
+                submitBadge.innerText = `${CURRENCY}${totalPrice.toFixed(2)}`;
+            }
+
+            // Render list
+            if (listContainer) {
+                if (selectedBookingServices.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="p-3 text-center text-xs text-rose-700 bg-rose-50 rounded-xl border border-dashed border-rose-200">
+                            No has seleccionado servicios aún. Elige uno abajo para continuar.
+                        </div>
+                    `;
+                    if (submitBtn && !isPropertyVisit) submitBtn.disabled = true;
+                } else {
+                    let html = '';
+                    selectedBookingServices.forEach(item => {
+                        const subtotal = (item.price * item.quantity).toFixed(2);
+                        html += `
+                            <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 gap-2">
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-bold text-xs text-slate-900 truncate">${item.name}</div>
+                                    <div class="text-[11px] text-slate-500">${CURRENCY}${item.price.toFixed(2)} · ${item.duration} min c/u</div>
+                                </div>
+                                <div class="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shrink-0">
+                                    <button type="button" onclick="changeServiceQty('${item.id}', -1)" class="w-6 h-6 rounded bg-slate-50 hover:bg-rose-50 text-slate-700 hover:text-rose-900 font-bold text-xs flex items-center justify-center transition border border-slate-200" title="Disminuir cantidad">
+                                        -
+                                    </button>
+                                    <span class="text-xs font-bold text-slate-900 w-5 text-center">${item.quantity}</span>
+                                    <button type="button" onclick="changeServiceQty('${item.id}', 1)" class="w-6 h-6 rounded bg-slate-50 hover:bg-rose-50 text-slate-700 hover:text-rose-900 font-bold text-xs flex items-center justify-center transition border border-slate-200" title="Aumentar cantidad">
+                                        +
+                                    </button>
+                                </div>
+                                <div class="text-right min-w-[65px] shrink-0">
+                                    <span class="block text-xs font-extrabold text-rose-950">${CURRENCY}${subtotal}</span>
+                                    <button type="button" onclick="removeServiceFromBooking('${item.id}')" class="text-[10px] text-rose-600 hover:text-rose-800 hover:underline">
+                                        Quitar
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listContainer.innerHTML = html;
+                    if (submitBtn && timeInput && timeInput.value) {
+                        submitBtn.disabled = false;
+                    }
+                }
+            }
+
+            // Update Floating Bar
+            const barCount = document.getElementById('floatingBarCount');
+            const barSummary = document.getElementById('floatingBarSummary');
+            const barTotals = document.getElementById('floatingBarTotals');
+            if (barCount) barCount.innerText = totalItemsCount;
+            if (barSummary) {
+                barSummary.innerText = totalItemsCount === 1 ? '1 servicio seleccionado' : `${totalItemsCount} servicios seleccionados`;
+            }
+            if (barTotals) barTotals.innerText = `Total: ${CURRENCY}${totalPrice.toFixed(2)}`;
+
+            lucide.createIcons();
+        }
+
+        // Form submit validation
+        if (bookingForm) {
+            bookingForm.addEventListener('submit', function(e) {
+                const modalPropId = document.getElementById('modalPropertyId');
+                const isPropVisit = modalPropId && modalPropId.value;
+
+                if (!isPropVisit && selectedBookingServices.length === 0) {
+                    e.preventDefault();
+                    alert('Por favor selecciona al menos un servicio para reservar.');
+                    return false;
+                }
+                const timeInput = document.getElementById('booking_time');
+                if (!timeInput || !timeInput.value) {
+                    e.preventDefault();
+                    alert('Por favor selecciona un horario disponible.');
+                    return false;
+                }
+
+                if (!isPropVisit) {
+                    document.getElementById('modalServicesData').value = JSON.stringify(
+                        selectedBookingServices.map(s => ({ id: s.id, quantity: s.quantity }))
+                    );
+                    if (selectedBookingServices.length > 0) {
+                        document.getElementById('modalServiceId').value = selectedBookingServices[0].id;
+                    }
+                }
+            });
         }
 
         // AJAX Slots Logic
@@ -1038,7 +2198,11 @@
             });
             btnElement.className = 'py-2 rounded-xl text-xs font-bold transition border bg-[#881337] border-[#881337] text-white shadow-sm';
             document.getElementById('booking_time').value = timeStr;
-            document.getElementById('submitBookingBtn').disabled = false;
+            const modalPropId = document.getElementById('modalPropertyId');
+            const isPropVisit = modalPropId && modalPropId.value;
+            if (selectedBookingServices.length > 0 || isPropVisit) {
+                document.getElementById('submitBookingBtn').disabled = false;
+            }
         }
 
         // Calendar export utilities

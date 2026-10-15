@@ -6,7 +6,7 @@ def business_context(request):
     if not business and hasattr(request, 'user') and request.user.is_authenticated and getattr(request.user, 'business', None):
         business = request.user.business
 
-    all_module_keys = ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
+    all_module_keys = ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties']
     modules_enabled = {}
     
     user = getattr(request, 'user', None)
@@ -36,6 +36,7 @@ def business_context(request):
         'current_business': business,
         'modules_enabled': modules_enabled,
         'business_type_display': business.get_business_type_display() if business else 'Agencia',
+        'is_real_estate': business.is_real_estate if business else False,
         'user_can_charge_pos': can_charge_pos,
         'user_can_view_financial_reports': can_view_financial_reports,
         'user_can_manage_settings': can_manage_settings,

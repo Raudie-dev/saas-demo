@@ -50,19 +50,32 @@ class Business(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    @property
+    def is_real_estate(self):
+        return self.business_type == 'REAL_ESTATE'
+
     def get_allowed_modules(self):
         sub = getattr(self, 'subscription', None)
         if sub and sub.plan and sub.plan.included_modules:
-            return sub.plan.included_modules
-        return ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
+            modules = list(sub.plan.included_modules)
+            if self.is_real_estate and 'properties' not in modules:
+                modules.append('properties')
+            return modules
+        return ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties']
 
     def is_module_allowed_by_plan(self, module_name):
+        if module_name == 'properties' and self.is_real_estate:
+            return True
         allowed = self.get_allowed_modules()
         return module_name in allowed
 
     def is_module_enabled(self, module_name):
         if module_name == 'booking' and not getattr(self, 'is_booking_enabled', True):
             return False
+        if module_name == 'properties':
+            if self.is_real_estate:
+                return True
+            return 'properties' in (self.enabled_modules or [])
         if not self.is_module_allowed_by_plan(module_name):
             return False
         if not self.enabled_modules:
