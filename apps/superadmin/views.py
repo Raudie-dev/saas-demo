@@ -545,12 +545,16 @@ def payment_methods_management_view(request):
             messages.info(request, f"Método de pago '{pm.name}' {status_txt}.")
             return redirect('superadmin_payment_methods')
 
+    _ensure_default_payment_methods()
+    _ensure_default_regions()
     payment_methods = GlobalPaymentMethod.objects.all().order_by('name')
     all_regions = Region.objects.filter(is_active=True).order_by('name')
     
     import json
     for pm in payment_methods:
-        pm.selected_regions_json = json.dumps([str(r_id) for r_id in RegionPaymentMethod.objects.filter(payment_method=pm, use_for_sales=True).values_list('region_id', flat=True)])
+        active_rpms = RegionPaymentMethod.objects.filter(payment_method=pm, use_for_sales=True).select_related('region').order_by('region__name')
+        pm.selected_regions_json = json.dumps([str(rpm.region_id) for rpm in active_rpms])
+        pm.active_regions_list = [rpm.region for rpm in active_rpms]
 
     return render(request, 'superadmin/payment_methods.html', {
         'payment_methods': payment_methods,
@@ -626,24 +630,33 @@ def regions_management_view(request):
             return redirect('superadmin_regions')
 
     _ensure_default_payment_methods()
+    _ensure_default_regions()
     from apps.superadmin.payment_gateways import is_available
     regions = Region.objects.all().order_by('name')
-    global_methods = GlobalPaymentMethod.objects.filter(is_active=True)
+    global_methods = GlobalPaymentMethod.objects.filter(is_active=True).order_by('name')
     
     # Pre-fetch region payment methods
     regions_data = []
     for region in regions:
         region_methods = {rpm.payment_method_id: rpm for rpm in region.payment_methods.all()}
-        methods_data = []
+        primary_methods = []
+        other_methods = []
         for gm in global_methods:
-            methods_data.append({
+            rc = region_methods.get(gm.id)
+            item_dict = {
                 'global_method': gm,
-                'region_config': region_methods.get(gm.id),
+                'region_config': rc,
                 'credentials_ok': is_available(gm.provider, region) if gm.provider else None,
-            })
+            }
+            if region.code == 'GLOBAL' or (rc and (rc.use_for_sales or rc.use_for_billing)):
+                primary_methods.append(item_dict)
+            else:
+                other_methods.append(item_dict)
+
         regions_data.append({
             'region': region,
-            'methods': methods_data
+            'methods': primary_methods if primary_methods else other_methods,
+            'other_methods': other_methods if primary_methods else [],
         })
 
     return render(request, 'superadmin/regions.html', {
@@ -656,20 +669,107 @@ def _ensure_default_payment_methods():
     from apps.superadmin.payment_gateways import ensure_integrated_methods
     ensure_integrated_methods()
     default_methods = [
-        {
-            'code': 'PAGOMOVIL',
-            'name': 'Pago Móvil',
-            'description': 'Validación manual: Pago mediante Pago Móvil interbancario (Cédula, Teléfono, Banco).'
-        },
+        # Métodos transversales en Latinoamérica
         {
             'code': 'TRANSFERENCIA',
             'name': 'Transferencia Bancaria',
-            'description': 'Validación manual: Transferencia bancaria directa con CBU / Alias / Número de Cuenta.'
+            'description': 'Validación manual: Transferencia bancaria directa (CBU, Alias, CLABE, CCI, CuentaRUT, ACH o IBAN).'
+        },
+        {
+            'code': 'EFECTIVO',
+            'name': 'Efectivo (Caja)',
+            'description': 'Pago presencial en efectivo en moneda local o divisas en la sucursal.'
+        },
+        {
+            'code': 'TARJETA',
+            'name': 'Tarjeta de Débito / Crédito (POS)',
+            'description': 'Cobro con tarjeta de débito o crédito mediante terminal POS / datáfono o link de pago.'
+        },
+        {
+            'code': 'ZELLE',
+            'name': 'Zelle (USD)',
+            'description': 'Transferencia inmediata en dólares estadounidenses vía Zelle (correo electrónico o teléfono asociado).'
+        },
+        {
+            'code': 'BINANCE_PAY',
+            'name': 'Binance Pay / USDT',
+            'description': 'Pago inmediato en criptomonedas / USDT mediante Binance Pay ID, QR o correo registrado.'
+        },
+        {
+            'code': 'PAYPAL',
+            'name': 'PayPal',
+            'description': 'Pago internacional en USD con saldo PayPal o tarjeta mediante correo o enlace PayPal.Me.'
+        },
+        # Métodos locales por país latinoamericano
+        {
+            'code': 'PAGOMOVIL',
+            'name': 'Pago Móvil (Venezuela)',
+            'description': 'Validación manual: Pago Móvil interbancario inmediato en Bolívares (Banco, Cédula/RIF y Teléfono).'
+        },
+        {
+            'code': 'PIX',
+            'name': 'Pix (Brasil)',
+            'description': 'Transferencia instantánea 24/7 en Reales mediante llave Pix (CPF/CNPJ, Email, Teléfono o QR Code).'
+        },
+        {
+            'code': 'NEQUI_DAVIPLATA',
+            'name': 'Nequi / DaviPlata / PSE (Colombia)',
+            'description': 'Transferencia rápida desde billeteras digitales Nequi, DaviPlata, Bre-B o débito PSE en Colombia.'
+        },
+        {
+            'code': 'YAPE_PLIN',
+            'name': 'Yape / Plin (Perú)',
+            'description': 'Pago inmediato con número de celular o código QR a través de Yape o Plin en Perú.'
+        },
+        {
+            'code': 'SPEI_OXXO',
+            'name': 'SPEI / CoDi / OXXO (México)',
+            'description': 'Transferencia interbancaria CLABE (SPEI), cobro digital CoDi o depósito en efectivo en OXXO.'
+        },
+        {
+            'code': 'WEBPAY_KHIPU',
+            'name': 'Webpay / CuentaRUT / Khipu (Chile)',
+            'description': 'Pago con tarjetas vía Transbank Webpay, Khipu o transferencia a CuentaRUT BancoEstado.'
+        },
+        {
+            'code': 'SINPE_MOVIL',
+            'name': 'SINPE Móvil (Costa Rica)',
+            'description': 'Transferencia bancaria inmediata al número de teléfono celular afiliado a SINPE Móvil.'
+        },
+        {
+            'code': 'YAPPY',
+            'name': 'Yappy / ACH Xpress (Panamá)',
+            'description': 'Pago rápido por directorio comercial o número celular en Yappy (Banco General) o ACH Xpress.'
+        },
+        {
+            'code': 'QR_SIMPLE',
+            'name': 'QR Simple (Bolivia)',
+            'description': 'Cobro interbancario inmediato en Bolivianos mediante código QR Simple.'
+        },
+        {
+            'code': 'SIPAP',
+            'name': 'SIPAP / Giros Tigo (Paraguay)',
+            'description': 'Transferencia bancaria instantánea vía SIPAP / Alias o billetera móvil Giros Tigo.'
+        },
+        {
+            'code': 'DEUNA',
+            'name': 'Deuna! / Pago QR (Ecuador)',
+            'description': 'Pago inmediato sin comisión mediante código QR o número celular con Deuna! (Banco Pichincha).'
+        },
+        {
+            'code': 'TRANSFER365',
+            'name': 'Transfer365 / Billetera Local (El Salvador)',
+            'description': 'Transferencia interbancaria inmediata 24/7 vía Transfer365 del BCR en El Salvador.'
+        },
+        {
+            'code': 'ATH_MOVIL',
+            'name': 'ATH Móvil (Puerto Rico)',
+            'description': 'Pago instantáneo a número telefónico o tarjeta mediante ATH Móvil / ATH Móvil Business.'
         },
     ]
 
     for item in default_methods:
-        GlobalPaymentMethod.objects.get_or_create(
+        pm, created = GlobalPaymentMethod.objects.get_or_create(
             code=item['code'],
             defaults={
                 'name': item['name'],
@@ -677,8 +777,166 @@ def _ensure_default_payment_methods():
                 'is_active': True
             }
         )
+        if not created and item['code'] == 'PAGOMOVIL' and pm.name == 'Pago Móvil':
+            pm.name = item['name']
+            pm.save(update_fields=['name'])
+
+def _ensure_default_regions():
+    """
+    Asegura que las regiones latinoamericanas principales estén registradas
+    con sus códigos telefónicos/ISO, símbolo de moneda, moneda ISO y sus métodos de pago regionales.
+    """
+    from django.db.models import Q
+    latam_regions = [
+        {
+            'name': 'Argentina', 'code': '54', 'country_codes': 'AR', 'currency_symbol': '$', 'currency_code': 'ARS',
+            'methods': ['MERCADOPAGO', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'BINANCE_PAY', 'ZELLE', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia en Pesos (ARS) o USD: Indicar Banco/Billetera, CBU/CVU, Alias y CUIT/CUIL.'
+        },
+        {
+            'name': 'Bolivia', 'code': '591', 'country_codes': 'BO', 'currency_symbol': 'Bs.', 'currency_code': 'BOB',
+            'methods': ['QR_SIMPLE', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia interbancaria en Bs.: Indicar Banco, N° de Cuenta, Titular y CI/NIT.'
+        },
+        {
+            'name': 'Brasil', 'code': '55', 'country_codes': 'BR', 'currency_symbol': 'R$', 'currency_code': 'BRL',
+            'methods': ['PIX', 'MERCADOPAGO', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferência TED / Pix: Informe Banco, Agência, Conta, Titular e CPF/CNPJ.'
+        },
+        {
+            'name': 'Chile', 'code': '56', 'country_codes': 'CL', 'currency_symbol': 'CLP $', 'currency_code': 'CLP',
+            'methods': ['WEBPAY_KHIPU', 'MERCADOPAGO', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia electrónica (CLP): Indicar Banco, Tipo de Cuenta (Corriente/Vista/RUT), N° de Cuenta y RUT.'
+        },
+        {
+            'name': 'Colombia', 'code': '57', 'country_codes': 'CO', 'currency_symbol': 'COP $', 'currency_code': 'COP',
+            'methods': ['NEQUI_DAVIPLATA', 'MERCADOPAGO', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'ZELLE', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia Bancolombia / Davivienda / Bre-B: Indicar Banco, Tipo y N° de Cuenta, Titular y NIT/Cédula.'
+        },
+        {
+            'name': 'Costa Rica', 'code': '506', 'country_codes': 'CR', 'currency_symbol': '₡', 'currency_code': 'CRC',
+            'methods': ['SINPE_MOVIL', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'ZELLE', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia IBAN (BAC / BCR / BN): Indicar Cuenta IBAN en Colones o Dólares y Cédula.'
+        },
+        {
+            'name': 'Ecuador', 'code': '593', 'country_codes': 'EC', 'currency_symbol': '$', 'currency_code': 'USD',
+            'methods': ['DEUNA', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'ZELLE', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia Banco Pichincha / Guayaquil / Produbanco / Pacífico: Tipo y N° de Cuenta, Cédula/RUC y Correo.'
+        },
+        {
+            'name': 'El Salvador', 'code': '503', 'country_codes': 'SV', 'currency_symbol': '$', 'currency_code': 'USD',
+            'methods': ['TRANSFER365', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'ZELLE', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia Banco Agrícola / Cuscatlán / BAC: Indicar Tipo y N° de Cuenta, Nombre y DUI/NIT.'
+        },
+        {
+            'name': 'Guatemala', 'code': '502', 'country_codes': 'GT', 'currency_symbol': 'Q', 'currency_code': 'GTQ',
+            'methods': ['TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'ZELLE', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia ACH (Banco Industrial / Banrural / G&T / BAC): Indicar Tipo y N° de Cuenta, Titular y NIT.'
+        },
+        {
+            'name': 'Honduras', 'code': '504', 'country_codes': 'HN', 'currency_symbol': 'L', 'currency_code': 'HNL',
+            'methods': ['TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'ZELLE', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia ACH (BAC / Atlántida / Ficohsa / Occidente): Indicar N° de Cuenta en Lempiras o USD y RTN/DNI.'
+        },
+        {
+            'name': 'México', 'code': '52', 'country_codes': 'MX', 'currency_symbol': 'MXN $', 'currency_code': 'MXN',
+            'methods': ['SPEI_OXXO', 'MERCADOPAGO', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'PAYPAL', 'BINANCE_PAY', 'ZELLE'],
+            'transfer_instructions': 'Transferencia SPEI (MXN): Indicar Banco, CLABE interbancaria de 18 dígitos, Beneficiario y Concepto.'
+        },
+        {
+            'name': 'Nicaragua', 'code': '505', 'country_codes': 'NI', 'currency_symbol': 'C$', 'currency_code': 'NIO',
+            'methods': ['TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'ZELLE', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia ACH (Lafise Bancentro / BAC / Banpro): Indicar N° de Cuenta en Córdobas o Dólares y Cédula/RUC.'
+        },
+        {
+            'name': 'Panamá', 'code': '507', 'country_codes': 'PA', 'currency_symbol': '$', 'currency_code': 'USD',
+            'methods': ['YAPPY', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'ZELLE', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia ACH / Banco General / Banistmo / BAC: Indicar Banco, Tipo de Cuenta, N° de Cuenta y Titular.'
+        },
+        {
+            'name': 'Paraguay', 'code': '595', 'country_codes': 'PY', 'currency_symbol': 'Gs.', 'currency_code': 'PYG',
+            'methods': ['SIPAP', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia SIPAP (Itaú / Continental / Ueno / Familiar): Indicar Banco, N° de Cuenta, Alias y CI/RUC.'
+        },
+        {
+            'name': 'Perú', 'code': '51', 'country_codes': 'PE', 'currency_symbol': 'S/', 'currency_code': 'PEN',
+            'methods': ['YAPE_PLIN', 'MERCADOPAGO', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'BINANCE_PAY', 'PAYPAL', 'ZELLE'],
+            'transfer_instructions': 'Transferencia BCP / Interbank / BBVA / Scotiabank: Indicar N° de Cuenta y CCI en Soles o Dólares, RUC/DNI.'
+        },
+        {
+            'name': 'Puerto Rico', 'code': '1787', 'country_codes': 'PR', 'currency_symbol': '$', 'currency_code': 'USD',
+            'methods': ['ATH_MOVIL', 'ZELLE', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'PAYPAL', 'BINANCE_PAY'],
+            'transfer_instructions': 'Transferencia Banco Popular / FirstBank / Oriental: Indicar N° de Cuenta y Titular.'
+        },
+        {
+            'name': 'República Dominicana', 'code': '1809', 'country_codes': 'DO', 'currency_symbol': 'RD$', 'currency_code': 'DOP',
+            'methods': ['TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'ZELLE', 'PAYPAL', 'BINANCE_PAY'],
+            'transfer_instructions': 'Transferencia LBTR / ACH (Popular / Banreservas / BHD): Indicar Banco, Tipo y N° de Cuenta y Cédula/RNC.'
+        },
+        {
+            'name': 'Uruguay', 'code': '598', 'country_codes': 'UY', 'currency_symbol': '$U', 'currency_code': 'UYU',
+            'methods': ['MERCADOPAGO', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'PAYPAL', 'BINANCE_PAY'],
+            'transfer_instructions': 'Transferencia BROU / Itaú / Santander / Prex: Indicar Banco, Moneda ($U o USD), N° de Cuenta y Titular.'
+        },
+        {
+            'name': 'Venezuela', 'code': '58', 'country_codes': 'VE', 'currency_symbol': 'Bs.', 'currency_code': 'VES',
+            'methods': ['PAGOMOVIL', 'ZELLE', 'BINANCE_PAY', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'PAYPAL'],
+            'transfer_instructions': 'Transferencia Bancaria Nacional (Bs.): Indicar Banco, Código de 20 dígitos de Cuenta, Titular y Cédula/RIF.'
+        },
+    ]
+
+    pm_map = {pm.code: pm for pm in GlobalPaymentMethod.objects.all()}
+
+    for item in latam_regions:
+        region = Region.objects.filter(
+            Q(name__iexact=item['name']) |
+            Q(code__iexact=item['code']) |
+            Q(code__iexact=item['country_codes'])
+        ).first()
+
+        if not region:
+            region = Region.objects.create(
+                name=item['name'],
+                code=item['code'],
+                country_codes=item['country_codes'],
+                currency_symbol=item['currency_symbol'],
+                currency_code=item['currency_code'],
+                is_active=True,
+                is_default=False,
+            )
+        else:
+            updated = False
+            if not region.country_codes:
+                region.country_codes = item['country_codes']
+                updated = True
+            if not region.currency_code:
+                region.currency_code = item['currency_code']
+                updated = True
+            if updated:
+                region.save()
+
+        for m_code in item['methods']:
+            pm = pm_map.get(m_code)
+            if not pm:
+                continue
+            default_instr = item['transfer_instructions'] if m_code == 'TRANSFERENCIA' else pm.description
+            rpm, rpm_created = RegionPaymentMethod.objects.get_or_create(
+                region=region,
+                payment_method=pm,
+                defaults={
+                    'instructions': default_instr,
+                    'use_for_sales': True,
+                    'use_for_billing': False,
+                    'is_active': True,
+                }
+            )
+            if not rpm_created and m_code == 'TRANSFERENCIA' and (not rpm.instructions or rpm.instructions == pm.description):
+                rpm.instructions = default_instr
+                rpm.save(update_fields=['instructions'])
 
 def _ensure_default_plans():
+    _ensure_default_payment_methods()
+    _ensure_default_regions()
     if SubscriptionPlan.objects.exists():
         pro = SubscriptionPlan.objects.filter(code='PRO').first()
         if pro and pro.monthly_price == Decimal('29.00'):
