@@ -59,8 +59,12 @@
                 <div>
                     <label class="block text-slate-300 font-semibold mb-1.5">Contraseña Root / Admin</label>
                     <div class="relative">
-                        <input type="password" name="password" required placeholder="••••••••••••" class="w-full bg-slate-950/80 border border-slate-800 text-white rounded-xl p-3 pl-10 text-xs font-semibold focus:outline-none focus:border-rose-600 transition">
-                        <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5"></i>
+                        <input type="password" id="superadmin_password" name="password" required placeholder="••••••••••••" class="w-full bg-slate-950/80 border border-slate-800 text-white rounded-xl p-3 pl-10 pr-10 text-xs font-semibold focus:outline-none focus:border-rose-600 transition">
+                        <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5 pointer-events-none"></i>
+                        <button type="button" onclick="togglePasswordVisibility('superadmin_password', this)" title="Mostrar / ocultar contraseña" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white transition cursor-pointer">
+                            <i data-lucide="eye" class="w-4 h-4 eye-open"></i>
+                            <i data-lucide="eye-off" class="w-4 h-4 eye-closed hidden"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -80,6 +84,18 @@
 
     <script>
         lucide.createIcons();
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const openIcon = btn.querySelector('.eye-open');
+            const closedIcon = btn.querySelector('.eye-closed');
+            if (openIcon && closedIcon) {
+                openIcon.classList.toggle('hidden', isPassword);
+                closedIcon.classList.toggle('hidden', !isPassword);
+            }
+        }
     </script>
 </body>
 </html>
