@@ -14,5 +14,9 @@ urlpatterns = [
     path('clientes/importar/', views.client_import_view, name='client_import'),
     path('clientes/plantilla/', views.client_template_download_view, name='client_template_download'),
     path('clientes/<uuid:client_id>/anotaciones-servicio/', views.add_client_service_note_view, name='add_client_service_note'),
+    path('clientes/<uuid:client_id>/actualizar-notas/', views.update_client_general_notes_view, name='update_client_general_notes'),
     path('anotaciones-servicio/<str:note_id>/eliminar/', views.delete_client_service_note_view, name='delete_client_service_note'),
+    path('clientes/<uuid:client_id>/solicitud-inmobiliaria/', views.add_client_property_inquiry_view, name='add_client_property_inquiry'),
+    path('solicitudes-inmobiliarias/<uuid:inquiry_id>/estado/', views.update_property_inquiry_status_view, name='update_property_inquiry_status'),
+    path('solicitudes-inmobiliarias/<uuid:inquiry_id>/eliminar/', views.delete_property_inquiry_view, name='delete_property_inquiry'),
 ]

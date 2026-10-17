@@ -89,6 +89,20 @@
                 </div>
             </div>
 
+            <!-- Assigned Services Summary -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-100">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Servicios Asignados</span>
+                <div class="flex flex-wrap gap-1.5">
+                    {% for srv in staff.services.all %}
+                    <span class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-900 border border-rose-200 text-[11px] font-bold">
+                        {{ srv.name }} <span class="text-rose-600/80 font-mono text-[10px]">({{ srv.duration_minutes }}m)</span>
+                    </span>
+                    {% empty %}
+                    <span class="text-[11px] text-slate-400 italic">Todos los servicios (sin restricción específica)</span>
+                    {% endfor %}
+                </div>
+            </div>
+
             <!-- Schedules Summary -->
             <div class="space-y-1.5 pt-2 border-t border-slate-100">
                 <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Horario de Atención</span>

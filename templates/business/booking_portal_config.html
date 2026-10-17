@@ -191,13 +191,20 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp Oficial de Reservas</label>
                     <div class="flex rounded-xl overflow-hidden border border-slate-200 focus-within:border-rose-900 bg-white">
-                        <select name="whatsapp_prefix" class="bg-slate-100 text-slate-800 text-xs font-bold px-2.5 py-2.5 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0">
+                        <select name="whatsapp_prefix" class="w-[96px] bg-slate-100 text-slate-800 text-xs font-bold px-2 py-2.5 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0">
                             {% include 'components/phone_prefix_options.html' with selected_prefix=wa_prefix|default:default_phone_prefix|default:'+54' %}
                         </select>
                         <input type="text" name="whatsapp_number" value="{{ wa_number|default:'' }}"
                                placeholder="9 11 2345 6789"
                                class="w-full bg-slate-50 border-0 px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:bg-white transition font-medium">
                     </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Ubicación / Dirección en el Portal</label>
+                    <input type="text" name="address" value="{{ business.address|default:'' }}"
+                           placeholder="Ej: Av. Principal, San Jacinto, Maracay"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-rose-900 focus:bg-white transition font-medium">
                 </div>
 
                 <div>

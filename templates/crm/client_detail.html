@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %}Ficha 360º - {{ client.full_name }} - RauDie OS{% endblock %}
-{% block header_title %}Ficha 360º del Cliente & Historial de Atención{% endblock %}
+{% block header_title %}{% if is_real_estate %}Ficha Inmobiliaria & Gestión de Cliente{% else %}Ficha 360º del Cliente & Historial de Atención{% endif %}{% endblock %}
 
 {% block content %}
 <div class="space-y-6 pb-12 max-w-7xl mx-auto">
@@ -13,11 +13,21 @@
                 {{ client.first_name|slice:":1" }}{{ client.last_name|slice:":1" }}
             </div>
             <div class="space-y-1.5 min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2.5">
                     <h2 class="text-2xl sm:text-3xl font-black font-display text-slate-900 tracking-tight break-words">{{ client.full_name }}</h2>
                     <span class="px-3 py-1 rounded-full text-xs font-bold shrink-0 {% if client.status == 'VIP' %}bg-rose-100 text-brand-900 border border-rose-200{% elif client.status == 'ACTIVE' %}bg-emerald-100 text-emerald-900 border border-emerald-200{% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
                         {{ client.get_status_display }}
                     </span>
+                    {% if is_real_estate %}
+                    <span class="px-3 py-1 rounded-full text-xs font-bold shrink-0 flex items-center gap-1.5 border
+                        {% if client.real_estate_role.color == 'amber' %}bg-amber-50 text-amber-900 border-amber-200
+                        {% elif client.real_estate_role.color == 'emerald' %}bg-emerald-50 text-emerald-900 border-emerald-200
+                        {% elif client.real_estate_role.color == 'purple' %}bg-purple-50 text-purple-900 border-purple-200
+                        {% else %}bg-slate-100 text-slate-700 border-slate-200{% endif %}">
+                        <i data-lucide="home" class="w-3.5 h-3.5"></i>
+                        {{ client.real_estate_role.badge }}
+                    </span>
+                    {% endif %}
                 </div>
                 <div class="flex flex-wrap items-center gap-4 text-xs text-slate-600 font-medium">
                     <a href="https://wa.me/{{ client.phone|cut:'+'|cut:' ' }}" target="_blank" class="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1.5 transition">
@@ -39,6 +49,26 @@
 
         <!-- Action Buttons & Quick KPIs -->
         <div class="flex flex-wrap items-center gap-4 shrink-0 border-t lg:border-t-0 border-slate-100 pt-4 lg:pt-0">
+            {% if is_real_estate %}
+            <div class="flex items-center gap-4 bg-rose-50/50 p-4 rounded-2xl border border-rose-200/80">
+                <div>
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Cartera Propietario</span>
+                    <span class="text-xl font-black text-rose-950 font-display block">{{ owned_properties.count }}</span>
+                </div>
+                <div class="border-l border-rose-200 pl-4">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Visitas a Inmuebles</span>
+                    <span class="text-xl font-black text-slate-900 font-display block">{{ property_visits|length }}</span>
+                </div>
+                <div class="border-l border-rose-200 pl-4">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Solicitudes Compra/Venta</span>
+                    <span class="text-xl font-black text-slate-900 font-display block">{{ seller_inquiries.count|add:buyer_inquiries.count|add:legacy_seller_requests|length }}</span>
+                </div>
+            </div>
+
+            <button type="button" onclick="openInquiryModal()" class="px-4 py-3 bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Nueva Solicitud Inmobiliaria
+            </button>
+            {% else %}
             <div class="flex items-center gap-5 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
                 <div>
                     <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Total Gastado</span>
@@ -53,6 +83,7 @@
                     <span class="text-xl font-black text-slate-900 font-display block">{{ service_notes|length }}</span>
                 </div>
             </div>
+            {% endif %}
 
             <a href="{% url 'client_edit' client.id %}" class="px-5 py-3 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2">
                 <i data-lucide="edit-3" class="w-4 h-4"></i> Editar Datos
@@ -60,8 +91,44 @@
         </div>
     </div>
 
-    <!-- Spacious Tabbed Navigation Header (No Amontonado) -->
+    <!-- Spacious Tabbed Navigation Header -->
     <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
+        {% if is_real_estate %}
+        <button onclick="switchClientTab('realestate')" id="client-tab-realestate" class="client-tab-btn active px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="home" class="w-4 h-4 text-[#881337]"></i>
+            <span>Gestión Inmobiliaria (Compra & Venta)</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-[#881337] text-[10px] font-bold">{{ property_visits|length|add:seller_inquiries.count|add:buyer_inquiries.count|add:owned_properties.count|add:legacy_seller_requests|length }}</span>
+        </button>
+
+        <button onclick="switchClientTab('appointments')" id="client-tab-appointments" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="calendar" class="w-4 h-4 text-brand-700"></i>
+            <span>Historial de Visitas & Citas</span>
+            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold">{{ appointments|length }}</span>
+        </button>
+
+        <button onclick="switchClientTab('properties')" id="client-tab-properties" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="building-2" class="w-4 h-4 text-rose-800"></i>
+            <span>Inmuebles en Cartera</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 text-[10px] font-bold">{{ owned_properties.count }}</span>
+        </button>
+
+        <button onclick="switchClientTab('notes')" id="client-tab-notes" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="clipboard-list" class="w-4 h-4 text-brand-700"></i>
+            <span>Anotaciones de Seguimiento</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-brand-900 text-[10px] font-bold">{{ service_notes|length }}</span>
+        </button>
+
+        <button onclick="switchClientTab('prefs')" id="client-tab-prefs" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="bookmark" class="w-4 h-4 text-amber-600"></i>
+            <span>Notas & Observaciones Generales</span>
+        </button>
+
+        <button onclick="switchClientTab('sales')" id="client-tab-sales" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
+            <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-700"></i>
+            <span>Facturación & Cobros</span>
+            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold">{{ sales|length }}</span>
+        </button>
+        {% else %}
         <button onclick="switchClientTab('notes')" id="client-tab-notes" class="client-tab-btn active px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
             <i data-lucide="file-text" class="w-4 h-4 text-brand-700"></i>
             <span>Anotaciones por Servicio</span>
@@ -84,25 +151,383 @@
             <i data-lucide="bookmark" class="w-4 h-4 text-amber-600"></i>
             <span>Notas & Preferencias Generales</span>
         </button>
-
-        {% if client.owned_properties.exists %}
-        <button onclick="switchClientTab('properties')" id="client-tab-properties" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="building-2" class="w-4 h-4 text-rose-800"></i>
-            <span>Inmuebles en Venta / Alquiler</span>
-            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 text-[10px] font-bold">{{ client.owned_properties.count }}</span>
-        </button>
         {% endif %}
     </div>
 
-    <!-- TAB CONTENT 1: Anotaciones por Servicio / Tratamiento (Full Width & Spacious) -->
-    <div id="client-content-notes" class="client-content bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+    {% if is_real_estate %}
+    <!-- TAB CONTENT 0: GESTIÓN INMOBILIARIA INTEGRAL (Compra & Venta) -->
+    <div id="client-content-realestate" class="client-content bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-8">
+        
+        <!-- Header Banner Real Estate -->
+        <div class="bg-gradient-to-r from-rose-950 via-slate-900 to-slate-900 p-6 rounded-2xl text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="space-y-1">
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                    Módulo Inmobiliario CRM
+                </span>
+                <h3 class="text-xl font-bold font-fun">Perfil y Solicitudes Inmobiliarias</h3>
+                <p class="text-xs text-rose-200/80 max-w-2xl">
+                    Registro centralizado de los datos agregados por el cliente como interesado en comprar, alquilar o como propietario que desea comercializar o tasar su propiedad.
+                </p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="openInquiryModal('BUYER')" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow transition flex items-center gap-1.5">
+                    <i data-lucide="search" class="w-3.5 h-3.5"></i> + Interés de Compra
+                </button>
+                <button type="button" onclick="openInquiryModal('SELLER')" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow transition flex items-center gap-1.5">
+                    <i data-lucide="home" class="w-3.5 h-3.5"></i> + Solicitud Propietario
+                </button>
+            </div>
+        </div>
+
+        <!-- 2 Large Columns: COMPRADOR / INTERESADO vs PROPIETARIO / VENDEDOR -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- COLUMNA 1: INTERESADO EN COMPRAR O ALQUILAR -->
+            <div class="space-y-5">
+                <div class="flex items-center justify-between pb-3 border-b border-emerald-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                            <i data-lucide="key" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-base">Interés de Compra & Visitas</h4>
+                            <p class="text-[11px] text-slate-500">Inmuebles que visitó, consultó o requerimientos de búsqueda</p>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                        {{ property_visits|length|add:buyer_inquiries.count }} Registros
+                    </span>
+                </div>
+
+                <!-- Visitas Coordinadas a Propiedades -->
+                {% if property_visits %}
+                <div class="space-y-3">
+                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <i data-lucide="calendar-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                        Visitas Coordinadas a Inmuebles ({{ property_visits|length }})
+                    </h5>
+
+                    {% for v in property_visits %}
+                    <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-white transition space-y-3 shadow-2xs">
+                        <div class="flex items-start gap-3.5">
+                            <img src="{% if v.related_property.main_photo_url %}{{ v.related_property.main_photo_url }}{% else %}/static/images/property_placeholder.png{% endif %}" 
+                                 class="w-20 h-16 rounded-xl object-cover border border-slate-200 shrink-0">
+                            <div class="min-w-0 flex-1 space-y-0.5">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full {% if v.related_property.operation_type == 'SALE' %}bg-emerald-100 text-emerald-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                        {{ v.related_property.get_operation_type_display }}
+                                    </span>
+                                    <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                        {{ v.get_status_display }}
+                                    </span>
+                                </div>
+                                <h6 class="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                                    <a href="{% url 'property_detail' v.related_property.id %}" class="hover:text-rose-900 hover:underline">
+                                        {{ v.related_property.title }}
+                                    </a>
+                                </h6>
+                                <p class="text-[11px] text-slate-500 truncate">{{ v.related_property.address }} · <strong>{{ v.related_property.zone }}</strong></p>
+                                <div class="text-[11px] font-black text-rose-950 font-fun">{{ v.related_property.formatted_price }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Visit Details & Client Notes -->
+                        <div class="pt-2 border-t border-slate-200/80 grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                            <div>
+                                <span class="text-slate-400 block text-[10px]">Fecha y Hora:</span>
+                                <strong class="text-slate-800">📅 {{ v.date|date:"d/m/Y" }} • {{ v.start_time|time:"H:i" }} hs</strong>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block text-[10px]">Asesor Asignado:</span>
+                                <strong class="text-slate-800">👤 {{ v.staff.full_name }}</strong>
+                            </div>
+                        </div>
+
+                        {% if v.notes %}
+                        <div class="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/80 text-[11px] text-amber-950 leading-relaxed">
+                            <span class="font-bold block text-amber-900 mb-0.5 flex items-center gap-1">
+                                <i data-lucide="message-square" class="w-3 h-3"></i> Consulta o comentario del interesado:
+                            </span>
+                            {{ v.notes }}
+                        </div>
+                        {% endif %}
+
+                        <div class="flex items-center justify-end pt-1">
+                            <a href="{% url 'property_detail' v.related_property.id %}" class="text-[11px] font-bold text-rose-900 hover:text-rose-950 flex items-center gap-1">
+                                <span>Ver Ficha del Inmueble</span>
+                                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Solicitudes de Búsqueda / Requerimientos de Compra -->
+                {% if buyer_inquiries %}
+                <div class="space-y-3">
+                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <i data-lucide="search" class="w-3.5 h-3.5 text-emerald-600"></i>
+                        Requerimientos de Compra Registrados ({{ buyer_inquiries.count }})
+                    </h5>
+
+                    {% for inq in buyer_inquiries %}
+                    <div class="p-4 rounded-2xl border border-slate-200 bg-emerald-50/30 hover:bg-white transition space-y-3 shadow-2xs">
+                        <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <span class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                                <i data-lucide="compass" class="w-3.5 h-3.5"></i>
+                                Búsqueda: {{ inq.operation_type }} · {{ inq.property_type }}
+                            </span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white border border-slate-200 text-slate-700">
+                                {{ inq.get_status_display }}
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold block">Zona de Interés</span>
+                                <strong class="text-slate-800">{{ inq.address_zone|default:"Indistinta" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold block">Presupuesto Estimado</span>
+                                <strong class="text-rose-900 font-fun font-bold">{{ inq.estimated_price|default:"A definir" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold block">Ambientes / Dormitorios</span>
+                                <strong class="text-slate-800">{{ inq.rooms|default:"No especificado" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold block">Asesor Asignado</span>
+                                <strong class="text-slate-800">{{ inq.agent.full_name|default:"Sin asesor asignado" }}</strong>
+                            </div>
+                        </div>
+
+                        {% if inq.notes %}
+                        <div class="p-2.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 leading-relaxed">
+                            <strong class="text-slate-800 block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Requerimientos & Comentarios del Cliente:</strong>
+                            {{ inq.notes }}
+                        </div>
+                        {% endif %}
+
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
+                            <span class="text-slate-400 font-mono">{{ inq.created_at|date:"d/m/Y H:i" }} hs</span>
+                            <form method="POST" action="{% url 'update_property_inquiry_status' inq.id %}" class="flex items-center gap-1.5">
+                                {% csrf_token %}
+                                <select name="status" onchange="this.form.submit()" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-200 bg-white">
+                                    <option value="PENDING" {% if inq.status == 'PENDING' %}selected{% endif %}>Pendiente</option>
+                                    <option value="CONTACTED" {% if inq.status == 'CONTACTED' %}selected{% endif %}>Contactado</option>
+                                    <option value="VISITING" {% if inq.status == 'VISITING' %}selected{% endif %}>Visita Coordinada</option>
+                                    <option value="NEGOTIATING" {% if inq.status == 'NEGOTIATING' %}selected{% endif %}>En Negociación</option>
+                                    <option value="CLOSED" {% if inq.status == 'CLOSED' %}selected{% endif %}>Concretado</option>
+                                    <option value="CANCELLED" {% if inq.status == 'CANCELLED' %}selected{% endif %}>Desestimado</option>
+                                </select>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if not property_visits and not buyer_inquiries %}
+                <div class="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                    <i data-lucide="search" class="w-8 h-8 text-slate-300 mx-auto"></i>
+                    <p class="text-xs text-slate-500 font-medium">No registra solicitudes de compra o visitas agendadas todavía.</p>
+                    <button type="button" onclick="openInquiryModal('BUYER')" class="text-xs font-bold text-emerald-700 hover:underline">
+                        + Registrar Interés de Compra / Búsqueda
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- COLUMNA 2: PROPIETARIO / VENDEDOR (Datos que agregó para vender o tasar) -->
+            <div class="space-y-5">
+                <div class="flex items-center justify-between pb-3 border-b border-amber-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                            <i data-lucide="building-2" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-base">Solicitudes de Propietario / Vendedor</h4>
+                            <p class="text-[11px] text-slate-500">Datos ingresados para comercializar, alquilar o tasar inmuebles</p>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                        {{ seller_inquiries.count|add:owned_properties.count|add:legacy_seller_requests|length }} Registros
+                    </span>
+                </div>
+
+                <!-- Solicitudes Estructuradas de Propietario -->
+                {% if seller_inquiries %}
+                <div class="space-y-3">
+                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-600"></i>
+                        Solicitudes de Venta / Tasación Recibidas ({{ seller_inquiries.count }})
+                    </h5>
+
+                    {% for inq in seller_inquiries %}
+                    <div class="p-4 rounded-2xl border border-amber-200/90 bg-amber-50/30 hover:bg-white transition space-y-3 shadow-2xs">
+                        <div class="flex items-center justify-between gap-2 border-b border-amber-100 pb-2">
+                            <span class="text-xs font-black uppercase text-amber-950 flex items-center gap-1.5">
+                                <i data-lucide="home" class="w-3.5 h-3.5 text-amber-700"></i>
+                                Solicitud de {{ inq.operation_type }} · {{ inq.property_type }}
+                            </span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white border border-amber-200 text-amber-900">
+                                {{ inq.get_status_display }}
+                            </span>
+                        </div>
+
+                        <!-- Grid of Owner Details -->
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold block">Dirección / Zona</span>
+                                <strong class="text-slate-800">{{ inq.address_zone|default:"Sin especificar" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold block">Precio Estimado / Pretensión</span>
+                                <strong class="text-rose-900 font-fun font-bold">{{ inq.estimated_price|default:"A coordinar / tasar" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold block">Ambientes / Dormitorios</span>
+                                <strong class="text-slate-800">{{ inq.rooms|default:"No especificado" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold block">Asesor Responsable</span>
+                                <strong class="text-slate-800">{{ inq.agent.full_name|default:"Sin asignar" }}</strong>
+                            </div>
+                        </div>
+
+                        {% if inq.notes %}
+                        <div class="p-2.5 rounded-xl bg-white border border-amber-200/80 text-xs text-slate-700 leading-relaxed">
+                            <strong class="text-amber-950 block text-[10px] uppercase font-bold mb-0.5">Detalles y Comentarios del Propietario:</strong>
+                            {{ inq.notes }}
+                        </div>
+                        {% endif %}
+
+                        <div class="flex items-center justify-between pt-2 border-t border-amber-100 text-[11px]">
+                            <span class="text-slate-400 font-mono">{{ inq.created_at|date:"d/m/Y H:i" }} hs</span>
+                            <div class="flex items-center gap-2">
+                                <a href="{% url 'property_create' %}?owner_id={{ client.id }}" class="text-[11px] font-bold text-amber-900 hover:underline flex items-center gap-1">
+                                    <i data-lucide="plus" class="w-3 h-3"></i> Cargar Ficha en Cartera
+                                </a>
+                                <form method="POST" action="{% url 'update_property_inquiry_status' inq.id %}" class="flex items-center gap-1.5">
+                                    {% csrf_token %}
+                                    <select name="status" onchange="this.form.submit()" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-200 bg-white">
+                                        <option value="PENDING" {% if inq.status == 'PENDING' %}selected{% endif %}>Pendiente</option>
+                                        <option value="CONTACTED" {% if inq.status == 'CONTACTED' %}selected{% endif %}>Contactado</option>
+                                        <option value="VISITING" {% if inq.status == 'VISITING' %}selected{% endif %}>Visita Coordinada</option>
+                                        <option value="NEGOTIATING" {% if inq.status == 'NEGOTIATING' %}selected{% endif %}>En Negociación</option>
+                                        <option value="CLOSED" {% if inq.status == 'CLOSED' %}selected{% endif %}>Concretado</option>
+                                        <option value="CANCELLED" {% if inq.status == 'CANCELLED' %}selected{% endif %}>Desestimado</option>
+                                    </select>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Solicitudes Legacy registradas en Notas -->
+                {% if legacy_seller_requests and not seller_inquiries %}
+                <div class="space-y-3">
+                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <i data-lucide="history" class="w-3.5 h-3.5 text-amber-600"></i>
+                        Solicitud de Propietario (Registrada en Portal)
+                    </h5>
+
+                    {% for leg in legacy_seller_requests %}
+                    <div class="p-4 rounded-2xl border border-amber-200 bg-amber-50/40 space-y-3">
+                        <div class="flex items-center justify-between border-b border-amber-100 pb-2">
+                            <span class="text-xs font-bold text-amber-950 uppercase">Solicitud de {{ leg.operation_type }} · {{ leg.property_type }}</span>
+                            <span class="text-[10px] font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">Recibido</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block font-semibold uppercase">Ubicación</span>
+                                <strong class="text-slate-800">{{ leg.address_zone|default:"No informada" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 block font-semibold uppercase">Precio Pretendido</span>
+                                <strong class="text-rose-900 font-bold font-fun">{{ leg.estimated_price|default:"A coordinar" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 block font-semibold uppercase">Ambientes</span>
+                                <strong class="text-slate-800">{{ leg.rooms|default:"No especificado" }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 block font-semibold uppercase">Comentarios</span>
+                                <strong class="text-slate-800 truncate block">{{ leg.comments|default:"Sin comentarios" }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Inmuebles en Cartera Comercializados -->
+                {% if owned_properties %}
+                <div class="space-y-3">
+                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <i data-lucide="building-2" class="w-3.5 h-3.5 text-rose-800"></i>
+                        Inmuebles en Cartera Comercializados ({{ owned_properties.count }})
+                    </h5>
+
+                    <div class="space-y-2.5">
+                        {% for prop in owned_properties %}
+                        <div class="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-white transition flex items-center justify-between gap-3 shadow-2xs">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <img src="{% if prop.main_photo_url %}{{ prop.main_photo_url }}{% else %}/static/images/property_placeholder.png{% endif %}" 
+                                     class="w-14 h-12 rounded-xl object-cover border border-slate-200 shrink-0">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full {% if prop.operation_type == 'SALE' %}bg-emerald-100 text-emerald-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                            {{ prop.get_operation_type_display }}
+                                        </span>
+                                        <span class="text-[10px] font-semibold text-slate-500">{{ prop.get_status_display }}</span>
+                                    </div>
+                                    <h6 class="font-bold text-xs text-slate-900 truncate mt-0.5">
+                                        <a href="{% url 'property_detail' prop.id %}" class="hover:text-rose-900 hover:underline">{{ prop.title }}</a>
+                                    </h6>
+                                    <p class="text-[10px] text-slate-500 truncate">{{ prop.address }} · {{ prop.zone }}</p>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0 space-y-0.5">
+                                <span class="font-fun font-black text-xs sm:text-sm text-rose-950 block">{{ prop.formatted_price }}</span>
+                                <a href="{% url 'property_detail' prop.id %}" class="text-[10px] font-bold text-rose-900 hover:underline inline-flex items-center gap-1">
+                                    <span>Ver Ficha</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if not seller_inquiries and not owned_properties and not legacy_seller_requests %}
+                <div class="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                    <i data-lucide="home" class="w-8 h-8 text-slate-300 mx-auto"></i>
+                    <p class="text-xs text-slate-500 font-medium">No registra inmuebles en venta o solicitudes de tasación todavía.</p>
+                    <button type="button" onclick="openInquiryModal('SELLER')" class="text-xs font-bold text-amber-700 hover:underline">
+                        + Registrar Solicitud de Propietario / Tasación
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TAB CONTENT 1: Anotaciones por Servicio / Seguimiento -->
+    <div id="client-content-notes" class="client-content {% if is_real_estate %}hidden{% endif %} bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
                 <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
                     <i data-lucide="file-text" class="w-5 h-5 text-brand-700"></i>
-                    <span>Anotaciones por Servicio / Tratamiento</span>
+                    <span>{% if is_real_estate %}Anotaciones & Seguimiento Inmobiliario{% else %}Anotaciones por Servicio / Tratamiento{% endif %}</span>
                 </h3>
-                <p class="text-xs text-slate-500">Fórmulas técnicas, observaciones de atención y detalles registrados por sesión</p>
+                <p class="text-xs text-slate-500">{% if is_real_estate %}Registro de negociaciones, acuerdos, contraofertas y observaciones de visitas con el cliente{% else %}Fórmulas técnicas, observaciones de atención y detalles registrados por sesión{% endif %}</p>
             </div>
             {% if allow_editing_history %}
             <button onclick="document.getElementById('service-note-form-modal').classList.toggle('hidden')" class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-brand-900 border border-rose-200 text-xs font-bold flex items-center gap-2 transition">
@@ -117,11 +542,11 @@
             {% csrf_token %}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1">
-                    <label class="text-[11px] font-bold text-slate-700 uppercase">Servicio / Tratamiento Realizado</label>
-                    <input type="text" name="service_name" placeholder="Ej: Consultoría Digital / Corte & Peinado / Tratamiento Facial" required class="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
+                    <label class="text-[11px] font-bold text-slate-700 uppercase">{% if is_real_estate %}Tema / Operación de Seguimiento{% else %}Servicio / Tratamiento Realizado{% endif %}</label>
+                    <input type="text" name="service_name" placeholder="{% if is_real_estate %}Ej: Negociación de Oferta / Visita a Departamento / Tasación{% else %}Ej: Consultoría Digital / Corte & Peinado / Tratamiento Facial{% endif %}" required class="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
                 </div>
                 <div class="space-y-1">
-                    <label class="text-[11px] font-bold text-slate-700 uppercase">Vincular a Cita (Opcional)</label>
+                    <label class="text-[11px] font-bold text-slate-700 uppercase">Vincular a Cita / Visita (Opcional)</label>
                     <select name="appointment_id" class="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white">
                         <option value="">Sin vinculación específica</option>
                         {% for app in appointments %}
@@ -131,8 +556,8 @@
                 </div>
             </div>
             <div class="space-y-1">
-                <label class="text-[11px] font-bold text-slate-700 uppercase">Detalle y Anotaciones Técnicas</label>
-                <textarea name="content" rows="4" placeholder="Registra fórmulas técnicas, avances del proyecto, observaciones de la sesión o recomendaciones para el cliente..." required class="w-full text-xs p-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"></textarea>
+                <label class="text-[11px] font-bold text-slate-700 uppercase">Detalle y Anotaciones</label>
+                <textarea name="content" rows="4" placeholder="{% if is_real_estate %}Registra acuerdos de visita, contraofertas del comprador, condiciones del propietario o requerimientos acordados...{% else %}Registra fórmulas técnicas, avances del proyecto, observaciones de la sesión o recomendaciones para el cliente...{% endif %}" required class="w-full text-xs p-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"></textarea>
             </div>
             <div class="flex justify-end gap-3 pt-1">
                 <button type="button" onclick="document.getElementById('service-note-form-modal').classList.add('hidden')" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">
@@ -145,18 +570,17 @@
         </form>
         {% endif %}
 
-        <!-- Service Notes Feed (Full Width with Auto Word Wrap Fix) -->
+        <!-- Service Notes Feed -->
         <div class="space-y-4">
             {% for note in service_notes %}
             <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3 relative group hover:border-rose-300 transition overflow-hidden">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
                     <span class="font-bold text-sm text-brand-900 flex items-center gap-2">
-                        <i data-lucide="scissors" class="w-4 h-4 text-rose-700"></i>
+                        <i data-lucide="{% if is_real_estate %}clipboard-check{% else %}scissors{% endif %}" class="w-4 h-4 text-rose-700"></i>
                         <span>{{ note.service_name }}</span>
                     </span>
                     <span class="text-xs text-slate-400 font-mono">{{ note.created_at|date:"d/m/Y H:i" }} hs</span>
                 </div>
-                <!-- Word Wrap Fix applied here: break-words overflow-hidden -->
                 <div class="text-xs sm:text-sm text-slate-800 leading-relaxed font-normal whitespace-pre-wrap break-words overflow-hidden max-w-full">
                     {{ note.content }}
                 </div>
@@ -172,21 +596,21 @@
             {% empty %}
             <div class="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
                 <i data-lucide="notebook-pen" class="w-10 h-10 text-slate-300 mx-auto"></i>
-                <p class="text-xs sm:text-sm text-slate-500 font-medium">No hay anotaciones registradas para los servicios de este cliente.</p>
+                <p class="text-xs sm:text-sm text-slate-500 font-medium">No hay anotaciones registradas para este cliente.</p>
             </div>
             {% endfor %}
         </div>
     </div>
 
-    <!-- TAB CONTENT 2: Historial Cronológico de Citas & Servicios (Full Width) -->
+    <!-- TAB CONTENT 2: Historial Cronológico de Citas & Visitas -->
     <div id="client-content-appointments" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
                 <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
                     <i data-lucide="calendar" class="w-5 h-5 text-brand-700"></i>
-                    <span>Historial Cronológico de Citas & Reservas</span>
+                    <span>{% if is_real_estate %}Historial de Visitas a Inmuebles & Citas{% else %}Historial Cronológico de Citas & Reservas{% endif %}</span>
                 </h3>
-                <p class="text-xs text-slate-500">Listado de turnos programados, realizados y cancelados</p>
+                <p class="text-xs text-slate-500">Listado de turnos y visitas coordinadas</p>
             </div>
             <span class="text-xs font-bold text-slate-700 bg-slate-100 px-3.5 py-1 rounded-full border border-slate-200">
                 {{ appointments|length }} Registros
@@ -195,16 +619,23 @@
 
         <div class="space-y-3">
             {% for app in appointments %}
-            <div class="p-5 rounded-2xl border border-slate-200/90 bg-slate-50 hover:bg-white transition space-y-2">
+            <div class="p-5 rounded-2xl border border-slate-200/90 bg-slate-50 hover:bg-white transition space-y-3">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div class="space-y-1">
-                        <h4 class="font-extrabold text-base text-slate-900">{{ app.services_summary }}</h4>
+                    <div class="space-y-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            {% if app.related_property %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-900 border border-rose-200">
+                                Visita Inmobiliaria
+                            </span>
+                            {% endif %}
+                            <h4 class="font-extrabold text-base text-slate-900 truncate">{{ app.services_summary }}</h4>
+                        </div>
                         <p class="text-xs text-slate-600 flex flex-wrap items-center gap-3">
                             <span>📅 {{ app.date|date:"d/m/Y" }} • {{ app.start_time|time:"H:i" }} hs</span>
-                            <span>• Profesional: <strong class="text-brand-900">{{ app.staff.full_name }}</strong></span>
+                            <span>• Asesor / Profesional: <strong class="text-brand-900">{{ app.staff.full_name }}</strong></span>
                         </p>
                     </div>
-                    <div class="flex items-center gap-4 justify-between sm:justify-end">
+                    <div class="flex items-center gap-4 justify-between sm:justify-end shrink-0">
                         <span class="font-black text-lg text-slate-900 font-display">{{ business.currency }}{{ app.total_price|floatformat:2 }}</span>
                         <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase
                             {% if app.status == 'COMPLETED' %}bg-emerald-100 text-emerald-900 border border-emerald-200
@@ -216,30 +647,47 @@
                     </div>
                 </div>
 
+                {% if app.related_property %}
+                <!-- Linked Property Card -->
+                <div class="p-3 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <img src="{% if app.related_property.main_photo_url %}{{ app.related_property.main_photo_url }}{% else %}/static/images/property_placeholder.png{% endif %}" class="w-12 h-10 rounded-lg object-cover border border-slate-200 shrink-0">
+                        <div class="min-w-0">
+                            <span class="text-[10px] font-bold text-rose-900 uppercase block">Inmueble Vinculado</span>
+                            <h6 class="font-bold text-xs text-slate-900 truncate">{{ app.related_property.title }}</h6>
+                            <p class="text-[10px] text-slate-500 truncate">{{ app.related_property.address }} ({{ app.related_property.zone }})</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'property_detail' app.related_property.id %}" class="text-[11px] font-bold text-rose-900 hover:underline shrink-0">
+                        Ver Ficha
+                    </a>
+                </div>
+                {% endif %}
+
                 {% if app.notes %}
                 <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-600 leading-relaxed font-normal whitespace-pre-wrap break-words overflow-hidden">
-                    <strong>Nota de Cita:</strong> {{ app.notes }}
+                    <strong class="text-slate-800">Nota de Visita / Cita:</strong> {{ app.notes }}
                 </div>
                 {% endif %}
             </div>
             {% empty %}
             <div class="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
                 <i data-lucide="calendar-x" class="w-10 h-10 text-slate-300 mx-auto"></i>
-                <p class="text-xs sm:text-sm text-slate-500 font-medium">Este cliente no registra citas aún en la agenda.</p>
+                <p class="text-xs sm:text-sm text-slate-500 font-medium">Este cliente no registra visitas o citas agendadas.</p>
             </div>
             {% endfor %}
         </div>
     </div>
 
-    <!-- TAB CONTENT 3: Historial de Ventas POS & Facturación (Full Width) -->
+    <!-- TAB CONTENT 3: Historial de Ventas POS & Facturación -->
     <div id="client-content-sales" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
                 <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
                     <i data-lucide="shopping-bag" class="w-5 h-5 text-brand-700"></i>
-                    <span>Historial de Ventas POS & Comprobantes</span>
+                    <span>Historial de Cobros & Facturación</span>
                 </h3>
-                <p class="text-xs text-slate-500">Transacciones cobradas en mostrador y facturas emitidas</p>
+                <p class="text-xs text-slate-500">Comprobantes y operaciones registradas</p>
             </div>
             <span class="text-xs font-bold text-slate-700 bg-slate-100 px-3.5 py-1 rounded-full border border-slate-200">
                 {{ sales|length }} Ventas
@@ -258,7 +706,7 @@
             {% empty %}
             <div class="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
                 <i data-lucide="receipt" class="w-10 h-10 text-slate-300 mx-auto"></i>
-                <p class="text-xs sm:text-sm text-slate-500 font-medium">No registra compras directas en el punto de venta.</p>
+                <p class="text-xs sm:text-sm text-slate-500 font-medium">No registra compras o pagos en mostrador.</p>
             </div>
             {% endfor %}
         </div>
@@ -266,33 +714,54 @@
 
     <!-- TAB CONTENT 4: Notas & Preferencias Generales -->
     <div id="client-content-prefs" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2 border-b border-slate-100 pb-3">
-            <i data-lucide="bookmark" class="w-5 h-5 text-amber-600"></i>
-            <span>Notas & Preferencias Generales del Cliente</span>
-        </h3>
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                <i data-lucide="bookmark" class="w-5 h-5 text-amber-600"></i>
+                <span>Notas & Observaciones Generales del Paciente / Cliente</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('edit-general-notes-form').classList.toggle('hidden')" class="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Editar / Agregar Observaciones
+            </button>
+        </div>
+
+        <!-- Formulario para editar directamente desde la Ficha -->
+        <form id="edit-general-notes-form" method="POST" action="{% url 'update_client_general_notes' client.id %}" class="hidden p-5 rounded-2xl bg-amber-50/70 border border-amber-200/90 space-y-3">
+            {% csrf_token %}
+            <label class="text-[11px] font-bold text-amber-900 uppercase">Observaciones Generales, Preferencias o Historial Base</label>
+            <textarea name="notes" rows="4" placeholder="Ej: Antecedentes médicos relevantes, alergias, preferencias de horario o café, indicaciones clínicas fijas..." class="w-full text-xs p-3.5 rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-normal leading-relaxed">{{ client.notes|default:'' }}</textarea>
+            <div class="flex justify-end gap-2 pt-1">
+                <button type="button" onclick="document.getElementById('edit-general-notes-form').classList.add('hidden')" class="px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-800 cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-4 py-1.5 bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold rounded-xl shadow transition cursor-pointer">
+                    Guardar Observaciones
+                </button>
+            </div>
+        </form>
+
         <div class="p-5 rounded-2xl bg-amber-50/80 border border-amber-200/90 text-xs sm:text-sm text-amber-950 leading-relaxed whitespace-pre-wrap break-words overflow-hidden">
             {{ client.notes|default:"Sin notas generales o preferencias registradas." }}
         </div>
     </div>
 
-    {% if client.owned_properties.exists %}
+    {% if is_real_estate or owned_properties.exists %}
     <!-- TAB CONTENT 5: Propiedades en Cartera (Cliente Propietario / Vendedor) -->
     <div id="client-content-properties" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
                 <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
                     <i data-lucide="building-2" class="w-5 h-5 text-rose-800"></i>
-                    <span>Inmuebles Comercializados (Cliente Propietario / Vendedor)</span>
+                    <span>Inmuebles en Cartera (Cliente Propietario / Vendedor)</span>
                 </h3>
-                <p class="text-xs text-slate-500">Propiedades en cartera donde este cliente figura como titular o comitente</p>
+                <p class="text-xs text-slate-500">Propiedades comercializadas donde este cliente figura como titular o comitente</p>
             </div>
-            <a href="{% url 'property_create' %}" class="px-4 py-2 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 text-xs font-bold hover:bg-rose-100 transition flex items-center gap-1.5 shadow-sm">
+            <a href="{% url 'property_create' %}?owner_id={{ client.id }}" class="px-4 py-2 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 text-xs font-bold hover:bg-rose-100 transition flex items-center gap-1.5 shadow-sm">
                 <i data-lucide="plus" class="w-4 h-4"></i> Cargar Nueva Propiedad
             </a>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {% for prop in client.owned_properties.all %}
+            {% for prop in owned_properties %}
             <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-white transition flex items-center justify-between gap-3 shadow-sm">
                 <div class="flex items-center gap-3.5 min-w-0">
                     <img src="{% if prop.main_photo_url %}{{ prop.main_photo_url }}{% else %}/static/images/property_placeholder.png{% endif %}" class="w-16 h-14 rounded-xl object-cover border border-slate-200 shrink-0">
@@ -322,12 +791,146 @@
                     </a>
                 </div>
             </div>
+            {% empty %}
+            <div class="col-span-full text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                <i data-lucide="building" class="w-10 h-10 text-slate-300 mx-auto"></i>
+                <p class="text-xs sm:text-sm text-slate-500 font-medium">No hay propiedades dadas de alta a nombre de este cliente en la cartera de la inmobiliaria.</p>
+                <a href="{% url 'property_create' %}?owner_id={{ client.id }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-50 text-rose-900 text-xs font-bold hover:bg-rose-100 transition border border-rose-200">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Cargar Primer Inmueble de este Propietario
+                </a>
+            </div>
             {% endfor %}
         </div>
     </div>
     {% endif %}
 
 </div>
+
+{% if is_real_estate %}
+<!-- MODAL: REGISTRAR NUEVA SOLICITUD INMOBILIARIA (Compra o Venta) -->
+<div id="newInquiryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto">
+    <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-auto flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-rose-950 to-slate-900 text-white">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
+                    <i data-lucide="home" class="w-5 h-5 text-rose-300"></i>
+                </div>
+                <div>
+                    <h3 class="font-fun font-bold text-base leading-tight">Registrar Solicitud Inmobiliaria</h3>
+                    <p class="text-xs text-rose-200/80">Cliente: {{ client.full_name }}</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeInquiryModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition border border-white/20" title="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'add_client_property_inquiry' client.id %}" class="p-6 overflow-y-auto flex-1 space-y-4">
+            {% csrf_token %}
+            
+            <div class="space-y-1">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">Tipo de Perfil / Solicitud</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="p-3 rounded-xl border border-slate-200 cursor-pointer flex items-center gap-2 hover:border-rose-400 has-[:checked]:border-rose-900 has-[:checked]:bg-rose-50/60 transition">
+                        <input type="radio" name="inquiry_type" value="BUYER" id="modalInqTypeBuyer" checked class="text-rose-900 focus:ring-rose-800">
+                        <div>
+                            <span class="block text-xs font-bold text-slate-900">Interesado en Comprar / Alquilar</span>
+                            <span class="block text-[10px] text-slate-500">Busca inmueble para habitar o invertir</span>
+                        </div>
+                    </label>
+                    <label class="p-3 rounded-xl border border-slate-200 cursor-pointer flex items-center gap-2 hover:border-amber-400 has-[:checked]:border-amber-900 has-[:checked]:bg-amber-50/60 transition">
+                        <input type="radio" name="inquiry_type" value="SELLER" id="modalInqTypeSeller" class="text-amber-900 focus:ring-amber-800">
+                        <div>
+                            <span class="block text-xs font-bold text-slate-900">Propietario / Vendedor</span>
+                            <span class="block text-[10px] text-slate-500">Ofrece inmueble para venta, alquiler o tasación</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold uppercase text-slate-700">Operación</label>
+                    <select name="operation_type" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-rose-900 font-medium">
+                        <option value="Venta">Venta</option>
+                        <option value="Alquiler">Alquiler</option>
+                        <option value="Tasación">Tasación</option>
+                        <option value="Alquiler Temporario">Alquiler Temporario</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold uppercase text-slate-700">Tipo de Inmueble</label>
+                    <select name="property_type" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-rose-900 font-medium">
+                        <option value="Departamento">Departamento</option>
+                        <option value="Casa">Casa</option>
+                        <option value="PH">PH</option>
+                        <option value="Terreno / Lote">Terreno / Lote</option>
+                        <option value="Local Comercial">Local Comercial</option>
+                        <option value="Oficina">Oficina</option>
+                        <option value="Galpón / Depósito">Galpón / Depósito</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold uppercase text-slate-700">Ubicación / Barrio / Zona</label>
+                    <input type="text" name="address_zone" placeholder="Ej: Palermo, Belgrano, Centro..." required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-rose-900">
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold uppercase text-slate-700">Ambientes / Dormitorios</label>
+                    <input type="text" name="rooms" placeholder="Ej: 2 o 3 ambientes"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold uppercase text-slate-700">Presupuesto / Precio Estimado</label>
+                    <input type="text" name="estimated_price" placeholder="Ej: USD 120.000 / $500.000 mes"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-rose-900">
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold uppercase text-slate-700">Asesor Inmobiliario Asignado</label>
+                    <select name="agent_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-rose-900 font-medium">
+                        <option value="">-- Sin asesor específico --</option>
+                        {% for staff in staff_members %}
+                        <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-[11px] font-bold uppercase text-slate-700">Vincular a Inmueble de Cartera (Opcional)</label>
+                <select name="property_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-rose-900 font-medium">
+                    <option value="">Sin inmueble específico de cartera</option>
+                    {% for p in available_properties %}
+                    <option value="{{ p.id }}">{{ p.title }} ({{ p.formatted_price }} - {{ p.zone }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-[11px] font-bold uppercase text-slate-700">Detalles, Comentarios y Requerimientos</label>
+                <textarea name="notes" rows="3" placeholder="Requerimientos específicos, amenities buscados, cochera, forma de pago, plazos o notas sobre la propiedad..."
+                          class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-rose-900 resize-none"></textarea>
+            </div>
+
+            <div class="pt-2 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeInquiryModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold shadow-md transition flex items-center gap-1.5">
+                    <i data-lucide="check" class="w-4 h-4"></i> Guardar Solicitud
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 <style>
     .client-tab-btn.active {
@@ -347,6 +950,30 @@
 
         if (activeBtn) activeBtn.classList.add('active');
         if (activeContent) activeContent.classList.remove('hidden');
+    }
+
+    function openInquiryModal(defaultType) {
+        const modal = document.getElementById('newInquiryModal');
+        if (defaultType === 'SELLER') {
+            const sellerRadio = document.getElementById('modalInqTypeSeller');
+            if (sellerRadio) sellerRadio.checked = true;
+        } else if (defaultType === 'BUYER') {
+            const buyerRadio = document.getElementById('modalInqTypeBuyer');
+            if (buyerRadio) buyerRadio.checked = true;
+        }
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function closeInquiryModal() {
+        const modal = document.getElementById('newInquiryModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
     }
 </script>
 {% endblock %}

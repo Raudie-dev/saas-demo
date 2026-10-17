@@ -156,50 +156,53 @@
 <body class="min-h-full flex flex-col antialiased selection:bg-rose-900 selection:text-white">
 
     <!-- Top Navigation Bar (Platform Vinotinto Branding) -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
             <!-- Brand Logo & Name -->
-            <a href="{% url 'public_booking' business.slug %}" class="flex items-center gap-2.5">
+            <a href="{% url 'public_booking' business.slug %}" class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                 {% if business.logo_url %}
-                <img src="{{ business.logo_url.url }}" alt="{{ business.name }}" class="w-9 h-9 rounded-full object-cover border-2 border-rose-100 shadow-sm">
+                <img src="{{ business.logo_url.url }}" alt="{{ business.name }}" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border-2 border-rose-100 shadow-sm shrink-0">
                 {% else %}
-                <div class="w-9 h-9 rounded-full bg-rose-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-rose-900 text-white flex items-center justify-center font-bold text-xs shadow-sm shrink-0">
                     {{ business.name|slice:":1" }}
                 </div>
                 {% endif %}
-                <span class="font-fun font-extrabold tracking-wider text-base text-slate-900 uppercase">
+                <span class="font-fun font-extrabold tracking-wide text-xs sm:text-base text-slate-900 uppercase truncate">
                     {{ business.name }}
                 </span>
             </a>
 
             <!-- Nav Links -->
-            <nav class="flex items-center gap-3 sm:gap-5 text-xs font-bold text-slate-600">
-                <a href="#{% if is_real_estate or properties.exists %}propiedades{% else %}servicios{% endif %}" class="hidden sm:inline hover:text-rose-900 transition">
+            <nav class="flex items-center gap-1.5 sm:gap-4 text-xs font-bold text-slate-600 shrink-0">
+                <a href="#{% if is_real_estate or properties.exists %}propiedades{% else %}servicios{% endif %}" class="hidden md:inline hover:text-rose-900 transition">
                     {% if is_real_estate or properties.exists %}Propiedades{% else %}Servicios{% endif %}
                 </a>
-                <a href="#sobre" class="hidden sm:inline hover:text-rose-900 transition">Sobre</a>
-                <a href="#equipo" class="hidden sm:inline hover:text-rose-900 transition">
+                <a href="#sobre" class="hidden md:inline hover:text-rose-900 transition">Sobre</a>
+                <a href="#equipo" class="hidden md:inline hover:text-rose-900 transition">
                     {% if is_real_estate or properties.exists %}Asesores{% else %}Especialistas{% endif %}
                 </a>
-                <a href="#mapa" class="hidden sm:inline hover:text-rose-900 transition">Ubicación</a>
+                <a href="#mapa" class="hidden md:inline hover:text-rose-900 transition">Ubicación</a>
                 {% if is_real_estate or properties.exists %}
-                <button type="button" onclick="openSellerRegisterModal()" class="hidden md:inline-flex items-center gap-1.5 text-xs font-bold text-rose-900 hover:text-rose-950 transition cursor-pointer">
+                <button type="button" onclick="openSellerRegisterModal()" class="hidden lg:inline-flex items-center gap-1.5 text-xs font-bold text-rose-900 hover:text-rose-950 transition cursor-pointer">
                     <i data-lucide="key" class="w-3.5 h-3.5"></i>
                     <span>Vender Propiedad</span>
                 </button>
                 {% endif %}
                 
-                <!-- Share button -->
-                <button type="button" onclick="shareBusinessProfile()" title="Compartir perfil"
-                        class="px-3.5 py-1.5 rounded-full border border-rose-200 text-rose-900 hover:bg-rose-50 flex items-center gap-1.5 transition">
-                    <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
-                    <span>Compartir</span>
+                <!-- Share button (icon-only on mobile, icon + text on desktop) -->
+                <button type="button" onclick="shareBusinessProfile()" title="Compartir perfil" aria-label="Compartir perfil"
+                        class="w-9 h-9 sm:w-auto sm:h-auto sm:px-3.5 sm:py-1.5 rounded-full border border-rose-200 text-rose-900 hover:bg-rose-50 flex items-center justify-center gap-1.5 transition shrink-0">
+                    <i data-lucide="share-2" class="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0"></i>
+                    <span class="hidden sm:inline text-xs">Compartir</span>
                 </button>
 
-                <!-- Booking CTA button -->
-                <a href="#{% if is_real_estate or properties.exists %}propiedades{% else %}servicios{% endif %}" class="px-4 py-1.5 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white font-bold transition shadow-sm hover:shadow flex items-center gap-1.5">
-                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-                    <span>{% if is_real_estate or properties.exists %}Ver Inmuebles{% else %}Agendar{% endif %}</span>
+                <!-- Booking CTA button (icon-only on mobile, icon + text on desktop) -->
+                <a href="#{% if is_real_estate or properties.exists %}propiedades{% else %}servicios{% endif %}"
+                   title="{% if is_real_estate or properties.exists %}Ver Inmuebles{% else %}Agendar{% endif %}"
+                   aria-label="{% if is_real_estate or properties.exists %}Ver Inmuebles{% else %}Agendar{% endif %}"
+                   class="w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-1.5 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white font-bold transition shadow-sm hover:shadow flex items-center justify-center gap-1.5 shrink-0">
+                    <i data-lucide="calendar" class="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0"></i>
+                    <span class="hidden sm:inline text-xs">{% if is_real_estate or properties.exists %}Ver Inmuebles{% else %}Agendar{% endif %}</span>
                 </a>
             </nav>
         </div>
@@ -260,6 +263,10 @@
                 {% endif %}
 
                 <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
+                    <span class="text-slate-500 font-medium">Cliente:</span>
+                    <span class="font-bold text-slate-900">{{ appointment.client.full_name }}</span>
+                </div>
+                <div class="flex justify-between text-sm pb-2 border-b border-rose-100">
                     <span class="text-slate-500 font-medium">{% if is_real_estate or appointment.related_property %}Asesor Inmobiliario:{% else %}Especialista:{% endif %}</span>
                     <span class="font-bold text-rose-900">{{ appointment.staff.full_name }}</span>
                 </div>
@@ -319,7 +326,7 @@
         
         <!-- BANNER SECTION (Clean layout with smooth gradient fallback) -->
         <section class="w-full overflow-hidden bg-slate-900">
-            <div class="w-full h-48 sm:h-64 relative bg-cover bg-center overflow-hidden"
+            <div class="w-full h-32 sm:h-56 relative bg-cover bg-center overflow-hidden"
                  {% if business.banner_url %}
                  style="background-image: url('{{ business.banner_url.url }}');"
                  {% else %}
@@ -330,89 +337,104 @@
         </section>
 
         <!-- CONTAINER FOR CARDS (Centered reference aesthetic) -->
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 relative z-10 space-y-6">
-            
-            <!-- CIRCULAR AVATAR (Placed OUTSIDE the card so it floats seamlessly over the banner and card without clipping!) -->
-            <div class="relative z-30 flex justify-center -mt-16 sm:-mt-20 -mb-16 sm:-mb-20">
-                <div class="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-white ring-4 ring-rose-100 flex items-center justify-center shrink-0">
-                    {% if business.logo_url %}
-                    <img src="{{ business.logo_url.url }}" alt="{{ business.name }}" class="w-full h-full object-cover">
-                    {% else %}
-                    <div class="w-full h-full bg-gradient-to-tr from-rose-900 to-rose-950 text-white flex items-center justify-center text-4xl sm:text-5xl font-fun font-black">
-                        {{ business.name|slice:":1" }}
-                    </div>
-                    {% endif %}
-                </div>
+        <div class="max-w-3xl mx-auto px-3.5 sm:px-6 relative z-10 space-y-5 sm:space-y-6">
+            {% if portal_error_message %}
+            <div class="mt-4 p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-900 shadow-md flex items-start gap-3">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-rose-700 shrink-0 mt-0.5"></i>
+                <div class="text-xs sm:text-sm font-bold leading-relaxed">{{ portal_error_message }}</div>
             </div>
-
-            <!-- CARD 1: PROFILE HERO CARD -->
-            <div class="card-clean shadow-md overflow-hidden relative pt-20 sm:pt-24">
-                
-                <!-- Profile Info -->
-                <div class="text-center px-6 pb-6">
-                    <!-- Top Pill Tag -->
-                    <div class="inline-block px-3 py-0.5 rounded border border-rose-300 bg-rose-50 text-[11px] font-bold text-rose-900 tracking-wide mb-2 uppercase">
-                        {{ business.get_business_type_display|default:"Negocio Verificado" }}
-                    </div>
-
-                    <!-- Business Name -->
-                    <h1 class="font-fun font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">
-                        <span class="title-underline">{{ business.name }}</span>
-                    </h1>
-
-                    {% if business.description %}
-                    <p class="mt-4 text-xs sm:text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
-                        {{ business.description }}
-                    </p>
-                    {% endif %}
-
-                    <!-- QUICK ACTION BUTTONS: Agendar Cita + WhatsApp Directo + Ver Mapa -->
-                    <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
-                        <a href="#{% if is_real_estate or properties.exists %}propiedades{% else %}servicios{% endif %}" 
-                           class="px-5 py-2.5 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
-                            <i data-lucide="{% if is_real_estate or properties.exists %}building-2{% else %}calendar{% endif %}" class="w-4 h-4"></i>
-                            <span>{% if is_real_estate or properties.exists %}Ver Propiedades{% else %}Agendar Cita{% endif %}</span>
-                        </a>
-
-                        {% if is_real_estate or properties.exists %}
-                        <button type="button" onclick="openSellerRegisterModal()"
-                                class="px-5 py-2.5 rounded-full bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-sm hover:shadow transition transform hover:-translate-y-0.5 cursor-pointer">
-                            <i data-lucide="key" class="w-4 h-4 text-rose-800"></i>
-                            <span>Vender mi Propiedad</span>
-                        </button>
+            {% endif %}
+            
+            <!-- HERO PROFILE WRAPPER (Keeps avatar and card coupled without space-y margin gaps) -->
+            <div class="relative">
+                <!-- CIRCULAR AVATAR (Straddles banner and card top edge cleanly) -->
+                <div class="relative z-30 flex justify-center -mt-12 sm:-mt-16 -mb-12 sm:-mb-16">
+                    <div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white ring-4 ring-rose-100/80 flex items-center justify-center shrink-0">
+                        {% if business.logo_url %}
+                        <img src="{{ business.logo_url.url }}" alt="{{ business.name }}" class="w-full h-full object-cover">
+                        {% else %}
+                        <div class="w-full h-full bg-gradient-to-tr from-rose-900 to-rose-950 text-white flex items-center justify-center text-3xl sm:text-4xl font-fun font-black">
+                            {{ business.name|slice:":1" }}
+                        </div>
                         {% endif %}
-
-                        {% with wa=business.whatsapp_number|default:business.phone %}
-                        {% if wa %}
-                        <a href="https://wa.me/{{ wa|cut:' '|cut:'+'|cut:'-' }}" target="_blank"
-                           class="px-5 py-2.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
-                            <i data-lucide="message-circle" class="w-4 h-4 fill-current"></i>
-                            <span>WhatsApp Directo</span>
-                        </a>
-                        {% endif %}
-                        {% endwith %}
-
-                        <a href="#mapa" 
-                           class="px-4 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold flex items-center gap-2 transition">
-                            <i data-lucide="map-pin" class="w-4 h-4 text-rose-800"></i>
-                            <span>Ver Mapa</span>
-                        </a>
                     </div>
                 </div>
 
-                <!-- Bottom Footer Strip of Card (Vinotinto/Rose soft tint matching platform) -->
-                <div class="bg-[#fdf2f4] border-t border-[#fce7ea] px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-700 font-medium">
-                    <div class="space-y-0.5 text-center sm:text-left">
-                        {% if business.email %}
-                        <div><strong class="text-slate-900">Email:</strong> {{ business.email }}</div>
+                <!-- CARD 1: PROFILE HERO CARD -->
+                <div class="card-clean shadow-md overflow-hidden relative pt-14 sm:pt-20">
+                    
+                    <!-- Profile Info -->
+                    <div class="text-center px-4 sm:px-6 pb-5 sm:pb-6">
+                        <!-- Top Pill Tag -->
+                        <div class="inline-block px-2.5 py-0.5 rounded-full border border-rose-200 bg-rose-50 text-[10px] sm:text-[11px] font-bold text-rose-900 tracking-wide mb-2 uppercase">
+                            {{ business.get_business_type_display|default:"Negocio Verificado" }}
+                        </div>
+
+                        <!-- Business Name -->
+                        <h1 class="font-fun font-extrabold text-xl sm:text-3xl text-slate-900 tracking-tight">
+                            <span class="title-underline">{{ business.name }}</span>
+                        </h1>
+
+                        {% if business.description %}
+                        <p class="mt-3.5 text-xs sm:text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
+                            {{ business.description }}
+                        </p>
                         {% endif %}
-                        {% if business.phone %}
-                        <div><strong class="text-slate-900">Teléfono:</strong> {{ business.phone }}</div>
-                        {% endif %}
+
+                        <!-- QUICK ACTION BUTTONS: Clean 2-col grid on mobile, inline flex on desktop -->
+                        {% with wa=business.whatsapp_number|default:business.phone %}
+                        <div class="mt-5 grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-center gap-2 sm:gap-3 max-w-sm sm:max-w-none mx-auto">
+                            <a href="#{% if is_real_estate or properties.exists %}propiedades{% else %}servicios{% endif %}" 
+                               class="col-span-2 sm:w-auto px-5 py-2.5 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
+                                <i data-lucide="{% if is_real_estate or properties.exists %}building-2{% else %}calendar{% endif %}" class="w-4 h-4 shrink-0"></i>
+                                <span>{% if is_real_estate or properties.exists %}Ver Propiedades{% else %}Agendar Cita{% endif %}</span>
+                            </a>
+
+                            {% if is_real_estate or properties.exists %}
+                            <button type="button" onclick="openSellerRegisterModal()"
+                                    class="col-span-2 sm:w-auto px-5 py-2.5 rounded-full bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-sm hover:shadow transition transform hover:-translate-y-0.5 cursor-pointer">
+                                <i data-lucide="key" class="w-4 h-4 text-rose-800 shrink-0"></i>
+                                <span>Vender mi Propiedad</span>
+                            </button>
+                            {% endif %}
+
+                            {% if wa %}
+                            <a href="https://wa.me/{{ wa|cut:' '|cut:'+'|cut:'-' }}" target="_blank"
+                               class="col-span-1 sm:w-auto px-3.5 sm:px-5 py-2.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
+                                <i data-lucide="message-circle" class="w-4 h-4 fill-current shrink-0"></i>
+                                <span class="truncate">WhatsApp</span>
+                            </a>
+                            {% endif %}
+
+                            <a href="#mapa" 
+                               class="{% if wa %}col-span-1{% else %}col-span-2{% endif %} sm:w-auto px-3.5 sm:px-4 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition">
+                                <i data-lucide="map-pin" class="w-4 h-4 text-rose-800 shrink-0"></i>
+                                <span class="truncate">Ver Mapa</span>
+                            </a>
+                        </div>
+                        {% endwith %}
                     </div>
-                    <div class="text-center sm:text-right font-semibold text-rose-950 flex items-center gap-1">
-                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-800"></i>
-                        <span>{{ selected_branch.address|default:business.address|default:"Tacuarí 478" }}</span>
+
+                    <!-- Bottom Footer Strip of Card (Vinotinto/Rose soft tint matching platform) -->
+                    <div class="bg-[#fdf2f4] border-t border-[#fce7ea] px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-700 font-medium">
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-center sm:text-left">
+                            {% if business.email %}
+                            <a href="mailto:{{ business.email }}" class="inline-flex items-center gap-1.5 hover:text-rose-900 transition">
+                                <i data-lucide="mail" class="w-3.5 h-3.5 text-rose-800 shrink-0"></i>
+                                <span class="truncate max-w-[220px] sm:max-w-none">{{ business.email }}</span>
+                            </a>
+                            {% endif %}
+                            {% if business.phone %}
+                            <a href="tel:{{ business.phone }}" class="inline-flex items-center gap-1.5 hover:text-rose-900 transition">
+                                <i data-lucide="phone" class="w-3.5 h-3.5 text-rose-800 shrink-0"></i>
+                                <span>{{ business.phone }}</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                        <a href="#mapa" class="text-center sm:text-right font-semibold text-rose-950 inline-flex items-center gap-1 hover:underline">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-800 shrink-0"></i>
+                            <span>{{ selected_branch.address|default:business.address|default:"Tacuarí 478" }}</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -739,13 +761,13 @@
                 <div class="pt-2 pb-2">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end">
                         
-                        <!-- #2 Service (Left) -->
+                        <!-- #2 Service (Left on desktop, second on mobile) -->
                         {% with s2=services.1 %}
-                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2 card-clean-hover cursor-pointer"
+                        <div class="order-2 sm:order-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2 card-clean-hover cursor-pointer"
                              onclick="openBookingModal('{{ s2.id }}', '{{ s2.name|escapejs }}', '{{ s2.price }}', '{{ s2.duration_minutes }}')">
                             <!-- Circular Icon badge -->
-                            <div class="w-14 h-14 rounded-full bg-slate-800 text-white flex items-center justify-center mx-auto border-4 border-white shadow-md">
-                                <i data-lucide="sparkles" class="w-6 h-6"></i>
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-800 text-white flex items-center justify-center mx-auto border-4 border-white shadow-md">
+                                <i data-lucide="sparkles" class="w-5 h-5 sm:w-6 sm:h-6"></i>
                             </div>
                             <div class="font-bold text-xs text-slate-700 truncate">{{ s2.name }}</div>
                             <div class="font-fun font-black text-lg text-slate-900">{{ business.currency }}{{ s2.price }}</div>
@@ -757,16 +779,16 @@
                         </div>
                         {% endwith %}
 
-                        <!-- #1 Service (Center - Prominent & Taller!) -->
+                        <!-- #1 Service (Center on desktop, first on mobile) -->
                         {% with s1=services.0 %}
-                        <div class="bg-[#fdf2f4] border-2 border-rose-300 rounded-2xl p-5 text-center space-y-2.5 shadow-md card-clean-hover cursor-pointer relative -translate-y-2"
+                        <div class="order-1 sm:order-2 bg-[#fdf2f4] border-2 border-rose-300 rounded-2xl p-5 text-center space-y-2.5 shadow-md card-clean-hover cursor-pointer relative sm:-translate-y-2 mt-2 sm:mt-0"
                              onclick="openBookingModal('{{ s1.id }}', '{{ s1.name|escapejs }}', '{{ s1.price }}', '{{ s1.duration_minutes }}')">
                             <span class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#881337] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                                 Destacado
                             </span>
                             <!-- Circular Icon badge -->
-                            <div class="w-16 h-16 rounded-full bg-[#881337] text-white flex items-center justify-center mx-auto border-4 border-white shadow-lg">
-                                <i data-lucide="award" class="w-8 h-8 text-rose-200"></i>
+                            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#881337] text-white flex items-center justify-center mx-auto border-4 border-white shadow-lg">
+                                <i data-lucide="award" class="w-7 h-7 sm:w-8 sm:h-8 text-rose-200"></i>
                             </div>
                             <div class="font-fun font-bold text-sm text-slate-900 truncate">{{ s1.name }}</div>
                             <div class="font-fun font-black text-2xl text-rose-950">{{ business.currency }}{{ s1.price }}</div>
@@ -780,11 +802,11 @@
 
                         <!-- #3 Service (Right) -->
                         {% with s3=services.2 %}
-                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2 card-clean-hover cursor-pointer"
+                        <div class="order-3 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2 card-clean-hover cursor-pointer"
                              onclick="openBookingModal('{{ s3.id }}', '{{ s3.name|escapejs }}', '{{ s3.price }}', '{{ s3.duration_minutes }}')">
                             <!-- Circular Icon badge -->
-                            <div class="w-14 h-14 rounded-full bg-slate-800 text-white flex items-center justify-center mx-auto border-4 border-white shadow-md">
-                                <i data-lucide="heart-handshake" class="w-6 h-6"></i>
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-800 text-white flex items-center justify-center mx-auto border-4 border-white shadow-md">
+                                <i data-lucide="heart-handshake" class="w-5 h-5 sm:w-6 sm:h-6"></i>
                             </div>
                             <div class="font-bold text-xs text-slate-700 truncate">{{ s3.name }}</div>
                             <div class="font-fun font-black text-lg text-slate-900">{{ business.currency }}{{ s3.price }}</div>
@@ -893,11 +915,10 @@
     {% with wa=business.whatsapp_number|default:business.phone %}
     {% if wa %}
     <a href="https://wa.me/{{ wa|cut:' '|cut:'+'|cut:'-' }}" target="_blank"
-       title="Contactar por WhatsApp"
-       class="fixed bottom-6 right-6 z-40 bg-[#25D366] hover:bg-[#20ba5a] text-white p-3.5 sm:px-5 sm:py-3.5 rounded-full shadow-2xl flex items-center gap-2.5 font-bold text-xs sm:text-sm hover:scale-105 transition-all duration-300 group border-2 border-white">
-        <i data-lucide="message-circle" class="w-5 h-5 fill-current"></i>
+       title="Contactar por WhatsApp" aria-label="Contactar por WhatsApp"
+       class="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 bg-[#25D366] hover:bg-[#20ba5a] text-white w-12 h-12 sm:w-auto sm:h-auto sm:px-5 sm:py-3.5 rounded-full shadow-2xl flex items-center justify-center gap-2 font-bold text-xs sm:text-sm hover:scale-105 transition-all duration-300 group border-2 border-white">
+        <i data-lucide="message-circle" class="w-5 h-5 fill-current shrink-0"></i>
         <span class="hidden sm:inline">WhatsApp</span>
-        <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
     </a>
     {% endif %}
     {% endwith %}
@@ -943,21 +964,23 @@
     </div>
 
     <!-- Floating Bar for Selected Services (Shown when visitor browses services with items in selection) -->
-    <div id="floatingBookingBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white backdrop-blur-md px-4 py-2.5 sm:px-6 sm:py-3 rounded-full shadow-2xl flex items-center gap-3 sm:gap-4 border border-slate-700 transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none">
-        <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-full bg-rose-800 text-white flex items-center justify-center text-xs font-black" id="floatingBarCount">1</span>
-            <div class="text-xs">
-                <span class="font-bold block" id="floatingBarSummary">1 servicio seleccionado</span>
-                <span class="text-[10px] text-slate-300" id="floatingBarTotals">Total: {{ business.currency }}0.00</span>
+    <div id="floatingBookingBar" class="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md sm:w-auto sm:max-w-none bg-slate-900/95 text-white backdrop-blur-md px-3.5 py-2.5 sm:px-6 sm:py-3 rounded-2xl sm:rounded-full shadow-2xl flex items-center justify-between gap-2.5 sm:gap-4 border border-slate-700 transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none">
+        <div class="flex items-center gap-2 min-w-0">
+            <span class="w-6 h-6 rounded-full bg-rose-800 text-white flex items-center justify-center text-xs font-black shrink-0" id="floatingBarCount">1</span>
+            <div class="text-xs min-w-0">
+                <span class="font-bold block truncate" id="floatingBarSummary">1 servicio seleccionado</span>
+                <span class="text-[10px] text-slate-300 block truncate" id="floatingBarTotals">Total: {{ business.currency }}0.00</span>
             </div>
         </div>
-        <button type="button" onclick="openBookingModal()" class="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold transition shadow flex items-center gap-1.5">
-            <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-            <span>Ver y Reservar</span>
-        </button>
-        <button type="button" onclick="clearBookingServices()" title="Vaciar selección" class="text-slate-400 hover:text-white p-1">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-        </button>
+        <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" onclick="openBookingModal()" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold transition shadow flex items-center gap-1.5 shrink-0">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 shrink-0"></i>
+                <span>Ver y Reservar</span>
+            </button>
+            <button type="button" onclick="clearBookingServices()" title="Vaciar selección" class="text-slate-400 hover:text-white p-1 shrink-0">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
     </div>
 
     <!-- Interactive Booking Modal (Platform Vinotinto look) -->
@@ -1040,11 +1063,11 @@
                     <div class="space-y-2.5 pt-2 border-t border-slate-100">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                             <span class="w-4 h-4 rounded-full bg-rose-900 text-white flex items-center justify-center text-[10px]">2</span>
-                            <span id="modalSpecialistStepLabel">{% if is_real_estate or properties.exists %}Elige Asesor Inmobiliario{% else %}Elige Especialista{% endif %}</span>
+                            <span id="modalSpecialistStepLabel">{% if is_real_estate or properties.exists %}Elige Asesor Inmobiliario{% else %}Elige Especialista Habilitado{% endif %}</span>
                         </label>
-                        <div class="grid grid-cols-2 gap-2.5 max-h-44 overflow-y-auto pr-1 no-scrollbar">
+                        <div class="grid grid-cols-2 gap-2.5 max-h-44 overflow-y-auto pr-1 no-scrollbar" id="modalSpecialistsGrid">
                             {% for staff in staff_members %}
-                            <label class="relative flex items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:border-rose-400 transition group has-[:checked]:border-rose-900 has-[:checked]:bg-rose-50 has-[:checked]:ring-1 has-[:checked]:ring-rose-900">
+                            <label data-staff-id="{{ staff.id }}" class="specialist-radio-card relative flex items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:border-rose-400 transition group has-[:checked]:border-rose-900 has-[:checked]:bg-rose-50 has-[:checked]:ring-1 has-[:checked]:ring-rose-900">
                                 <input type="radio" name="staff_id" value="{{ staff.id }}" {% if forloop.first %}checked{% endif %} required class="sr-only" onchange="fetchAvailableSlots()">
                                 <div class="flex items-center gap-2 min-w-0">
                                     {% if staff.profile_picture %}
@@ -1056,10 +1079,14 @@
                                     {% endif %}
                                     <div class="min-w-0">
                                         <span class="block text-xs font-bold text-slate-900 truncate">{{ staff.first_name }} {{ staff.last_name }}</span>
+                                        <span class="block text-[10px] text-slate-500 truncate">{{ staff.role_title|default:"Especialista" }}</span>
                                     </div>
                                 </div>
                             </label>
                             {% endfor %}
+                            <div id="noEligibleStaffNotice" class="hidden col-span-full p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-semibold text-center">
+                                No hay un único profesional que realice todos los servicios seleccionados juntos. Por favor reserva cada especialidad por separado.
+                            </div>
                         </div>
                     </div>
 
@@ -1097,7 +1124,7 @@
                             <input type="text" name="client_name" placeholder="Nombre completo *" required 
                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
                             <div class="flex rounded-xl overflow-hidden border border-slate-200 focus-within:border-rose-900 bg-white">
-                                <select name="client_phone_prefix" class="bg-slate-100 text-slate-800 text-xs font-bold px-2 py-2 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0">
+                                <select name="client_phone_prefix" class="w-[96px] bg-slate-100 text-slate-800 text-xs font-bold px-2 py-2 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0">
                                     {% include 'components/phone_prefix_options.html' with selected_prefix=default_phone_prefix|default:'+54' %}
                                 </select>
                                 <input type="tel" name="client_phone" placeholder="WhatsApp / Teléfono *" required 
@@ -1106,6 +1133,8 @@
                         </div>
                         <input type="email" name="client_email" placeholder="Correo electrónico (opcional)" 
                                 class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition">
+                        <textarea name="client_notes" rows="2" placeholder="¿Tienes alguna consulta, horario preferido o requerimiento especial? (opcional)"
+                                  class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-900 transition resize-none"></textarea>
                     </div>
 
                     <div class="pt-2">
@@ -1278,7 +1307,7 @@
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div class="flex rounded-xl overflow-hidden border border-slate-200 focus-within:border-rose-900 bg-white">
-                                <select name="phone_prefix" class="bg-slate-100 text-slate-800 text-xs font-bold px-2 py-2 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0">
+                                <select name="phone_prefix" class="w-[96px] bg-slate-100 text-slate-800 text-xs font-bold px-2 py-2 border-r border-slate-200 focus:outline-none cursor-pointer shrink-0">
                                     {% include 'components/phone_prefix_options.html' with selected_prefix=default_phone_prefix|default:'+54' %}
                                 </select>
                                 <input type="tel" name="phone_number" placeholder="WhatsApp / Móvil *" required
@@ -1889,12 +1918,16 @@
                     }
                 }
             } else if (selectedBookingServices.length === 0 && servicesCatalog.length > 0) {
-                const first = servicesCatalog[0];
+                let candidateSvc = servicesCatalog[0];
+                if (preselectedStaffId) {
+                    const matchForStaff = servicesCatalog.find(s => !s.allowed_staff_ids || s.allowed_staff_ids.length === 0 || s.allowed_staff_ids.includes(String(preselectedStaffId)));
+                    if (matchForStaff) candidateSvc = matchForStaff;
+                }
                 selectedBookingServices.push({
-                    id: String(first.id),
-                    name: first.name,
-                    price: parseFloat(first.price),
-                    duration: parseInt(first.duration) || 30,
+                    id: String(candidateSvc.id),
+                    name: candidateSvc.name,
+                    price: parseFloat(candidateSvc.price),
+                    duration: parseInt(candidateSvc.duration) || 30,
                     quantity: 1
                 });
             }
@@ -1906,11 +1939,70 @@
                 }
             }
 
-            renderBookingModalServices();
-            hideFloatingBar();
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
-            fetchAvailableSlots();
+            hideFloatingBar();
+            renderBookingModalServices();
+        }
+
+        function filterModalSpecialistsByServices() {
+            const cards = document.querySelectorAll('.specialist-radio-card');
+            const notice = document.getElementById('noEligibleStaffNotice');
+            if (!cards || cards.length === 0) return;
+
+            const modalPropId = document.getElementById('modalPropertyId');
+            const isPropertyVisit = modalPropId && modalPropId.value;
+
+            let allowedStaffIds = null; // null means all allowed
+            if (!isPropertyVisit && selectedBookingServices.length > 0) {
+                selectedBookingServices.forEach(item => {
+                    const catSvc = findCatalogService(item.id);
+                    if (catSvc && Array.isArray(catSvc.allowed_staff_ids) && catSvc.allowed_staff_ids.length > 0) {
+                        const svcAllowed = catSvc.allowed_staff_ids.map(String);
+                        if (allowedStaffIds === null) {
+                            allowedStaffIds = svcAllowed;
+                        } else {
+                            allowedStaffIds = allowedStaffIds.filter(id => svcAllowed.includes(id));
+                        }
+                    }
+                });
+            }
+
+            let visibleRadios = [];
+            let checkedIsStillVisible = false;
+
+            cards.forEach(card => {
+                const staffId = String(card.getAttribute('data-staff-id'));
+                const radio = card.querySelector('input[name="staff_id"]');
+                const isAllowed = (allowedStaffIds === null) || allowedStaffIds.includes(staffId);
+
+                if (isAllowed) {
+                    card.classList.remove('hidden');
+                    if (radio) {
+                        radio.disabled = false;
+                        visibleRadios.push(radio);
+                        if (radio.checked) checkedIsStillVisible = true;
+                    }
+                } else {
+                    card.classList.add('hidden');
+                    if (radio) {
+                        radio.checked = false;
+                        radio.disabled = true;
+                    }
+                }
+            });
+
+            if (!checkedIsStillVisible && visibleRadios.length > 0) {
+                visibleRadios[0].checked = true;
+            }
+
+            if (notice) {
+                if (visibleRadios.length === 0 && selectedBookingServices.length > 0) {
+                    notice.classList.remove('hidden');
+                } else {
+                    notice.classList.add('hidden');
+                }
+            }
         }
 
         function selectSpecialistShortcut(staffId, staffName) {
@@ -1918,6 +2010,11 @@
                 showPortalPausedModal(staffName ? `Atención con ${staffName}` : '');
                 return;
             }
+            // Clear incompatible services before opening shortcut for this specialist
+            selectedBookingServices = selectedBookingServices.filter(item => {
+                const catSvc = findCatalogService(item.id);
+                return !catSvc || !Array.isArray(catSvc.allowed_staff_ids) || catSvc.allowed_staff_ids.length === 0 || catSvc.allowed_staff_ids.includes(String(staffId));
+            });
             openBookingModal(null, null, null, null, staffId);
         }
 
@@ -2012,6 +2109,8 @@
             const timeInput = document.getElementById('booking_time');
             const modalPropId = document.getElementById('modalPropertyId');
             const isPropertyVisit = modalPropId && modalPropId.value;
+
+            filterModalSpecialistsByServices();
 
             if (isPropertyVisit) {
                 // If it's a property visit, header and badge are handled by openPropertyBookingModal
@@ -2110,6 +2209,10 @@
             }
             if (barTotals) barTotals.innerText = `Total: ${CURRENCY}${totalPrice.toFixed(2)}`;
 
+            if (modal && !modal.classList.contains('hidden')) {
+                fetchAvailableSlots();
+            }
+
             lucide.createIcons();
         }
 
@@ -2147,19 +2250,31 @@
             const dateInput = document.getElementById('booking_date');
             if (!dateInput) return;
             const dateStr = dateInput.value;
-            const staffRadio = document.querySelector('input[name="staff_id"]:checked');
-            if (!staffRadio) return;
-            const staffId = staffRadio.value;
             const container = document.getElementById('slots_container');
             const submitBtn = document.getElementById('submitBookingBtn');
             const timeInput = document.getElementById('booking_time');
-            
+            const staffRadio = document.querySelector('input[name="staff_id"]:checked:not(:disabled)');
+
             timeInput.value = "";
             submitBtn.disabled = true;
-            container.innerHTML = '<div class="col-span-full py-4 text-center text-xs text-slate-400 flex items-center justify-center gap-1.5"><i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-rose-800"></i> Buscando horarios...</div>';
+
+            if (!staffRadio) {
+                container.innerHTML = '<div class="col-span-full py-3 px-2 text-center text-xs font-semibold text-amber-800 bg-amber-50 rounded-xl border border-amber-200">Selecciona un especialista habilitado para ver sus horarios disponibles.</div>';
+                return;
+            }
+            const staffId = staffRadio.value;
+
+            const modalPropId = document.getElementById('modalPropertyId');
+            const isPropVisit = modalPropId && modalPropId.value;
+            let totalDuration = 45;
+            if (!isPropVisit && selectedBookingServices.length > 0) {
+                totalDuration = selectedBookingServices.reduce((sum, item) => sum + ((parseInt(item.duration) || 30) * (parseInt(item.quantity) || 1)), 0);
+            }
+
+            container.innerHTML = '<div class="col-span-full py-4 text-center text-xs text-slate-400 flex items-center justify-center gap-1.5"><i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-rose-800"></i> Calculando turnos según duración (' + totalDuration + ' min)...</div>';
             lucide.createIcons();
 
-            fetch(`/reservas/{{ business.slug }}/api/slots/?date=${dateStr}&staff_id=${staffId}`)
+            fetch(`/reservas/{{ business.slug }}/api/slots/?date=${dateStr}&staff_id=${staffId}&duration=${totalDuration}`)
                 .then(response => {
                     if (!response.ok) throw new Error('Error de red');
                     return response.json();
@@ -2175,8 +2290,15 @@
                         const btn = document.createElement('button');
                         btn.type = 'button';
                         const isAvailable = !slot.disabled;
-                        btn.className = `py-2 rounded-xl text-xs font-bold transition border ${isAvailable ? 'bg-white border-slate-200 text-slate-700 hover:border-rose-800 hover:bg-rose-50 hover:text-rose-900' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'}`;
-                        btn.innerText = slot.time;
+                        btn.className = `py-2 px-1 rounded-xl text-xs font-bold transition border flex flex-col items-center justify-center leading-tight ${isAvailable ? 'bg-white border-slate-200 text-slate-700 hover:border-rose-800 hover:bg-rose-50 hover:text-rose-900' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed line-through'}`;
+                        if (slot.end_time && isAvailable) {
+                            btn.innerHTML = `<span>${slot.time}</span><span class="text-[9px] font-medium opacity-70">a ${slot.end_time}</span>`;
+                        } else if (slot.end_time && !isAvailable) {
+                            btn.innerHTML = `<span>${slot.time}</span><span class="text-[9px] font-normal no-underline">Ocupado</span>`;
+                            btn.title = `Ocupado de ${slot.time} a ${slot.end_time}`;
+                        } else {
+                            btn.innerText = slot.time;
+                        }
                         if (isAvailable) {
                             btn.onclick = () => selectSlot(btn, slot.time);
                         } else {
@@ -2193,10 +2315,10 @@
         function selectSlot(btnElement, timeStr) {
             document.querySelectorAll('#slots_container button').forEach(b => {
                 if (!b.disabled) {
-                    b.className = 'py-2 rounded-xl text-xs font-bold transition border bg-white border-slate-200 text-slate-700 hover:border-rose-800 hover:bg-rose-50 hover:text-rose-900';
+                    b.className = 'py-2 px-1 rounded-xl text-xs font-bold transition border flex flex-col items-center justify-center leading-tight bg-white border-slate-200 text-slate-700 hover:border-rose-800 hover:bg-rose-50 hover:text-rose-900';
                 }
             });
-            btnElement.className = 'py-2 rounded-xl text-xs font-bold transition border bg-[#881337] border-[#881337] text-white shadow-sm';
+            btnElement.className = 'py-2 px-1 rounded-xl text-xs font-bold transition border flex flex-col items-center justify-center leading-tight bg-[#881337] border-[#881337] text-white shadow-sm';
             document.getElementById('booking_time').value = timeStr;
             const modalPropId = document.getElementById('modalPropertyId');
             const isPropVisit = modalPropId && modalPropId.value;

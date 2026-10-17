@@ -426,9 +426,12 @@ def business_config_view(request):
                     br.google_maps_url = b_maps_url
                     br.is_main = is_main
                     br.save()
+                    if br.is_main or Branch.objects.filter(business=business).count() == 1:
+                        business.address = b_address
+                        business.save(update_fields=['address'])
                     messages.success(request, f"¡Sucursal '{b_name}' actualizada correctamente!")
                 else:
-                    Branch.objects.create(
+                    br = Branch.objects.create(
                         business=business,
                         name=b_name,
                         address=b_address,
@@ -436,6 +439,9 @@ def business_config_view(request):
                         google_maps_url=b_maps_url,
                         is_main=is_main
                     )
+                    if br.is_main or Branch.objects.filter(business=business).count() == 1:
+                        business.address = b_address
+                        business.save(update_fields=['address'])
                     messages.success(request, f"¡Sucursal '{b_name}' creada exitosamente!")
             else:
                 messages.error(request, "El nombre y dirección de la sucursal son obligatorios.")
@@ -504,15 +510,15 @@ def business_config_view(request):
         elif 'banner_url' in request.FILES:
             business.banner_url = request.FILES['banner_url']
 
-        business.description = request.POST.get('description', business.description).strip() or None
-        business.whatsapp_number = request.POST.get('whatsapp_number', business.whatsapp_number).strip() or None
+        business.description = request.POST.get('description', business.description or '').strip() or None
+        business.whatsapp_number = request.POST.get('whatsapp_number', business.whatsapp_number or '').strip() or None
             
-        business.address = request.POST.get('address', business.address).strip()
+        business.address = request.POST.get('address', business.address or '').strip()
         business.currency = request.POST.get('currency', business.currency).strip()
         business.business_type = request.POST.get('business_type', business.business_type)
         business.primary_goal = request.POST.get('primary_goal', business.primary_goal).strip()
-        business.time_format = request.POST.get('time_format', getattr(business, 'time_format', '12h'))
-        business.allow_editing_client_history = (request.POST.get('allow_editing_client_history') == 'on' or request.POST.get('allow_editing_client_history') == 'true')
+        if 'allow_editing_client_history' in request.POST:
+            business.allow_editing_client_history = (request.POST.get('allow_editing_client_history') == 'on' or request.POST.get('allow_editing_client_history') == 'true')
         
         # Guardar mensaje de recordatorio de cita
         if 'appointment_reminder_message' in request.POST:
@@ -569,6 +575,17 @@ def business_config_view(request):
                 sub.save()
 
         business.save()
+
+        # Sincronizar la dirección principal con la Sucursal Principal (para que el Portal refleje el cambio)
+        if business.address:
+            main_branch = (
+                Branch.objects.filter(business=business, is_main=True).first()
+                or Branch.objects.filter(business=business).first()
+            )
+            if main_branch and main_branch.address != business.address:
+                main_branch.address = business.address
+                main_branch.save(update_fields=['address'])
+
         messages.success(request, f"¡Configuración de {business.name} actualizada correctamente!")
         return redirect('business_config')
 
@@ -1167,7 +1184,7 @@ def staff_list_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    staff_members = StaffMember.objects.filter(business=business).prefetch_related('schedules').order_by('first_name') if business else []
+    staff_members = StaffMember.objects.filter(business=business).prefetch_related('schedules', 'services').order_by('first_name') if business else []
     
     from django.core.paginator import Paginator
     paginator = Paginator(staff_members, 10)
@@ -1181,10 +1198,12 @@ def staff_list_view(request):
 
 @login_required
 def staff_create_view(request):
+    from apps.agenda.models import Service
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
     branches = Branch.objects.filter(business=business) if business else []
+    services = Service.objects.filter(business=business, is_active=True).select_related('category').order_by('name') if business else []
     
     default_prefix, _ = split_phone_number(business.phone if business else '')
 
@@ -1200,6 +1219,7 @@ def staff_create_view(request):
         base_salary = parse_decimal(request.POST.get('base_salary'), '0.00')
         branch_id = request.POST.get('branch_id')
         branch_ids = request.POST.getlist('branch_ids')
+        service_ids = request.POST.getlist('service_ids')
         branch = Branch.objects.filter(id=branch_id, business=business).first() if branch_id else None
         
         staff = StaffMember.objects.create(
@@ -1226,6 +1246,10 @@ def staff_create_view(request):
                 staff.save()
         elif branch:
             staff.branches.set([branch])
+
+        if service_ids:
+            selected_services = Service.objects.filter(id__in=service_ids, business=business)
+            staff.services.set(selected_services)
         
         # Create default work schedule Mon-Sat
         for day in range(0, 6):
@@ -1243,6 +1267,7 @@ def staff_create_view(request):
         'business': business,
         'staff': None,
         'branches': branches,
+        'services': services,
         'default_phone_prefix': default_prefix,
         'staff_phone_prefix': default_prefix,
         'staff_phone_number': '',
@@ -1251,11 +1276,13 @@ def staff_create_view(request):
 
 @login_required
 def staff_edit_view(request, staff_id):
+    from apps.agenda.models import Service
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
     staff = get_object_or_404(StaffMember, id=staff_id, business=business)
     branches = Branch.objects.filter(business=business)
+    services = Service.objects.filter(business=business, is_active=True).select_related('category').order_by('name')
     default_prefix, _ = split_phone_number(business.phone if business else '')
 
     if request.method == 'POST':
@@ -1270,6 +1297,7 @@ def staff_edit_view(request, staff_id):
         staff.base_salary = parse_decimal(request.POST.get('base_salary'), '0.00')
         branch_id = request.POST.get('branch_id')
         branch_ids = request.POST.getlist('branch_ids')
+        service_ids = request.POST.getlist('service_ids')
         staff.branch = Branch.objects.filter(id=branch_id, business=business).first() if branch_id else None
         
         if 'profile_picture' in request.FILES:
@@ -1286,6 +1314,9 @@ def staff_edit_view(request, staff_id):
         elif staff.branch:
             staff.branches.set([staff.branch])
 
+        selected_services = Service.objects.filter(id__in=service_ids, business=business)
+        staff.services.set(selected_services)
+
         return redirect('staff_list')
         
     staff_prefix, staff_num = split_phone_number(staff.phone, default_prefix=default_prefix)
@@ -1294,6 +1325,7 @@ def staff_edit_view(request, staff_id):
         'business': business,
         'staff': staff,
         'branches': branches,
+        'services': services,
         'default_phone_prefix': default_prefix,
         'staff_phone_prefix': staff_prefix,
         'staff_phone_number': staff_num,
@@ -1512,6 +1544,22 @@ def booking_portal_config_view(request):
                 business.whatsapp_number = format_phone_with_prefix(wa_pfx, wa_num)
             else:
                 business.whatsapp_number = None
+
+            if 'description' in request.POST:
+                business.description = request.POST.get('description', '').strip() or None
+
+            if 'address' in request.POST:
+                new_addr = request.POST.get('address', '').strip()
+                business.address = new_addr
+                if new_addr:
+                    main_branch = (
+                        Branch.objects.filter(business=business, is_main=True).first()
+                        or Branch.objects.filter(business=business).first()
+                    )
+                    if main_branch and main_branch.address != new_addr:
+                        main_branch.address = new_addr
+                        main_branch.save(update_fields=['address'])
+
             business.save()
             messages.success(request, "¡Detalles y personalización del perfil público actualizados!")
             return redirect('booking_portal_config')
