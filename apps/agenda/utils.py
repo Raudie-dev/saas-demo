@@ -1,6 +1,186 @@
 import datetime
+import re
+import urllib.parse
+import requests
+from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
 from apps.business.models import StaffMember, WorkSchedule
 from apps.agenda.models import Appointment, ScheduleBlock, Service
+from apps.ai_engine.models import AIAutomationLog
+
+
+GATEWAY_BASE_URL = "http://127.0.0.1:3000"
+
+
+def expire_overdue_pending_appointments(business):
+    """
+    Revisa todas las citas en estado PENDING del negocio y, si ya superaron las horas de espera
+    configuradas (`business.pending_booking_expiry_hours`, por defecto 24h), las pasa automáticamente
+    a CANCELLED para liberar el cupo en la agenda y en el portal de reservas.
+    """
+    if not business:
+        return 0
+    expiry_hours = getattr(business, 'pending_booking_expiry_hours', 24) or 24
+    cutoff = timezone.now() - datetime.timedelta(hours=expiry_hours)
+    overdue_qs = Appointment.objects.filter(
+        business=business,
+        status='PENDING',
+        created_at__lte=cutoff
+    ).select_related('client')
+
+    expired_count = 0
+    for app in overdue_qs:
+        app.status = 'CANCELLED'
+        expiry_note = f"[Auto-Cancelada: No se confirmó dentro de las {expiry_hours}h de espera]"
+        app.notes = f"{app.notes}\n{expiry_note}".strip() if app.notes else expiry_note
+        app.save(update_fields=['status', 'notes'])
+        expired_count += 1
+    return expired_count
+
+
+def send_booking_notification_to_client(business, appointment, event_type='PENDING', request=None, branch_address=None):
+    """
+    Envía notificación al cliente cuando:
+    - event_type='PENDING': Hace una reserva desde el portal (queda Pendiente por X horas)
+    - event_type='CONFIRMED': Su reserva pasa a Confirmada
+    - event_type='CANCELLED': Su reserva es Cancelada
+    Intenta envío real por WhatsApp Gateway (si está conectado), por Email (si tiene correo),
+    y registra el evento en AIAutomationLog. Retorna dict con mensaje y enlaces.
+    """
+    client = appointment.client
+    staff_name = appointment.staff.full_name if appointment.staff else "Equipo"
+    branch_addr = branch_address or getattr(business, 'address', '') or 'Sucursal Principal'
+    expiry_hours = getattr(business, 'pending_booking_expiry_hours', 24) or 24
+    date_str = appointment.date.strftime("%Y-%m-%d") if isinstance(appointment.date, datetime.date) else str(appointment.date)
+    time_str = appointment.start_time.strftime("%H:%M") if isinstance(appointment.start_time, datetime.time) else str(appointment.start_time)[:5]
+    services_text = appointment.services_summary
+
+    confirm_url = ""
+    cancel_url = ""
+    if request:
+        base_host = f"{request.scheme}://{request.get_host()}"
+        confirm_url = f"{base_host}/reservas/{business.slug}/cita/{appointment.id}/confirmar/"
+        cancel_url = f"{base_host}/reservas/{business.slug}/cita/{appointment.id}/cancelar/"
+
+    if event_type == 'PENDING':
+        if appointment.related_property:
+            prop = appointment.related_property
+            msg = (
+                f"⏳ *¡Hola {client.first_name}! Tu solicitud de visita en {business.name} está PENDIENTE DE CONFIRMACIÓN*\n\n"
+                f"📅 *Fecha:* {date_str} a las {time_str} hs.\n"
+                f"👤 *Asesor:* {staff_name}\n"
+                f"🏠 *Propiedad:* {prop.title}\n"
+                f"📍 *Ubicación:* {prop.address} ({prop.zone})\n\n"
+                f"⚠️ *Importante:* Tu cupo ha sido reservado temporalmente por *{expiry_hours} horas*. "
+                f"Por favor confirma tu asistencia dentro de este plazo para asegurar tu turno, de lo contrario el cupo se liberará automáticamente."
+            )
+        else:
+            msg = (
+                f"⏳ *¡Hola {client.first_name}! Tu reserva en {business.name} está PENDIENTE DE CONFIRMACIÓN*\n\n"
+                f"📅 *Fecha:* {date_str} a las {time_str} hs.\n"
+                f"💇‍♂️ *Especialista:* {staff_name}\n"
+                f"💈 *Servicios:* {services_text}\n"
+                f"📍 *Dirección:* {branch_addr}\n\n"
+                f"⚠️ *Importante:* Tu puesto se mantendrá reservado por *{expiry_hours} horas*. "
+                f"Por favor confirma tu cita antes de que venza el plazo para asegurar tu lugar."
+            )
+        if confirm_url:
+            msg += f"\n\n✅ *Confirmar cita aquí:* {confirm_url}\n❌ *Cancelar cita:* {cancel_url}"
+        subject = f"⏳ Reserva Pendiente de Confirmación - {business.name}"
+        prompt_label = f"Notificación de Reserva Pendiente ({expiry_hours}h) enviada a {client.full_name}"
+
+    elif event_type == 'CONFIRMED':
+        msg = (
+            f"✅ *¡Hola {client.first_name}! Tu cita en {business.name} ha sido CONFIRMADA*\n\n"
+            f"📅 *Fecha:* {date_str} a las {time_str} hs.\n"
+            f"👤 *Especialista:* {staff_name}\n"
+            f"✨ *Detalle:* {services_text}\n"
+            f"📍 *Dirección:* {branch_addr}\n\n"
+            f"¡Te esperamos!"
+        )
+        subject = f"✅ Cita Confirmada - {business.name}"
+        prompt_label = f"Notificación de Cita Confirmada enviada a {client.full_name}"
+
+    else:  # CANCELLED
+        msg = (
+            f"❌ *Hola {client.first_name}, tu reserva en {business.name} para el {date_str} a las {time_str} hs ha sido CANCELADA.*\n\n"
+            f"Si deseas reprogramar tu turno, puedes hacerlo nuevamente desde nuestro portal de reservas."
+        )
+        subject = f"❌ Reserva Cancelada - {business.name}"
+        prompt_label = f"Notificación de Cita Cancelada enviada a {client.full_name}"
+
+    delivery_channels = []
+    log_status = 'SIMULATED'
+
+    # 1. Intentar envío por WhatsApp Gateway si está activo
+    raw_phone = client.phone or ''
+    clean_phone = re.sub(r'\D', '', raw_phone)
+    if clean_phone:
+        try:
+            res = requests.post(
+                f"{GATEWAY_BASE_URL}/send",
+                params={'user': str(business.id)},
+                json={'number': clean_phone, 'message': msg},
+                timeout=3
+            )
+            if res.status_code == 200 and res.json().get('success'):
+                delivery_channels.append('WhatsApp')
+                log_status = 'SUCCESS'
+        except Exception:
+            pass
+
+    # 2. Intentar envío por Email si el cliente dejó su correo
+    if client.email:
+        try:
+            plain_msg = msg.replace('*', '')
+            send_mail(
+                subject=subject,
+                message=plain_msg,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'notificaciones@neuralbot.io'),
+                recipient_list=[client.email],
+                fail_silently=True,
+            )
+            delivery_channels.append('Email')
+            if log_status != 'SUCCESS':
+                log_status = 'SUCCESS'
+        except Exception:
+            pass
+
+    # 3. Registrar en AIAutomationLog para trazabilidad en el panel del negocio
+    AIAutomationLog.objects.create(
+        business=business,
+        target_client=client,
+        action_type='WHATSAPP_REMINDER',
+        prompt_used=prompt_label,
+        response_generated=msg,
+        status=log_status
+    )
+
+    # Generar link directo de WhatsApp para confirmación manual con 1 clic
+    biz_phone = re.sub(r'\D', '', business.phone or '')
+    client_reply_text = (
+        f"Hola {business.name}, soy {client.full_name}. "
+        f"Confirmo mi asistencia para la cita del {date_str} a las {time_str} hs ({services_text})."
+    )
+    wa_confirm_link = (
+        f"https://wa.me/{biz_phone}?text={urllib.parse.quote(client_reply_text)}"
+        if biz_phone else f"https://wa.me/?text={urllib.parse.quote(client_reply_text)}"
+    )
+
+    wa_to_client_link = (
+        f"https://wa.me/{clean_phone}?text={urllib.parse.quote(msg)}"
+        if clean_phone else ""
+    )
+
+    return {
+        'message': msg,
+        'channels': delivery_channels,
+        'confirm_url': confirm_url,
+        'cancel_url': cancel_url,
+        'wa_confirm_link': wa_confirm_link,
+        'wa_to_client_link': wa_to_client_link,
+    }
 
 
 def parse_time_str(val, default_time=datetime.time(9, 0)):
@@ -99,6 +279,8 @@ def find_overlapping_appointment(business, staff, booking_date, start_time_val, 
     del mismo profesional en esa fecha.
     Retorna una tupla (conflict_obj, conflict_start_str, conflict_end_str) o (None, None, None).
     """
+    expire_overdue_pending_appointments(business)
+
     if isinstance(booking_date, str):
         try:
             booking_date = datetime.date.fromisoformat(booking_date)
@@ -146,6 +328,8 @@ def calculate_available_slots(business, booking_date, staff, duration_minutes=45
       (ej. si un servicio de 1h 20m se agenda a las 14:00, bloquea de 14:00 a 15:20 y el siguiente cupo
       disponible es exactamente a las 15:20, nunca a las 15:00).
     """
+    expire_overdue_pending_appointments(business)
+
     if isinstance(booking_date, str):
         try:
             booking_date = datetime.datetime.strptime(booking_date, "%Y-%m-%d").date()

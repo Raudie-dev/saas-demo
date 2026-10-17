@@ -13,6 +13,8 @@ from apps.agenda.utils import (
     get_allowed_staff_ids_for_service,
     get_ineligible_services_for_staff,
     find_overlapping_appointment,
+    expire_overdue_pending_appointments,
+    send_booking_notification_to_client,
 )
 
 @login_required
@@ -24,6 +26,8 @@ def agenda_view(request):
     if not request.user.has_module_access('agenda'):
         messages.error(request, "No tienes permiso para acceder a la Agenda.")
         return redirect('dashboard')
+
+    expire_overdue_pending_appointments(business)
 
     selected_date_str = request.GET.get('date', datetime.date.today().isoformat())
     selected_staff_id = request.GET.get('staff', '')
@@ -623,6 +627,9 @@ def appointment_events_api(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return JsonResponse([], safe=False)
+
+    expire_overdue_pending_appointments(business)
+
     staff_id = request.GET.get('staff_id', '')
 
     appointments = Appointment.objects.filter(business=business).select_related('client', 'staff', 'service').prefetch_related('appointment_services__service')
@@ -633,7 +640,7 @@ def appointment_events_api(request):
     for app in appointments:
         start_dt = f"{app.date.isoformat()}T{app.start_time.strftime('%H:%M:%S')}"
         end_dt = f"{app.date.isoformat()}T{app.end_time.strftime('%H:%M:%S')}"
-        color = "#10b981" if app.status == 'COMPLETED' else ("#6366f1" if app.status == 'CONFIRMED' else "#f59e0b")
+        color = "#10b981" if app.status == 'COMPLETED' else ("#6366f1" if app.status == 'CONFIRMED' else ("#94a3b8" if app.status == 'CANCELLED' else "#f59e0b"))
         srv_name = app.services_summary
         
         events.append({
@@ -654,3 +661,47 @@ def appointment_events_api(request):
         })
 
     return JsonResponse(events, safe=False)
+
+
+@login_required
+def appointment_quick_status_view(request, appointment_id):
+    """
+    Permite confirmar o cancelar rápidamente una cita pendiente desde la vista de Agenda
+    y notifica automáticamente al cliente sobre la actualización de su cita.
+    """
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+
+    if request.method != 'POST':
+        return redirect('agenda')
+
+    appointment = get_object_or_404(Appointment, id=appointment_id, business=business)
+    new_status = (request.POST.get('status') or '').strip().upper()
+    next_date = request.POST.get('next_date') or appointment.date.isoformat()
+
+    if new_status in ('CONFIRMED', 'CANCELLED', 'PENDING'):
+        appointment.status = new_status
+        appointment.save(update_fields=['status'])
+
+        if new_status == 'CONFIRMED':
+            send_booking_notification_to_client(
+                business=business,
+                appointment=appointment,
+                event_type='CONFIRMED',
+                request=request
+            )
+            messages.success(request, f"✅ Cita de {appointment.client.full_name} confirmada y notificación enviada.")
+        elif new_status == 'CANCELLED':
+            send_booking_notification_to_client(
+                business=business,
+                appointment=appointment,
+                event_type='CANCELLED',
+                request=request
+            )
+            messages.info(request, f"❌ Cita de {appointment.client.full_name} cancelada y horario liberado.")
+        else:
+            messages.success(request, f"Estado de la cita actualizado a {appointment.get_status_display()}.")
+
+    return redirect(f"/agenda/?date={next_date}")
+

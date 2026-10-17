@@ -104,8 +104,8 @@
                             region_prices: {
                                 {% for rp in plan.region_prices.all %}
                                 "{{ rp.region_id }}": {
-                                    monthly: '{{ rp.monthly_price }}',
-                                    annual: '{{ rp.annual_price }}',
+                                    monthly: '{{ rp.monthly_price|unlocalize }}',
+                                    annual: '{{ rp.annual_price|unlocalize }}',
                                     active: {% if rp.is_active %}true{% else %}false{% endif %}
                                 }{% if not forloop.last %},{% endif %}
                                 {% endfor %}
@@ -207,11 +207,24 @@
 
             <!-- Included Modules Grid -->
             <div>
-                <label class="block font-bold text-slate-900 mb-2">Módulos Incluidos en este Plan:</label>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <label class="block font-bold text-slate-900">Módulos Incluidos en este Plan:</label>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="setModalModules('create', 'all')" class="px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-900 border border-brand-200 text-[10px] font-bold transition cursor-pointer">
+                            ✓ Todos los módulos
+                        </button>
+                        <button type="button" onclick="setModalModules('create', 'starter')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[10px] font-bold transition cursor-pointer">
+                            ⚡ Pack Inicial (6)
+                        </button>
+                        <button type="button" onclick="setModalModules('create', 'none')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-800 border border-slate-200 text-[10px] font-bold transition cursor-pointer">
+                            ✕ Quitar todos
+                        </button>
+                    </div>
+                </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {% for mod in all_modules %}
                     <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer">
-                        <input type="checkbox" name="included_modules" value="{{ mod.code }}" checked class="accent-brand-900 rounded">
+                        <input type="checkbox" name="included_modules" value="{{ mod.code }}" checked class="create-module-checkbox accent-brand-900 rounded">
                         <span class="font-semibold text-slate-800 text-[11px]">{{ mod.name }}</span>
                     </label>
                     {% endfor %}
@@ -314,7 +327,20 @@
 
             <!-- Included Modules Grid -->
             <div>
-                <label class="block font-bold text-slate-900 mb-2">Módulos Incluidos:</label>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <label class="block font-bold text-slate-900">Módulos Incluidos:</label>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="setModalModules('edit', 'all')" class="px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-900 border border-brand-200 text-[10px] font-bold transition cursor-pointer">
+                            ✓ Todos los módulos
+                        </button>
+                        <button type="button" onclick="setModalModules('edit', 'starter')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[10px] font-bold transition cursor-pointer">
+                            ⚡ Pack Inicial (6)
+                        </button>
+                        <button type="button" onclick="setModalModules('edit', 'none')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-800 border border-slate-200 text-[10px] font-bold transition cursor-pointer">
+                            ✕ Quitar todos
+                        </button>
+                    </div>
+                </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {% for mod in all_modules %}
                     <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer">
@@ -327,12 +353,19 @@
 
             <!-- Regional Pricing -->
             <div class="pt-4 border-t border-slate-100">
-                <h4 class="font-bold text-slate-900 mb-3 text-sm">Precios por Región</h4>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <h4 class="font-bold text-slate-900 text-sm">Precios por Región (Moneda Local)</h4>
+                    <button type="button" onclick="autoConvertRegionPrices()" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                        <span>Autoconvertir desde USD</span>
+                    </button>
+                </div>
                 <div class="space-y-3">
                     {% for r in regions %}
-                    <div class="flex items-center gap-3 p-3 border border-slate-200 rounded-xl bg-slate-50">
+                    <div class="flex items-center gap-3 p-3 border border-slate-200 rounded-xl bg-slate-50" data-region-row="{{ r.id }}" data-currency-code="{{ r.currency_code|default:'USD' }}" data-region-name="{{ r.name }}">
                         <div class="w-1/4">
                             <span class="font-bold text-slate-800">{{ r.name }}</span>
+                            <span class="text-[10px] font-mono text-slate-500 block">{{ r.currency_code|default:'USD' }} ({{ r.currency_symbol }})</span>
                             <div class="mt-1 flex items-center gap-2">
                                 <input type="checkbox" name="region_active_{{ r.id }}" id="edit-region-active-{{ r.id }}" class="accent-brand-900 rounded">
                                 <label for="edit-region-active-{{ r.id }}" class="text-[10px] text-slate-500 font-semibold cursor-pointer">Activo</label>
@@ -364,6 +397,64 @@
 </div>
 
 <script>
+    const STARTER_MODULES = ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory'];
+    const USD_EXCHANGE_RATES = {
+        'ARS': 1200,
+        'UYU': 43,
+        'CLP': 960,
+        'COP': 4200,
+        'MXN': 20,
+        'BRL': 5.7,
+        'PEN': 3.75,
+        'PYG': 7800,
+        'BOB': 7,
+        'CRC': 515,
+        'DOP': 60,
+        'GTQ': 7.75,
+        'HNL': 25,
+        'NIO': 36.8,
+        'VES': 65,
+        'USD': 1
+    };
+
+    function autoConvertRegionPrices() {
+        const baseMonthly = parseFloat(document.getElementById('edit-monthly-price').value) || 0;
+        const baseAnnual = parseFloat(document.getElementById('edit-annual-price').value) || 0;
+
+        document.querySelectorAll('[data-region-row]').forEach(row => {
+            const regionId = row.getAttribute('data-region-row');
+            const currCode = (row.getAttribute('data-currency-code') || 'USD').toUpperCase();
+            const rate = USD_EXCHANGE_RATES[currCode] || 1;
+
+            const monthlyInput = document.getElementById(`edit-region-monthly-${regionId}`);
+            const annualInput = document.getElementById(`edit-region-annual-${regionId}`);
+            const activeInput = document.getElementById(`edit-region-active-${regionId}`);
+
+            if (monthlyInput) {
+                monthlyInput.value = rate === 1 ? baseMonthly.toFixed(2) : Math.round(baseMonthly * rate).toFixed(2);
+            }
+            if (annualInput) {
+                annualInput.value = rate === 1 ? baseAnnual.toFixed(2) : Math.round(baseAnnual * rate).toFixed(2);
+            }
+            if (activeInput) {
+                activeInput.checked = true;
+            }
+        });
+    }
+
+    function setModalModules(scope, preset) {
+        const selector = scope === 'create' ? '.create-module-checkbox' : '.edit-module-checkbox';
+        document.querySelectorAll(selector).forEach(cb => {
+            if (preset === 'all') {
+                cb.checked = true;
+            } else if (preset === 'none') {
+                cb.checked = false;
+            } else if (preset === 'starter') {
+                cb.checked = STARTER_MODULES.includes(cb.value);
+            }
+        });
+    }
+
     function openCreateModal() {
         document.getElementById('create-plan-modal').classList.remove('hidden');
     }

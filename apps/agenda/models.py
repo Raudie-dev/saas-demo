@@ -97,6 +97,41 @@ class Appointment(TimeStampedModel):
         first_item = self.appointment_services.first()
         return first_item.service if first_item else None
 
+    @property
+    def confirmation_deadline(self):
+        hours = getattr(self.business, 'pending_booking_expiry_hours', 24)
+        if not hours or hours <= 0 or not self.created_at:
+            return None
+        return self.created_at + datetime.timedelta(hours=hours)
+
+    @property
+    def is_pending_expired(self):
+        if self.status != 'PENDING':
+            return False
+        deadline = self.confirmation_deadline
+        if not deadline:
+            return False
+        from django.utils import timezone
+        return timezone.now() >= deadline
+
+    @property
+    def pending_time_remaining_display(self):
+        if self.status != 'PENDING':
+            return ""
+        deadline = self.confirmation_deadline
+        if not deadline:
+            return "Sin límite de tiempo"
+        from django.utils import timezone
+        remaining = deadline - timezone.now()
+        total_seconds = int(remaining.total_seconds())
+        if total_seconds <= 0:
+            return "Tiempo agotado"
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        if hours > 0:
+            return f"{hours}h {minutes}m restantes"
+        return f"{minutes} min restantes"
+
 class AppointmentService(TimeStampedModel):
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name="appointment_services")
     service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name="appointment_items")

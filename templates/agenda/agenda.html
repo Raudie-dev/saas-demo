@@ -54,11 +54,26 @@
                         <div class="text-[10px] font-normal opacity-90">a {{ app.end_time }}</div>
                     </div>
                     <div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <h4 class="font-bold text-slate-900 text-base">{{ app.client.full_name }}</h4>
-                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {% if app.status == 'PENDING' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-800 border border-amber-300">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                {{ app.get_status_display }} · Espera: {{ app.pending_time_remaining_display }}
+                            </span>
+                            {% elif app.status == 'CONFIRMED' %}
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 {{ app.get_status_display }}
                             </span>
+                            {% elif app.status == 'CANCELLED' %}
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                {{ app.get_status_display }}
+                            </span>
+                            {% else %}
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                {{ app.get_status_display }}
+                            </span>
+                            {% endif %}
                         </div>
                         <p class="text-sm text-slate-800 mt-1 font-bold">{{ app.services_summary }}</p>
                         <p class="text-xs text-slate-500 mt-0.5">Especialista: <span class="text-rose-900 font-bold">{{ app.staff.full_name }}</span> • Duración total: {{ app.total_duration_minutes }} min</p>
@@ -86,6 +101,32 @@
                             <span class="text-xs text-slate-500 block leading-none mb-1">Total</span>
                             <span class="text-base font-extrabold text-slate-900">{{ business.currency }}{{ app.total_price }}</span>
                         </div>
+
+                    {% if app.status == 'PENDING' %}
+                    <!-- Quick Confirm / Cancel Buttons for Pending Bookings -->
+                    <form method="POST" action="{% url 'appointment_quick_status' app.id %}" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="CONFIRMED">
+                        <input type="hidden" name="next_date" value="{{ selected_date|date:'Y-m-d' }}">
+                        <button type="submit"
+                                title="Confirmar cita pendiente y notificar al cliente"
+                                class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold transition flex items-center gap-1 cursor-pointer shadow-xs">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            <span>Confirmar</span>
+                        </button>
+                    </form>
+                    <form method="POST" action="{% url 'appointment_quick_status' app.id %}" class="inline" onsubmit="return confirm('¿Cancelar esta cita pendiente y liberar el horario?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="CANCELLED">
+                        <input type="hidden" name="next_date" value="{{ selected_date|date:'Y-m-d' }}">
+                        <button type="submit"
+                                title="Cancelar cita pendiente y liberar el puesto"
+                                class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 text-xs font-bold transition border border-rose-200 flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            <span>Cancelar</span>
+                        </button>
+                    </form>
+                    {% endif %}
 
                     <!-- WhatsApp Reminder Button -->
                     <button type="button"

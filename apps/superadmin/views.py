@@ -234,6 +234,20 @@ def user_detail_view(request, business_id):
             subscription.pending_plan = None
             subscription.save()
 
+            if subscription.plan:
+                allowed = business.get_allowed_modules()
+                current_enabled = list(business.enabled_modules or [])
+                # Keep enabled modules that are in the new plan, and enable any newly unlocked modules
+                synced_modules = [m for m in current_enabled if m in allowed]
+                for m in allowed:
+                    if m not in synced_modules:
+                        synced_modules.append(m)
+                business.enabled_modules = synced_modules
+                business.save(update_fields=['enabled_modules'])
+                for rp in business.role_profiles.all():
+                    rp.clean_modules_against_subscription()
+                    rp.save(update_fields=['allowed_modules'])
+
             SystemAuditLog.objects.create(
                 actor_email=request.superadmin_user.email or request.superadmin_user.username,
                 action="ACTUALIZACION_LICENCIA",
@@ -358,14 +372,15 @@ def plans_management_view(request):
                     is_active=True
                 )
                 
-                # Create default region pricing for existing regions
+                # Create default region pricing for existing regions with currency conversion
                 regions = Region.objects.filter(is_active=True)
                 for r in regions:
+                    conv_monthly, conv_annual = _convert_plan_prices_for_region(plan.monthly_price, plan.annual_price, r)
                     PlanRegionPricing.objects.create(
                         plan=plan,
                         region=r,
-                        monthly_price=plan.monthly_price,
-                        annual_price=plan.annual_price,
+                        monthly_price=conv_monthly,
+                        annual_price=conv_annual,
                         is_active=True
                     )
                     
@@ -394,6 +409,9 @@ def plans_management_view(request):
             show_on_landing = request.POST.get('show_on_landing') in ['on', 'true', '1']
             is_active = request.POST.get('is_active') in ['on', 'true', '1']
 
+            old_modules = set(plan.included_modules or [])
+            added_modules = [m for m in selected_modules if m not in old_modules]
+
             plan.name = name
             plan.monthly_price = monthly_price
             plan.annual_price = annual_price
@@ -403,6 +421,24 @@ def plans_management_view(request):
             plan.show_on_landing = show_on_landing
             plan.is_active = is_active
             plan.save()
+
+            # Sync enabled_modules for businesses on this plan so added/removed modules reflect immediately
+            for sub in plan.subscriptions.select_related('business').all():
+                biz = sub.business
+                if not biz:
+                    continue
+                allowed = biz.get_allowed_modules()
+                current_enabled = list(biz.enabled_modules or [])
+                synced = [m for m in current_enabled if m in allowed]
+                for m in added_modules:
+                    if m in allowed and m not in synced:
+                        synced.append(m)
+                if synced != current_enabled:
+                    biz.enabled_modules = synced
+                    biz.save(update_fields=['enabled_modules'])
+                for rp in biz.role_profiles.all():
+                    rp.clean_modules_against_subscription()
+                    rp.save(update_fields=['allowed_modules'])
 
             # Handle region pricing
             regions = Region.objects.filter(is_active=True)
@@ -444,6 +480,7 @@ def plans_management_view(request):
         {'code': 'commissions', 'name': 'Comisiones de Equipo'},
         {'code': 'ai_engine', 'name': 'IA & Automatización'},
         {'code': 'marketing', 'name': 'Marketing & Promociones'},
+        {'code': 'properties', 'name': 'Inmobiliaria & Propiedades'},
     ]
 
     regions = Region.objects.filter(is_active=True).order_by('name')
@@ -934,32 +971,154 @@ def _ensure_default_regions():
                 rpm.instructions = default_instr
                 rpm.save(update_fields=['instructions'])
 
+REGION_USD_RATES = {
+    'ARS': Decimal('1200.00'),  # Argentina ($)
+    'UYU': Decimal('43.00'),    # Uruguay ($U)
+    'CLP': Decimal('960.00'),   # Chile (CLP $)
+    'COP': Decimal('4200.00'),  # Colombia (COP $)
+    'MXN': Decimal('20.00'),    # México (MXN $)
+    'BRL': Decimal('5.70'),     # Brasil (R$)
+    'PEN': Decimal('3.75'),     # Perú (S/)
+    'PYG': Decimal('7800.00'),  # Paraguay (Gs.)
+    'BOB': Decimal('7.00'),     # Bolivia (Bs.)
+    'CRC': Decimal('515.00'),   # Costa Rica (₡)
+    'DOP': Decimal('60.00'),    # República Dominicana (RD$)
+    'GTQ': Decimal('7.75'),     # Guatemala (Q)
+    'HNL': Decimal('25.00'),    # Honduras (L)
+    'NIO': Decimal('36.80'),    # Nicaragua (C$)
+    'VES': Decimal('65.00'),    # Venezuela (Bs.)
+    'USD': Decimal('1.00'),     # Dólares (USD)
+}
+
+def _get_region_usd_rate(region):
+    if not region:
+        return Decimal('1.00')
+    curr = (getattr(region, 'currency_code', '') or '').strip().upper()
+    if curr in REGION_USD_RATES:
+        return REGION_USD_RATES[curr]
+    name_lower = (getattr(region, 'name', '') or '').strip().lower()
+    if 'argentina' in name_lower:
+        return REGION_USD_RATES['ARS']
+    if 'uruguay' in name_lower:
+        return REGION_USD_RATES['UYU']
+    if 'chile' in name_lower:
+        return REGION_USD_RATES['CLP']
+    if 'colombia' in name_lower:
+        return REGION_USD_RATES['COP']
+    if 'méxico' in name_lower or 'mexico' in name_lower:
+        return REGION_USD_RATES['MXN']
+    if 'brasil' in name_lower:
+        return REGION_USD_RATES['BRL']
+    if 'perú' in name_lower or 'peru' in name_lower:
+        return REGION_USD_RATES['PEN']
+    if 'paraguay' in name_lower:
+        return REGION_USD_RATES['PYG']
+    return Decimal('1.00')
+
+def _convert_plan_prices_for_region(usd_monthly, usd_annual, region):
+    rate = _get_region_usd_rate(region)
+    if rate == Decimal('1.00'):
+        return Decimal(usd_monthly).quantize(Decimal('0.01')), Decimal(usd_annual).quantize(Decimal('0.01'))
+    conv_monthly = (Decimal(usd_monthly) * rate).quantize(Decimal('1'))
+    conv_annual = (Decimal(usd_annual) * rate).quantize(Decimal('1'))
+    return conv_monthly.quantize(Decimal('0.01')), conv_annual.quantize(Decimal('0.01'))
+
 def _ensure_default_plans():
     _ensure_default_payment_methods()
     _ensure_default_regions()
-    if SubscriptionPlan.objects.exists():
-        pro = SubscriptionPlan.objects.filter(code='PRO').first()
-        if pro and pro.monthly_price == Decimal('29.00'):
-            pro.name = 'Plan Acceso Completo'
-            pro.monthly_price = Decimal('30.00')
-            pro.annual_price = Decimal('288.00')
-            pro.save()
-        return
 
-    SubscriptionPlan.objects.create(
-        code='PRO',
-        name='Plan Acceso Completo',
-        monthly_price=Decimal('30.00'),
-        annual_price=Decimal('288.00'),
-        max_users=50,
-        max_branches=10,
-        included_modules=['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing'],
-        is_active=True
+    default_tiers = [
+        {
+            'code': 'STARTER',
+            'name': 'Plan Inicial',
+            'monthly_price': Decimal('19.00'),
+            'annual_price': Decimal('180.00'),
+            'max_users': 3,
+            'max_branches': 1,
+            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory'],
+        },
+        {
+            'code': 'PRO',
+            'name': 'Plan Profesional',
+            'monthly_price': Decimal('30.00'),
+            'annual_price': Decimal('288.00'),
+            'max_users': 10,
+            'max_branches': 2,
+            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties'],
+        },
+        {
+            'code': 'ENTERPRISE',
+            'name': 'Plan Corporativo',
+            'monthly_price': Decimal('59.00'),
+            'annual_price': Decimal('560.00'),
+            'max_users': 0,
+            'max_branches': 0,
+            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties'],
+        },
+    ]
+
+    needs_initial_seed = (
+        not SubscriptionPlan.objects.exists()
+        or (
+            SubscriptionPlan.objects.count() == 1
+            and SubscriptionPlan.objects.filter(code='PRO').exists()
+        )
     )
+
+    if needs_initial_seed:
+        for tier in default_tiers:
+            plan, created = SubscriptionPlan.objects.get_or_create(
+                code=tier['code'],
+                defaults={
+                    'name': tier['name'],
+                    'monthly_price': tier['monthly_price'],
+                    'annual_price': tier['annual_price'],
+                    'max_users': tier['max_users'],
+                    'max_branches': tier['max_branches'],
+                    'included_modules': tier['included_modules'],
+                    'show_on_landing': True,
+                    'is_active': True,
+                }
+            )
+            if not created and tier['code'] == 'PRO' and plan.name == 'Plan Acceso Completo':
+                plan.name = tier['name']
+                plan.monthly_price = tier['monthly_price']
+                plan.annual_price = tier['annual_price']
+                plan.max_users = tier['max_users']
+                plan.max_branches = tier['max_branches']
+                plan.included_modules = tier['included_modules']
+                plan.show_on_landing = True
+                plan.is_active = True
+                plan.save()
+
+    # Ensure every active plan (especially PRO) is registered in all active regions with local currency conversion
+    active_regions = list(Region.objects.filter(is_active=True))
+    all_plans = list(SubscriptionPlan.objects.all())
+    unconverted_usd_values = {Decimal('19.00'), Decimal('29.00'), Decimal('30.00'), Decimal('59.00')}
+
+    for plan in all_plans:
+        unconverted_usd_values.add(plan.monthly_price)
+        for region in active_regions:
+            conv_monthly, conv_annual = _convert_plan_prices_for_region(plan.monthly_price, plan.annual_price, region)
+            rp, rp_created = PlanRegionPricing.objects.get_or_create(
+                plan=plan,
+                region=region,
+                defaults={
+                    'monthly_price': conv_monthly,
+                    'annual_price': conv_annual,
+                    'is_active': True,
+                }
+            )
+            # If the region uses a local currency (e.g. ARS, UYU) and still had the raw USD value stored, convert it
+            if not rp_created and _get_region_usd_rate(region) > Decimal('1.00') and rp.monthly_price in unconverted_usd_values:
+                rp.monthly_price = conv_monthly
+                rp.annual_price = conv_annual
+                rp.is_active = True
+                rp.save(update_fields=['monthly_price', 'annual_price', 'is_active'])
 
 def _sync_business_subscriptions():
     pro_plan = SubscriptionPlan.objects.filter(code='PRO').first() or SubscriptionPlan.objects.first()
-    default_exp = timezone.now().date() + datetime.timedelta(days=30)
+    default_exp = timezone.now().date() + datetime.timedelta(days=14)
 
     for biz in Business.objects.all():
         if not hasattr(biz, 'subscription'):
@@ -970,5 +1129,6 @@ def _sync_business_subscriptions():
                 start_date=timezone.now().date(),
                 expiration_date=default_exp
             )
+
 
 

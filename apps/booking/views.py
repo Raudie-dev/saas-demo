@@ -15,6 +15,8 @@ from apps.agenda.utils import (
     get_allowed_staff_ids_for_service,
     get_ineligible_services_for_staff,
     find_overlapping_appointment,
+    expire_overdue_pending_appointments,
+    send_booking_notification_to_client,
 )
 
 
@@ -225,8 +227,11 @@ def public_booking_view(request, business_slug):
             for p in properties_qs
         ])
 
+    expire_overdue_pending_appointments(business)
+
     booking_success = False
     appointment_created = None
+    notification_info = None
     portal_error_message = None
 
     default_phone_prefix, _ = split_phone_number(business.phone if business else '')
@@ -381,7 +386,7 @@ def public_booking_view(request, business_slug):
                 end_time=end_time,
                 total_price=total_price,
                 deposit_amount=(total_price * Decimal('0.30')),
-                status='CONFIRMED',
+                status='PENDING',
                 notes=notes_text
             )
 
@@ -396,7 +401,7 @@ def public_booking_view(request, business_slug):
                     property_type=selected_property.get_property_type_display(),
                     address_zone=f"{selected_property.address} ({selected_property.zone})",
                     estimated_price=selected_property.formatted_price,
-                    notes=client_notes or f"Visita coordinada para el {date_str} a las {time_str} hs.",
+                    notes=client_notes or f"Visita coordinada para el {date_str} a las {time_str} hs (Pendiente de confirmación).",
                     status='VISITING',
                     agent=staff
                 )
@@ -412,22 +417,12 @@ def public_booking_view(request, business_slug):
             
             branch_addr = selected_branch.address if selected_branch else business.address
             
-            # Trigger simulated WhatsApp confirmation message
-            if selected_property:
-                wa_msg = f"🏡 *¡Visita Coordinada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n👤 Asesor Inmobiliario: {staff.full_name if staff else 'Equipo'}\n🏠 Propiedad: {selected_property.title}\n📍 Ubicación: {selected_property.address} ({selected_property.zone})\n🔗 Portal: {selected_property.portal_url or 'Publicación Inmobiliaria'}"
-                prompt_label = f"Confirmación de Visita a Propiedad para {client.full_name}"
-            else:
-                services_text = appointment_created.services_summary
-                wa_msg = f"✅ *¡Cita Confirmada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n💇‍♂️ Especialista: {staff.full_name if staff else 'Equipo'}\n💈 Servicios: {services_text}\n📍 Sucursal / Dirección: {branch_addr}"
-                prompt_label = f"Confirmación de Reserva para {client.full_name}"
-
-            AIAutomationLog.objects.create(
+            notification_info = send_booking_notification_to_client(
                 business=business,
-                target_client=client,
-                action_type='WHATSAPP_REMINDER',
-                prompt_used=prompt_label,
-                response_generated=wa_msg,
-                status='SIMULATED'
+                appointment=appointment_created,
+                event_type='PENDING',
+                request=request,
+                branch_address=branch_addr
             )
             
             booking_success = True
@@ -462,6 +457,7 @@ def public_booking_view(request, business_slug):
         'staff_members': staff_members,
         'booking_success': booking_success,
         'appointment': appointment_created,
+        'notification_info': notification_info,
         'today_date': datetime.date.today().isoformat(),
         'default_phone_prefix': default_phone_prefix,
         'portal_error_message': portal_error_message
@@ -567,3 +563,79 @@ def api_seller_register_view(request, business_slug):
         'first_name': client.first_name,
         'message': f'¡Gracias {client.first_name}! Recibimos la información de tu propiedad. Un asesor de {business.name} se contactará contigo a la brevedad.'
     })
+
+
+def public_appointment_action_view(request, business_slug, appointment_id, action):
+    """
+    Permite al cliente confirmar o cancelar su reserva pendiente desde el enlace
+    enviado en su notificación (o desde la pantalla posterior a la reserva),
+    siempre que no haya vencido el plazo de espera configurado por el negocio.
+    """
+    business = get_object_or_404(Business, slug=business_slug)
+    expire_overdue_pending_appointments(business)
+
+    appointment = get_object_or_404(Appointment, id=appointment_id, business=business)
+    action_clean = (action or '').strip().lower()
+    action_feedback = None
+
+    if action_clean in ('confirmar', 'confirm'):
+        if appointment.status == 'CANCELLED':
+            action_feedback = {
+                'type': 'expired',
+                'title': 'Reserva Vencida o Cancelada',
+                'message': f'El plazo de espera de {business.pending_booking_expiry_hours} horas venció o la cita fue cancelada previamente. Por favor realiza una nueva reserva.'
+            }
+        else:
+            if appointment.status != 'CONFIRMED':
+                appointment.status = 'CONFIRMED'
+                appointment.save(update_fields=['status'])
+                send_booking_notification_to_client(
+                    business=business,
+                    appointment=appointment,
+                    event_type='CONFIRMED',
+                    request=request
+                )
+            action_feedback = {
+                'type': 'confirmed',
+                'title': '¡Cita Confirmada con Éxito!',
+                'message': 'Tu asistencia ha sido confirmada y tu lugar ya está 100% asegurado en nuestra agenda.'
+            }
+
+    elif action_clean in ('cancelar', 'cancel'):
+        if appointment.status != 'CANCELLED':
+            appointment.status = 'CANCELLED'
+            cancel_note = "[Cancelada por el cliente desde el portal/notificación]"
+            appointment.notes = f"{appointment.notes}\n{cancel_note}".strip() if appointment.notes else cancel_note
+            appointment.save(update_fields=['status', 'notes'])
+            send_booking_notification_to_client(
+                business=business,
+                appointment=appointment,
+                event_type='CANCELLED',
+                request=request
+            )
+        action_feedback = {
+            'type': 'cancelled',
+            'title': 'Reserva Cancelada',
+            'message': 'Tu reserva ha sido cancelada y el horario ha quedado liberado.'
+        }
+
+    branches = Branch.objects.filter(business=business, is_active=True)
+    selected_branch = branches.filter(is_main=True).first() or branches.first()
+    branch_addr = selected_branch.address if selected_branch else business.address
+
+    notification_info = {
+        'confirm_url': f"{request.scheme}://{request.get_host()}/reservas/{business.slug}/cita/{appointment.id}/confirmar/",
+        'cancel_url': f"{request.scheme}://{request.get_host()}/reservas/{business.slug}/cita/{appointment.id}/cancelar/",
+    }
+
+    return render(request, 'booking/public_booking.html', {
+        'business': business,
+        'branches': branches,
+        'selected_branch': selected_branch,
+        'booking_success': True,
+        'appointment': appointment,
+        'notification_info': notification_info,
+        'action_feedback': action_feedback,
+        'today_date': datetime.date.today().isoformat(),
+    })
+

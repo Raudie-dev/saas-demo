@@ -867,6 +867,8 @@ def subscription_billing_view(request):
         SubscriptionPlan, BusinessSubscription, RegionPaymentMethod, 
         PlanRegionPricing, Region, SubscriptionPayment, SystemAuditLog
     )
+    from apps.superadmin.views import _ensure_default_plans
+    _ensure_default_plans()
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -1018,6 +1020,7 @@ def subscription_billing_view(request):
     available_plans = []
     currency_symbol = current_region.currency_symbol if current_region else "$"
 
+    current_plan_display_monthly = subscription.plan.monthly_price if subscription.plan else Decimal('0.00')
     for plan in base_plans:
         display_monthly = plan.monthly_price
         display_annual = plan.annual_price
@@ -1029,6 +1032,9 @@ def subscription_billing_view(request):
                     continue
                 display_monthly = rp.monthly_price
                 display_annual = rp.annual_price
+
+        if subscription.plan and plan.id == subscription.plan.id:
+            current_plan_display_monthly = display_monthly
 
         setattr(plan, 'display_monthly', display_monthly)
         setattr(plan, 'display_annual', display_annual)
@@ -1091,6 +1097,7 @@ def subscription_billing_view(request):
         'all_regions': all_regions,
         'currency_symbol': currency_symbol,
         'available_plans': available_plans,
+        'current_plan_display_monthly': current_plan_display_monthly,
         'billing_methods': manual_methods,
         'gateway_methods': gateway_methods,
         'payment_history': payment_history,
@@ -1506,6 +1513,21 @@ def booking_portal_config_view(request):
                     messages.error(request, f"El enlace '{new_slug}' ya se encuentra ocupado por otro negocio. Prueba con otro.")
             return redirect('booking_portal_config')
 
+        elif action == 'UPDATE_PENDING_EXPIRY':
+            raw_hours = request.POST.get('pending_booking_expiry_hours', '24').strip()
+            try:
+                hours_val = max(1, min(720, int(raw_hours)))
+            except (ValueError, TypeError):
+                hours_val = 24
+            business.pending_booking_expiry_hours = hours_val
+            business.save(update_fields=['pending_booking_expiry_hours'])
+            messages.success(
+                request,
+                f"¡Tiempo de espera de reservas pendientes actualizado a {hours_val} hora(s)! "
+                f"Las reservas no confirmadas en ese plazo se liberarán automáticamente."
+            )
+            return redirect('booking_portal_config')
+
         elif action == 'UPDATE_DETAILS':
             import base64
             from django.core.files.base import ContentFile
@@ -1547,6 +1569,12 @@ def booking_portal_config_view(request):
 
             if 'description' in request.POST:
                 business.description = request.POST.get('description', '').strip() or None
+
+            if 'pending_booking_expiry_hours' in request.POST:
+                try:
+                    business.pending_booking_expiry_hours = max(1, min(720, int(request.POST.get('pending_booking_expiry_hours', 24))))
+                except (ValueError, TypeError):
+                    pass
 
             if 'address' in request.POST:
                 new_addr = request.POST.get('address', '').strip()
