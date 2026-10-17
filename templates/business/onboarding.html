@@ -34,6 +34,17 @@
             background: #fff1f2;
             box-shadow: 0 0 0 2px rgba(190, 18, 60, 0.2);
         }
+        .step-container {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        .step-container.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="h-full font-sans antialiased bg-slate-50 text-slate-900 py-10 px-4 flex justify-center items-start min-h-screen relative overflow-y-auto">
@@ -53,11 +64,11 @@
             <p class="text-sm text-slate-600 max-w-xl mx-auto">Responde estas sencillas preguntas para habilitar las herramientas ideales y personalizar la experiencia de tu equipo.</p>
         </div>
 
-        <form id="onboardingForm" method="POST" action="{% url 'onboarding' %}" class="space-y-8">
+        <form id="onboardingForm" method="POST" action="{% url 'onboarding' %}">
             {% csrf_token %}
 
             <!-- PASO 1: Tipo de Agencia / Negocio -->
-            <div class="light-box rounded-3xl p-6 sm:p-8 space-y-6">
+            <div id="step-1" class="step-container active light-box rounded-3xl p-6 sm:p-8 space-y-6">
                 <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
                     <span class="w-8 h-8 rounded-xl bg-rose-800 text-white font-extrabold flex items-center justify-center text-sm shadow-sm">1</span>
                     <div>
@@ -98,10 +109,17 @@
                     </div>
                     {% endfor %}
                 </div>
+                
+                <div class="pt-4 flex justify-end">
+                    <button type="button" onclick="nextStep(2)" class="px-6 py-3 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-md transition duration-200 flex items-center gap-2">
+                        <span>Siguiente</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- PASO 2: ¿Para qué requiere el sistema? (Módulos & Objetivos) -->
-            <div class="light-box rounded-3xl p-6 sm:p-8 space-y-6">
+            <div id="step-2" class="step-container light-box rounded-3xl p-6 sm:p-8 space-y-6">
                 <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
                     <span class="w-8 h-8 rounded-xl bg-rose-800 text-white font-extrabold flex items-center justify-center text-sm shadow-sm">2</span>
                     <div>
@@ -132,10 +150,21 @@
                         {% endfor %}
                     </div>
                 </div>
+
+                <div class="pt-4 flex justify-between">
+                    <button type="button" onclick="prevStep(1)" class="px-6 py-3 rounded-xl text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition duration-200 flex items-center gap-2">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Atrás</span>
+                    </button>
+                    <button type="button" onclick="nextStep(3)" class="px-6 py-3 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-md transition duration-200 flex items-center gap-2">
+                        <span>Siguiente</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- PASO 3: Identidad & Configuración General -->
-            <div class="light-box rounded-3xl p-6 sm:p-8 space-y-6">
+            <div id="step-3" class="step-container light-box rounded-3xl p-6 sm:p-8 space-y-6">
                 <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
                     <span class="w-8 h-8 rounded-xl bg-rose-800 text-white font-extrabold flex items-center justify-center text-sm shadow-sm">3</span>
                     <div>
@@ -152,11 +181,20 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1.5">Teléfono / WhatsApp de Agencia</label>
-                        <div class="flex rounded-xl overflow-hidden border border-slate-300 focus-within:border-rose-600 bg-white">
-                            <select name="phone_prefix" class="bg-slate-50 border-r border-slate-300 px-3 py-3 text-sm text-slate-900 focus:outline-none cursor-pointer shrink-0 font-bold">
-                                {% include 'components/phone_prefix_options.html' with selected_prefix=business_phone_prefix %}
-                            </select>
-                            <input type="text" name="phone_number" value="{{ business_phone_number|default:'' }}" placeholder="9 11 9999 8888" class="flex-1 min-w-0 bg-slate-50 border-0 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none transition">
+                        <div class="relative flex items-center bg-slate-50 border border-slate-300 rounded-xl focus-within:bg-white focus-within:border-rose-600 transition">
+                            <div class="relative flex items-center shrink-0">
+                                <div class="flex items-center gap-1.5 pl-3.5 pr-2.5 py-3 text-sm font-bold text-slate-700 select-none pointer-events-none">
+                                    <span id="onboarding_phone_prefix_display" class="font-bold text-slate-800">{{ business_phone_prefix|default:'+54' }}</span>
+                                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                                <select name="phone_prefix" id="onboarding_phone_prefix_select" title="Código de país"
+                                        onchange="document.getElementById('onboarding_phone_prefix_display').textContent = this.value"
+                                        class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10">
+                                    {% include 'components/phone_prefix_options.html' with selected_prefix=business_phone_prefix %}
+                                </select>
+                            </div>
+                            <div class="h-5 w-px bg-slate-200 shrink-0"></div>
+                            <input type="text" name="phone_number" value="{{ business_phone_number|default:'' }}" placeholder="9 11 9999 8888" class="flex-1 min-w-0 bg-transparent border-0 px-3.5 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-0">
                         </div>
                     </div>
 
@@ -183,24 +221,26 @@
                         </select>
                     </div>
 
-
-
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-700 mb-1.5">Dirección Principal u Oficina</label>
                         <input type="text" name="address" value="{{ business.address|default:'' }}" placeholder="Ej: Av. Principal 123, Oficina 402" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-rose-600 transition">
                     </div>
                 </div>
+
+                <!-- Submit Action Bar -->
+                <div class="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6 mt-8">
+                    <button type="button" onclick="prevStep(2)" class="px-6 py-3 rounded-xl text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition duration-200 flex items-center gap-2">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Atrás</span>
+                    </button>
+                    
+                    <button type="submit" class="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-rose-800 via-rose-700 to-rose-600 hover:from-rose-700 hover:to-rose-500 shadow-lg shadow-rose-900/20 transition duration-200 flex items-center justify-center gap-3 shrink-0">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-white"></i>
+                        <span>Finalizar Configuración y Entrar</span>
+                    </button>
+                </div>
             </div>
 
-            <!-- Submit Action Bar -->
-            <div class="pt-8 pb-12 flex flex-col sm:flex-row items-center justify-between gap-6 mt-8">
-                <p class="text-xs text-slate-500">Podrás volver a editar estos ajustes en cualquier momento desde el menú de Administración.</p>
-                
-                <button type="submit" class="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-rose-800 via-rose-700 to-rose-600 hover:from-rose-700 hover:to-rose-500 shadow-lg shadow-rose-900/20 transition duration-200 flex items-center justify-center gap-3 shrink-0">
-                    <i data-lucide="check-circle" class="w-5 h-5 text-white"></i>
-                    <span>Finalizar Configuración y Entrar</span>
-                </button>
-            </div>
         </form>
     </div>
 
@@ -250,6 +290,18 @@
             } else if (code === 'RETAIL_OTHER') {
                 goalInput.value = 'Ventas en punto de venta, inventario y facturación';
             }
+        }
+        
+        function nextStep(step) {
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+            document.getElementById('step-' + step).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        function prevStep(step) {
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+            document.getElementById('step-' + step).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // Initialize default selection on page load

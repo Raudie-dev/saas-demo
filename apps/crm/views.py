@@ -20,10 +20,32 @@ def client_list_view(request):
     if not business:
         return redirect('onboarding')
     query = request.GET.get('q', '')
+    real_estate_filter = request.GET.get('re_filter', 'all')
+    
+    is_real_estate = (business.business_type == 'REAL_ESTATE') or business.is_module_enabled('properties')
     
     clients = Client.objects.filter(business=business).order_by('-created_at') if business else []
+    if is_real_estate:
+        clients = clients.prefetch_related('owned_properties', 'property_inquiries', 'appointments__related_property')
+        
     if query:
         clients = clients.filter(first_name__icontains=query) | clients.filter(last_name__icontains=query) | clients.filter(phone__icontains=query)
+
+    if is_real_estate and real_estate_filter and real_estate_filter != 'all':
+        from django.db.models import Q
+        if real_estate_filter == 'sellers':
+            clients = clients.filter(
+                Q(owned_properties__isnull=False) |
+                Q(property_inquiries__inquiry_type='SELLER') |
+                Q(notes__icontains='[PROPIETARIO')
+            ).distinct()
+        elif real_estate_filter == 'buyers':
+            clients = clients.filter(
+                Q(property_inquiries__inquiry_type='BUYER') |
+                Q(appointments__related_property__isnull=False)
+            ).distinct()
+        elif real_estate_filter == 'visits':
+            clients = clients.filter(appointments__related_property__isnull=False).distinct()
 
     from django.core.paginator import Paginator
     paginator = Paginator(clients, 10)
@@ -33,7 +55,9 @@ def client_list_view(request):
         'business': business,
         'clients': page_obj,
         'page_obj': page_obj,
-        'query': query
+        'query': query,
+        'is_real_estate': is_real_estate,
+        'real_estate_filter': real_estate_filter,
     })
 
 @login_required
@@ -116,6 +140,44 @@ def client_edit_view(request, client_id):
 from apps.crm.models import Client, ClientNote, Supplier, ServiceHistoryNote
 from django.contrib import messages
 
+def parse_legacy_seller_notes(notes):
+    if not notes or '[PROPIETARIO' not in notes:
+        return []
+    results = []
+    for line in notes.split('\n'):
+        line_clean = line.strip()
+        if '[PROPIETARIO' in line_clean:
+            data = {
+                'operation_type': 'Venta',
+                'property_type': 'Inmueble',
+                'address_zone': '',
+                'rooms': '',
+                'estimated_price': '',
+                'comments': '',
+                'raw_line': line_clean
+            }
+            idx = line_clean.find(']:')
+            content_part = line_clean[idx+2:].strip() if idx != -1 else line_clean
+            parts = content_part.split(' · ')
+            for p in parts:
+                if ':' in p:
+                    k, v = p.split(':', 1)
+                    k, v = k.strip().lower(), v.strip()
+                    if 'operación' in k:
+                        data['operation_type'] = v
+                    elif 'tipo' in k:
+                        data['property_type'] = v
+                    elif 'ubicación' in k:
+                        data['address_zone'] = v
+                    elif 'ambientes' in k:
+                        data['rooms'] = v
+                    elif 'precio' in k:
+                        data['estimated_price'] = v
+                    elif 'comentarios' in k:
+                        data['comments'] = v
+            results.append(data)
+    return results
+
 @login_required
 def client_detail_view(request, client_id):
     business = getattr(request, 'current_business', None) or request.user.business
@@ -123,13 +185,34 @@ def client_detail_view(request, client_id):
         return redirect('onboarding')
     client = get_object_or_404(Client, id=client_id, business=business)
     
-    appointments = client.appointments.select_related('staff', 'service').order_by('-date', '-start_time')
+    appointments = client.appointments.select_related('staff', 'service', 'related_property').order_by('-date', '-start_time')
     sales = client.sales.select_related('staff').order_by('-created_at')
     invoices = client.invoices.order_by('-issue_date')
     notes = client.client_notes.all().order_by('-created_at')
     service_notes = client.service_notes.select_related('appointment').order_by('-created_at')
     
     allow_editing_history = getattr(business, 'allow_editing_client_history', True)
+    
+    # Real estate intelligence
+    is_real_estate = (business.business_type == 'REAL_ESTATE') or business.is_module_enabled('properties')
+    
+    seller_inquiries = []
+    buyer_inquiries = []
+    property_visits = []
+    owned_properties = []
+    available_properties = []
+    staff_members = []
+    legacy_seller_requests = []
+    
+    if is_real_estate:
+        from apps.properties.models import Property, PropertyInquiry
+        owned_properties = client.owned_properties.select_related('agent').order_by('-created_at')
+        seller_inquiries = client.property_inquiries.filter(inquiry_type='SELLER').select_related('agent').order_by('-created_at')
+        buyer_inquiries = client.property_inquiries.filter(inquiry_type='BUYER').select_related('property', 'agent').order_by('-created_at')
+        property_visits = [app for app in appointments if app.related_property]
+        legacy_seller_requests = parse_legacy_seller_notes(client.notes)
+        available_properties = Property.objects.filter(business=business, status='AVAILABLE').order_by('title')
+        staff_members = business.staff_members.filter(is_active=True).order_by('first_name', 'last_name')
     
     return render(request, 'crm/client_detail.html', {
         'business': business,
@@ -140,7 +223,101 @@ def client_detail_view(request, client_id):
         'notes': notes,
         'service_notes': service_notes,
         'allow_editing_history': allow_editing_history,
+        'is_real_estate': is_real_estate,
+        'seller_inquiries': seller_inquiries,
+        'buyer_inquiries': buyer_inquiries,
+        'property_visits': property_visits,
+        'owned_properties': owned_properties,
+        'available_properties': available_properties,
+        'staff_members': staff_members,
+        'legacy_seller_requests': legacy_seller_requests,
     })
+
+@login_required
+def add_client_property_inquiry_view(request, client_id):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    client = get_object_or_404(Client, id=client_id, business=business)
+    
+    if request.method == 'POST':
+        from apps.properties.models import Property, PropertyInquiry
+        inquiry_type = request.POST.get('inquiry_type', 'BUYER').strip()
+        operation_type = request.POST.get('operation_type', 'Venta').strip()
+        property_type = request.POST.get('property_type', 'Departamento').strip()
+        address_zone = request.POST.get('address_zone', '').strip()
+        rooms = request.POST.get('rooms', '').strip()
+        estimated_price = request.POST.get('estimated_price', '').strip()
+        property_id = request.POST.get('property_id')
+        notes = request.POST.get('notes', '').strip()
+        agent_id = request.POST.get('agent_id')
+        status = request.POST.get('status', 'PENDING')
+        
+        selected_property = None
+        if property_id:
+            selected_property = Property.objects.filter(id=property_id, business=business).first()
+            
+        agent = None
+        if agent_id:
+            agent = business.staff_members.filter(id=agent_id).first()
+            
+        PropertyInquiry.objects.create(
+            business=business,
+            client=client,
+            property=selected_property,
+            inquiry_type=inquiry_type,
+            operation_type=operation_type,
+            property_type=property_type,
+            address_zone=address_zone,
+            rooms=rooms or None,
+            estimated_price=estimated_price or None,
+            notes=notes,
+            status=status,
+            agent=agent
+        )
+        
+        label = "Interés de compra / alquiler" if inquiry_type == 'BUYER' else "Solicitud de propietario"
+        messages.success(request, f"{label} registrada exitosamente para {client.full_name}.")
+        
+    return redirect('client_detail', client_id=client.id)
+
+@login_required
+def update_property_inquiry_status_view(request, inquiry_id):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    from apps.properties.models import PropertyInquiry
+    inquiry = get_object_or_404(PropertyInquiry, id=inquiry_id, business=business)
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        agent_id = request.POST.get('agent_id')
+        if new_status and new_status in dict(PropertyInquiry.STATUS_CHOICES):
+            inquiry.status = new_status
+        if agent_id is not None:
+            if agent_id == "":
+                inquiry.agent = None
+            else:
+                inquiry.agent = business.staff_members.filter(id=agent_id).first()
+        inquiry.save()
+        messages.success(request, "Estado de la solicitud inmobiliaria actualizado correctamente.")
+        
+    return redirect('client_detail', client_id=inquiry.client.id)
+
+@login_required
+def delete_property_inquiry_view(request, inquiry_id):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    from apps.properties.models import PropertyInquiry
+    inquiry = get_object_or_404(PropertyInquiry, id=inquiry_id, business=business)
+    client_id = inquiry.client.id
+    
+    if request.method == 'POST':
+        inquiry.delete()
+        messages.success(request, "Solicitud inmobiliaria eliminada.")
+        
+    return redirect('client_detail', client_id=client_id)
 
 @login_required
 def add_client_service_note_view(request, client_id):
@@ -188,6 +365,19 @@ def delete_client_service_note_view(request, note_id):
     note.delete()
     messages.success(request, "Anotación de servicio eliminada.")
     return redirect('client_detail', client_id=client_id)
+
+@login_required
+def update_client_general_notes_view(request, client_id):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    client = get_object_or_404(Client, id=client_id, business=business)
+    if request.method == 'POST':
+        notes = request.POST.get('notes', '').strip()
+        client.notes = notes
+        client.save(update_fields=['notes'])
+        messages.success(request, "Notas y observaciones generales actualizadas con éxito.")
+    return redirect('client_detail', client_id=client.id)
 
 @login_required
 def supplier_list_view(request):

@@ -8,6 +8,12 @@ from apps.agenda.models import Service, ServiceCategory, Appointment, ScheduleBl
 from apps.crm.models import Client
 from django.contrib import messages
 from apps.core.utils import parse_decimal, parse_int
+from apps.agenda.utils import (
+    calculate_available_slots,
+    get_allowed_staff_ids_for_service,
+    get_ineligible_services_for_staff,
+    find_overlapping_appointment,
+)
 
 @login_required
 def agenda_view(request):
@@ -99,8 +105,13 @@ def appointment_create_view(request):
         return redirect('dashboard')
 
     clients = Client.objects.filter(business=business) if business else []
-    staff_members = StaffMember.objects.filter(business=business, is_active=True) if business else []
-    services = Service.objects.filter(business=business, is_active=True) if business else []
+    all_active_staff = list(StaffMember.objects.filter(business=business, is_active=True).prefetch_related('services')) if business else []
+    staff_members = all_active_staff
+    services = list(Service.objects.filter(business=business, is_active=True).prefetch_related('staff_members')) if business else []
+    for srv in services:
+        srv.allowed_staff_ids_json = json.dumps(
+            get_allowed_staff_ids_for_service(srv, all_active_staff=all_active_staff)
+        )
 
     user_scope = getattr(request.user, 'appointment_scope', 'ALL')
     user_staff = getattr(request.user, 'staff_profile', None)
@@ -153,15 +164,53 @@ def appointment_create_view(request):
         total_price = sum(srv.price * qty for srv, qty in services_items)
         primary_service = services_items[0][0]
 
+        # Calcular automáticamente la hora de fin en base a la duración de los servicios
+        try:
+            st = datetime.datetime.strptime(start_time, "%H:%M")
+            et = st + datetime.timedelta(minutes=max(total_duration, 15))
+            computed_end_time = et.strftime("%H:%M")
+        except (ValueError, TypeError):
+            computed_end_time = "10:45"
+
+        end_time = computed_end_time
         if end_time_input:
-            end_time = end_time_input
-        else:
             try:
-                st = datetime.datetime.strptime(start_time, "%H:%M")
-                et = st + datetime.timedelta(minutes=max(total_duration, 15))
-                end_time = et.strftime("%H:%M")
+                st_dt = datetime.datetime.strptime(start_time, "%H:%M")
+                et_in_dt = datetime.datetime.strptime(end_time_input, "%H:%M")
+                if et_in_dt >= st_dt + datetime.timedelta(minutes=max(total_duration, 15)):
+                    end_time = end_time_input
             except (ValueError, TypeError):
-                end_time = "10:45"
+                pass
+
+        # 1. Validar que el profesional seleccionado esté anclado al servicio
+        ineligible_services = get_ineligible_services_for_staff(
+            staff, [srv for srv, _ in services_items], all_active_staff=all_active_staff
+        )
+        if ineligible_services:
+            bad_names = ", ".join(s.name for s in ineligible_services)
+            messages.error(
+                request,
+                f"El profesional {staff.full_name} ({staff.role_title}) no está habilitado para realizar: {bad_names}. "
+                f"Selecciona un especialista asignado a ese servicio."
+            )
+            return redirect(f"{request.path}?client_id={client.id}&date={app_date}&start_time={start_time}")
+
+        # 2. Validar que no exista superposición horaria con otra cita activa del profesional
+        if status not in ['CANCELLED', 'NO_SHOW']:
+            conflict_obj, conflict_start, conflict_end = find_overlapping_appointment(
+                business=business,
+                staff=staff,
+                booking_date=app_date,
+                start_time_val=start_time,
+                end_time_val=end_time,
+            )
+            if conflict_obj:
+                messages.error(
+                    request,
+                    f"El horario ({start_time} a {end_time}) se superpone con otro turno de {staff.full_name} "
+                    f"({conflict_start} a {conflict_end}). El próximo cupo disponible después de ese turno es a las {conflict_end}."
+                )
+                return redirect(f"{request.path}?client_id={client.id}&staff_id={staff.id}&date={app_date}&start_time={conflict_end}")
 
         appointment = Appointment.objects.create(
             business=business,
@@ -185,7 +234,7 @@ def appointment_create_view(request):
                 duration_minutes=srv.duration_minutes
             )
 
-        messages.success(request, f"¡Cita registrada correctamente con {len(services_items)} servicio(s)!")
+        messages.success(request, f"¡Cita registrada correctamente ({start_time} a {end_time} · {total_duration} min)!")
         return redirect('agenda')
 
     existing_services = []
@@ -198,6 +247,7 @@ def appointment_create_view(request):
                 'price': float(srv.price),
                 'duration': srv.duration_minutes,
                 'quantity': 1,
+                'allowed_staff_ids': get_allowed_staff_ids_for_service(srv, all_active_staff=all_active_staff),
             })
     existing_services_json = json.dumps(existing_services)
 
@@ -233,8 +283,13 @@ def appointment_edit_view(request, appointment_id):
         return redirect('agenda')
 
     clients = Client.objects.filter(business=business)
-    staff_members = [user_staff] if (user_scope == 'OWN' and user_staff) else StaffMember.objects.filter(business=business, is_active=True)
-    services = Service.objects.filter(business=business, is_active=True)
+    all_active_staff = list(StaffMember.objects.filter(business=business, is_active=True).prefetch_related('services'))
+    staff_members = [user_staff] if (user_scope == 'OWN' and user_staff) else all_active_staff
+    services = list(Service.objects.filter(business=business, is_active=True).prefetch_related('staff_members'))
+    for srv in services:
+        srv.allowed_staff_ids_json = json.dumps(
+            get_allowed_staff_ids_for_service(srv, all_active_staff=all_active_staff)
+        )
 
     if request.method == 'POST':
         client = get_object_or_404(Client, id=request.POST.get('client_id'), business=business)
@@ -252,26 +307,71 @@ def appointment_edit_view(request, appointment_id):
         total_price = sum(srv.price * qty for srv, qty in services_items)
         primary_service = services_items[0][0]
 
+        app_date = request.POST.get('date')
         start_time = request.POST.get('start_time')
         end_time_input = request.POST.get('end_time')
+        status = request.POST.get('status')
+
+        try:
+            st = datetime.datetime.strptime(start_time, "%H:%M")
+            et = st + datetime.timedelta(minutes=max(total_duration, 15))
+            computed_end_time = et.strftime("%H:%M")
+        except (ValueError, TypeError):
+            computed_end_time = (
+                appointment.end_time.strftime("%H:%M")
+                if hasattr(appointment.end_time, 'strftime')
+                else str(appointment.end_time or "10:45")[:5]
+            )
+
+        end_time = computed_end_time
         if end_time_input:
-            end_time = end_time_input
-        else:
             try:
-                st = datetime.datetime.strptime(start_time, "%H:%M")
-                et = st + datetime.timedelta(minutes=max(total_duration, 15))
-                end_time = et.strftime("%H:%M")
+                st_dt = datetime.datetime.strptime(start_time, "%H:%M")
+                et_in_dt = datetime.datetime.strptime(end_time_input, "%H:%M")
+                if et_in_dt >= st_dt + datetime.timedelta(minutes=max(total_duration, 15)):
+                    end_time = end_time_input
             except (ValueError, TypeError):
-                end_time = appointment.end_time or "10:45"
+                pass
+
+        # 1. Validar elegibilidad profesional ↔ servicio
+        ineligible_services = get_ineligible_services_for_staff(
+            staff, [srv for srv, _ in services_items], all_active_staff=all_active_staff
+        )
+        if ineligible_services:
+            bad_names = ", ".join(s.name for s in ineligible_services)
+            messages.error(
+                request,
+                f"El profesional {staff.full_name} ({staff.role_title}) no está habilitado para realizar: {bad_names}. "
+                f"Selecciona un especialista asignado a ese servicio."
+            )
+            return redirect(request.path)
+
+        # 2. Validar superposición horaria excluyendo esta misma cita
+        if status not in ['CANCELLED', 'NO_SHOW']:
+            conflict_obj, conflict_start, conflict_end = find_overlapping_appointment(
+                business=business,
+                staff=staff,
+                booking_date=app_date,
+                start_time_val=start_time,
+                end_time_val=end_time,
+                exclude_appointment_id=appointment.id,
+            )
+            if conflict_obj:
+                messages.error(
+                    request,
+                    f"El horario ({start_time} a {end_time}) se superpone con otro turno de {staff.full_name} "
+                    f"({conflict_start} a {conflict_end}). El próximo cupo disponible después de ese turno es a las {conflict_end}."
+                )
+                return redirect(request.path)
 
         appointment.client = client
         appointment.staff = staff
         appointment.service = primary_service
-        appointment.date = request.POST.get('date')
+        appointment.date = app_date
         appointment.start_time = start_time
         appointment.end_time = end_time
         appointment.total_price = total_price
-        appointment.status = request.POST.get('status')
+        appointment.status = status
         appointment.notes = request.POST.get('notes', '')
         appointment.save()
 
@@ -285,7 +385,7 @@ def appointment_edit_view(request, appointment_id):
                 duration_minutes=srv.duration_minutes
             )
 
-        messages.success(request, "Cita actualizada correctamente.")
+        messages.success(request, f"Cita actualizada correctamente ({start_time} a {end_time} · {total_duration} min).")
         return redirect('agenda')
 
     existing_services = []
@@ -298,6 +398,7 @@ def appointment_edit_view(request, appointment_id):
                 'price': float(it.unit_price),
                 'duration': it.duration_minutes,
                 'quantity': it.quantity,
+                'allowed_staff_ids': get_allowed_staff_ids_for_service(it.service, all_active_staff=all_active_staff),
             })
     elif appointment.service:
         existing_services.append({
@@ -306,6 +407,7 @@ def appointment_edit_view(request, appointment_id):
             'price': float(appointment.service.price),
             'duration': appointment.service.duration_minutes,
             'quantity': 1,
+            'allowed_staff_ids': get_allowed_staff_ids_for_service(appointment.service, all_active_staff=all_active_staff),
         })
     existing_services_json = json.dumps(existing_services)
 
@@ -321,13 +423,48 @@ def appointment_edit_view(request, appointment_id):
     })
 
 @login_required
+def agenda_available_slots_api(request):
+    from django.http import JsonResponse
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'is_open': False, 'slots': [], 'message': 'Negocio no encontrado'}, status=400)
+
+    date_str = request.GET.get('date', datetime.date.today().isoformat())
+    staff_id = request.GET.get('staff_id')
+    duration_param = request.GET.get('duration', '45')
+    exclude_appointment_id = request.GET.get('exclude_appointment_id')
+
+    try:
+        booking_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        booking_date = datetime.date.today()
+
+    staff = StaffMember.objects.filter(id=staff_id, business=business).first() if staff_id else None
+    if not staff:
+        staff = StaffMember.objects.filter(business=business, is_active=True).first()
+
+    try:
+        duration_minutes = max(int(duration_param), 15)
+    except (ValueError, TypeError):
+        duration_minutes = 45
+
+    result = calculate_available_slots(
+        business=business,
+        booking_date=booking_date,
+        staff=staff,
+        duration_minutes=duration_minutes,
+        exclude_appointment_id=exclude_appointment_id or None,
+    )
+    return JsonResponse(result)
+
+@login_required
 def service_list_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    categories = ServiceCategory.objects.filter(business=business).prefetch_related('services') if business else []
-    services_without_category = Service.objects.filter(business=business, category__isnull=True) if business else []
-    all_services = Service.objects.filter(business=business).select_related('category').order_by('name') if business else []
+    categories = ServiceCategory.objects.filter(business=business).prefetch_related('services__staff_members') if business else []
+    services_without_category = Service.objects.filter(business=business, category__isnull=True).prefetch_related('staff_members') if business else []
+    all_services = Service.objects.filter(business=business).select_related('category').prefetch_related('staff_members').order_by('name') if business else []
 
     from django.core.paginator import Paginator
     paginator = Paginator(all_services, 10)
@@ -347,6 +484,7 @@ def service_create_view(request):
     if not business:
         return redirect('onboarding')
     categories = ServiceCategory.objects.filter(business=business) if business else []
+    staff_members = StaffMember.objects.filter(business=business, is_active=True).order_by('first_name') if business else []
 
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -355,10 +493,11 @@ def service_create_view(request):
         duration = parse_int(request.POST.get('duration_minutes'), 45)
         description = request.POST.get('description', '')
         commission_rate = parse_decimal(request.POST.get('commission_rate'), '0.00')
+        staff_ids = request.POST.getlist('staff_ids')
         
         category = ServiceCategory.objects.filter(id=category_id, business=business).first() if category_id else None
         
-        Service.objects.create(
+        srv = Service.objects.create(
             business=business,
             name=name,
             category=category,
@@ -368,12 +507,16 @@ def service_create_view(request):
             commission_rate=commission_rate,
             is_active=True
         )
+        if staff_ids:
+            selected_staff = StaffMember.objects.filter(id__in=staff_ids, business=business)
+            srv.staff_members.set(selected_staff)
         return redirect('service_list')
 
     return render(request, 'agenda/service_form.html', {
         'business': business,
         'service': None,
         'categories': categories,
+        'staff_members': staff_members,
         'title': 'Crear Nuevo Servicio'
     })
 
@@ -384,6 +527,7 @@ def service_edit_view(request, service_id):
         return redirect('onboarding')
     service = get_object_or_404(Service, id=service_id, business=business)
     categories = ServiceCategory.objects.filter(business=business)
+    staff_members = StaffMember.objects.filter(business=business, is_active=True).order_by('first_name')
 
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -416,6 +560,11 @@ def service_edit_view(request, service_id):
             service.commission_rate = Decimal('0.00')
 
         service.save()
+
+        staff_ids = request.POST.getlist('staff_ids')
+        selected_staff = StaffMember.objects.filter(id__in=staff_ids, business=business)
+        service.staff_members.set(selected_staff)
+
         messages.success(request, f"Servicio '{service.name}' actualizado exitosamente.")
         return redirect('service_list')
 
@@ -423,6 +572,7 @@ def service_edit_view(request, service_id):
         'business': business,
         'service': service,
         'categories': categories,
+        'staff_members': staff_members,
         'title': f'Editar Servicio: {service.name}'
     })
 

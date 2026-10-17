@@ -10,22 +10,82 @@ from apps.crm.models import Client
 from apps.ai_engine.models import AIAutomationLog
 from apps.core.utils import format_phone_with_prefix, split_phone_number
 
+from apps.agenda.utils import (
+    calculate_available_slots,
+    get_allowed_staff_ids_for_service,
+    get_ineligible_services_for_staff,
+    find_overlapping_appointment,
+)
+
+
+def _resolve_portal_client(business, first_name, last_name, phone, email):
+    """
+    Resuelve o crea el cliente que agenda desde el portal público sin anclarlo
+    únicamente por el número de teléfono.
+    Si se ingresa un nombre distinto o un correo distinto (aunque el teléfono
+    ya pertenezca a otro cliente registrado), se crea/asocia a la persona que
+    se está registrando y no al dueño original del teléfono.
+    """
+    clean_first = (first_name or "Cliente").strip()
+    clean_last = (last_name or "").strip()
+    clean_phone = (phone or "0000000000").strip()
+    clean_email = (email or "").strip()
+
+    name_matches = Client.objects.filter(
+        business=business,
+        first_name__iexact=clean_first,
+        last_name__iexact=clean_last,
+    )
+
+    client = None
+    if clean_email:
+        client = name_matches.filter(email__iexact=clean_email).first()
+        if not client:
+            same_phone_cand = name_matches.filter(phone=clean_phone).first()
+            if same_phone_cand and (not same_phone_cand.email or same_phone_cand.email.lower() == clean_email.lower()):
+                client = same_phone_cand
+    else:
+        client = name_matches.filter(phone=clean_phone).first()
+
+    if client:
+        updated_fields = []
+        if clean_email and not client.email:
+            client.email = clean_email
+            updated_fields.append('email')
+        if clean_phone and client.phone != clean_phone:
+            client.phone = clean_phone
+            updated_fields.append('phone')
+        if updated_fields:
+            client.save(update_fields=updated_fields)
+        return client
+
+    return Client.objects.create(
+        business=business,
+        first_name=clean_first,
+        last_name=clean_last,
+        phone=clean_phone,
+        email=clean_email or None,
+        status='ACTIVE',
+    )
+
+
 def api_available_slots_view(request, business_slug):
     from django.http import Http404
     business = get_object_or_404(Business, slug=business_slug)
 
-    if not business.is_booking_enabled:
+    if not business.is_booking_enabled and not (hasattr(request, 'user') and request.user.is_authenticated):
         raise Http404("El portal de reservas se encuentra desactivado.")
 
     date_str = request.GET.get('date', datetime.date.today().isoformat())
     staff_id = request.GET.get('staff_id')
+    duration_param = request.GET.get('duration')
+    service_ids_param = request.GET.get('service_ids', '')
+    exclude_appointment_id = request.GET.get('exclude_appointment_id')
 
     try:
         booking_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
         booking_date = datetime.date.today()
-
-    weekday = booking_date.weekday()
 
     staff = None
     if staff_id:
@@ -33,70 +93,32 @@ def api_available_slots_view(request, business_slug):
     if not staff:
         staff = StaffMember.objects.filter(business=business, is_active=True).first()
 
-    schedule = None
-    if staff:
-        schedule = WorkSchedule.objects.filter(staff=staff, day_of_week=weekday).first()
+    duration_minutes = 0
+    if duration_param:
+        try:
+            duration_minutes = int(duration_param)
+        except (ValueError, TypeError):
+            duration_minutes = 0
 
-    staff_name = staff.full_name if staff else "el profesional"
+    if duration_minutes <= 0 and service_ids_param:
+        s_ids = [s.strip() for s in service_ids_param.split(',') if s.strip()]
+        if s_ids:
+            duration_minutes = sum(
+                srv.duration_minutes for srv in Service.objects.filter(id__in=s_ids, business=business)
+            )
 
-    if schedule and not schedule.is_working_day:
-        return JsonResponse({
-            'is_open': False, 
-            'staff_name': staff_name,
-            'message': f'{staff_name} no atiende en la fecha seleccionada.', 
-            'slots': []
-        })
+    if duration_minutes <= 0:
+        default_srv = Service.objects.filter(business=business, is_active=True).first()
+        duration_minutes = default_srv.duration_minutes if default_srv else 45
 
-    start_hour = 9
-    end_hour = 14 if weekday == 5 else (0 if weekday == 6 else 19)
-    if weekday == 6 and not (schedule and schedule.is_working_day):
-        return JsonResponse({
-            'is_open': False, 
-            'staff_name': staff_name,
-            'message': f'{staff_name} no atiende los domingos.', 
-            'slots': []
-        })
-
-    if schedule:
-        start_hour = schedule.start_time.hour
-        end_hour = schedule.end_time.hour
-
-    slots = []
-    curr_time = datetime.datetime.combine(booking_date, datetime.time(hour=start_hour))
-    end_time_dt = datetime.datetime.combine(booking_date, datetime.time(hour=end_hour))
-
-    existing_appointments = Appointment.objects.filter(
+    result = calculate_available_slots(
         business=business,
-        date=booking_date.isoformat()
+        booking_date=booking_date,
+        staff=staff,
+        duration_minutes=duration_minutes,
+        exclude_appointment_id=exclude_appointment_id or None,
     )
-    if staff:
-        existing_appointments = existing_appointments.filter(staff=staff)
-
-    booked_times = set()
-    for app in existing_appointments:
-        t_key = app.start_time[:5] if isinstance(app.start_time, str) else app.start_time.strftime('%H:%M')
-        booked_times.add(t_key)
-
-    while curr_time + datetime.timedelta(minutes=30) <= end_time_dt:
-        time_str = curr_time.strftime("%H:%M")
-        is_booked = time_str in booked_times
-        
-        # Staff specific slot availability
-        is_disabled = is_booked
-
-        slots.append({
-            'time': time_str,
-            'disabled': is_disabled
-        })
-
-        curr_time += datetime.timedelta(minutes=60)
-
-    return JsonResponse({
-        'is_open': True,
-        'staff_name': staff_name,
-        'date': booking_date.isoformat(),
-        'slots': slots
-    })
+    return JsonResponse(result)
 
 @ensure_csrf_cookie
 def public_booking_view(request, business_slug):
@@ -116,6 +138,10 @@ def public_booking_view(request, business_slug):
         selected_branch = branches.filter(id=branch_id).first()
     if not selected_branch:
         selected_branch = branches.filter(is_main=True).first() or branches.first()
+        # Si es la sucursal principal y business.address fue actualizado en Configuración, sincronizarla automáticamente
+        if selected_branch and business.address and selected_branch.address != business.address and (selected_branch.is_main or branches.count() == 1):
+            selected_branch.address = business.address
+            selected_branch.save(update_fields=['address'])
 
     services = Service.objects.filter(business=business, is_active=True)
     
@@ -272,22 +298,19 @@ def public_booking_view(request, business_slug):
         if not services_items and services.exists():
             services_items.append((services.first(), 1))
 
-        staff = StaffMember.objects.filter(id=staff_id, business=business).first() if staff_id else staff_members.first()
+        staff = StaffMember.objects.filter(id=staff_id, business=business).first() if staff_id else None
+        all_staff_list = list(staff_members.prefetch_related('services'))
+        selected_srv_objs = [srv for srv, _ in services_items]
+
+        # Si no se especificó profesional o el profesional no es elegible, buscar el primero elegible si no vino forzado
+        if not staff and selected_srv_objs:
+            for st_cand in all_staff_list:
+                if not get_ineligible_services_for_staff(st_cand, selected_srv_objs, all_active_staff=all_staff_list):
+                    staff = st_cand
+                    break
         if not staff:
             staff = staff_members.first()
-        
-        # Get or create client
-        client, _ = Client.objects.get_or_create(
-            phone=phone or "0000000000",
-            business=business,
-            defaults={
-                'first_name': first_name or "Cliente",
-                'last_name': last_name or "Reservas",
-                'email': email,
-                'status': 'ACTIVE'
-            }
-        )
-        
+
         total_duration = sum(srv.duration_minutes * qty for srv, qty in services_items)
         total_price = sum(srv.price * qty for srv, qty in services_items)
         primary_service = services_items[0][0] if services_items else None
@@ -301,55 +324,116 @@ def public_booking_view(request, business_slug):
         duration = max(total_duration, 15)
         et = st + datetime.timedelta(minutes=duration)
         end_time = et.strftime("%H:%M")
-        
-        notes_text = f"Visita a propiedad: {selected_property.title} ({selected_property.address})" if selected_property else None
 
-        appointment_created = Appointment.objects.create(
-            business=business,
-            client=client,
-            staff=staff,
-            service=primary_service,
-            related_property=selected_property,
-            date=date_str,
-            start_time=time_str,
-            end_time=end_time,
-            total_price=total_price,
-            deposit_amount=(total_price * Decimal('0.30')),
-            status='CONFIRMED',
-            notes=notes_text
-        )
-
-        for srv, qty in services_items:
-            AppointmentService.objects.create(
-                appointment=appointment_created,
-                service=srv,
-                quantity=qty,
-                unit_price=srv.price,
-                duration_minutes=srv.duration_minutes
+        # 1. Validar que el profesional esté anclado/habilitado para todos los servicios seleccionados
+        ineligible_services = []
+        if staff and not selected_property and selected_srv_objs:
+            ineligible_services = get_ineligible_services_for_staff(
+                staff, selected_srv_objs, all_active_staff=all_staff_list
             )
-        
-        branch_addr = selected_branch.address if selected_branch else business.address
-        
-        # Trigger simulated WhatsApp confirmation message
-        if selected_property:
-            wa_msg = f"🏡 *¡Visita Coordinada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n👤 Asesor Inmobiliario: {staff.full_name if staff else 'Equipo'}\n🏠 Propiedad: {selected_property.title}\n📍 Ubicación: {selected_property.address} ({selected_property.zone})\n🔗 Portal: {selected_property.portal_url or 'Publicación Inmobiliaria'}"
-            prompt_label = f"Confirmación de Visita a Propiedad para {client.full_name}"
+
+        # 2. Validar que el horario [time_str, end_time) no se superponga con otra cita del profesional
+        conflict_obj, conflict_start, conflict_end = (None, None, None)
+        if staff and not ineligible_services:
+            conflict_obj, conflict_start, conflict_end = find_overlapping_appointment(
+                business=business,
+                staff=staff,
+                booking_date=date_str,
+                start_time_val=time_str,
+                end_time_val=end_time,
+            )
+
+        if ineligible_services:
+            bad_names = ", ".join(s.name for s in ineligible_services)
+            portal_error_message = (
+                f"El profesional {staff.full_name} ({staff.role_title}) no está asignado para realizar: {bad_names}. "
+                f"Por favor selecciona un especialista habilitado para ese servicio."
+            )
+        elif conflict_obj:
+            portal_error_message = (
+                f"El horario seleccionado ({time_str} a {end_time}) se superpone con una reserva existente de "
+                f"{staff.full_name} ({conflict_start} a {conflict_end}). "
+                f"El próximo cupo disponible después de ese turno es a las {conflict_end}."
+            )
         else:
-            services_text = appointment_created.services_summary
-            wa_msg = f"✅ *¡Cita Confirmada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n💇‍♂️ Especialista: {staff.full_name if staff else 'Equipo'}\n💈 Servicios: {services_text}\n📍 Sucursal / Dirección: {branch_addr}"
-            prompt_label = f"Confirmación de Reserva para {client.full_name}"
+            # Resolver o crear el cliente por nombre/correo/teléfono sin anclarlo solo al teléfono
+            client = _resolve_portal_client(
+                business=business,
+                first_name=first_name or "Cliente",
+                last_name=last_name or "",
+                phone=phone or "0000000000",
+                email=email,
+            )
+            
+            client_notes = (request.POST.get('client_notes') or request.POST.get('notes') or '').strip()
+            notes_text = f"Visita a propiedad: {selected_property.title} ({selected_property.address})" if selected_property else None
+            if client_notes:
+                notes_text = f"{notes_text}\nConsulta/Comentarios: {client_notes}" if notes_text else client_notes
 
-        AIAutomationLog.objects.create(
-            business=business,
-            target_client=client,
-            action_type='WHATSAPP_REMINDER',
-            prompt_used=prompt_label,
-            response_generated=wa_msg,
-            status='SIMULATED'
-        )
-        
-        booking_success = True
+            appointment_created = Appointment.objects.create(
+                business=business,
+                client=client,
+                staff=staff,
+                service=primary_service,
+                related_property=selected_property,
+                date=date_str,
+                start_time=time_str,
+                end_time=end_time,
+                total_price=total_price,
+                deposit_amount=(total_price * Decimal('0.30')),
+                status='CONFIRMED',
+                notes=notes_text
+            )
 
+            if selected_property:
+                from apps.properties.models import PropertyInquiry
+                PropertyInquiry.objects.create(
+                    business=business,
+                    client=client,
+                    property=selected_property,
+                    inquiry_type='BUYER',
+                    operation_type=selected_property.get_operation_type_display(),
+                    property_type=selected_property.get_property_type_display(),
+                    address_zone=f"{selected_property.address} ({selected_property.zone})",
+                    estimated_price=selected_property.formatted_price,
+                    notes=client_notes or f"Visita coordinada para el {date_str} a las {time_str} hs.",
+                    status='VISITING',
+                    agent=staff
+                )
+
+            for srv, qty in services_items:
+                AppointmentService.objects.create(
+                    appointment=appointment_created,
+                    service=srv,
+                    quantity=qty,
+                    unit_price=srv.price,
+                    duration_minutes=srv.duration_minutes
+                )
+            
+            branch_addr = selected_branch.address if selected_branch else business.address
+            
+            # Trigger simulated WhatsApp confirmation message
+            if selected_property:
+                wa_msg = f"🏡 *¡Visita Coordinada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n👤 Asesor Inmobiliario: {staff.full_name if staff else 'Equipo'}\n🏠 Propiedad: {selected_property.title}\n📍 Ubicación: {selected_property.address} ({selected_property.zone})\n🔗 Portal: {selected_property.portal_url or 'Publicación Inmobiliaria'}"
+                prompt_label = f"Confirmación de Visita a Propiedad para {client.full_name}"
+            else:
+                services_text = appointment_created.services_summary
+                wa_msg = f"✅ *¡Cita Confirmada en {business.name}!*\n📅 Fecha: {date_str} a las {time_str} hs.\n💇‍♂️ Especialista: {staff.full_name if staff else 'Equipo'}\n💈 Servicios: {services_text}\n📍 Sucursal / Dirección: {branch_addr}"
+                prompt_label = f"Confirmación de Reserva para {client.full_name}"
+
+            AIAutomationLog.objects.create(
+                business=business,
+                target_client=client,
+                action_type='WHATSAPP_REMINDER',
+                prompt_used=prompt_label,
+                response_generated=wa_msg,
+                status='SIMULATED'
+            )
+            
+            booking_success = True
+
+    all_active_staff_for_catalog = list(staff_members.prefetch_related('services'))
+    services_with_staff = services.prefetch_related('staff_members')
     services_catalog_json = json.dumps([
         {
             'id': str(s.id),
@@ -357,9 +441,10 @@ def public_booking_view(request, business_slug):
             'price': float(s.price),
             'duration': s.duration_minutes,
             'description': s.description or '',
-            'category': s.category.name if s.category else 'Otros'
+            'category': s.category.name if s.category else 'Otros',
+            'allowed_staff_ids': get_allowed_staff_ids_for_service(s, all_active_staff=all_active_staff_for_catalog),
         }
-        for s in services
+        for s in services_with_staff
     ])
 
     return render(request, 'booking/public_booking.html', {
@@ -432,23 +517,32 @@ def api_seller_register_view(request, business_slug):
 
     lead_note = f"[PROPIETARIO - SOLICITUD DE {operation_type.upper()}]: " + " · ".join(lead_details)
 
-    # Create or update Client in CRM
-    client = Client.objects.filter(business=business, phone=formatted_phone).first()
-    if not client:
-        client = Client.objects.create(
-            business=business,
-            first_name=first_name,
-            last_name=last_name,
-            phone=formatted_phone,
-            email=email or None,
-            notes=lead_note
-        )
-    else:
-        existing_notes = client.notes or ''
-        client.notes = f"{existing_notes}\n\n{lead_note}".strip()
-        if email and not client.email:
-            client.email = email
-        client.save()
+    # Create or update Client in CRM without anchoring solely by phone
+    client = _resolve_portal_client(
+        business=business,
+        first_name=first_name,
+        last_name=last_name,
+        phone=formatted_phone,
+        email=email,
+    )
+    existing_notes = client.notes or ''
+    client.notes = f"{existing_notes}\n\n{lead_note}".strip()
+    client.save(update_fields=['notes'])
+
+    # Create structured PropertyInquiry
+    from apps.properties.models import PropertyInquiry
+    PropertyInquiry.objects.create(
+        business=business,
+        client=client,
+        inquiry_type='SELLER',
+        operation_type=operation_type,
+        property_type=property_type,
+        address_zone=address_zone,
+        rooms=rooms or None,
+        estimated_price=estimated_price or None,
+        notes=comments or "Solicitud enviada a través del portal inmobiliario.",
+        status='PENDING'
+    )
 
     # Log automation / lead notification
     wa_notification = (

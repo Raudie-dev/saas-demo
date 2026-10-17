@@ -19,6 +19,7 @@ class ServiceCategory(TimeStampedModel):
 class Service(TimeStampedModel):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="services")
     category = models.ForeignKey(ServiceCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name="services")
+    staff_members = models.ManyToManyField(StaffMember, blank=True, related_name="services", verbose_name="Profesionales Habilitados")
     name = models.CharField(max_length=150, verbose_name="Nombre del Servicio")
     description = models.TextField(blank=True, null=True, verbose_name="Descripción")
     duration_minutes = models.IntegerField(default=45, verbose_name="Duración (minutos)")

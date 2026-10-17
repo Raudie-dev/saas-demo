@@ -40,17 +40,28 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {% for srv in cat.services.all %}
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 hover:border-rose-900/40 transition flex flex-col justify-between space-y-3">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h5 class="font-bold text-slate-900 text-base">{{ srv.name }}</h5>
-                        <p class="text-xs text-slate-500 mt-1">{{ srv.description|default:"Sin descripción adicional." }}</p>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h5 class="font-bold text-slate-900 text-base">{{ srv.name }}</h5>
+                            <p class="text-xs text-slate-500 mt-1">{{ srv.description|default:"Sin descripción adicional." }}</p>
+                        </div>
+                        <a href="{% url 'service_edit' srv.id %}" class="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition" title="Editar Servicio">
+                            <i data-lucide="edit" class="w-4 h-4"></i>
+                        </a>
                     </div>
-                    <a href="{% url 'service_edit' srv.id %}" class="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition" title="Editar Servicio">
-                        <i data-lucide="edit" class="w-4 h-4"></i>
-                    </a>
+                    <div class="flex flex-wrap gap-1 pt-1">
+                        {% for st in srv.staff_members.all %}
+                        <span class="px-2 py-0.5 rounded-md bg-rose-50 text-rose-900 border border-rose-200 text-[10px] font-bold flex items-center gap-1">
+                            <i data-lucide="user-check" class="w-2.5 h-2.5"></i> {{ st.full_name }}
+                        </span>
+                        {% empty %}
+                        <span class="text-[10px] text-slate-400 italic">Todos los profesionales compatibles</span>
+                        {% endfor %}
+                    </div>
                 </div>
                 <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-xs">
-                    <span class="text-slate-500"><i data-lucide="clock" class="w-3.5 h-3.5 inline"></i> {{ srv.duration_minutes }} min</span>
+                    <span class="text-slate-600 font-semibold"><i data-lucide="clock" class="w-3.5 h-3.5 inline text-rose-900"></i> {{ srv.duration_minutes }} min</span>
                     <span class="font-extrabold text-rose-900 text-base">{{ business.currency }}{{ srv.price }}</span>
                 </div>
             </div>
@@ -68,14 +79,25 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {% for srv in services_without_category %}
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 hover:border-rose-900/40 transition flex flex-col justify-between space-y-3">
-                <div class="flex justify-between items-start">
-                    <h5 class="font-bold text-slate-900 text-base">{{ srv.name }}</h5>
-                    <a href="{% url 'service_edit' srv.id %}" class="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition" title="Editar Servicio">
-                        <i data-lucide="edit" class="w-4 h-4"></i>
-                    </a>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-start">
+                        <h5 class="font-bold text-slate-900 text-base">{{ srv.name }}</h5>
+                        <a href="{% url 'service_edit' srv.id %}" class="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition" title="Editar Servicio">
+                            <i data-lucide="edit" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                    <div class="flex flex-wrap gap-1 pt-1">
+                        {% for st in srv.staff_members.all %}
+                        <span class="px-2 py-0.5 rounded-md bg-rose-50 text-rose-900 border border-rose-200 text-[10px] font-bold flex items-center gap-1">
+                            <i data-lucide="user-check" class="w-2.5 h-2.5"></i> {{ st.full_name }}
+                        </span>
+                        {% empty %}
+                        <span class="text-[10px] text-slate-400 italic">Todos los profesionales compatibles</span>
+                        {% endfor %}
+                    </div>
                 </div>
                 <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-xs">
-                    <span class="text-slate-500"><i data-lucide="clock" class="w-3.5 h-3.5 inline"></i> {{ srv.duration_minutes }} min</span>
+                    <span class="text-slate-600 font-semibold"><i data-lucide="clock" class="w-3.5 h-3.5 inline text-rose-900"></i> {{ srv.duration_minutes }} min</span>
                     <span class="font-extrabold text-rose-900 text-base">{{ business.currency }}{{ srv.price }}</span>
                 </div>
             </div>

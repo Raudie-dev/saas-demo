@@ -32,6 +32,31 @@ class Client(TimeStampedModel):
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
+    @property
+    def real_estate_role(self):
+        """Returns a human-readable role summary for real estate agencies."""
+        try:
+            has_owned = self.owned_properties.exists() if hasattr(self, 'owned_properties') else False
+            has_seller_inq = False
+            has_buyer_inq = False
+            if hasattr(self, 'property_inquiries'):
+                has_seller_inq = self.property_inquiries.filter(inquiry_type='SELLER').exists()
+                has_buyer_inq = self.property_inquiries.filter(inquiry_type='BUYER').exists()
+            has_visits = self.appointments.filter(related_property__isnull=False).exists() if hasattr(self, 'appointments') else False
+            
+            if not has_seller_inq and self.notes and '[PROPIETARIO' in self.notes:
+                has_seller_inq = True
+
+            if (has_owned or has_seller_inq) and (has_buyer_inq or has_visits):
+                return {'badge': 'Comprador & Propietario', 'color': 'purple', 'type': 'BOTH'}
+            elif has_owned or has_seller_inq:
+                return {'badge': 'Propietario / Vendedor', 'color': 'amber', 'type': 'SELLER'}
+            elif has_buyer_inq or has_visits:
+                return {'badge': 'Interesado en Comprar / Alquilar', 'color': 'emerald', 'type': 'BUYER'}
+        except Exception:
+            pass
+        return {'badge': 'Cliente / Prospecto', 'color': 'slate', 'type': 'PROSPECT'}
+
     def __str__(self):
         return f"{self.full_name} ({self.phone})"
 

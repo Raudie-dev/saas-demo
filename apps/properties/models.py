@@ -173,3 +173,41 @@ class Property(TimeStampedModel):
             if field and hasattr(field, 'file') and not str(field.name).lower().endswith('.webp'):
                 process_image_to_webp(field, max_size=(1600, 1200))
         super().save(*args, **kwargs)
+
+
+class PropertyInquiry(TimeStampedModel):
+    INQUIRY_TYPE_CHOICES = [
+        ('SELLER', 'Propietario (Quiere Vender / Alquilar / Tasar)'),
+        ('BUYER', 'Interesado en Comprar / Alquilar'),
+    ]
+
+    STATUS_CHOICES = [
+        ('PENDING', 'Pendiente de Contacto'),
+        ('CONTACTED', 'En Seguimiento / Contactado'),
+        ('VISITING', 'Visita Coordinada'),
+        ('NEGOTIATING', 'En Negociación / Reserva'),
+        ('CLOSED', 'Operación Concretada'),
+        ('CANCELLED', 'Desestimado / Cancelado'),
+    ]
+
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='property_inquiries', verbose_name="Inmobiliaria / Negocio")
+    client = models.ForeignKey('crm.Client', on_delete=models.CASCADE, related_name='property_inquiries', verbose_name="Cliente / Interesado")
+    property = models.ForeignKey(Property, on_delete=models.SET_NULL, null=True, blank=True, related_name='inquiries', verbose_name="Inmueble de Interés")
+    
+    inquiry_type = models.CharField(max_length=20, choices=INQUIRY_TYPE_CHOICES, default='SELLER', verbose_name="Tipo de Solicitud")
+    operation_type = models.CharField(max_length=50, blank=True, null=True, verbose_name="Tipo de Operación")
+    property_type = models.CharField(max_length=50, blank=True, null=True, verbose_name="Tipo de Inmueble")
+    address_zone = models.CharField(max_length=255, blank=True, null=True, verbose_name="Ubicación / Barrio / Zona")
+    rooms = models.CharField(max_length=50, blank=True, null=True, verbose_name="Ambientes / Dormitorios")
+    estimated_price = models.CharField(max_length=100, blank=True, null=True, verbose_name="Precio Estimado / Presupuesto")
+    notes = models.TextField(blank=True, null=True, verbose_name="Comentarios / Requerimientos")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', verbose_name="Estado de Gestión")
+    agent = models.ForeignKey('business.StaffMember', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_inquiries', verbose_name="Asesor Inmobiliario Asignado")
+
+    class Meta:
+        verbose_name = "Consulta / Solicitud Inmobiliaria"
+        verbose_name_plural = "Consultas y Solicitudes Inmobiliarias"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_inquiry_type_display()} - {self.client.full_name} ({self.operation_type or 'General'})"
