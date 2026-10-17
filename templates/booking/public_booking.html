@@ -209,25 +209,91 @@
     </header>
 
     {% if booking_success %}
-    <!-- Booking Success View -->
-    <main class="max-w-2xl mx-auto px-4 py-16 w-full flex-1 flex items-center">
-        <div class="w-full card-clean p-8 sm:p-10 text-center space-y-6 shadow-xl border border-rose-100">
-            <div class="w-20 h-20 rounded-full bg-rose-50 text-rose-900 flex items-center justify-center mx-auto border-4 border-white shadow-md">
-                <i data-lucide="check" class="w-10 h-10 stroke-[3]"></i>
+    <!-- Booking Success / Status View -->
+    <main class="max-w-2xl mx-auto px-4 py-12 sm:py-16 w-full flex-1 flex items-center">
+        <div class="w-full card-clean p-6 sm:p-10 text-center space-y-6 shadow-xl border {% if appointment.status == 'CONFIRMED' %}border-emerald-200{% elif appointment.status == 'CANCELLED' %}border-slate-200{% else %}border-amber-200{% endif %}">
+            
+            {% if appointment.status == 'CONFIRMED' %}
+            <div class="w-20 h-20 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto border-4 border-white shadow-md">
+                <i data-lucide="check-circle-2" class="w-10 h-10 stroke-[2.5]"></i>
             </div>
-
-            <div class="space-y-1">
-                <span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200">
-                    ¡Reserva Confirmada!
+            <div class="space-y-1.5">
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    ¡Cita Confirmada!
                 </span>
-                <h1 class="text-2xl sm:text-3xl font-fun font-black text-slate-900">Cita Agendada con Éxito</h1>
-                <p class="text-slate-500 text-sm max-w-md mx-auto">
-                    Te esperamos en {{ business.name }}. Hemos registrado tu cita y enviado un recordatorio automático.
+                <h1 class="text-2xl sm:text-3xl font-fun font-black text-slate-900">
+                    {% if action_feedback %}{{ action_feedback.title }}{% else %}Asistencia Confirmada{% endif %}
+                </h1>
+                <p class="text-slate-600 text-sm max-w-md mx-auto">
+                    {% if action_feedback %}{{ action_feedback.message }}{% else %}Tu lugar está 100% confirmado en {{ business.name }}. ¡Te esperamos!{% endif %}
                 </p>
             </div>
 
+            {% elif appointment.status == 'CANCELLED' %}
+            <div class="w-20 h-20 rounded-full bg-rose-50 text-rose-700 flex items-center justify-center mx-auto border-4 border-white shadow-md">
+                <i data-lucide="x-circle" class="w-10 h-10 stroke-[2.5]"></i>
+            </div>
+            <div class="space-y-1.5">
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-rose-800 border border-rose-200">
+                    Reserva Cancelada / Expirada
+                </span>
+                <h1 class="text-2xl sm:text-3xl font-fun font-black text-slate-900">
+                    {% if action_feedback %}{{ action_feedback.title }}{% else %}Reserva Cancelada{% endif %}
+                </h1>
+                <p class="text-slate-600 text-sm max-w-md mx-auto">
+                    {% if action_feedback %}{{ action_feedback.message }}{% else %}Esta reserva fue cancelada o superó el tiempo de espera sin confirmación.{% endif %}
+                </p>
+            </div>
+
+            {% else %}
+            <!-- PENDING STATUS (Default when client books from portal) -->
+            <div class="w-20 h-20 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border-4 border-white shadow-md">
+                <i data-lucide="clock" class="w-10 h-10 stroke-[2.5]"></i>
+            </div>
+
+            <div class="space-y-2">
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold bg-amber-50 text-amber-800 border border-amber-300">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    ⏳ Cita Pendiente de Confirmación
+                </span>
+                <h1 class="text-2xl sm:text-3xl font-fun font-black text-slate-900">¡Reserva Registrada! Falta tu Confirmación</h1>
+                <p class="text-slate-600 text-sm max-w-lg mx-auto">
+                    Hemos guardado tu puesto en <strong>{{ business.name }}</strong> en estado <strong>Pendiente</strong>.
+                    Tu cupo se mantendrá reservado durante <strong>{{ business.pending_booking_expiry_hours }} horas</strong> para que puedas confirmarlo o cancelarlo.
+                </p>
+            </div>
+
+            <!-- Hold Countdown & Notification Sent Banner -->
+            <div class="bg-amber-50/90 border border-amber-200 rounded-2xl p-4 text-left space-y-2.5">
+                <div class="flex items-start gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+                        <i data-lucide="bell-ring" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-xs sm:text-sm text-amber-950 space-y-1">
+                        <p class="font-extrabold">Notificación enviada a {{ appointment.client.full_name }}</p>
+                        <p class="text-amber-900/90 leading-relaxed">
+                            Te hemos enviado los detalles de tu reserva a tu contacto registrado (<strong>{{ appointment.client.phone }}</strong>{% if appointment.client.email %} · <strong>{{ appointment.client.email }}</strong>{% endif %}).
+                            Si no se confirma dentro de las <strong>{{ business.pending_booking_expiry_hours }} horas</strong> (tiempo restante: <strong>{{ appointment.pending_time_remaining_display }}</strong>), el turno se liberará automáticamente.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Receipt Card -->
             <div class="bg-[#fdf2f4] p-5 rounded-2xl border border-rose-100 text-left space-y-3">
+                <div class="flex justify-between items-center text-sm pb-2 border-b border-rose-100">
+                    <span class="text-slate-500 font-medium">Estado de la Cita:</span>
+                    {% if appointment.status == 'CONFIRMED' %}
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">Confirmada</span>
+                    {% elif appointment.status == 'CANCELLED' %}
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-100 text-rose-800 border border-rose-300">Cancelada</span>
+                    {% else %}
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800 border border-amber-300">Pendiente (Espera: {{ business.pending_booking_expiry_hours }}h)</span>
+                    {% endif %}
+                </div>
+
                 {% if appointment.related_property %}
                 <div class="flex flex-col text-sm pb-2 border-b border-rose-100 space-y-1">
                     <div class="flex justify-between items-start gap-2">
@@ -297,7 +363,35 @@
                 {% endif %}
             </div>
 
+            {% if appointment.status == 'PENDING' %}
+            <!-- Client Quick Confirmation / Cancellation Actions -->
+            <div class="space-y-3 pt-1">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones de Confirmación (Plazo: {{ business.pending_booking_expiry_hours }} horas)</p>
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <a href="{% url 'public_appointment_action' business.slug appointment.id 'confirmar' %}"
+                       class="px-5 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 shadow-md transition">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        Confirmar mi Cita Ahora
+                    </a>
+                    {% if notification_info.wa_confirm_link %}
+                    <a href="{{ notification_info.wa_confirm_link }}" target="_blank" rel="noopener"
+                       class="px-5 py-3 rounded-full bg-[#25D366] hover:bg-[#1ebe5d] text-white text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 shadow-md transition">
+                        <i data-lucide="message-circle" class="w-4 h-4"></i>
+                        Confirmar por WhatsApp
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'public_appointment_action' business.slug appointment.id 'cancelar' %}"
+                       onclick="return confirm('¿Estás seguro de que deseas cancelar esta reserva pendiente?');"
+                       class="px-4 py-3 rounded-full bg-white hover:bg-rose-50 text-rose-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 border border-rose-200 transition">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                        Cancelar Reserva
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Calendar Export Actions -->
+            {% if appointment.status != 'CANCELLED' %}
             <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
                 <button type="button" 
                         onclick="exportToGoogleCalendar('{{ appointment.services_summary|escapejs }} en {{ business.name }}', '{{ appointment.date }}', '{{ appointment.start_time }}', '{{ appointment.end_time }}', 'Reserva con {{ appointment.staff.full_name }}', '{{ business.address|default:'' }}')"
@@ -310,6 +404,7 @@
                     <i data-lucide="download" class="w-4 h-4 text-slate-600"></i> Descargar iCal (.ics)
                 </button>
             </div>
+            {% endif %}
 
             <div class="pt-2">
                 <a href="{% url 'public_booking' business.slug %}" 

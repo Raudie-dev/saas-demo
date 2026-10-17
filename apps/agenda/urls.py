@@ -8,6 +8,7 @@ urlpatterns = [
     path('api/slots/', views.agenda_available_slots_api, name='agenda_available_slots_api'),
     path('crear/', views.appointment_create_view, name='appointment_create'),
     path('<uuid:appointment_id>/editar/', views.appointment_edit_view, name='appointment_edit'),
+    path('<uuid:appointment_id>/estado/', views.appointment_quick_status_view, name='appointment_quick_status'),
     path('servicios/', views.service_list_view, name='service_list'),
     path('servicios/crear/', views.service_create_view, name='service_create'),
     path('servicios/<uuid:service_id>/editar/', views.service_edit_view, name='service_edit'),

@@ -121,7 +121,7 @@
                     {{ subscription.plan.name|default:'Plan Inicial' }}
                 </span>
                 <span class="text-[11px] font-semibold text-rose-900 mt-1 block">
-                    {{ currency_symbol }}{{ subscription.plan.monthly_price|default:'0' }}/mes
+                    {{ currency_symbol }}{{ current_plan_display_monthly|floatformat:0|default:'0' }}/mes
                 </span>
             </div>
 

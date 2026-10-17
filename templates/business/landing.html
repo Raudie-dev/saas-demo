@@ -1181,6 +1181,12 @@
                                     <span class="font-semibold">Facturación, Ventas POS & Gastos</span>
                                 </div>
                                 {% endif %}
+                                {% if 'inventory' in plan.included_modules %}
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
+                                    <span class="font-semibold">Control de Inventario & Stock</span>
+                                </div>
+                                {% endif %}
                                 {% if 'commissions' in plan.included_modules %}
                                 <div class="flex items-center gap-2.5">
                                     <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
@@ -1197,6 +1203,12 @@
                                 <div class="flex items-center gap-2.5">
                                     <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
                                     <span class="font-semibold">Marketing & Campañas de Descuento</span>
+                                </div>
+                                {% endif %}
+                                {% if 'properties' in plan.included_modules %}
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
+                                    <span class="font-semibold">Catálogo Inmobiliario & Portales</span>
                                 </div>
                                 {% endif %}
                             </div>

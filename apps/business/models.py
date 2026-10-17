@@ -42,6 +42,7 @@ class Business(TimeStampedModel):
     allow_editing_client_history = models.BooleanField(default=True, verbose_name="Permitir editar el historial de servicios de clientes")
     region = models.ForeignKey('superadmin.Region', on_delete=models.SET_NULL, null=True, blank=True, related_name='businesses', verbose_name="Región")
     is_booking_enabled = models.BooleanField(default=True, verbose_name="Portal de Reservas Público Activo")
+    pending_booking_expiry_hours = models.PositiveIntegerField(default=24, verbose_name="Horas de Espera para Confirmar Reserva Pendiente")
 
     class Meta:
         verbose_name = "Negocio"
@@ -72,12 +73,12 @@ class Business(TimeStampedModel):
     def is_module_enabled(self, module_name):
         if module_name == 'booking' and not getattr(self, 'is_booking_enabled', True):
             return False
+        if not self.is_module_allowed_by_plan(module_name):
+            return False
         if module_name == 'properties':
             if self.is_real_estate:
                 return True
             return 'properties' in (self.enabled_modules or [])
-        if not self.is_module_allowed_by_plan(module_name):
-            return False
         if not self.enabled_modules:
             return True
         return module_name in self.enabled_modules

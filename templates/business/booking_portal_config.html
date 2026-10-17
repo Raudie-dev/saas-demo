@@ -165,6 +165,42 @@
                 </div>
             </form>
         </div>
+
+        <!-- PENDING BOOKING HOLD HOURS FORM -->
+        <div class="pt-4 border-t border-slate-100">
+            <form method="POST" class="space-y-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="UPDATE_PENDING_EXPIRY">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-amber-50/70 border border-amber-200 rounded-2xl p-4 sm:p-5">
+                    <div class="space-y-1 max-w-xl">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="clock" class="w-4 h-4 text-amber-700"></i>
+                            <label class="text-xs sm:text-sm font-extrabold text-slate-900">
+                                Tiempo de Espera para Citas Pendientes (Por defecto: 24 horas)
+                            </label>
+                        </div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Todas las citas creadas desde el portal público ingresan en estado <strong>Pendiente</strong> y envían notificación inmediata al cliente.
+                            Define cuántas horas se reservará el puesto antes de liberarse automáticamente si no se confirma.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2.5 shrink-0">
+                        <div class="flex items-center bg-white border border-amber-300 rounded-xl overflow-hidden focus-within:border-rose-900">
+                            <input type="number" name="pending_booking_expiry_hours" min="1" max="720"
+                                   value="{{ business.pending_booking_expiry_hours|default:24 }}" required
+                                   class="w-20 px-3 py-2.5 text-sm font-extrabold text-slate-900 text-center focus:outline-none">
+                            <span class="px-3 py-2.5 bg-amber-100/70 text-xs font-bold text-amber-900 border-l border-amber-200">
+                                horas
+                            </span>
+                        </div>
+                        <button type="submit"
+                                class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-sm shrink-0">
+                            Guardar Tiempo
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- 3. PROFILE CUSTOMIZATION & OPEN GRAPH SHARING -->
