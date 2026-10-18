@@ -39,16 +39,22 @@ class Client(TimeStampedModel):
             has_owned = self.owned_properties.exists() if hasattr(self, 'owned_properties') else False
             has_seller_inq = False
             has_buyer_inq = False
+            has_sell_to_buy = False
             if hasattr(self, 'property_inquiries'):
-                has_seller_inq = self.property_inquiries.filter(inquiry_type='SELLER').exists()
-                has_buyer_inq = self.property_inquiries.filter(inquiry_type='BUYER').exists()
+                inqs = list(self.property_inquiries.all())
+                has_seller_inq = any(i.inquiry_type == 'SELLER' for i in inqs)
+                has_buyer_inq = any(i.inquiry_type == 'BUYER' for i in inqs)
+                has_sell_to_buy = any(i.inquiry_type == 'SELL_TO_BUY' for i in inqs)
             has_visits = self.appointments.filter(related_property__isnull=False).exists() if hasattr(self, 'appointments') else False
             
-            if not has_seller_inq and self.notes and '[PROPIETARIO' in self.notes:
-                has_seller_inq = True
+            if self.notes:
+                if '[VENDER PARA COMPRAR' in self.notes.upper():
+                    has_sell_to_buy = True
+                elif '[PROPIETARIO' in self.notes:
+                    has_seller_inq = True
 
-            if (has_owned or has_seller_inq) and (has_buyer_inq or has_visits):
-                return {'badge': 'Comprador & Propietario', 'color': 'purple', 'type': 'BOTH'}
+            if has_sell_to_buy or ((has_owned or has_seller_inq) and (has_buyer_inq or has_visits)):
+                return {'badge': 'Vender para Comprar', 'color': 'purple', 'type': 'SELL_TO_BUY'}
             elif has_owned or has_seller_inq:
                 return {'badge': 'Propietario / Vendedor', 'color': 'amber', 'type': 'SELLER'}
             elif has_buyer_inq or has_visits:

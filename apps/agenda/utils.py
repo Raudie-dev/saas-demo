@@ -76,11 +76,19 @@ def send_booking_notification_to_client(business, appointment, event_type='PENDI
                 f"Por favor confirma tu asistencia dentro de este plazo para asegurar tu turno, de lo contrario el cupo se liberará automáticamente."
             )
         else:
+            deposit_line = ""
+            if appointment.deposit_amount and appointment.deposit_amount > 0:
+                deposit_line = (
+                    f"💳 *Total:* {business.currency}{appointment.total_price} "
+                    f"(Seña / Anticipo {appointment.deposit_percentage:.0f}%: *{business.currency}{appointment.deposit_amount}* · "
+                    f"Saldo restante: {business.currency}{appointment.balance_due})\n"
+                )
             msg = (
                 f"⏳ *¡Hola {client.first_name}! Tu reserva en {business.name} está PENDIENTE DE CONFIRMACIÓN*\n\n"
                 f"📅 *Fecha:* {date_str} a las {time_str} hs.\n"
                 f"💇‍♂️ *Especialista:* {staff_name}\n"
                 f"💈 *Servicios:* {services_text}\n"
+                f"{deposit_line}"
                 f"📍 *Dirección:* {branch_addr}\n\n"
                 f"⚠️ *Importante:* Tu puesto se mantendrá reservado por *{expiry_hours} horas*. "
                 f"Por favor confirma tu cita antes de que venza el plazo para asegurar tu lugar."
@@ -91,11 +99,18 @@ def send_booking_notification_to_client(business, appointment, event_type='PENDI
         prompt_label = f"Notificación de Reserva Pendiente ({expiry_hours}h) enviada a {client.full_name}"
 
     elif event_type == 'CONFIRMED':
+        deposit_line = ""
+        if not prop and appointment.deposit_amount and appointment.deposit_amount > 0:
+            deposit_line = (
+                f"💳 *Seña / Anticipo ({appointment.deposit_percentage:.0f}%):* {business.currency}{appointment.deposit_amount} "
+                f"(Saldo restante: {business.currency}{appointment.balance_due})\n"
+            )
         msg = (
             f"✅ *¡Hola {client.first_name}! Tu cita en {business.name} ha sido CONFIRMADA*\n\n"
             f"📅 *Fecha:* {date_str} a las {time_str} hs.\n"
             f"👤 *Especialista:* {staff_name}\n"
             f"✨ *Detalle:* {services_text}\n"
+            f"{deposit_line}"
             f"📍 *Dirección:* {branch_addr}\n\n"
             f"¡Te esperamos!"
         )

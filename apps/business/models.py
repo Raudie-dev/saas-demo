@@ -43,6 +43,7 @@ class Business(TimeStampedModel):
     region = models.ForeignKey('superadmin.Region', on_delete=models.SET_NULL, null=True, blank=True, related_name='businesses', verbose_name="Región")
     is_booking_enabled = models.BooleanField(default=True, verbose_name="Portal de Reservas Público Activo")
     pending_booking_expiry_hours = models.PositiveIntegerField(default=24, verbose_name="Horas de Espera para Confirmar Reserva Pendiente")
+    default_deposit_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=30.00, verbose_name="Porcentaje de Seña / Anticipo General (%)")
 
     class Meta:
         verbose_name = "Negocio"

@@ -179,6 +179,7 @@ class PropertyInquiry(TimeStampedModel):
     INQUIRY_TYPE_CHOICES = [
         ('SELLER', 'Propietario (Quiere Vender / Alquilar / Tasar)'),
         ('BUYER', 'Interesado en Comprar / Alquilar'),
+        ('SELL_TO_BUY', 'Vender para Comprar (Operación Simultánea)'),
     ]
 
     STATUS_CHOICES = [

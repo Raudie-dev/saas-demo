@@ -375,6 +375,19 @@ def public_booking_view(request, business_slug):
             if client_notes:
                 notes_text = f"{notes_text}\nConsulta/Comentarios: {client_notes}" if notes_text else client_notes
 
+            if selected_property:
+                calc_deposit_amount = Decimal('0.00')
+                calc_deposit_pct = Decimal('0.00')
+            else:
+                calc_deposit_amount = sum(
+                    (srv.effective_deposit_amount * qty for srv, qty in services_items),
+                    Decimal('0.00')
+                ).quantize(Decimal('0.01'))
+                if total_price > 0:
+                    calc_deposit_pct = ((calc_deposit_amount / total_price) * Decimal('100.00')).quantize(Decimal('0.01'))
+                else:
+                    calc_deposit_pct = Decimal(str(getattr(business, 'default_deposit_percentage', Decimal('30.00')) or '0.00'))
+
             appointment_created = Appointment.objects.create(
                 business=business,
                 client=client,
@@ -385,7 +398,8 @@ def public_booking_view(request, business_slug):
                 start_time=time_str,
                 end_time=end_time,
                 total_price=total_price,
-                deposit_amount=(total_price * Decimal('0.30')),
+                deposit_percentage=calc_deposit_pct,
+                deposit_amount=calc_deposit_amount,
                 status='PENDING',
                 notes=notes_text
             )
@@ -434,6 +448,8 @@ def public_booking_view(request, business_slug):
             'id': str(s.id),
             'name': s.name,
             'price': float(s.price),
+            'deposit_percentage': float(s.effective_deposit_percentage),
+            'deposit_amount': float(s.effective_deposit_amount),
             'duration': s.duration_minutes,
             'description': s.description or '',
             'category': s.category.name if s.category else 'Otros',

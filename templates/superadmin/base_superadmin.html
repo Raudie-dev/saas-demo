@@ -370,7 +370,7 @@
 
         // Session Inactivity Timeout (Cierre de sesión por inactividad)
         let inactivityTimeout;
-        const INACTIVITY_DURATION = 30 * 60 * 1000; // 30 minutos
+        const INACTIVITY_DURATION = 4 * 60 * 60 * 1000; // 4 horas (240 minutos)
 
         function resetInactivityTimeout() {
             clearTimeout(inactivityTimeout);

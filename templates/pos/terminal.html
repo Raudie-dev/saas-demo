@@ -8,39 +8,42 @@
 <div class="space-y-6">
 
     <!-- Active Cash Register Banner -->
-    <div class="glass-card bg-white p-4 rounded-2xl flex items-center justify-between border border-slate-200 shadow-sm">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl {% if active_register %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %} flex items-center justify-center">
-                <i data-lucide="calculator" class="w-5 h-5"></i>
+    <div class="glass-card bg-white p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 border border-slate-200 shadow-sm">
+        <div class="flex items-start sm:items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-xl shrink-0 {% if active_register %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %} flex items-center justify-center">
+                <i data-lucide="calculator" class="w-5 h-5 shrink-0"></i>
             </div>
-            <div>
+            <div class="min-w-0 flex-1">
                 <h3 class="font-bold text-slate-900 text-sm">Estado de Caja</h3>
                 {% if active_register %}
-                <p class="text-xs text-emerald-700 font-semibold flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-                    Caja ABIERTA (Abierta a las {{ active_register.opened_at|date:"H:i" }} hs con {{ business.currency }}{{ active_register.initial_amount }})
+                <p class="text-xs text-emerald-700 font-semibold flex items-center gap-1.5 leading-snug mt-0.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0"></span>
+                    <span>Caja ABIERTA (Abierta a las {{ active_register.opened_at|date:"H:i" }} hs con {{ business.currency }}{{ active_register.initial_amount }})</span>
                 </p>
                 {% else %}
-                <p class="text-xs text-amber-700 font-semibold flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    Caja CERRADA (Se solicitará fondo inicial al cobrar o puedes abrirla ahora).
+                <p class="text-xs text-amber-700 font-semibold flex items-center gap-1.5 leading-snug mt-0.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                    <span>Caja CERRADA (Se solicitará fondo inicial al cobrar o puedes abrirla ahora).</span>
                 </p>
                 {% endif %}
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto shrink-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100">
             {% if active_register %}
-            <button type="button" onclick="openTerminalCloseModal()" class="px-3.5 py-1.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="lock" class="w-3.5 h-3.5"></i> Cerrar Caja
+            <button type="button" onclick="openTerminalCloseModal()" class="px-3 py-2 sm:py-1.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
+                <i data-lucide="lock" class="w-3.5 h-3.5 shrink-0"></i>
+                <span>Cerrar Caja</span>
             </button>
             {% else %}
-            <button type="button" onclick="openStandaloneOpenRegisterModal()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="unlock" class="w-3.5 h-3.5"></i> Abrir Caja Ahora
+            <button type="button" onclick="openStandaloneOpenRegisterModal()" class="px-3 py-2 sm:py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
+                <i data-lucide="unlock" class="w-3.5 h-3.5 shrink-0"></i>
+                <span>Abrir Caja</span>
             </button>
             {% endif %}
-            <a href="{% url 'cash_register' %}" class="px-3.5 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold shadow transition">
-                Administrar Caja & Historial
+            <a href="{% url 'cash_register' %}" class="px-3 py-2 sm:py-1.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold shadow transition flex items-center justify-center text-center whitespace-nowrap">
+                <span class="sm:hidden">Historial Caja</span>
+                <span class="hidden sm:inline">Administrar Caja & Historial</span>
             </a>
         </div>
     </div>
@@ -76,18 +79,18 @@
 
     {% if appointment %}
     <!-- Appointment Pre-fill Banner -->
-    <div class="p-4 rounded-2xl bg-rose-900 text-white shadow-md border border-rose-800 flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
+    <div class="p-4 rounded-2xl bg-rose-900 text-white shadow-md border border-rose-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="flex items-start sm:items-center gap-3 min-w-0">
             <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
-                <i data-lucide="scissors" class="w-5 h-5"></i>
+                <i data-lucide="scissors" class="w-5 h-5 shrink-0"></i>
             </div>
-            <div>
-                <span class="text-[11px] font-extrabold uppercase tracking-wider text-rose-200">Cobrando Cita Agendada</span>
-                <h4 class="font-extrabold text-sm">{{ appointment.client.full_name }} — {{ appointment.services_summary }}</h4>
+            <div class="min-w-0">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-rose-200 block">Cobrando Cita Agendada</span>
+                <h4 class="font-extrabold text-sm truncate">{{ appointment.client.full_name }} — {{ appointment.services_summary }}</h4>
                 <p class="text-xs text-rose-100">Fecha: {{ appointment.date }} • Hora: {{ appointment.start_time }} • Importe: {{ business.currency }}{{ appointment.total_price }}</p>
             </div>
         </div>
-        <span class="px-3 py-1 rounded-full bg-white/20 text-xs font-bold shrink-0">Mano de Obra / Servicio</span>
+        <span class="px-3 py-1 rounded-full bg-white/20 text-xs font-bold shrink-0 whitespace-nowrap">Mano de Obra / Servicio</span>
     </div>
     {% endif %}
 
@@ -436,38 +439,40 @@
 
     <!-- Recent Sales History Table -->
     <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm mt-8">
-        <div class="p-5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+        <div class="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-                <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
-                    <i data-lucide="receipt" class="w-5 h-5 text-rose-900"></i>
+                <h4 class="font-bold text-slate-900 text-sm sm:text-base font-display flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-4 h-4 sm:w-5 sm:h-5 text-rose-900 shrink-0"></i>
                     <span>Ventas Recientes Registradas en este Terminal</span>
                 </h4>
                 <p class="text-xs text-slate-500 mt-0.5">Historial inmediato de cobros procesados</p>
             </div>
-            <a href="{% url 'cash_register' %}" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition">
+            <a href="{% url 'cash_register' %}" class="w-full sm:w-auto text-center px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition shrink-0">
                 Ver Control de Caja →
             </a>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+
+        <!-- Desktop Table View (md+) -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left text-xs min-w-[700px]">
                 <thead class="bg-slate-100 text-slate-700 uppercase tracking-wider font-bold">
                     <tr>
-                        <th class="p-4">Venta ID</th>
-                        <th class="p-4">Fecha / Hora</th>
-                        <th class="p-4">Cliente</th>
-                        <th class="p-4">Profesional</th>
+                        <th class="p-4 whitespace-nowrap">Venta ID</th>
+                        <th class="p-4 whitespace-nowrap">Fecha / Hora</th>
+                        <th class="p-4 whitespace-nowrap">Cliente</th>
+                        <th class="p-4 whitespace-nowrap">Profesional</th>
                         <th class="p-4">Detalle / Ítems</th>
-                        <th class="p-4">Método de Pago</th>
-                        <th class="p-4 text-right">Total</th>
+                        <th class="p-4 whitespace-nowrap">Método de Pago</th>
+                        <th class="p-4 text-right whitespace-nowrap">Total</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 font-medium">
                     {% for sale in recent_sales %}
                     <tr class="hover:bg-slate-50/80 transition">
-                        <td class="p-4 font-mono font-bold text-rose-900">#{{ sale.id|stringformat:".8s" }}</td>
-                        <td class="p-4 text-slate-900 font-medium">{{ sale.created_at|date:"d/m/Y H:i" }} hs</td>
-                        <td class="p-4 font-bold text-slate-900">{% if sale.client %}{{ sale.client.full_name }}{% else %}<span class="text-slate-400 font-normal">Cliente Mostrador</span>{% endif %}</td>
-                        <td class="p-4 text-slate-700">{% if sale.staff %}{{ sale.staff.full_name }}{% else %}-{% endif %}</td>
+                        <td class="p-4 font-mono font-bold text-rose-900 whitespace-nowrap">#{{ sale.id|stringformat:".8s" }}</td>
+                        <td class="p-4 text-slate-900 font-medium whitespace-nowrap">{{ sale.created_at|date:"d/m/Y H:i" }} hs</td>
+                        <td class="p-4 font-bold text-slate-900 whitespace-nowrap">{% if sale.client %}{{ sale.client.full_name }}{% else %}<span class="text-slate-400 font-normal">Cliente Mostrador</span>{% endif %}</td>
+                        <td class="p-4 text-slate-700 whitespace-nowrap">{% if sale.staff %}{{ sale.staff.full_name }}{% else %}-{% endif %}</td>
                         <td class="p-4 space-y-0.5">
                             {% for item in sale.items.all %}
                             <div class="text-[11px] text-slate-800 font-semibold">• {{ item.item_name }} ({{ business.currency }}{{ item.total_price }})</div>
@@ -475,12 +480,12 @@
                             <span class="text-slate-400">Cobro de servicio</span>
                             {% endfor %}
                         </td>
-                        <td class="p-4">
+                        <td class="p-4 whitespace-nowrap">
                             <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                                 {{ sale.payment_method_display }}
                             </span>
                         </td>
-                        <td class="p-4 text-right font-extrabold text-sm text-slate-900">
+                        <td class="p-4 text-right font-extrabold text-sm text-slate-900 whitespace-nowrap">
                             {{ business.currency }}{{ sale.total_amount }}
                         </td>
                     </tr>
@@ -491,6 +496,70 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <!-- Mobile Cards View (< md) -->
+        <div class="block md:hidden divide-y divide-slate-100">
+            {% for sale in recent_sales %}
+            <div class="p-4 space-y-3 hover:bg-slate-50/50 transition">
+                <!-- Card Header: ID, Payment method, Date & Total -->
+                <div class="flex items-start justify-between gap-2">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="px-2 py-0.5 rounded-md bg-rose-50 text-rose-900 border border-rose-200 text-xs font-mono font-bold">
+                                #{{ sale.id|stringformat:".8s" }}
+                            </span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                {{ sale.payment_method_display }}
+                            </span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 font-medium">
+                            {{ sale.created_at|date:"d/m/Y H:i" }} hs
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span class="text-base font-black text-rose-950 font-display">
+                            {{ business.currency }}{{ sale.total_amount }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Client & Staff Info -->
+                <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Cliente</span>
+                        <span class="font-bold text-slate-800 truncate block">
+                            {% if sale.client %}{{ sale.client.full_name }}{% else %}<span class="text-slate-400 font-normal">Mostrador</span>{% endif %}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Profesional</span>
+                        <span class="font-semibold text-slate-700 truncate block">
+                            {% if sale.staff %}{{ sale.staff.full_name }}{% else %}-{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Items Details -->
+                <div class="space-y-1">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Detalle de Cobro:</span>
+                    <div class="space-y-1">
+                        {% for item in sale.items.all %}
+                        <div class="text-xs text-slate-800 font-medium flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-slate-200/70 shadow-2xs">
+                            <span class="truncate">• {{ item.item_name }}</span>
+                            <span class="font-bold text-slate-900 shrink-0 ml-2">{{ business.currency }}{{ item.total_price }}</span>
+                        </div>
+                        {% empty %}
+                        <span class="text-xs text-slate-400 italic">Cobro de servicio</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-8 text-center text-xs text-slate-400">
+                Aún no se han registrado ventas en este turno.
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>

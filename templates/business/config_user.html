@@ -8,19 +8,21 @@
 
     <!-- Subheader Module Tabs -->
     {% if user_can_manage_settings %}
-    <div class="glass-card bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
-        <a href="{% url 'business_config' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50">
-            <i data-lucide="building-2" class="w-4 h-4 text-slate-500"></i>
-            <span>Empresa, Sucursales & Módulos</span>
-        </a>
-        <a href="{% url 'user_profile_config' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-900 text-white shadow-md">
-            <i data-lucide="shield-check" class="w-4 h-4"></i>
-            <span>Mi Cuenta & Seguridad</span>
-        </a>
-        <a href="{% url 'subscription_billing' %}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50">
-            <i data-lucide="credit-card" class="w-4 h-4 text-slate-500"></i>
-            <span>Suscripción & Pagos Regionales</span>
-        </a>
+    <div class="relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden group">
+        <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none p-2 relative z-0">
+            <a href="{% url 'business_config' %}" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0">
+                <i data-lucide="building-2" class="w-4 h-4 text-slate-500 shrink-0"></i>
+                <span>Empresa, Sucursales & Módulos</span>
+            </a>
+            <a href="{% url 'user_profile_config' %}" class="px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-rose-900 text-white shadow-sm shrink-0">
+                <i data-lucide="shield-check" class="w-4 h-4 shrink-0"></i>
+                <span>Mi Cuenta & Seguridad</span>
+            </a>
+            <a href="{% url 'subscription_billing' %}" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0">
+                <i data-lucide="credit-card" class="w-4 h-4 text-slate-500 shrink-0"></i>
+                <span>Suscripción & Pagos Regionales</span>
+            </a>
+        </div>
     </div>
     {% endif %}
 

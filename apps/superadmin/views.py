@@ -83,7 +83,7 @@ def superadmin_logout_view(request):
         del request.session['superadmin_id']
         
     if request.GET.get('timeout') == '1':
-        messages.warning(request, "Tu sesión de SuperAdmin ha expirado por inactividad de 30 minutos.")
+        messages.warning(request, "Tu sesión de SuperAdmin ha expirado tras más de 3 horas de inactividad.")
     else:
         messages.info(request, "Sesión de SuperAdmin cerrada correctamente.")
         
