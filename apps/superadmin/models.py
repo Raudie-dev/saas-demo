@@ -29,6 +29,34 @@ class SubscriptionPlan(TimeStampedModel):
     def __str__(self):
         return f"{self.name} (${self.monthly_price}/mes)"
 
+    @property
+    def edit_data(self):
+        region_prices_dict = {}
+        for rp in self.region_prices.all():
+            region_prices_dict[str(rp.region_id)] = {
+                'monthly': str(rp.monthly_price),
+                'annual': str(rp.annual_price),
+                'active': bool(rp.is_active)
+            }
+        return {
+            'id': str(self.id),
+            'name': self.name,
+            'code': self.code,
+            'monthly_price': str(self.monthly_price),
+            'annual_price': str(self.annual_price),
+            'max_users': self.max_users,
+            'max_branches': self.max_branches,
+            'show_on_landing': self.show_on_landing,
+            'is_active': self.is_active,
+            'included_modules': self.included_modules if isinstance(self.included_modules, list) else [],
+            'region_prices': region_prices_dict
+        }
+
+    @property
+    def edit_json(self):
+        import json
+        return json.dumps(self.edit_data)
+
 class BusinessSubscription(TimeStampedModel):
     STATUS_CHOICES = [
         ('ACTIVE', 'Licencia Activa'),

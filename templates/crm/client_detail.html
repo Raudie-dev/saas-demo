@@ -54,16 +54,25 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+            <div class="flex flex-wrap sm:flex-nowrap items-stretch sm:items-center gap-2 shrink-0">
                 {% if is_real_estate %}
-                <button type="button" onclick="openInquiryModal()" class="px-4 py-2.5 bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer">
+                <button type="button" onclick="openInquiryModal()" class="px-3.5 py-2.5 bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
                     <i data-lucide="plus-circle" class="w-4 h-4 shrink-0"></i>
                     <span>Nueva Solicitud Inmobiliaria</span>
                 </button>
+                {% else %}
+                <a href="{% url 'quote_create' %}?client_id={{ client.id }}" class="px-3.5 py-2.5 bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="calculator" class="w-4 h-4 shrink-0"></i>
+                    <span>Cotizar</span>
+                </a>
+                <a href="{% url 'project_create' %}?client_id={{ client.id }}" class="px-3.5 py-2.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="folder-plus" class="w-4 h-4 text-rose-800 shrink-0"></i>
+                    <span>Crear Proyecto</span>
+                </a>
                 {% endif %}
-                <a href="{% url 'client_edit' client.id %}" class="px-4 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 whitespace-nowrap">
+                <a href="{% url 'client_edit' client.id %}" class="px-3.5 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap">
                     <i data-lucide="edit-3" class="w-4 h-4 shrink-0"></i>
-                    <span>Editar Datos</span>
+                    <span>Editar</span>
                 </a>
             </div>
         </div>

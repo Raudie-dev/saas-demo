@@ -234,6 +234,9 @@
 
     </div>
 
+    <!-- Fullscreen Modals Block (Overlay at root viewport level) -->
+    {% block modals %}{% endblock %}
+
     <script>
         lucide.createIcons();
 
@@ -385,5 +388,6 @@
 
         resetInactivityTimeout();
     </script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

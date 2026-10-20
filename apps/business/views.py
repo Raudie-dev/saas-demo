@@ -668,6 +668,7 @@ def business_config_view(request):
         {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign', 'is_allowed': 'commissions' in allowed_modules},
         {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles', 'is_allowed': 'ai_engine' in allowed_modules},
         {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag', 'is_allowed': 'marketing' in allowed_modules},
+        {'code': 'projects', 'name': 'Proyectos & Contenido Redes', 'icon': 'folder-kanban', 'is_allowed': 'projects' in allowed_modules},
     ]
 
     session_user = str(business.id) if business else "default"

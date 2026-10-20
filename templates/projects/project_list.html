@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+
+{% block title %}Seguimiento de Proyectos - RauDie OS{% endblock %}
+{% block header_title %}Proyectos & Entregables de Clientes{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Module Header Card -->
+    <div class="glass-card bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center shrink-0">
+                    <i data-lucide="folder-kanban" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-lg sm:text-xl leading-tight">Gestión & Seguimiento de Proyectos</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Supervisa campañas, branding, desarrollos web y entregables por cliente con control de avance.</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'content_planner' %}" class="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="calendar" class="w-4 h-4 text-slate-500"></i>
+                    <span>Plan de Contenidos</span>
+                </a>
+                <a href="{% url 'project_create' %}" class="h-10 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-rose-400"></i>
+                    <span>Nuevo Proyecto</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Proyectos</p>
+                <p class="text-xl font-black text-slate-900 mt-0.5">{{ total_projects }}</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/70">
+                <p class="text-[10px] font-bold text-blue-700 uppercase tracking-wider">En Curso</p>
+                <p class="text-xl font-black text-blue-900 mt-0.5">{{ active_projects }}</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/70">
+                <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Completados</p>
+                <p class="text-xl font-black text-emerald-900 mt-0.5">{{ completed_projects }}</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/70">
+                <p class="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Presupuesto Activo</p>
+                <p class="text-xl font-black text-rose-950 mt-0.5">{{ business.currency }}{{ total_budget|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Search Bar -->
+    <div class="glass-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <!-- Status Pills -->
+        <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+            <a href="{% url 'project_list' %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if not status_filter %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Todos
+            </a>
+            <a href="{% url 'project_list' %}?status=IN_PROGRESS" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'IN_PROGRESS' %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                En Progreso
+            </a>
+            <a href="{% url 'project_list' %}?status=PLANNING" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PLANNING' %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Planificación
+            </a>
+            <a href="{% url 'project_list' %}?status=REVIEW" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'REVIEW' %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                En Revisión
+            </a>
+            <a href="{% url 'project_list' %}?status=COMPLETED" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'COMPLETED' %}bg-emerald-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Completados
+            </a>
+        </div>
+
+        <!-- Search & Type Filter -->
+        <form method="GET" action="{% url 'project_list' %}" class="flex flex-wrap items-center gap-2">
+            {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+            
+            <select name="type" onchange="this.form.submit()" class="px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white">
+                <option value="">Todos los Tipos</option>
+                {% for code, label in project_types %}
+                <option value="{{ code }}" {% if type_filter == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+
+            <div class="relative flex-1 sm:w-56">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Buscar proyecto o cliente..." class="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+            </div>
+            <button type="submit" class="h-8 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                Filtrar
+            </button>
+            {% if search_query or status_filter or type_filter %}
+            <a href="{% url 'project_list' %}" class="p-2 text-slate-400 hover:text-rose-600 transition" title="Limpiar filtros">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {% for p in projects %}
+        <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden group">
+            
+            <div class="p-5 space-y-4">
+                <!-- Header: Type & Priority Badges -->
+                <div class="flex items-center justify-between gap-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-900 border border-rose-200">
+                        {{ p.get_project_type_display }}
+                    </span>
+
+                    <div class="flex items-center gap-1.5">
+                        {% if p.priority == 'URGENT' %}
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200">Urgente</span>
+                        {% elif p.priority == 'HIGH' %}
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">Alta</span>
+                        {% endif %}
+
+                        {% if p.status == 'COMPLETED' %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Completado
+                        </span>
+                        {% elif p.status == 'IN_PROGRESS' %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> En Progreso
+                        </span>
+                        {% elif p.status == 'PLANNING' %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            Planificación
+                        </span>
+                        {% elif p.status == 'REVIEW' %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                            En Revisión
+                        </span>
+                        {% elif p.status == 'ON_HOLD' %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            En Pausa
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Title & Client -->
+                <div>
+                    <a href="{% url 'project_detail' p.id %}" class="font-extrabold text-slate-900 text-base group-hover:text-rose-900 transition line-clamp-1">
+                        {{ p.name }}
+                    </a>
+                    <div class="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
+                        <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span class="font-medium text-slate-700">{{ p.client.full_name|default:"Proyecto Interno RauDie" }}</span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="space-y-1.5 pt-1">
+                    <div class="flex items-center justify-between text-xs font-bold">
+                        <span class="text-slate-500">Avance General</span>
+                        <span class="text-slate-900">{{ p.progress_percent }}%</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500 {% if p.progress_percent >= 100 %}bg-emerald-500{% elif p.progress_percent >= 50 %}bg-rose-900{% else %}bg-amber-500{% endif %}" style="width: {{ p.progress_percent }}%;"></div>
+                    </div>
+                </div>
+
+                <!-- Deliverables & Date Meta -->
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                    <div>
+                        <span class="font-bold text-slate-700">Entregables:</span>
+                        <p class="text-slate-600 mt-0.5">{{ p.completed_tasks_count }} de {{ p.total_tasks_count }} listos</p>
+                    </div>
+                    <div>
+                        <span class="font-bold text-slate-700">Entrega:</span>
+                        <p class="text-slate-600 mt-0.5">{{ p.due_date|date:"d/m/Y"|default:"Por definir" }}</p>
+                    </div>
+                </div>
+
+                <!-- External Links (Drive / Figma) -->
+                {% if p.drive_url or p.figma_url %}
+                <div class="flex items-center gap-2 pt-1">
+                    {% if p.drive_url %}
+                    <a href="{{ p.drive_url }}" target="_blank" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 text-[11px] font-bold transition flex items-center gap-1">
+                        <i data-lucide="folder" class="w-3.5 h-3.5"></i> Drive
+                    </a>
+                    {% endif %}
+                    {% if p.figma_url %}
+                    <a href="{{ p.figma_url }}" target="_blank" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-600 text-[11px] font-bold transition flex items-center gap-1">
+                        <i data-lucide="layout" class="w-3.5 h-3.5"></i> Figma
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Footer: Responsible & CTA -->
+            <div class="px-5 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    {% if p.responsible %}
+                    <div class="w-6 h-6 rounded-full bg-rose-900 text-white font-bold text-[10px] flex items-center justify-center">
+                        {{ p.responsible.first_name|slice:":1" }}
+                    </div>
+                    <span class="text-xs text-slate-600 font-medium">{{ p.responsible.first_name }}</span>
+                    {% else %}
+                    <span class="text-[11px] text-slate-400">Sin asignar</span>
+                    {% endif %}
+                </div>
+
+                <a href="{% url 'project_detail' p.id %}" class="text-xs font-bold text-rose-900 hover:text-rose-700 flex items-center gap-1 transition">
+                    Ver Tareas
+                    <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+
+        </div>
+        {% empty %}
+        <div class="col-span-full p-12 text-center bg-white rounded-2xl border border-slate-200">
+            <div class="max-w-sm mx-auto space-y-3">
+                <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                    <i data-lucide="folder-plus" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-extrabold text-slate-800 text-base">Aún no hay proyectos registrados</h4>
+                <p class="text-xs text-slate-500">Crea proyectos para gestionar campañas, branding, redes o desarrollos con sus entregables y tareas.</p>
+                <a href="{% url 'project_create' %}" class="h-9 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Crear Proyecto</span>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj and page_obj.has_other_pages %}
+    <div class="glass-card bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between text-xs">
+        <span class="text-slate-500 font-medium">Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ page_obj.paginator.count }} proyectos</span>
+        <div class="flex items-center gap-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition">Anterior</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition">Siguiente</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

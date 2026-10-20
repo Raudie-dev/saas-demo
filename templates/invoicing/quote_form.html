@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if quote %}Editar Cotización #{{ quote.quote_number }}{% else %}Nueva Cotización{% endif %} - RauDie OS{% endblock %}
+{% block header_title %}{% if quote %}Editar Cotización #{{ quote.quote_number }}{% else %}Crear Cotización Comercial{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Top Action Breadcrumb -->
+    <div class="flex items-center justify-between">
+        <a href="{% url 'quote_list' %}" class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-rose-900 transition">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Volver a Cotizaciones</span>
+        </a>
+        {% if quote %}
+        <a href="{% url 'quote_detail' quote.id %}" class="inline-flex items-center gap-1.5 text-xs font-bold text-rose-900 hover:underline">
+            <i data-lucide="eye" class="w-4 h-4"></i>
+            <span>Ver Comprobante</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <form method="POST" id="quoteForm" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Main Card -->
+        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+            <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+                <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="calculator" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-lg leading-tight">
+                        {% if quote %}Modificar Cotización #{{ quote.quote_number }}{% else %}Configuración de la Cotización{% endif %}
+                    </h3>
+                    <p class="text-xs text-slate-500">Cotiza por proyecto cerrado, por horas de trabajo dedicadas o con esquemas por desempeño / metas.</p>
+                </div>
+            </div>
+
+            <!-- Pricing Model Selector Tabs / Pills -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-700">Modalidad de Cotización & Cobro *</label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <label class="pricing-card p-3 rounded-xl border border-slate-200 hover:border-rose-900/60 cursor-pointer transition flex flex-col gap-1.5 has-[:checked]:border-rose-900 has-[:checked]:bg-rose-50/40">
+                        <div class="flex items-center justify-between">
+                            <i data-lucide="briefcase" class="w-4 h-4 text-slate-600"></i>
+                            <input type="radio" name="pricing_type" value="FIXED" {% if quote and quote.pricing_type == 'FIXED' or not quote and preselected_pricing_type == 'FIXED' %}checked{% endif %} class="accent-rose-900" onchange="handlePricingTypeChange(this.value)">
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-900">Precio Fijo</span>
+                        <span class="text-[10px] text-slate-500 leading-tight">Entregables y paquetes definidos</span>
+                    </label>
+
+                    <label class="pricing-card p-3 rounded-xl border border-slate-200 hover:border-rose-900/60 cursor-pointer transition flex flex-col gap-1.5 has-[:checked]:border-rose-900 has-[:checked]:bg-rose-50/40">
+                        <div class="flex items-center justify-between">
+                            <i data-lucide="clock" class="w-4 h-4 text-blue-600"></i>
+                            <input type="radio" name="pricing_type" value="HOURLY" {% if quote and quote.pricing_type == 'HOURLY' or preselected_pricing_type == 'HOURLY' %}checked{% endif %} class="accent-rose-900" onchange="handlePricingTypeChange(this.value)">
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-900">Por Horas</span>
+                        <span class="text-[10px] text-slate-500 leading-tight">Tarifa horaria x estimación</span>
+                    </label>
+
+                    <label class="pricing-card p-3 rounded-xl border border-slate-200 hover:border-rose-900/60 cursor-pointer transition flex flex-col gap-1.5 has-[:checked]:border-rose-900 has-[:checked]:bg-rose-50/40">
+                        <div class="flex items-center justify-between">
+                            <i data-lucide="target" class="w-4 h-4 text-emerald-600"></i>
+                            <input type="radio" name="pricing_type" value="PERFORMANCE" {% if quote and quote.pricing_type == 'PERFORMANCE' or preselected_pricing_type == 'PERFORMANCE' %}checked{% endif %} class="accent-rose-900" onchange="handlePricingTypeChange(this.value)">
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-900">Por Desempeño</span>
+                        <span class="text-[10px] text-slate-500 leading-tight">Metas, KPIs o bonos de éxito</span>
+                    </label>
+
+                    <label class="pricing-card p-3 rounded-xl border border-slate-200 hover:border-rose-900/60 cursor-pointer transition flex flex-col gap-1.5 has-[:checked]:border-rose-900 has-[:checked]:bg-rose-50/40">
+                        <div class="flex items-center justify-between">
+                            <i data-lucide="layers" class="w-4 h-4 text-purple-600"></i>
+                            <input type="radio" name="pricing_type" value="HYBRID" {% if quote and quote.pricing_type == 'HYBRID' or preselected_pricing_type == 'HYBRID' %}checked{% endif %} class="accent-rose-900" onchange="handlePricingTypeChange(this.value)">
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-900">Mixto</span>
+                        <span class="text-[10px] text-slate-500 leading-tight">Horas + Entregables + Éxito</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Client & Dates Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Client Selection -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-700 flex items-center justify-between">
+                        <span>Cliente / Empresa *</span>
+                        <a href="{% url 'client_create' %}?next={{ request.path }}" class="text-[10px] text-rose-800 hover:underline font-bold">+ Nuevo Cliente</a>
+                    </label>
+                    <select name="client_id" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                        <option value="">-- Seleccionar Cliente --</option>
+                        {% for c in clients %}
+                        <option value="{{ c.id }}" {% if quote and quote.client_id == c.id or preselected_client_id == c.id|stringformat:"s" %}selected{% endif %}>
+                            {{ c.full_name }} {% if c.phone %}({{ c.phone }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Date -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-700">Fecha de Emisión *</label>
+                    <input type="date" name="date" required value="{{ today|date:'Y-m-d' }}" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                </div>
+
+                <!-- Valid Until -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-700">Válido Hasta *</label>
+                    <input type="date" name="valid_until" required value="{{ default_valid|date:'Y-m-d' }}" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                </div>
+            </div>
+
+            <!-- Additional Hourly / Performance Fields (Dynamic depending on selection) -->
+            <div id="hourlyConfigRow" class="p-4 rounded-xl bg-blue-50/50 border border-blue-200/80 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div class="space-y-1">
+                    <label class="font-bold text-blue-900 flex items-center gap-1">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-blue-600"></i>
+                        <span>Tarifa por Hora Base ({{ business.currency }}/hr)</span>
+                    </label>
+                    <input type="number" step="0.01" min="0" name="hourly_rate" id="hourlyRateInput" value="{{ quote.hourly_rate|default:'0.00' }}" placeholder="Ej: 35.00" class="w-full px-3 py-1.5 rounded-lg border border-blue-200 bg-white font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                    <p class="text-[10px] text-blue-700">Se usará como valor sugerido al añadir ítems por hora.</p>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="font-bold text-blue-900">Bolsa de Horas Estimada</label>
+                    <input type="number" step="0.5" min="0" name="estimated_hours" id="estimatedHoursInput" value="{{ quote.estimated_hours|default:'0.00' }}" class="w-full px-3 py-1.5 rounded-lg border border-blue-200 bg-white font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                    <p class="text-[10px] text-blue-700">Se calcula automáticamente al sumar los ítems de horas.</p>
+                </div>
+            </div>
+
+            <!-- Performance Terms Box -->
+            <div id="performanceConfigRow" class="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-2 text-xs">
+                <label class="font-bold text-emerald-950 flex items-center gap-1.5">
+                    <i data-lucide="target" class="w-4 h-4 text-emerald-700"></i>
+                    <span>Términos y Metas de Desempeño / Bonificación por Resultados</span>
+                </label>
+                <textarea name="performance_terms" rows="2" placeholder="Ej: Si se logran más de 20 clientes calificados en el primer mes, se adiciona un bono de éxito de $500. Se medirá mediante reporte de Analytics." class="w-full px-3 py-2 rounded-lg border border-emerald-200 bg-white text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20">{{ quote.performance_terms|default:'' }}</textarea>
+            </div>
+
+            <!-- Items Table Section -->
+            <div class="space-y-3 pt-4 border-t border-slate-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-extrabold text-slate-900 text-sm">Detalle de Conceptos / Horas / Metas</h4>
+                        <p class="text-xs text-slate-500">Agrega entregables, bloques de horas o hitos de desempeño.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="addNewItemRow('HOURLY')" class="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs inline-flex items-center gap-1 border border-blue-200 transition">
+                            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                            <span>+ Horas</span>
+                        </button>
+                        <button type="button" onclick="addNewItemRow('PERFORMANCE')" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs inline-flex items-center gap-1 border border-emerald-200 transition">
+                            <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                            <span>+ Desempeño</span>
+                        </button>
+                        <button type="button" onclick="addNewItemRow('FIXED')" class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs">
+                            <i data-lucide="plus" class="w-3.5 h-3.5 text-rose-400"></i>
+                            <span>+ Ítem Fijo</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-left text-xs whitespace-nowrap" id="itemsTable">
+                        <thead class="bg-slate-50 text-slate-500 uppercase font-bold tracking-wider">
+                            <tr>
+                                <th class="p-3 w-2/12">Modalidad</th>
+                                <th class="p-3 w-5/12">Descripción del Servicio / Hito</th>
+                                <th class="p-3 w-1/12 text-center">Cant. / Horas</th>
+                                <th class="p-3 w-1/12 text-center">Unidad</th>
+                                <th class="p-3 w-2/12 text-right">Precio Unit. / Tarifa</th>
+                                <th class="p-3 w-1/12 text-right">Subtotal</th>
+                                <th class="p-3 text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100" id="itemsContainer">
+                            {% if items %}
+                                {% for it in items %}
+                                <tr class="item-row hover:bg-slate-50/50">
+                                    <td class="p-2.5">
+                                        <select name="item_type[]" class="item-type-select w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 bg-white" onchange="onItemTypeChange(this)">
+                                            <option value="FIXED" {% if it.item_type == 'FIXED' %}selected{% endif %}>Fijo</option>
+                                            <option value="HOURLY" {% if it.item_type == 'HOURLY' %}selected{% endif %}>Por Horas</option>
+                                            <option value="PERFORMANCE" {% if it.item_type == 'PERFORMANCE' %}selected{% endif %}>Por Desempeño</option>
+                                        </select>
+                                    </td>
+                                    <td class="p-2.5 space-y-1">
+                                        <input type="text" name="item_description[]" required value="{{ it.description }}" placeholder="Descripción del entregable o servicio..." class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                                        <input type="text" name="item_performance_kpi[]" value="{{ it.performance_kpi|default:'' }}" placeholder="Meta de Desempeño / KPI (opcional)..." class="kpi-input w-full px-2.5 py-1 rounded-md border border-emerald-200 bg-emerald-50/30 text-[11px] text-emerald-900 {% if it.item_type != 'PERFORMANCE' %}hidden{% endif %}">
+                                    </td>
+                                    <td class="p-2.5">
+                                        <input type="number" name="item_quantity[]" min="0.1" step="0.1" required value="{{ it.quantity }}" class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-center text-slate-800 font-bold item-qty focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                                    </td>
+                                    <td class="p-2.5">
+                                        <input type="text" name="item_unit_label[]" value="{{ it.unit_label|default:'unid' }}" class="item-unit-label w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-center text-slate-600 font-medium">
+                                    </td>
+                                    <td class="p-2.5">
+                                        <input type="number" name="item_unit_price[]" min="0" step="0.01" required value="{{ it.unit_price }}" class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-right text-slate-800 font-bold item-price focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                                    </td>
+                                    <td class="p-2.5 text-right font-black text-slate-900 item-subtotal">
+                                        {{ business.currency }}{{ it.total_price|floatformat:2 }}
+                                    </td>
+                                    <td class="p-2.5 text-center">
+                                        <button type="button" class="remove-row-btn p-1 text-slate-400 hover:text-rose-600 transition" title="Eliminar fila">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr class="item-row hover:bg-slate-50/50">
+                                    <td class="p-2.5">
+                                        <select name="item_type[]" class="item-type-select w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 bg-white" onchange="onItemTypeChange(this)">
+                                            <option value="FIXED">Fijo</option>
+                                            <option value="HOURLY">Por Horas</option>
+                                            <option value="PERFORMANCE">Por Desempeño</option>
+                                        </select>
+                                    </td>
+                                    <td class="p-2.5 space-y-1">
+                                        <input type="text" name="item_description[]" required placeholder="Ej: Plan de Redes Sociales / Horas de Edición / Campaña por Leads" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                                        <input type="text" name="item_performance_kpi[]" placeholder="Meta de Desempeño / KPI (opcional)..." class="kpi-input hidden w-full px-2.5 py-1 rounded-md border border-emerald-200 bg-emerald-50/30 text-[11px] text-emerald-900">
+                                    </td>
+                                    <td class="p-2.5">
+                                        <input type="number" name="item_quantity[]" min="0.1" step="0.1" required value="1" class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-center text-slate-800 font-bold item-qty focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                                    </td>
+                                    <td class="p-2.5">
+                                        <input type="text" name="item_unit_label[]" value="unid" class="item-unit-label w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-center text-slate-600 font-medium">
+                                    </td>
+                                    <td class="p-2.5">
+                                        <input type="number" name="item_unit_price[]" min="0" step="0.01" required value="0.00" class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-right text-slate-800 font-bold item-price focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                                    </td>
+                                    <td class="p-2.5 text-right font-black text-slate-900 item-subtotal">
+                                        {{ business.currency }}0.00
+                                    </td>
+                                    <td class="p-2.5 text-center">
+                                        <button type="button" class="remove-row-btn p-1 text-slate-400 hover:text-rose-600 transition" title="Eliminar fila">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Totals Calculation Box -->
+                <div class="flex flex-col sm:flex-row justify-between items-start gap-4 pt-3">
+                    <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5 w-full sm:w-auto">
+                        <span class="font-extrabold text-slate-800 block uppercase tracking-wider text-[10px]">Resumen de Dedicación</span>
+                        <div class="flex items-center gap-4 text-slate-600">
+                            <span>Total Horas Estimadas: <strong id="totalHoursDisplay" class="text-slate-900">0.00 hrs</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="w-full sm:w-80 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs ml-auto">
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Subtotal:</span>
+                            <span class="font-bold text-slate-800" id="displaySubtotal">{{ business.currency }}0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-slate-600">Impuesto / IVA (%):</span>
+                            <input type="number" name="tax_percent" id="taxPercent" min="0" max="100" step="0.1" value="{% if quote and quote.tax_amount > 0 and quote.subtotal > 0 %}19{% else %}0{% endif %}" class="w-20 px-2 py-1 rounded-lg border border-slate-200 text-xs text-right font-bold text-slate-800">
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Monto Impuesto:</span>
+                            <span class="font-bold text-slate-800" id="displayTax">{{ business.currency }}0.00</span>
+                        </div>
+                        <div class="pt-2 border-t border-slate-200 flex items-center justify-between text-sm">
+                            <span class="font-extrabold text-slate-900">Total Cotización:</span>
+                            <span class="font-black text-rose-900 text-base" id="displayTotal">{{ business.currency }}0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes & Terms -->
+            <div class="space-y-1.5 pt-4 border-t border-slate-100">
+                <label class="text-xs font-bold text-slate-700">Términos, Condiciones y Formas de Pago</label>
+                <textarea name="notes" rows="3" placeholder="Ej: 50% anticipo al iniciar y 50% contra entrega. Validez de 15 días. Horas adicionales facturadas por separado." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">{% if quote %}{{ quote.notes }}{% else %}Forma de pago: 50% de anticipo para iniciar y 50% contra entrega o cumplimiento de hitos.
+Horas de trabajo: Controladas mediante bitácora de dedicación semanal.
+Revisiones: Incluye rondas de ajustes especificadas en el alcance.{% endif %}</textarea>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <a href="{% url 'quote_list' %}" class="h-10 px-4 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs inline-flex items-center justify-center transition">
+                    Cancelar
+                </a>
+                <button type="submit" class="h-10 px-6 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-rose-400"></i>
+                    <span>{% if quote %}Guardar Cambios{% else %}Guardar Cotización{% endif %}</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    const currencySymbol = "{{ business.currency }}";
+
+    function handlePricingTypeChange(val) {
+        const hourlyRow = document.getElementById('hourlyConfigRow');
+        const perfRow = document.getElementById('performanceConfigRow');
+
+        if (val === 'HOURLY') {
+            hourlyRow.classList.remove('hidden');
+            perfRow.classList.add('hidden');
+        } else if (val === 'PERFORMANCE') {
+            hourlyRow.classList.add('hidden');
+            perfRow.classList.remove('hidden');
+        } else if (val === 'HYBRID') {
+            hourlyRow.classList.remove('hidden');
+            perfRow.classList.remove('hidden');
+        } else {
+            // FIXED
+            hourlyRow.classList.add('hidden');
+            perfRow.classList.add('hidden');
+        }
+    }
+
+    function onItemTypeChange(selectElem) {
+        const row = selectElem.closest('.item-row');
+        const val = selectElem.value;
+        const unitInput = row.querySelector('.item-unit-label');
+        const kpiInput = row.querySelector('.kpi-input');
+        const priceInput = row.querySelector('.item-price');
+        const baseHourlyRate = parseFloat(document.getElementById('hourlyRateInput').value) || 0;
+
+        if (val === 'HOURLY') {
+            unitInput.value = 'hrs';
+            if (baseHourlyRate > 0 && parseFloat(priceInput.value) === 0) {
+                priceInput.value = baseHourlyRate.toFixed(2);
+            }
+            kpiInput.classList.add('hidden');
+        } else if (val === 'PERFORMANCE') {
+            unitInput.value = 'meta';
+            kpiInput.classList.remove('hidden');
+        } else {
+            unitInput.value = 'unid';
+            kpiInput.classList.add('hidden');
+        }
+        recalculateTotals();
+    }
+
+    function recalculateTotals() {
+        let subtotal = 0;
+        let totalHours = 0;
+        const rows = document.querySelectorAll('.item-row');
+
+        rows.forEach(row => {
+            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const price = parseFloat(row.querySelector('.item-price').value) || 0;
+            const itemType = row.querySelector('.item-type-select').value;
+            const rowTotal = qty * price;
+            subtotal += rowTotal;
+            row.querySelector('.item-subtotal').textContent = `${currencySymbol}${rowTotal.toFixed(2)}`;
+
+            if (itemType === 'HOURLY') {
+                totalHours += qty;
+            }
+        });
+
+        const taxPercent = parseFloat(document.getElementById('taxPercent').value) || 0;
+        const taxAmount = (subtotal * taxPercent) / 100;
+        const total = subtotal + taxAmount;
+
+        document.getElementById('displaySubtotal').textContent = `${currencySymbol}${subtotal.toFixed(2)}`;
+        document.getElementById('displayTax').textContent = `${currencySymbol}${taxAmount.toFixed(2)}`;
+        document.getElementById('displayTotal').textContent = `${currencySymbol}${total.toFixed(2)}`;
+
+        document.getElementById('totalHoursDisplay').textContent = `${totalHours.toFixed(2)} hrs`;
+        const estHoursField = document.getElementById('estimatedHoursInput');
+        if (estHoursField && totalHours > 0) {
+            estHoursField.value = totalHours.toFixed(2);
+        }
+    }
+
+    function addNewItemRow(type) {
+        const container = document.getElementById('itemsContainer');
+        const tr = document.createElement('tr');
+        tr.className = 'item-row hover:bg-slate-50/50';
+
+        const baseHourlyRate = parseFloat(document.getElementById('hourlyRateInput').value) || 0;
+        const defaultPrice = (type === 'HOURLY' && baseHourlyRate > 0) ? baseHourlyRate.toFixed(2) : '0.00';
+        const defaultUnit = type === 'HOURLY' ? 'hrs' : (type === 'PERFORMANCE' ? 'meta' : 'unid');
+        const showKpi = type === 'PERFORMANCE' ? '' : 'hidden';
+
+        tr.innerHTML = `
+            <td class="p-2.5">
+                <select name="item_type[]" class="item-type-select w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 bg-white" onchange="onItemTypeChange(this)">
+                    <option value="FIXED" ${type === 'FIXED' ? 'selected' : ''}>Fijo</option>
+                    <option value="HOURLY" ${type === 'HOURLY' ? 'selected' : ''}>Por Horas</option>
+                    <option value="PERFORMANCE" ${type === 'PERFORMANCE' ? 'selected' : ''}>Por Desempeño</option>
+                </select>
+            </td>
+            <td class="p-2.5 space-y-1">
+                <input type="text" name="item_description[]" required placeholder="Descripción del servicio, hito u horas..." class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                <input type="text" name="item_performance_kpi[]" placeholder="Meta de Desempeño / KPI (opcional)..." class="kpi-input ${showKpi} w-full px-2.5 py-1 rounded-md border border-emerald-200 bg-emerald-50/30 text-[11px] text-emerald-900">
+            </td>
+            <td class="p-2.5">
+                <input type="number" name="item_quantity[]" min="0.1" step="0.1" required value="${type === 'HOURLY' ? '10' : '1'}" class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-center text-slate-800 font-bold item-qty focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+            </td>
+            <td class="p-2.5">
+                <input type="text" name="item_unit_label[]" value="${defaultUnit}" class="item-unit-label w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-center text-slate-600 font-medium">
+            </td>
+            <td class="p-2.5">
+                <input type="number" name="item_unit_price[]" min="0" step="0.01" required value="${defaultPrice}" class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-right text-slate-800 font-bold item-price focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+            </td>
+            <td class="p-2.5 text-right font-black text-slate-900 item-subtotal">
+                ${currencySymbol}0.00
+            </td>
+            <td class="p-2.5 text-center">
+                <button type="button" class="remove-row-btn p-1 text-slate-400 hover:text-rose-600 transition" title="Eliminar fila">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </td>
+        `;
+        container.appendChild(tr);
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+        recalculateTotals();
+    }
+
+    document.getElementById('itemsContainer').addEventListener('input', function(e) {
+        if (e.target.classList.contains('item-qty') || e.target.classList.contains('item-price')) {
+            recalculateTotals();
+        }
+    });
+
+    document.getElementById('taxPercent').addEventListener('input', recalculateTotals);
+
+    document.getElementById('itemsContainer').addEventListener('click', function(e) {
+        const btn = e.target.closest('.remove-row-btn');
+        if (btn) {
+            const rows = document.querySelectorAll('.item-row');
+            if (rows.length > 1) {
+                btn.closest('tr').remove();
+                recalculateTotals();
+            } else {
+                alert("La cotización debe tener al menos un concepto.");
+            }
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkedType = document.querySelector('input[name="pricing_type"]:checked');
+        if (checkedType) {
+            handlePricingTypeChange(checkedType.value);
+        }
+        recalculateTotals();
+    });
+</script>
+{% endblock %}

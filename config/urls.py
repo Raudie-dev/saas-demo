@@ -23,6 +23,7 @@ urlpatterns = [
     path('ia/', include('apps.ai_engine.urls')),
     path('marketing/', include('apps.marketing.urls')),
     path('propiedades/', include('apps.properties.urls')),
+    path('proyectos/', include('apps.projects.urls')),
     path('superadmin/', include('apps.superadmin.urls')),
 ]
 

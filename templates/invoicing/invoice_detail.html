@@ -8,9 +8,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
+        @page {
+            size: auto;
+            margin: 0mm;
+        }
         @media print {
             .no-print { display: none !important; }
-            body { background: white; color: black; }
+            html, body {
+                background: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 10mm 14mm !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
     </style>
 </head>
@@ -20,7 +31,7 @@
     <div class="no-print flex justify-between items-center mb-8 bg-slate-950 text-white p-4 rounded-2xl shadow-lg">
         <span class="text-sm font-semibold">Previsualización de Factura Oficial</span>
         <button onclick="window.print()" class="px-5 py-2 bg-rose-900 hover:bg-rose-950 rounded-xl text-xs font-bold text-white shadow transition">
-            🖨️ Imprimir Factura / PDF
+            Imprimir Factura / PDF
         </button>
     </div>
 

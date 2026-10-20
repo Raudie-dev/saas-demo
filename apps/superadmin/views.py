@@ -468,7 +468,7 @@ def plans_management_view(request):
             messages.warning(request, f"El plan '{plan.name}' ha sido eliminado.")
             return redirect('superadmin_plans')
 
-    plans = SubscriptionPlan.objects.all().order_by('monthly_price')
+    plans = SubscriptionPlan.objects.prefetch_related('region_prices').all().order_by('monthly_price')
 
     all_modules = [
         {'code': 'crm', 'name': 'CRM & Clientes'},
@@ -481,6 +481,7 @@ def plans_management_view(request):
         {'code': 'ai_engine', 'name': 'IA & Automatización'},
         {'code': 'marketing', 'name': 'Marketing & Promociones'},
         {'code': 'properties', 'name': 'Inmobiliaria & Propiedades'},
+        {'code': 'projects', 'name': 'Proyectos & Contenido Redes'},
     ]
 
     regions = Region.objects.filter(is_active=True).order_by('name')
@@ -916,9 +917,9 @@ def _ensure_default_regions():
             'transfer_instructions': 'Transferencia BROU / Itaú / Santander / Prex: Indicar Banco, Moneda ($U o USD), N° de Cuenta y Titular.'
         },
         {
-            'name': 'Venezuela', 'code': '58', 'country_codes': 'VE', 'currency_symbol': 'Bs.', 'currency_code': 'VES',
+            'name': 'Venezuela', 'code': '58', 'country_codes': 'VE', 'currency_symbol': '$', 'currency_code': 'USD',
             'methods': ['PAGOMOVIL', 'ZELLE', 'BINANCE_PAY', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'PAYPAL'],
-            'transfer_instructions': 'Transferencia Bancaria Nacional (Bs.): Indicar Banco, Código de 20 dígitos de Cuenta, Titular y Cédula/RIF.'
+            'transfer_instructions': 'Transferencia Bancaria Nacional (Bs. a tasa oficial BCV o USD): Indicar Banco, Código de 20 dígitos de Cuenta, Titular y Cédula/RIF.'
         },
     ]
 
@@ -948,6 +949,10 @@ def _ensure_default_regions():
                 updated = True
             if not region.currency_code:
                 region.currency_code = item['currency_code']
+                updated = True
+            if item['name'] == 'Venezuela' and (region.currency_symbol != '$' or region.currency_code != 'USD'):
+                region.currency_symbol = '$'
+                region.currency_code = 'USD'
                 updated = True
             if updated:
                 region.save()
@@ -986,12 +991,15 @@ REGION_USD_RATES = {
     'GTQ': Decimal('7.75'),     # Guatemala (Q)
     'HNL': Decimal('25.00'),    # Honduras (L)
     'NIO': Decimal('36.80'),    # Nicaragua (C$)
-    'VES': Decimal('65.00'),    # Venezuela (Bs.)
+    'VES': Decimal('1.00'),     # Venezuela opera en USD para planes SaaS
     'USD': Decimal('1.00'),     # Dólares (USD)
 }
 
 def _get_region_usd_rate(region):
     if not region:
+        return Decimal('1.00')
+    name_lower = (getattr(region, 'name', '') or '').strip().lower()
+    if 'venezuela' in name_lower:
         return Decimal('1.00')
     curr = (getattr(region, 'currency_code', '') or '').strip().upper()
     if curr in REGION_USD_RATES:
@@ -1044,7 +1052,7 @@ def _ensure_default_plans():
             'annual_price': Decimal('288.00'),
             'max_users': 10,
             'max_branches': 2,
-            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties'],
+            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties', 'projects'],
         },
         {
             'code': 'ENTERPRISE',
@@ -1053,7 +1061,7 @@ def _ensure_default_plans():
             'annual_price': Decimal('560.00'),
             'max_users': 0,
             'max_branches': 0,
-            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties'],
+            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties', 'projects'],
         },
     ]
 
@@ -1110,11 +1118,19 @@ def _ensure_default_plans():
                 }
             )
             # If the region uses a local currency (e.g. ARS, UYU) and still had the raw USD value stored, convert it
-            if not rp_created and _get_region_usd_rate(region) > Decimal('1.00') and rp.monthly_price in unconverted_usd_values:
-                rp.monthly_price = conv_monthly
-                rp.annual_price = conv_annual
-                rp.is_active = True
-                rp.save(update_fields=['monthly_price', 'annual_price', 'is_active'])
+            if not rp_created:
+                rate = _get_region_usd_rate(region)
+                if rate > Decimal('1.00') and rp.monthly_price in unconverted_usd_values:
+                    rp.monthly_price = conv_monthly
+                    rp.annual_price = conv_annual
+                    rp.is_active = True
+                    rp.save(update_fields=['monthly_price', 'annual_price', 'is_active'])
+                elif rate == Decimal('1.00') and (rp.monthly_price != conv_monthly or rp.annual_price != conv_annual):
+                    # Países dolarizados o que operan en USD (como Venezuela, Ecuador, Panamá) deben reflejar el precio base en USD
+                    rp.monthly_price = conv_monthly
+                    rp.annual_price = conv_annual
+                    rp.is_active = True
+                    rp.save(update_fields=['monthly_price', 'annual_price', 'is_active'])
 
 def _sync_business_subscriptions():
     pro_plan = SubscriptionPlan.objects.filter(code='PRO').first() or SubscriptionPlan.objects.first()

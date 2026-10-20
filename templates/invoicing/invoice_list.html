@@ -20,7 +20,11 @@
             </div>
 
             <!-- Desktop Action Button (Compact on PC) -->
-            <div class="hidden sm:flex items-center shrink-0">
+            <div class="hidden sm:flex items-center gap-2 shrink-0">
+                <a href="{% url 'quote_list' %}" class="h-10 px-3.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-900 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="calculator" class="w-4 h-4 text-rose-700"></i>
+                    <span>Ver Cotizaciones</span>
+                </a>
                 <a href="{% url 'expense_list' %}" class="h-10 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-2xs transition">
                     <i data-lucide="minus-circle" class="w-4 h-4 text-rose-400"></i>
                     <span>Registrar Gastos</span>
@@ -29,10 +33,14 @@
         </div>
         
         <!-- Mobile Action Button (Full-width pill on mobile) -->
-        <div class="sm:hidden pt-1 border-t border-slate-100">
-            <a href="{% url 'expense_list' %}" class="w-full py-3 px-6 rounded-full bg-black hover:bg-slate-900 text-white font-bold text-sm inline-flex items-center justify-center gap-2 shadow-sm transition">
+        <div class="sm:hidden pt-1 border-t border-slate-100 grid grid-cols-2 gap-2">
+            <a href="{% url 'quote_list' %}" class="py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-900 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
+                <i data-lucide="calculator" class="w-4 h-4 text-rose-700"></i>
+                <span>Cotizaciones</span>
+            </a>
+            <a href="{% url 'expense_list' %}" class="py-2.5 px-3 rounded-xl bg-slate-950 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
                 <i data-lucide="minus-circle" class="w-4 h-4 text-rose-400"></i>
-                <span>Registrar Gastos</span>
+                <span>Gastos</span>
             </a>
         </div>
     </div>
