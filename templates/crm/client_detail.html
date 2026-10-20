@@ -7,148 +7,194 @@
 <div class="space-y-6 pb-12 max-w-7xl mx-auto">
 
     <!-- Client Profile Main Header Card -->
-    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/90 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5 min-w-0 flex-1">
-            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-brand-900 via-brand-800 to-rose-700 text-white font-black text-2xl sm:text-3xl flex items-center justify-center shadow-lg shadow-rose-900/20 shrink-0">
-                {{ client.first_name|slice:":1" }}{{ client.last_name|slice:":1" }}
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/90 shadow-sm space-y-6 relative overflow-hidden">
+        <!-- Top Row: Avatar & Identity + Primary Action Buttons -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div class="flex items-start sm:items-center gap-4 sm:gap-5 min-w-0 flex-1">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-brand-900 via-brand-800 to-rose-700 text-white font-black text-2xl sm:text-3xl flex items-center justify-center shadow-lg shadow-rose-900/20 shrink-0">
+                    {{ client.first_name|slice:":1" }}{{ client.last_name|slice:":1" }}
+                </div>
+                <div class="space-y-2 min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="text-2xl sm:text-3xl font-black font-display text-slate-900 tracking-tight break-words mr-1">{{ client.full_name }}</h2>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold shrink-0 {% if client.status == 'VIP' %}bg-rose-100 text-brand-900 border border-rose-200{% elif client.status == 'ACTIVE' %}bg-emerald-100 text-emerald-900 border border-emerald-200{% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                            {{ client.get_status_display }}
+                        </span>
+                        {% if is_real_estate %}
+                        <span class="px-3 py-1 rounded-full text-xs font-bold shrink-0 inline-flex items-center gap-1.5 border
+                            {% if client.real_estate_role.color == 'amber' %}bg-amber-50 text-amber-900 border-amber-200
+                            {% elif client.real_estate_role.color == 'emerald' %}bg-emerald-50 text-emerald-900 border-emerald-200
+                            {% elif client.real_estate_role.color == 'purple' %}bg-purple-50 text-purple-900 border-purple-200
+                            {% else %}bg-slate-100 text-slate-700 border-slate-200{% endif %}">
+                            <i data-lucide="home" class="w-3.5 h-3.5 shrink-0"></i>
+                            <span>{{ client.real_estate_role.badge }}</span>
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-600 font-medium">
+                        <a href="https://wa.me/{{ client.phone|cut:'+'|cut:' ' }}" target="_blank" class="text-emerald-700 hover:text-emerald-800 font-bold inline-flex items-center gap-1.5 transition">
+                            <i data-lucide="phone" class="w-4 h-4 shrink-0"></i>
+                            <span>{{ client.phone }}</span>
+                        </a>
+                        {% if client.email %}
+                        <span class="inline-flex items-center gap-1.5 text-slate-600 truncate">
+                            <i data-lucide="mail" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                            <span class="truncate">{{ client.email }}</span>
+                        </span>
+                        {% endif %}
+                        {% if client.tax_id %}
+                        <span class="inline-flex items-center gap-1.5 text-slate-500 font-mono">
+                            <i data-lucide="file-badge" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                            <span>DNI: {{ client.tax_id }}</span>
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-            <div class="space-y-1.5 min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-2.5">
-                    <h2 class="text-2xl sm:text-3xl font-black font-display text-slate-900 tracking-tight break-words">{{ client.full_name }}</h2>
-                    <span class="px-3 py-1 rounded-full text-xs font-bold shrink-0 {% if client.status == 'VIP' %}bg-rose-100 text-brand-900 border border-rose-200{% elif client.status == 'ACTIVE' %}bg-emerald-100 text-emerald-900 border border-emerald-200{% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
-                        {{ client.get_status_display }}
-                    </span>
-                    {% if is_real_estate %}
-                    <span class="px-3 py-1 rounded-full text-xs font-bold shrink-0 flex items-center gap-1.5 border
-                        {% if client.real_estate_role.color == 'amber' %}bg-amber-50 text-amber-900 border-amber-200
-                        {% elif client.real_estate_role.color == 'emerald' %}bg-emerald-50 text-emerald-900 border-emerald-200
-                        {% elif client.real_estate_role.color == 'purple' %}bg-purple-50 text-purple-900 border-purple-200
-                        {% else %}bg-slate-100 text-slate-700 border-slate-200{% endif %}">
-                        <i data-lucide="home" class="w-3.5 h-3.5"></i>
-                        {{ client.real_estate_role.badge }}
-                    </span>
-                    {% endif %}
-                </div>
-                <div class="flex flex-wrap items-center gap-4 text-xs text-slate-600 font-medium">
-                    <a href="https://wa.me/{{ client.phone|cut:'+'|cut:' ' }}" target="_blank" class="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1.5 transition">
-                        <i data-lucide="phone" class="w-4 h-4"></i> {{ client.phone }}
-                    </a>
-                    {% if client.email %}
-                    <span class="flex items-center gap-1.5 text-slate-600 truncate">
-                        <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i> {{ client.email }}
-                    </span>
-                    {% endif %}
-                    {% if client.tax_id %}
-                    <span class="flex items-center gap-1.5 text-slate-500 font-mono">
-                        <i data-lucide="file-badge" class="w-4 h-4 text-slate-400"></i> DNI: {{ client.tax_id }}
-                    </span>
-                    {% endif %}
-                </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap sm:flex-nowrap items-stretch sm:items-center gap-2 shrink-0">
+                {% if is_real_estate %}
+                <button type="button" onclick="openInquiryModal()" class="px-3.5 py-2.5 bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
+                    <i data-lucide="plus-circle" class="w-4 h-4 shrink-0"></i>
+                    <span>Nueva Solicitud Inmobiliaria</span>
+                </button>
+                {% else %}
+                <a href="{% url 'quote_create' %}?client_id={{ client.id }}" class="px-3.5 py-2.5 bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="calculator" class="w-4 h-4 shrink-0"></i>
+                    <span>Cotizar</span>
+                </a>
+                <a href="{% url 'project_create' %}?client_id={{ client.id }}" class="px-3.5 py-2.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="folder-plus" class="w-4 h-4 text-rose-800 shrink-0"></i>
+                    <span>Crear Proyecto</span>
+                </a>
+                {% endif %}
+                <a href="{% url 'client_edit' client.id %}" class="px-3.5 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="edit-3" class="w-4 h-4 shrink-0"></i>
+                    <span>Editar</span>
+                </a>
             </div>
         </div>
 
-        <!-- Action Buttons & Quick KPIs -->
-        <div class="flex flex-wrap items-center gap-4 shrink-0 border-t lg:border-t-0 border-slate-100 pt-4 lg:pt-0">
-            {% if is_real_estate %}
-            <div class="flex items-center gap-4 bg-rose-50/50 p-4 rounded-2xl border border-rose-200/80">
-                <div>
+        <!-- Bottom Row: 3-Column KPI Strip (Never overlaps with name or badges) -->
+        {% if is_real_estate %}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-5 border-t border-slate-100">
+            <div class="flex items-center gap-3.5 p-3.5 rounded-2xl bg-rose-50/50 border border-rose-200/70">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 text-[#881337] flex items-center justify-center shrink-0">
+                    <i data-lucide="building-2" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0">
                     <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Cartera Propietario</span>
-                    <span class="text-xl font-black text-rose-950 font-display block">{{ owned_properties.count }}</span>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-xl font-black text-rose-950 font-display">{{ owned_properties.count }}</span>
+                        <span class="text-[11px] text-slate-500 font-medium">inmuebles</span>
+                    </div>
                 </div>
-                <div class="border-l border-rose-200 pl-4">
+            </div>
+
+            <div class="flex items-center gap-3.5 p-3.5 rounded-2xl bg-emerald-50/50 border border-emerald-200/70">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                    <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0">
                     <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Visitas a Inmuebles</span>
-                    <span class="text-xl font-black text-slate-900 font-display block">{{ property_visits|length }}</span>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-xl font-black text-slate-900 font-display">{{ property_visits|length }}</span>
+                        <span class="text-[11px] text-slate-500 font-medium">coordinadas</span>
+                    </div>
                 </div>
-                <div class="border-l border-rose-200 pl-4">
+            </div>
+
+            <div class="flex items-center gap-3.5 p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200/70">
+                <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                    <i data-lucide="compass" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0">
                     <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Solicitudes Compra/Venta</span>
-                    <span class="text-xl font-black text-slate-900 font-display block">{{ seller_inquiries.count|add:buyer_inquiries.count|add:legacy_seller_requests|length }}</span>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-xl font-black text-slate-900 font-display">{{ seller_inquiries.count|add:buyer_inquiries.count|add:legacy_seller_requests|length }}</span>
+                        <span class="text-[11px] text-slate-500 font-medium">registradas</span>
+                    </div>
                 </div>
             </div>
-
-            <button type="button" onclick="openInquiryModal()" class="px-4 py-3 bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2">
-                <i data-lucide="plus-circle" class="w-4 h-4"></i> Nueva Solicitud Inmobiliaria
-            </button>
-            {% else %}
-            <div class="flex items-center gap-5 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-                <div>
-                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Total Gastado</span>
-                    <span class="text-xl font-black text-brand-900 font-display block">{{ business.currency }}{{ client.total_spent|floatformat:2 }}</span>
-                </div>
-                <div class="border-l border-slate-200 pl-5">
-                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Citas</span>
-                    <span class="text-xl font-black text-slate-900 font-display block">{{ appointments|length }}</span>
-                </div>
-                <div class="border-l border-slate-200 pl-5">
-                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Anotaciones</span>
-                    <span class="text-xl font-black text-slate-900 font-display block">{{ service_notes|length }}</span>
-                </div>
-            </div>
-            {% endif %}
-
-            <a href="{% url 'client_edit' client.id %}" class="px-5 py-3 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2">
-                <i data-lucide="edit-3" class="w-4 h-4"></i> Editar Datos
-            </a>
         </div>
+        {% else %}
+        <div class="grid grid-cols-3 gap-3 sm:gap-4 pt-5 border-t border-slate-100">
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Total Gastado</span>
+                <span class="text-base sm:text-xl font-black text-brand-900 font-display block truncate mt-0.5">{{ business.currency }}{{ client.total_spent|floatformat:2 }}</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Citas</span>
+                <span class="text-base sm:text-xl font-black text-slate-900 font-display block mt-0.5">{{ appointments|length }}</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Anotaciones</span>
+                <span class="text-base sm:text-xl font-black text-slate-900 font-display block mt-0.5">{{ service_notes|length }}</span>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
-    <!-- Spacious Tabbed Navigation Header -->
-    <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-2">
+    <!-- Horizontal Tabbed Navigation Header (Single horizontal bar, never wraps into 2 rows or vertical column) -->
+    <div class="bg-white p-1.5 sm:p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-1.5 overflow-x-auto no-scrollbar">
         {% if is_real_estate %}
-        <button onclick="switchClientTab('realestate')" id="client-tab-realestate" class="client-tab-btn active px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="home" class="w-4 h-4 text-[#881337]"></i>
-            <span>Gestión Inmobiliaria (Compra & Venta)</span>
-            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-[#881337] text-[10px] font-bold">{{ property_visits|length|add:seller_inquiries.count|add:buyer_inquiries.count|add:owned_properties.count|add:legacy_seller_requests|length }}</span>
+        <button onclick="switchClientTab('realestate')" id="client-tab-realestate" class="client-tab-btn active flex-1 justify-center shrink-0 whitespace-nowrap px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-transparent transition flex items-center gap-2 cursor-pointer">
+            <i data-lucide="home" class="w-4 h-4 text-[#881337] shrink-0"></i>
+            <span>Gestión Inmobiliaria</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-[#881337] text-[10px] font-bold shrink-0">{{ property_visits|length|add:seller_inquiries.count|add:buyer_inquiries.count|add:owned_properties.count|add:legacy_seller_requests|length }}</span>
         </button>
 
-        <button onclick="switchClientTab('appointments')" id="client-tab-appointments" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="calendar" class="w-4 h-4 text-brand-700"></i>
-            <span>Historial de Visitas & Citas</span>
-            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold">{{ appointments|length }}</span>
+        <button onclick="switchClientTab('appointments')" id="client-tab-appointments" class="client-tab-btn flex-1 justify-center shrink-0 whitespace-nowrap px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-transparent transition flex items-center gap-2 cursor-pointer">
+            <i data-lucide="calendar" class="w-4 h-4 text-brand-700 shrink-0"></i>
+            <span>Visitas & Citas</span>
+            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold shrink-0">{{ appointments|length }}</span>
         </button>
 
-        <button onclick="switchClientTab('properties')" id="client-tab-properties" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="building-2" class="w-4 h-4 text-rose-800"></i>
+        <button onclick="switchClientTab('properties')" id="client-tab-properties" class="client-tab-btn flex-1 justify-center shrink-0 whitespace-nowrap px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-transparent transition flex items-center gap-2 cursor-pointer">
+            <i data-lucide="building-2" class="w-4 h-4 text-rose-800 shrink-0"></i>
             <span>Inmuebles en Cartera</span>
-            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 text-[10px] font-bold">{{ owned_properties.count }}</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 text-[10px] font-bold shrink-0">{{ owned_properties.count }}</span>
         </button>
 
-        <button onclick="switchClientTab('notes')" id="client-tab-notes" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="clipboard-list" class="w-4 h-4 text-brand-700"></i>
-            <span>Anotaciones de Seguimiento</span>
-            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-brand-900 text-[10px] font-bold">{{ service_notes|length }}</span>
+        <button onclick="switchClientTab('notes')" id="client-tab-notes" class="client-tab-btn flex-1 justify-center shrink-0 whitespace-nowrap px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-transparent transition flex items-center gap-2 cursor-pointer">
+            <i data-lucide="clipboard-list" class="w-4 h-4 text-brand-700 shrink-0"></i>
+            <span>Seguimiento</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-brand-900 text-[10px] font-bold shrink-0">{{ service_notes|length }}</span>
         </button>
 
-        <button onclick="switchClientTab('prefs')" id="client-tab-prefs" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="bookmark" class="w-4 h-4 text-amber-600"></i>
-            <span>Notas & Observaciones Generales</span>
+        <button onclick="switchClientTab('prefs')" id="client-tab-prefs" class="client-tab-btn flex-1 justify-center shrink-0 whitespace-nowrap px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-transparent transition flex items-center gap-2 cursor-pointer">
+            <i data-lucide="bookmark" class="w-4 h-4 text-amber-600 shrink-0"></i>
+            <span>Observaciones</span>
         </button>
 
-        <button onclick="switchClientTab('sales')" id="client-tab-sales" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-700"></i>
-            <span>Facturación & Cobros</span>
-            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold">{{ sales|length }}</span>
+        <button onclick="switchClientTab('sales')" id="client-tab-sales" class="client-tab-btn flex-1 justify-center shrink-0 whitespace-nowrap px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-transparent transition flex items-center gap-2 cursor-pointer">
+            <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-700 shrink-0"></i>
+            <span>Facturación</span>
+            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold shrink-0">{{ sales|length }}</span>
         </button>
         {% else %}
-        <button onclick="switchClientTab('notes')" id="client-tab-notes" class="client-tab-btn active px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="file-text" class="w-4 h-4 text-brand-700"></i>
+        <button onclick="switchClientTab('notes')" id="client-tab-notes" class="client-tab-btn active flex-1 justify-center shrink-0 whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-transparent transition flex items-center gap-2 cursor-pointer">
+            <i data-lucide="file-text" class="w-4 h-4 text-brand-700 shrink-0"></i>
             <span>Anotaciones por Servicio</span>
-            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-brand-900 text-[10px] font-bold">{{ service_notes|length }}</span>
+            <span class="px-2 py-0.5 rounded-full bg-rose-100 text-brand-900 text-[10px] font-bold shrink-0">{{ service_notes|length }}</span>
         </button>
 
-        <button onclick="switchClientTab('appointments')" id="client-tab-appointments" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="calendar" class="w-4 h-4 text-brand-700"></i>
+        <button onclick="switchClientTab('appointments')" id="client-tab-appointments" class="client-tab-btn flex-1 justify-center shrink-0 whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-transparent transition flex items-center gap-2 cursor-pointer">
+            <i data-lucide="calendar" class="w-4 h-4 text-brand-700 shrink-0"></i>
             <span>Historial de Citas & Servicios</span>
-            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold">{{ appointments|length }}</span>
+            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold shrink-0">{{ appointments|length }}</span>
         </button>
 
-        <button onclick="switchClientTab('sales')" id="client-tab-sales" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-700"></i>
+        <button onclick="switchClientTab('sales')" id="client-tab-sales" class="client-tab-btn flex-1 justify-center shrink-0 whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-transparent transition flex items-center gap-2 cursor-pointer">
+            <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-700 shrink-0"></i>
             <span>Ventas POS & Facturación</span>
-            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold">{{ sales|length }}</span>
+            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold shrink-0">{{ sales|length }}</span>
         </button>
 
-        <button onclick="switchClientTab('prefs')" id="client-tab-prefs" class="client-tab-btn px-5 py-3 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center gap-2">
-            <i data-lucide="bookmark" class="w-4 h-4 text-amber-600"></i>
+        <button onclick="switchClientTab('prefs')" id="client-tab-prefs" class="client-tab-btn flex-1 justify-center shrink-0 whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 border border-transparent transition flex items-center gap-2 cursor-pointer">
+            <i data-lucide="bookmark" class="w-4 h-4 text-amber-600 shrink-0"></i>
             <span>Notas & Preferencias Generales</span>
         </button>
         {% endif %}
@@ -184,9 +230,9 @@
 
             <!-- COLUMNA 1: INTERESADO EN COMPRAR O ALQUILAR -->
             <div class="space-y-5">
-                <div class="flex items-center justify-between pb-3 border-b border-emerald-100">
+                <div class="flex items-center justify-between gap-3 pb-3 border-b border-emerald-100">
                     <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0">
                             <i data-lucide="key" class="w-4 h-4"></i>
                         </div>
                         <div>
@@ -194,7 +240,7 @@
                             <p class="text-[11px] text-slate-500">Inmuebles que visitó, consultó o requerimientos de búsqueda</p>
                         </div>
                     </div>
-                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200 whitespace-nowrap shrink-0">
                         {{ property_visits|length|add:buyer_inquiries.count }} Registros
                     </span>
                 </div>
@@ -341,9 +387,9 @@
 
             <!-- COLUMNA 2: PROPIETARIO / VENDEDOR (Datos que agregó para vender o tasar) -->
             <div class="space-y-5">
-                <div class="flex items-center justify-between pb-3 border-b border-amber-100">
+                <div class="flex items-center justify-between gap-3 pb-3 border-b border-amber-100">
                     <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                        <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold shrink-0">
                             <i data-lucide="building-2" class="w-4 h-4"></i>
                         </div>
                         <div>
@@ -351,7 +397,7 @@
                             <p class="text-[11px] text-slate-500">Datos ingresados para comercializar, alquilar o tasar inmuebles</p>
                         </div>
                     </div>
-                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200 whitespace-nowrap shrink-0">
                         {{ seller_inquiries.count|add:owned_properties.count|add:legacy_seller_requests|length }} Registros
                     </span>
                 </div>
@@ -524,7 +570,7 @@
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
                 <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
-                    <i data-lucide="file-text" class="w-5 h-5 text-brand-700"></i>
+                    <i data-lucide="file-text" class="w-5 h-5 text-brand-700 shrink-0"></i>
                     <span>{% if is_real_estate %}Anotaciones & Seguimiento Inmobiliario{% else %}Anotaciones por Servicio / Tratamiento{% endif %}</span>
                 </h3>
                 <p class="text-xs text-slate-500">{% if is_real_estate %}Registro de negociaciones, acuerdos, contraofertas y observaciones de visitas con el cliente{% else %}Fórmulas técnicas, observaciones de atención y detalles registrados por sesión{% endif %}</p>
@@ -603,41 +649,41 @@
     </div>
 
     <!-- TAB CONTENT 2: Historial Cronológico de Citas & Visitas -->
-    <div id="client-content-appointments" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-            <div>
-                <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
-                    <i data-lucide="calendar" class="w-5 h-5 text-brand-700"></i>
+    <div id="client-content-appointments" class="client-content hidden bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <div class="flex items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div class="min-w-0">
+                <h3 class="font-bold text-slate-900 text-base sm:text-lg font-display flex items-center gap-2 leading-snug">
+                    <i data-lucide="calendar" class="w-5 h-5 text-brand-700 shrink-0"></i>
                     <span>{% if is_real_estate %}Historial de Visitas a Inmuebles & Citas{% else %}Historial Cronológico de Citas & Reservas{% endif %}</span>
                 </h3>
-                <p class="text-xs text-slate-500">Listado de turnos y visitas coordinadas</p>
+                <p class="text-xs text-slate-500 mt-0.5">Listado de turnos y visitas coordinadas</p>
             </div>
-            <span class="text-xs font-bold text-slate-700 bg-slate-100 px-3.5 py-1 rounded-full border border-slate-200">
+            <span class="whitespace-nowrap shrink-0 text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
                 {{ appointments|length }} Registros
             </span>
         </div>
 
         <div class="space-y-3">
             {% for app in appointments %}
-            <div class="p-5 rounded-2xl border border-slate-200/90 bg-slate-50 hover:bg-white transition space-y-3">
+            <div class="p-4 sm:p-5 rounded-2xl border border-slate-200/90 bg-slate-50 hover:bg-white transition space-y-3">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="space-y-1 min-w-0">
                         <div class="flex items-center gap-2">
                             {% if app.related_property %}
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-900 border border-rose-200">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-900 border border-rose-200 shrink-0">
                                 Visita Inmobiliaria
                             </span>
                             {% endif %}
-                            <h4 class="font-extrabold text-base text-slate-900 truncate">{{ app.services_summary }}</h4>
+                            <h4 class="font-extrabold text-sm sm:text-base text-slate-900 truncate">{{ app.services_summary }}</h4>
                         </div>
-                        <p class="text-xs text-slate-600 flex flex-wrap items-center gap-3">
+                        <p class="text-xs text-slate-600 flex flex-wrap items-center gap-2 sm:gap-3">
                             <span>📅 {{ app.date|date:"d/m/Y" }} • {{ app.start_time|time:"H:i" }} hs</span>
-                            <span>• Asesor / Profesional: <strong class="text-brand-900">{{ app.staff.full_name }}</strong></span>
+                            <span>• Profesional: <strong class="text-brand-900">{{ app.staff.full_name }}</strong></span>
                         </p>
                     </div>
-                    <div class="flex items-center gap-4 justify-between sm:justify-end shrink-0">
-                        <span class="font-black text-lg text-slate-900 font-display">{{ business.currency }}{{ app.total_price|floatformat:2 }}</span>
-                        <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase
+                    <div class="flex items-center gap-3 justify-between sm:justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+                        <span class="font-black text-base sm:text-lg text-slate-900 font-display">{{ business.currency }}{{ app.total_price|floatformat:2 }}</span>
+                        <span class="whitespace-nowrap shrink-0 inline-block px-3 py-1 rounded-full text-xs font-bold uppercase
                             {% if app.status == 'COMPLETED' %}bg-emerald-100 text-emerald-900 border border-emerald-200
                             {% elif app.status == 'CONFIRMED' %}bg-blue-100 text-blue-900 border border-blue-200
                             {% elif app.status == 'PENDING' %}bg-amber-100 text-amber-900 border border-amber-200
@@ -680,28 +726,28 @@
     </div>
 
     <!-- TAB CONTENT 3: Historial de Ventas POS & Facturación -->
-    <div id="client-content-sales" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-            <div>
-                <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
-                    <i data-lucide="shopping-bag" class="w-5 h-5 text-brand-700"></i>
+    <div id="client-content-sales" class="client-content hidden bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <div class="flex items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div class="min-w-0">
+                <h3 class="font-bold text-slate-900 text-base sm:text-lg font-display flex items-center gap-2 leading-snug">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 text-brand-700 shrink-0"></i>
                     <span>Historial de Cobros & Facturación</span>
                 </h3>
-                <p class="text-xs text-slate-500">Comprobantes y operaciones registradas</p>
+                <p class="text-xs text-slate-500 mt-0.5">Comprobantes y operaciones registradas</p>
             </div>
-            <span class="text-xs font-bold text-slate-700 bg-slate-100 px-3.5 py-1 rounded-full border border-slate-200">
+            <span class="whitespace-nowrap shrink-0 text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
                 {{ sales|length }} Ventas
             </span>
         </div>
 
         <div class="space-y-3">
             {% for s in sales %}
-            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs sm:text-sm">
-                <div class="space-y-0.5">
-                    <span class="font-extrabold text-slate-900">Venta #{{ s.id|stringformat:".8s" }}</span>
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs sm:text-sm">
+                <div class="space-y-0.5 min-w-0">
+                    <span class="font-extrabold text-slate-900 block">Venta #{{ s.id|stringformat:".8s" }}</span>
                     <p class="text-xs text-slate-500">{{ s.created_at|date:"d/m/Y H:i" }} hs • Medio de Pago: {{ s.get_payment_method_display }}</p>
                 </div>
-                <span class="font-black text-slate-900 text-base font-display">{{ business.currency }}{{ s.total_amount|floatformat:2 }}</span>
+                <span class="font-black text-slate-900 text-base font-display shrink-0">{{ business.currency }}{{ s.total_amount|floatformat:2 }}</span>
             </div>
             {% empty %}
             <div class="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
@@ -713,14 +759,14 @@
     </div>
 
     <!-- TAB CONTENT 4: Notas & Preferencias Generales -->
-    <div id="client-content-prefs" class="client-content hidden bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
-                <i data-lucide="bookmark" class="w-5 h-5 text-amber-600"></i>
+    <div id="client-content-prefs" class="client-content hidden bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2 leading-snug">
+                <i data-lucide="bookmark" class="w-5 h-5 text-amber-600 shrink-0"></i>
                 <span>Notas & Observaciones Generales del Paciente / Cliente</span>
             </h3>
-            <button type="button" onclick="document.getElementById('edit-general-notes-form').classList.toggle('hidden')" class="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer">
-                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Editar / Agregar Observaciones
+            <button type="button" onclick="document.getElementById('edit-general-notes-form').classList.toggle('hidden')" class="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5 shrink-0"></i> Editar / Agregar Observaciones
             </button>
         </div>
 
@@ -937,6 +983,13 @@
         background-color: #fff1f2;
         color: #881337;
         border-color: #fecdd3;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
 </style>
 

@@ -33,16 +33,27 @@ def client_list_view(request):
 
     if is_real_estate and real_estate_filter and real_estate_filter != 'all':
         from django.db.models import Q
+        seller_q = (
+            Q(owned_properties__isnull=False) |
+            Q(property_inquiries__inquiry_type__in=['SELLER', 'SELL_TO_BUY']) |
+            Q(notes__icontains='[PROPIETARIO')
+        )
+        buyer_q = (
+            Q(property_inquiries__inquiry_type__in=['BUYER', 'SELL_TO_BUY']) |
+            Q(appointments__related_property__isnull=False)
+        )
         if real_estate_filter == 'sellers':
-            clients = clients.filter(
-                Q(owned_properties__isnull=False) |
-                Q(property_inquiries__inquiry_type='SELLER') |
-                Q(notes__icontains='[PROPIETARIO')
-            ).distinct()
+            clients = clients.filter(seller_q).distinct()
         elif real_estate_filter == 'buyers':
+            clients = clients.filter(buyer_q).distinct()
+        elif real_estate_filter == 'sell_to_buy':
             clients = clients.filter(
-                Q(property_inquiries__inquiry_type='BUYER') |
-                Q(appointments__related_property__isnull=False)
+                Q(property_inquiries__inquiry_type='SELL_TO_BUY') |
+                Q(notes__icontains='VENDER PARA COMPRAR') |
+                (
+                    (Q(owned_properties__isnull=False) | Q(property_inquiries__inquiry_type='SELLER') | Q(notes__icontains='[PROPIETARIO')) &
+                    (Q(property_inquiries__inquiry_type='BUYER') | Q(appointments__related_property__isnull=False))
+                )
             ).distinct()
         elif real_estate_filter == 'visits':
             clients = clients.filter(appointments__related_property__isnull=False).distinct()
@@ -198,6 +209,7 @@ def client_detail_view(request, client_id):
     
     seller_inquiries = []
     buyer_inquiries = []
+    sell_to_buy_inquiries = []
     property_visits = []
     owned_properties = []
     available_properties = []
@@ -209,6 +221,7 @@ def client_detail_view(request, client_id):
         owned_properties = client.owned_properties.select_related('agent').order_by('-created_at')
         seller_inquiries = client.property_inquiries.filter(inquiry_type='SELLER').select_related('agent').order_by('-created_at')
         buyer_inquiries = client.property_inquiries.filter(inquiry_type='BUYER').select_related('property', 'agent').order_by('-created_at')
+        sell_to_buy_inquiries = client.property_inquiries.filter(inquiry_type='SELL_TO_BUY').select_related('property', 'agent').order_by('-created_at')
         property_visits = [app for app in appointments if app.related_property]
         legacy_seller_requests = parse_legacy_seller_notes(client.notes)
         available_properties = Property.objects.filter(business=business, status='AVAILABLE').order_by('title')
@@ -226,6 +239,7 @@ def client_detail_view(request, client_id):
         'is_real_estate': is_real_estate,
         'seller_inquiries': seller_inquiries,
         'buyer_inquiries': buyer_inquiries,
+        'sell_to_buy_inquiries': sell_to_buy_inquiries,
         'property_visits': property_visits,
         'owned_properties': owned_properties,
         'available_properties': available_properties,
@@ -252,6 +266,25 @@ def add_client_property_inquiry_view(request, client_id):
         notes = request.POST.get('notes', '').strip()
         agent_id = request.POST.get('agent_id')
         status = request.POST.get('status', 'PENDING')
+
+        if inquiry_type == 'SELL_TO_BUY':
+            operation_type = 'Vender para Comprar'
+            target_property_type = request.POST.get('target_property_type', '').strip()
+            target_zone = request.POST.get('target_zone', '').strip()
+            target_rooms = request.POST.get('target_rooms', '').strip()
+            target_budget = request.POST.get('target_budget', '').strip()
+            target_parts = []
+            if target_property_type:
+                target_parts.append(f"Busca comprar: {target_property_type}")
+            if target_zone:
+                target_parts.append(f"Zona buscada: {target_zone}")
+            if target_rooms:
+                target_parts.append(f"Ambientes buscados: {target_rooms}")
+            if target_budget:
+                target_parts.append(f"Presupuesto / Diferencia: {target_budget}")
+            if target_parts:
+                target_summary = " | ".join(target_parts)
+                notes = f"[PROPIEDAD QUE BUSCA COMPRAR] {target_summary}\n{notes}".strip() if notes else f"[PROPIEDAD QUE BUSCA COMPRAR] {target_summary}"
         
         selected_property = None
         if property_id:
@@ -276,7 +309,12 @@ def add_client_property_inquiry_view(request, client_id):
             agent=agent
         )
         
-        label = "Interés de compra / alquiler" if inquiry_type == 'BUYER' else "Solicitud de propietario"
+        if inquiry_type == 'SELL_TO_BUY':
+            label = "Operación simultánea (Vender para Comprar)"
+        elif inquiry_type == 'BUYER':
+            label = "Interés de compra / alquiler"
+        else:
+            label = "Solicitud de propietario"
         messages.success(request, f"{label} registrada exitosamente para {client.full_name}.")
         
     return redirect('client_detail', client_id=client.id)

@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Cargar variables de entorno desde el archivo .env
 load_dotenv(BASE_DIR / '.env')
 
-ENVIRONMENT = 'production'
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'production')
 
 
 SECRET_KEY = os.getenv('SECRET_KEY')
@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'apps.ai_engine',
     'apps.marketing',
     'apps.properties',
+    'apps.projects',
     'apps.superadmin',
 ]
 
@@ -184,8 +185,8 @@ if ENVIRONMENT == 'production' and not DEBUG:
     SECURE_HSTS_PRELOAD = True
 
 # Session Timeout Configuration (Cierre de sesión por inactividad)
-# 1800 segundos = 30 minutos de inactividad
-SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', 1800))
+# 14400 segundos = 4 horas de inactividad (más de 3 horas)
+SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', 14400))
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 

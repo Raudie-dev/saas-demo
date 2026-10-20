@@ -360,6 +360,18 @@
                     <span class="text-slate-500 font-medium">Total:</span>
                     <span class="font-extrabold text-rose-950 text-base">{{ business.currency }}{{ appointment.total_price }}</span>
                 </div>
+                {% if appointment.deposit_amount > 0 %}
+                <div class="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 mt-2 space-y-1">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-emerald-900">Seña / Anticipo requerido ({{ appointment.effective_deposit_percentage|floatformat:0 }}%):</span>
+                        <span class="font-extrabold text-emerald-800 text-sm">{{ business.currency }}{{ appointment.deposit_amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-[11px] text-slate-600">
+                        <span>Saldo restante a abonar en el local:</span>
+                        <span class="font-bold text-slate-800">{{ business.currency }}{{ appointment.balance_due|floatformat:2 }}</span>
+                    </div>
+                </div>
+                {% endif %}
                 {% endif %}
             </div>
 
@@ -460,11 +472,6 @@
                     
                     <!-- Profile Info -->
                     <div class="text-center px-4 sm:px-6 pb-5 sm:pb-6">
-                        <!-- Top Pill Tag -->
-                        <div class="inline-block px-2.5 py-0.5 rounded-full border border-rose-200 bg-rose-50 text-[10px] sm:text-[11px] font-bold text-rose-900 tracking-wide mb-2 uppercase">
-                            {{ business.get_business_type_display|default:"Negocio Verificado" }}
-                        </div>
-
                         <!-- Business Name -->
                         <h1 class="font-fun font-extrabold text-xl sm:text-3xl text-slate-900 tracking-tight">
                             <span class="title-underline">{{ business.name }}</span>
@@ -547,7 +554,6 @@
                     </div>
 
                     <div class="space-y-2 text-xs text-slate-600 leading-relaxed pt-1">
-                        <p><strong class="text-slate-900">Tipo:</strong> {{ business.get_business_type_display|default:"Servicios Comerciales" }}</p>
                         <p><strong class="text-slate-900">Ubicación:</strong> {{ selected_branch.address|default:business.address|default:"Tacuarí 478" }}</p>
                         <p><strong class="text-slate-900">Especialistas:</strong> {{ staff_members.count }} profesionales listos para atenderte.</p>
                         <p><strong class="text-slate-900">Atención:</strong> Lunes a Sábado con turnos programados.</p>
@@ -777,21 +783,45 @@
                                 </div>
                             </div>
 
-                            <!-- CTAs: Ver Ficha + Coordinar Visita -->
-                            <div class="pt-2.5 border-t border-slate-100 flex items-center gap-2">
-                                <button type="button" 
-                                        onclick="event.stopPropagation(); openPropertyDetailModal('{{ prop.id }}');"
-                                        class="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-200">
-                                    <i data-lucide="eye" class="w-3.5 h-3.5 text-rose-800"></i>
-                                    <span>Ver Ficha</span>
-                                </button>
-
+                            <!-- Action Buttons Section (Clean 2-Row Layout, Never overflows or clips) -->
+                            <div class="pt-3 border-t border-slate-100 space-y-2">
+                                <!-- Primary Action: Coordinar Visita -->
                                 <button type="button" 
                                         onclick="event.stopPropagation(); openPropertyBookingModal('{{ prop.id }}', '{{ prop.title|escapejs }}', '{{ prop.formatted_price|escapejs }}', '{{ prop.address|escapejs }} ({{ prop.zone|escapejs }})', '{{ prop.main_photo_url|default:''|escapejs }}');"
-                                        class="flex-1 py-2 px-3 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold transition shadow-sm hover:shadow flex items-center justify-center gap-1.5">
-                                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                        class="w-full py-2.5 px-4 rounded-xl bg-[#881337] hover:bg-[#701a2b] active:scale-[0.99] text-white text-xs font-bold transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 cursor-pointer">
+                                    <i data-lucide="calendar" class="w-4 h-4 shrink-0"></i>
                                     <span>Coordinar Visita</span>
                                 </button>
+
+                                <!-- Secondary Actions: Ver Ficha + Contactar WhatsApp -->
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" 
+                                            onclick="event.stopPropagation(); openPropertyDetailModal('{{ prop.id }}');"
+                                            class="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-200/90 cursor-pointer">
+                                        <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+                                        <span class="truncate">Ver Ficha</span>
+                                    </button>
+
+                                    {% with wa=business.whatsapp_number|default:business.phone %}
+                                    {% if wa %}
+                                    <a href="https://wa.me/{{ wa|cut:' '|cut:'+'|cut:'-' }}?text=Hola%20{{ business.name|urlencode }},%20deseo%20consultar%20sobre%20la%20propiedad:%20{{ prop.title|urlencode }}%20({{ prop.formatted_price|urlencode }})"
+                                       target="_blank"
+                                       onclick="event.stopPropagation();"
+                                       title="Contactar a la agencia por WhatsApp"
+                                       class="py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition border border-emerald-200/90 flex items-center justify-center gap-1.5 shadow-2xs">
+                                        <i data-lucide="message-circle" class="w-3.5 h-3.5 text-emerald-600 fill-emerald-600 shrink-0"></i>
+                                        <span class="truncate">WhatsApp</span>
+                                    </a>
+                                    {% else %}
+                                    <a href="tel:{{ business.phone }}"
+                                       onclick="event.stopPropagation();"
+                                       class="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-200 flex items-center justify-center gap-1.5">
+                                        <i data-lucide="phone" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+                                        <span class="truncate">Llamar</span>
+                                    </a>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
                             </div>
                         </div>
 
@@ -1340,14 +1370,20 @@
             </div>
 
             <!-- Modal Footer Actions -->
-            <div class="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3">
-                <button type="button" onclick="closePropertyDetailModal()" class="py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition border border-slate-200">
+            <div class="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <button type="button" onclick="closePropertyDetailModal()" class="py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition border border-slate-200 cursor-pointer">
                     Cerrar
                 </button>
-                <button type="button" id="pdmVisitBtn" onclick="bookFromDetailModal()" class="flex-1 py-3 px-5 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white text-xs sm:text-sm font-bold transition shadow-md hover:shadow flex items-center justify-center gap-2">
-                    <i data-lucide="calendar" class="w-4 h-4"></i>
-                    <span>Coordinar Visita Presencial</span>
-                </button>
+                <div class="flex items-center gap-2 flex-1 sm:justify-end">
+                    <a id="pdmWhatsAppBtn" href="#" target="_blank" class="flex-1 sm:flex-none py-2.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold transition shadow-sm hover:shadow active:scale-[0.98] flex items-center justify-center gap-2">
+                        <i data-lucide="message-circle" class="w-4 h-4 fill-current"></i>
+                        <span>Contactar Agencia</span>
+                    </a>
+                    <button type="button" id="pdmVisitBtn" onclick="bookFromDetailModal()" class="flex-1 sm:flex-none py-2.5 px-5 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white text-xs font-bold transition shadow-md hover:shadow active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                        <span>Agendar Visita</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1775,6 +1811,18 @@
             const descEl = document.getElementById('pdmDescription');
             if (descEl) {
                 descEl.innerText = prop.description || 'Sin descripción detallada por el momento.';
+            }
+
+            const waBtn = document.getElementById('pdmWhatsAppBtn');
+            if (waBtn) {
+                const waPhone = '{{ business.whatsapp_number|default:business.phone|default:""|cut:" "|cut:"+"|cut:"-" }}';
+                if (waPhone) {
+                    const msg = `Hola {{ business.name }}, deseo consultar sobre la propiedad: ${prop.title} (${prop.formatted_price})`;
+                    waBtn.href = `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`;
+                    waBtn.classList.remove('hidden');
+                } else {
+                    waBtn.classList.add('hidden');
+                }
             }
 
             const detailModal = document.getElementById('propertyDetailModal');

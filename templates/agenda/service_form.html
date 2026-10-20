@@ -42,29 +42,93 @@
                 </select>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- Fila 1: Precio y Comisión (Alineación perfecta 2 columnas) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Precio ({{ business.currency }})</label>
-                    <input type="number" step="0.01" name="price" value="{% if service %}{{ service.price|unlocalize }}{% endif %}" placeholder="25.00" required class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
-                </div>
-                <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="block text-xs font-semibold text-slate-700">Duración (Minutos)</label>
-                        <span id="durationHumanBadge" class="text-[11px] font-extrabold text-rose-900 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">45 min</span>
-                    </div>
-                    <input type="number" min="5" step="5" name="duration_minutes" id="durationMinutesInput" value="{% if service %}{{ service.duration_minutes }}{% else %}45{% endif %}" placeholder="45" required oninput="updateDurationHumanLabel()" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
-                    <div class="flex flex-wrap items-center gap-1.5 mt-2">
-                        <button type="button" onclick="setDurationPreset(30)" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">30 min</button>
-                        <button type="button" onclick="setDurationPreset(45)" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">45 min</button>
-                        <button type="button" onclick="setDurationPreset(60)" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">1h (60m)</button>
-                        <button type="button" onclick="setDurationPreset(80)" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 text-[11px] font-bold transition cursor-pointer">1h 20m (80m)</button>
-                        <button type="button" onclick="setDurationPreset(90)" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">1h 30m (90m)</button>
-                        <button type="button" onclick="setDurationPreset(120)" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer">2h (120m)</button>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Precio del Servicio ({{ business.currency }}) *</label>
+                    <div class="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-800 transition">
+                        <span class="px-3.5 py-3 bg-slate-100 text-xs font-extrabold text-slate-600 border-r border-slate-200 select-none">{{ business.currency }}</span>
+                        <input type="number" step="0.01" name="price" id="servicePriceInput"
+                               value="{% if service %}{{ service.price|unlocalize }}{% endif %}"
+                               placeholder="50.00" required oninput="updateDepositPreview()"
+                               class="w-full p-3 text-sm font-bold text-slate-900 focus:outline-none">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Comisión (%) (Opcional)</label>
-                    <input type="number" step="0.01" name="commission_rate" value="{% if service %}{{ service.commission_rate|unlocalize }}{% endif %}" placeholder="0.00" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-semibold text-slate-700">Comisión de Especialista (%)</label>
+                        <span class="text-[11px] text-slate-400 font-medium">Opcional</span>
+                    </div>
+                    <div class="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-800 transition">
+                        <input type="number" step="0.01" min="0" max="100" name="commission_rate"
+                               value="{% if service %}{{ service.commission_rate|unlocalize }}{% endif %}"
+                               placeholder="0.00"
+                               class="w-full p-3 text-sm font-semibold text-slate-900 focus:outline-none">
+                        <span class="px-3.5 py-3 bg-slate-100 text-xs font-extrabold text-slate-600 border-l border-slate-200 select-none">%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila 2: Duración y Seña / Anticipo (Tarjetas simétricas con selectores rápidos) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Card Duración -->
+                <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 space-y-3 flex flex-col justify-between">
+                    <div class="space-y-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <i data-lucide="clock" class="w-4 h-4 text-rose-900 shrink-0"></i>
+                                <span>Duración del Servicio</span>
+                            </label>
+                            <span id="durationHumanBadge" class="whitespace-nowrap shrink-0 text-[11px] font-extrabold text-rose-900 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
+                                45 min
+                            </span>
+                        </div>
+                        <div class="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-800 transition">
+                            <input type="number" min="5" step="5" name="duration_minutes" id="durationMinutesInput"
+                                   value="{% if service %}{{ service.duration_minutes }}{% else %}45{% endif %}"
+                                   placeholder="45" required oninput="updateDurationHumanLabel()"
+                                   class="w-full p-2.5 text-sm font-bold text-slate-900 focus:outline-none">
+                            <span class="px-3 py-2.5 bg-slate-100 text-xs font-bold text-slate-500 border-l border-slate-200 select-none">minutos</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1.5 pt-1">
+                        <button type="button" onclick="setDurationPreset(30)" class="px-2 py-1.5 rounded-lg bg-white hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer text-center">30 min</button>
+                        <button type="button" onclick="setDurationPreset(45)" class="px-2 py-1.5 rounded-lg bg-white hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer text-center">45 min</button>
+                        <button type="button" onclick="setDurationPreset(60)" class="px-2 py-1.5 rounded-lg bg-white hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer text-center">1h (60m)</button>
+                        <button type="button" onclick="setDurationPreset(80)" class="px-2 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 text-[11px] font-bold transition cursor-pointer text-center">1h 20m</button>
+                        <button type="button" onclick="setDurationPreset(90)" class="px-2 py-1.5 rounded-lg bg-white hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer text-center">1h 30m</button>
+                        <button type="button" onclick="setDurationPreset(120)" class="px-2 py-1.5 rounded-lg bg-white hover:bg-rose-50 hover:text-rose-900 hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer text-center">2h (120m)</button>
+                    </div>
+                </div>
+
+                <!-- Card Seña / Anticipo -->
+                <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/90 space-y-3 flex flex-col justify-between">
+                    <div class="space-y-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <label class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                <i data-lucide="wallet" class="w-4 h-4 text-amber-800 shrink-0"></i>
+                                <span>Seña / Anticipo (%)</span>
+                            </label>
+                            <span id="depositAmountPreviewBadge" class="whitespace-nowrap shrink-0 text-[11px] font-extrabold text-amber-900 bg-amber-100/80 border border-amber-300 px-2.5 py-0.5 rounded-full">
+                                Seña: {{ business.currency }}0.00
+                            </span>
+                        </div>
+                        <div class="flex items-center bg-white border border-amber-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-800 transition">
+                            <input type="number" step="0.01" min="0" max="100" name="deposit_percentage" id="depositPercentageInput"
+                                   value="{% if service and service.deposit_percentage is not None %}{{ service.deposit_percentage|unlocalize }}{% else %}{{ business.default_deposit_percentage|default:30|unlocalize }}{% endif %}"
+                                   placeholder="{{ business.default_deposit_percentage|default:30|unlocalize }}"
+                                   oninput="updateDepositPreview()"
+                                   class="w-full p-2.5 text-sm font-bold text-slate-900 focus:outline-none">
+                            <span class="px-3.5 py-2.5 bg-amber-100/70 text-xs font-extrabold text-amber-900 border-l border-amber-200 select-none">%</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-5 gap-1.5 pt-1">
+                        <button type="button" onclick="setDepositPreset(0)" class="px-2 py-1.5 rounded-lg bg-white hover:bg-amber-100 hover:text-amber-950 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer text-center">0%</button>
+                        <button type="button" onclick="setDepositPreset(20)" class="px-2 py-1.5 rounded-lg bg-white hover:bg-amber-100 hover:text-amber-950 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer text-center">20%</button>
+                        <button type="button" onclick="setDepositPreset(30)" class="px-2 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-[11px] font-extrabold transition cursor-pointer text-center">30%</button>
+                        <button type="button" onclick="setDepositPreset(50)" class="px-2 py-1.5 rounded-lg bg-white hover:bg-amber-100 hover:text-amber-950 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer text-center">50%</button>
+                        <button type="button" onclick="setDepositPreset(100)" class="px-2 py-1.5 rounded-lg bg-white hover:bg-amber-100 hover:text-amber-950 border border-slate-200 text-slate-700 text-[11px] font-bold transition cursor-pointer text-center">100%</button>
+                    </div>
                 </div>
             </div>
 
@@ -106,21 +170,45 @@
                 <textarea name="description" rows="3" placeholder="Detalles de lo que incluye el servicio..." class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">{{ service.description|default:'' }}</textarea>
             </div>
 
-            <div class="pt-4 border-t border-slate-200 flex justify-end gap-3">
-                <a href="{% url 'service_list' %}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold">Cancelar</a>
-                <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-bold shadow-md shadow-rose-950/20 transition">Guardar Servicio</button>
+            <div class="pt-4 border-t border-slate-200 grid grid-cols-2 sm:flex sm:justify-end gap-3">
+                <a href="{% url 'service_list' %}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold text-center">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-bold shadow-md shadow-rose-950/20 transition text-center">Guardar Servicio</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
+    const BUSINESS_CURRENCY = "{{ business.currency|escapejs }}";
+    const DEFAULT_DEPOSIT_PCT = parseFloat("{{ business.default_deposit_percentage|default:30|unlocalize }}") || 0;
+
     function setDurationPreset(mins) {
         const input = document.getElementById('durationMinutesInput');
         if (input) {
             input.value = mins;
             updateDurationHumanLabel();
         }
+    }
+
+    function setDepositPreset(pct) {
+        const input = document.getElementById('depositPercentageInput');
+        if (input) {
+            input.value = pct;
+            updateDepositPreview();
+        }
+    }
+
+    function updateDepositPreview() {
+        const priceEl = document.getElementById('servicePriceInput');
+        const pctEl = document.getElementById('depositPercentageInput');
+        const badge = document.getElementById('depositAmountPreviewBadge');
+        if (!priceEl || !pctEl || !badge) return;
+        const price = parseFloat(priceEl.value) || 0;
+        const pctRaw = pctEl.value.trim();
+        const pct = pctRaw === '' ? DEFAULT_DEPOSIT_PCT : Math.max(0, Math.min(100, parseFloat(pctRaw) || 0));
+        const depAmt = (price * pct) / 100.0;
+        const balanceAmt = Math.max(0, price - depAmt);
+        badge.textContent = `Seña: ${BUSINESS_CURRENCY}${depAmt.toFixed(2)} · Saldo: ${BUSINESS_CURRENCY}${balanceAmt.toFixed(2)}`;
     }
 
     function updateDurationHumanLabel() {
@@ -145,6 +233,9 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', updateDurationHumanLabel);
+    document.addEventListener('DOMContentLoaded', () => {
+        updateDurationHumanLabel();
+        updateDepositPreview();
+    });
 </script>
 {% endblock %}

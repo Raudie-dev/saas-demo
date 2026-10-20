@@ -98,6 +98,45 @@ def _parse_services_from_post(request, business):
     return services_items
 
 
+def _calculate_appointment_deposit(business, services_items, total_price, post_data=None):
+    """
+    Calcula (deposit_percentage, deposit_amount) para una cita en base a:
+    - Los porcentajes configurados en cada servicio (`srv.effective_deposit_percentage`)
+    - O los valores enviados explícitamente en el formulario de la cita (`deposit_percentage` / `deposit_amount`).
+    """
+    default_dep_amount = sum(
+        (srv.effective_deposit_amount * qty) for srv, qty in services_items
+    ) if services_items else Decimal('0.00')
+    default_dep_amount = min(total_price, default_dep_amount.quantize(Decimal('0.01')))
+    if total_price > 0:
+        default_dep_pct = ((default_dep_amount / total_price) * Decimal('100.00')).quantize(Decimal('0.01'))
+    else:
+        default_dep_pct = getattr(business, 'default_deposit_percentage', Decimal('30.00')) or Decimal('0.00')
+
+    if not post_data:
+        return default_dep_pct, default_dep_amount
+
+    raw_pct = (post_data.get('deposit_percentage') or '').strip()
+    raw_amt = (post_data.get('deposit_amount') or '').strip()
+
+    if raw_amt != '':
+        dep_amt = max(Decimal('0.00'), min(total_price, parse_decimal(raw_amt, default_dep_amount)))
+        if raw_pct != '':
+            dep_pct = max(Decimal('0.00'), min(Decimal('100.00'), parse_decimal(raw_pct, default_dep_pct)))
+        elif total_price > 0:
+            dep_pct = ((dep_amt / total_price) * Decimal('100.00')).quantize(Decimal('0.01'))
+        else:
+            dep_pct = Decimal('0.00')
+        return dep_pct, dep_amt
+
+    if raw_pct != '':
+        dep_pct = max(Decimal('0.00'), min(Decimal('100.00'), parse_decimal(raw_pct, default_dep_pct)))
+        dep_amt = ((total_price * dep_pct) / Decimal('100.00')).quantize(Decimal('0.01'))
+        return dep_pct, dep_amt
+
+    return default_dep_pct, default_dep_amount
+
+
 @login_required
 def appointment_create_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
@@ -111,7 +150,7 @@ def appointment_create_view(request):
     clients = Client.objects.filter(business=business) if business else []
     all_active_staff = list(StaffMember.objects.filter(business=business, is_active=True).prefetch_related('services')) if business else []
     staff_members = all_active_staff
-    services = list(Service.objects.filter(business=business, is_active=True).prefetch_related('staff_members')) if business else []
+    services = list(Service.objects.filter(business=business, is_active=True).select_related('business').prefetch_related('staff_members')) if business else []
     for srv in services:
         srv.allowed_staff_ids_json = json.dumps(
             get_allowed_staff_ids_for_service(srv, all_active_staff=all_active_staff)
@@ -167,6 +206,7 @@ def appointment_create_view(request):
         total_duration = sum(srv.duration_minutes * qty for srv, qty in services_items)
         total_price = sum(srv.price * qty for srv, qty in services_items)
         primary_service = services_items[0][0]
+        dep_pct, dep_amt = _calculate_appointment_deposit(business, services_items, total_price, request.POST)
 
         # Calcular automáticamente la hora de fin en base a la duración de los servicios
         try:
@@ -225,6 +265,8 @@ def appointment_create_view(request):
             start_time=start_time,
             end_time=end_time,
             total_price=total_price,
+            deposit_percentage=dep_pct,
+            deposit_amount=dep_amt,
             status=status,
             notes=notes
         )
@@ -250,6 +292,7 @@ def appointment_create_view(request):
                 'name': srv.name,
                 'price': float(srv.price),
                 'duration': srv.duration_minutes,
+                'deposit_percentage': float(srv.effective_deposit_percentage),
                 'quantity': 1,
                 'allowed_staff_ids': get_allowed_staff_ids_for_service(srv, all_active_staff=all_active_staff),
             })
@@ -289,7 +332,7 @@ def appointment_edit_view(request, appointment_id):
     clients = Client.objects.filter(business=business)
     all_active_staff = list(StaffMember.objects.filter(business=business, is_active=True).prefetch_related('services'))
     staff_members = [user_staff] if (user_scope == 'OWN' and user_staff) else all_active_staff
-    services = list(Service.objects.filter(business=business, is_active=True).prefetch_related('staff_members'))
+    services = list(Service.objects.filter(business=business, is_active=True).select_related('business').prefetch_related('staff_members'))
     for srv in services:
         srv.allowed_staff_ids_json = json.dumps(
             get_allowed_staff_ids_for_service(srv, all_active_staff=all_active_staff)
@@ -310,6 +353,7 @@ def appointment_edit_view(request, appointment_id):
         total_duration = sum(srv.duration_minutes * qty for srv, qty in services_items)
         total_price = sum(srv.price * qty for srv, qty in services_items)
         primary_service = services_items[0][0]
+        dep_pct, dep_amt = _calculate_appointment_deposit(business, services_items, total_price, request.POST)
 
         app_date = request.POST.get('date')
         start_time = request.POST.get('start_time')
@@ -375,6 +419,8 @@ def appointment_edit_view(request, appointment_id):
         appointment.start_time = start_time
         appointment.end_time = end_time
         appointment.total_price = total_price
+        appointment.deposit_percentage = dep_pct
+        appointment.deposit_amount = dep_amt
         appointment.status = status
         appointment.notes = request.POST.get('notes', '')
         appointment.save()
@@ -401,6 +447,7 @@ def appointment_edit_view(request, appointment_id):
                 'name': it.service.name,
                 'price': float(it.unit_price),
                 'duration': it.duration_minutes,
+                'deposit_percentage': float(it.service.effective_deposit_percentage),
                 'quantity': it.quantity,
                 'allowed_staff_ids': get_allowed_staff_ids_for_service(it.service, all_active_staff=all_active_staff),
             })
@@ -410,6 +457,7 @@ def appointment_edit_view(request, appointment_id):
             'name': appointment.service.name,
             'price': float(appointment.service.price),
             'duration': appointment.service.duration_minutes,
+            'deposit_percentage': float(appointment.service.effective_deposit_percentage),
             'quantity': 1,
             'allowed_staff_ids': get_allowed_staff_ids_for_service(appointment.service, all_active_staff=all_active_staff),
         })
@@ -466,6 +514,26 @@ def service_list_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
+
+    if request.method == 'POST' and request.POST.get('action') == 'UPDATE_DEFAULT_DEPOSIT':
+        raw_pct = request.POST.get('default_deposit_percentage', '30').strip()
+        pct_val = max(Decimal('0.00'), min(Decimal('100.00'), parse_decimal(raw_pct, '30.00')))
+        business.default_deposit_percentage = pct_val
+        business.save(update_fields=['default_deposit_percentage'])
+
+        if request.POST.get('apply_to_all_services') == '1':
+            Service.objects.filter(business=business).update(deposit_percentage=pct_val)
+            messages.success(
+                request,
+                f"¡Porcentaje de seña/anticipo actualizado a {pct_val}% y aplicado a todos los servicios!"
+            )
+        else:
+            messages.success(
+                request,
+                f"¡Porcentaje de seña/anticipo general actualizado a {pct_val}%!"
+            )
+        return redirect('service_list')
+
     categories = ServiceCategory.objects.filter(business=business).prefetch_related('services__staff_members') if business else []
     services_without_category = Service.objects.filter(business=business, category__isnull=True).prefetch_related('staff_members') if business else []
     all_services = Service.objects.filter(business=business).select_related('category').prefetch_related('staff_members').order_by('name') if business else []
@@ -497,6 +565,11 @@ def service_create_view(request):
         duration = parse_int(request.POST.get('duration_minutes'), 45)
         description = request.POST.get('description', '')
         commission_rate = parse_decimal(request.POST.get('commission_rate'), '0.00')
+        raw_deposit = (request.POST.get('deposit_percentage') or '').strip()
+        deposit_pct = (
+            max(Decimal('0.00'), min(Decimal('100.00'), parse_decimal(raw_deposit, '0.00')))
+            if raw_deposit != '' else None
+        )
         staff_ids = request.POST.getlist('staff_ids')
         
         category = ServiceCategory.objects.filter(id=category_id, business=business).first() if category_id else None
@@ -509,6 +582,7 @@ def service_create_view(request):
             duration_minutes=duration,
             description=description,
             commission_rate=commission_rate,
+            deposit_percentage=deposit_pct,
             is_active=True
         )
         if staff_ids:
@@ -562,6 +636,13 @@ def service_edit_view(request, service_id):
             service.commission_rate = parse_decimal(comm_raw, service.commission_rate)
         elif comm_raw is not None and comm_raw.strip() == '':
             service.commission_rate = Decimal('0.00')
+
+        dep_raw = request.POST.get('deposit_percentage')
+        if dep_raw is not None:
+            if dep_raw.strip() != '':
+                service.deposit_percentage = max(Decimal('0.00'), min(Decimal('100.00'), parse_decimal(dep_raw, '0.00')))
+            else:
+                service.deposit_percentage = None
 
         service.save()
 

@@ -51,23 +51,58 @@ class Quote(TimeStampedModel):
         ('REJECTED', 'Rechazada'),
     ]
 
+    PRICING_TYPE_CHOICES = [
+        ('FIXED', 'Precio Fijo / Por Proyecto'),
+        ('HOURLY', 'Por Horas de Trabajo'),
+        ('PERFORMANCE', 'Por Desempeño / Resultados'),
+        ('HYBRID', 'Mixto (Horas, Fijo y Desempeño)'),
+    ]
+
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="quotes")
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="quotes")
     quote_number = models.CharField(max_length=50, verbose_name="Número de Presupuesto")
-    date = models.DateField()
-    valid_until = models.DateField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SENT')
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    date = models.DateField(verbose_name="Fecha")
+    valid_until = models.DateField(verbose_name="Válido Hasta")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SENT', verbose_name="Estado")
+    pricing_type = models.CharField(max_length=20, choices=PRICING_TYPE_CHOICES, default='FIXED', verbose_name="Modalidad de Cobro")
+    
+    # Métricas para cotización por horas o desempeño
+    estimated_hours = models.DecimalField(max_digits=8, decimal_places=2, default=0.00, verbose_name="Horas Estimadas")
+    hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Tarifa por Hora Base")
+    performance_terms = models.TextField(blank=True, null=True, verbose_name="Criterios de Desempeño & Bonos de Éxito")
+
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Subtotal")
+    tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Impuesto")
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Total")
+    notes = models.TextField(blank=True, null=True, verbose_name="Condiciones / Términos")
+    converted_to_invoice = models.ForeignKey(Invoice, on_delete=models.SET_NULL, null=True, blank=True, related_name="from_quote", verbose_name="Factura Generada")
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+        verbose_name = "Presupuesto / Cotización"
+        verbose_name_plural = "Presupuestos / Cotizaciones"
 
     def __str__(self):
         return f"Presupuesto #{self.quote_number} - {self.client.full_name} (${self.total_amount})"
 
 class QuoteItem(TimeStampedModel):
+    ITEM_TYPE_CHOICES = [
+        ('FIXED', 'Servicio / Monto Fijo'),
+        ('HOURLY', 'Horas de Trabajo'),
+        ('PERFORMANCE', 'Por Desempeño / Hito de Éxito'),
+    ]
+
     quote = models.ForeignKey(Quote, on_delete=models.CASCADE, related_name="items")
-    description = models.CharField(max_length=255)
-    quantity = models.IntegerField(default=1)
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    item_type = models.CharField(max_length=20, choices=ITEM_TYPE_CHOICES, default='FIXED', verbose_name="Tipo de Ítem")
+    description = models.CharField(max_length=255, verbose_name="Descripción / Entregable")
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1.00, verbose_name="Cantidad / Horas")
+    unit_label = models.CharField(max_length=50, default="unid", verbose_name="Unidad (hrs, unid, mes, hito)")
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio Unitario / Tarifa Hora")
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total Línea")
+    performance_kpi = models.CharField(max_length=255, blank=True, null=True, verbose_name="Meta de Desempeño / KPI")
+
+    def __str__(self):
+        return f"{self.description} ({self.quantity} {self.unit_label}) - ${self.total_price}"
 
 class ExpenseCategory(TimeStampedModel):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="expense_categories")
@@ -136,4 +171,3 @@ class PaymentReceipt(TimeStampedModel):
 
     def __str__(self):
         return f"Recibo de Pago #{self.receipt_number} - ${self.amount}"
-

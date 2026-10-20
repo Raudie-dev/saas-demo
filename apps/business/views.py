@@ -204,7 +204,7 @@ def logout_view(request):
     logout(request)
     
     if request.GET.get('timeout') == '1':
-        messages.warning(request, "Tu sesión ha expirado por inactividad de 30 minutos.")
+        messages.warning(request, "Tu sesión ha expirado tras más de 3 horas de inactividad.")
     else:
         messages.info(request, "Has cerrado sesión correctamente.")
         
@@ -668,6 +668,7 @@ def business_config_view(request):
         {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign', 'is_allowed': 'commissions' in allowed_modules},
         {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles', 'is_allowed': 'ai_engine' in allowed_modules},
         {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag', 'is_allowed': 'marketing' in allowed_modules},
+        {'code': 'projects', 'name': 'Proyectos & Contenido Redes', 'icon': 'folder-kanban', 'is_allowed': 'projects' in allowed_modules},
     ]
 
     session_user = str(business.id) if business else "default"
@@ -1526,6 +1527,23 @@ def booking_portal_config_view(request):
                 f"¡Tiempo de espera de reservas pendientes actualizado a {hours_val} hora(s)! "
                 f"Las reservas no confirmadas en ese plazo se liberarán automáticamente."
             )
+            return redirect('booking_portal_config')
+
+        elif action == 'UPDATE_DEFAULT_DEPOSIT':
+            raw_pct = (request.POST.get('default_deposit_percentage') or '0').replace(',', '.').strip()
+            apply_all = request.POST.get('apply_to_all_services') == '1'
+            try:
+                pct_val = max(Decimal('0.00'), min(Decimal('100.00'), Decimal(raw_pct))).quantize(Decimal('0.01'))
+            except Exception:
+                pct_val = Decimal('30.00')
+            business.default_deposit_percentage = pct_val
+            business.save(update_fields=['default_deposit_percentage'])
+            if apply_all:
+                from apps.agenda.models import Service
+                Service.objects.filter(business=business).update(deposit_percentage=pct_val)
+                messages.success(request, f"¡Porcentaje de seña/anticipo general actualizado a {pct_val}% y aplicado a todos los servicios!")
+            else:
+                messages.success(request, f"¡Porcentaje de seña/anticipo general actualizado a {pct_val}%!")
             return redirect('booking_portal_config')
 
         elif action == 'UPDATE_DETAILS':

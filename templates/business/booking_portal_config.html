@@ -117,22 +117,29 @@
                 Tu Enlace Oficial de Reservas:
             </label>
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                <div class="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs sm:text-sm font-mono text-slate-800 font-bold select-all overflow-x-auto truncate" id="fullLinkText">
-                    {{ full_booking_url }}
+                <div class="flex-1 flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs focus-within:border-rose-900 focus-within:ring-2 focus-within:ring-rose-200 transition">
+                    <div class="flex-1 px-3.5 py-2.5 sm:py-3 text-xs sm:text-sm font-mono text-slate-800 font-bold select-all overflow-x-auto truncate" id="fullLinkText">
+                        {{ full_booking_url }}
+                    </div>
+                    <button type="button" onclick="copyFullLink()" 
+                            class="h-10 sm:h-11 px-3.5 sm:px-4 bg-rose-900 hover:bg-rose-950 active:bg-rose-900 text-white text-xs font-bold flex items-center gap-1.5 transition shrink-0 cursor-pointer shadow-xs border-l border-rose-800 select-none">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        <span>Copiar</span>
+                    </button>
                 </div>
                 
-                <div class="flex items-center gap-2 shrink-0">
-                    <button type="button" onclick="copyFullLink()" 
-                            class="flex-1 sm:flex-none px-4 py-3 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-sm">
-                        <i data-lucide="copy" class="w-4 h-4"></i>
-                        <span>Copiar Enlace</span>
-                    </button>
+                <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0">
+                    <a href="{% url 'public_booking' business.slug %}" target="_blank"
+                       class="h-10 sm:h-11 px-4 sm:px-5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-xs whitespace-nowrap">
+                        <i data-lucide="external-link" class="w-4 h-4 shrink-0"></i>
+                        <span>Abrir Portal</span>
+                    </a>
 
                     <a href="https://wa.me/?text={{ 'Agenda tu cita fácilmente en '|urlencode }}{{ business.name|urlencode }}:%20{{ full_booking_url|urlencode }}" 
                        target="_blank" title="Compartir en WhatsApp"
-                       class="px-4 py-3 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-sm">
-                        <i data-lucide="message-circle" class="w-4 h-4 fill-current"></i>
-                        <span class="hidden sm:inline">WhatsApp</span>
+                       class="h-10 sm:h-11 px-4 sm:px-5 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] active:bg-[#1da851] text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-xs whitespace-nowrap">
+                        <i data-lucide="message-circle" class="w-4 h-4 fill-current shrink-0"></i>
+                        <span>WhatsApp</span>
                     </a>
                 </div>
             </div>
@@ -184,19 +191,62 @@
                             Define cuántas horas se reservará el puesto antes de liberarse automáticamente si no se confirma.
                         </p>
                     </div>
-                    <div class="flex items-center gap-2.5 shrink-0">
-                        <div class="flex items-center bg-white border border-amber-300 rounded-xl overflow-hidden focus-within:border-rose-900">
+                    <div class="flex items-center gap-2 w-full md:w-auto shrink-0">
+                        <div class="h-10 flex items-center bg-white border border-amber-300 rounded-xl overflow-hidden shadow-2xs focus-within:border-amber-600 focus-within:ring-2 focus-within:ring-amber-200 transition shrink-0">
                             <input type="number" name="pending_booking_expiry_hours" min="1" max="720"
                                    value="{{ business.pending_booking_expiry_hours|default:24 }}" required
-                                   class="w-20 px-3 py-2.5 text-sm font-extrabold text-slate-900 text-center focus:outline-none">
-                            <span class="px-3 py-2.5 bg-amber-100/70 text-xs font-bold text-amber-900 border-l border-amber-200">
+                                   class="h-full w-12 sm:w-16 px-2 text-xs sm:text-sm font-black text-slate-900 text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                            <span class="h-full px-2.5 sm:px-3.5 bg-amber-100/80 text-[11px] sm:text-xs font-bold text-amber-900 border-l border-amber-200 flex items-center justify-center whitespace-nowrap select-none">
                                 horas
                             </span>
                         </div>
                         <button type="submit"
-                                class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-sm shrink-0">
-                            Guardar Tiempo
+                                class="flex-1 md:flex-none h-10 px-3.5 sm:px-5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs sm:text-sm font-bold transition shadow-xs inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
+                            <i data-lucide="check" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                            <span>Guardar</span><span class="hidden sm:inline">&nbsp;Tiempo</span>
                         </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- DEFAULT DEPOSIT / DOWN-PAYMENT PERCENTAGE FORM -->
+        <div class="pt-4 border-t border-slate-100">
+            <form method="POST" class="space-y-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="UPDATE_DEFAULT_DEPOSIT">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 sm:p-5">
+                    <div class="space-y-1 max-w-xl">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="percent" class="w-4 h-4 text-emerald-700"></i>
+                            <label class="text-xs sm:text-sm font-extrabold text-slate-900">
+                                Porcentaje de Seña / Anticipo General (Citas y Servicios)
+                            </label>
+                        </div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Define el porcentaje de seña o anticipo por defecto (ej. 30%, 50% o 0% si no cobras anticipo) para las reservas. También puedes personalizarlo individualmente en cada servicio o cita.
+                        </p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto shrink-0">
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <div class="h-10 flex items-center bg-white border border-emerald-300 rounded-xl overflow-hidden shadow-2xs focus-within:border-emerald-700 focus-within:ring-2 focus-within:ring-emerald-200 transition shrink-0">
+                                <input type="number" step="0.01" min="0" max="100" name="default_deposit_percentage"
+                                       value="{{ business.default_deposit_percentage|default:30|floatformat:0 }}" required
+                                       class="h-full w-12 sm:w-16 px-2 text-xs sm:text-sm font-black text-slate-900 text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                <span class="h-full px-2.5 sm:px-3 bg-emerald-100/80 text-xs font-bold text-emerald-900 border-l border-emerald-200 flex items-center justify-center whitespace-nowrap select-none">
+                                    %
+                                </span>
+                            </div>
+                            <button type="submit"
+                                    class="flex-1 sm:flex-none h-10 px-3.5 sm:px-5 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white text-xs sm:text-sm font-bold transition shadow-xs inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
+                                <i data-lucide="check" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                                <span>Guardar</span><span class="hidden sm:inline">&nbsp;Seña</span>
+                            </button>
+                        </div>
+                        <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                            <input type="checkbox" name="apply_to_all_services" value="1" class="rounded border-slate-300 text-emerald-700 focus:ring-emerald-700">
+                            <span>Aplicar a todos los servicios</span>
+                        </label>
                     </div>
                 </div>
             </form>
@@ -207,7 +257,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         <!-- QUICK PROFILE CUSTOMIZATION & MODERN IMAGE CROP BUTTONS -->
-        <div class="glass-card rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
+        <div class="glass-card rounded-2xl p-4 sm:p-7 border border-slate-200 shadow-sm space-y-4 sm:space-y-5">
             <div class="flex items-center gap-2">
                 <i data-lucide="sliders" class="w-5 h-5 text-rose-900"></i>
                 <h3 class="text-base font-bold text-slate-900">Personalización del Perfil & Fotos</h3>
@@ -255,8 +305,8 @@
                     
                     <!-- 1. LOGO UPLOAD & CROP CARD -->
                     <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 transition hover:border-slate-300">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-3 min-w-0">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
                                 <!-- Logo Thumbnail -->
                                 <div class="w-14 h-14 rounded-2xl bg-white border-2 border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-xs relative group">
                                     {% if business.logo_url %}
@@ -268,10 +318,10 @@
                                     <img id="logoThumbPreview" src="" alt="Nuevo Logo" class="w-full h-full object-cover hidden">
                                     {% endif %}
                                 </div>
-                                <div class="min-w-0">
+                                <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-1.5 flex-wrap">
-                                        <span class="text-xs font-bold text-slate-900">Logo de la Agencia</span>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900">1:1 Cuadrado</span>
+                                        <span class="text-xs sm:text-sm font-bold text-slate-900">Logo de la Agencia</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 whitespace-nowrap">1:1 Cuadrado</span>
                                     </div>
                                     <p class="text-[11px] text-slate-500 mt-0.5 truncate" id="logoStatusText">
                                         {% if business.logo_url %}Logo activo{% else %}Sin logo asignado{% endif %}
@@ -280,11 +330,11 @@
                             </div>
 
                             <!-- Button Trigger -->
-                            <div class="shrink-0">
+                            <div class="w-full sm:w-auto shrink-0">
                                 <input type="file" id="logoFileInput" accept="image/*" class="hidden" onchange="onFileSelected(this, 'logo')">
                                 <button type="button" onclick="triggerImageCrop('logo')"
-                                        class="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 hover:border-rose-900 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition">
-                                    <i data-lucide="crop" class="w-3.5 h-3.5"></i>
+                                        class="w-full sm:w-auto h-10 px-4 rounded-xl bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 hover:border-rose-900 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer">
+                                    <i data-lucide="crop" class="w-4 h-4"></i>
                                     <span>Subir y Recortar</span>
                                 </button>
                             </div>
@@ -293,10 +343,10 @@
 
                     <!-- 2. BANNER / PORTADA UPLOAD & CROP CARD -->
                     <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 transition hover:border-slate-300">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-3 min-w-0">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
                                 <!-- Banner Thumbnail -->
-                                <div class="w-20 h-12 rounded-xl bg-white border-2 border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-xs relative">
+                                <div class="w-16 sm:w-20 h-12 rounded-xl bg-white border-2 border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-xs relative">
                                     {% if business.banner_url %}
                                     <img src="{{ business.banner_url.url }}" alt="Portada Actual" id="bannerThumbPreview" class="w-full h-full object-cover">
                                     {% else %}
@@ -306,10 +356,10 @@
                                     <img id="bannerThumbPreview" src="" alt="Nueva Portada" class="w-full h-full object-cover hidden">
                                     {% endif %}
                                 </div>
-                                <div class="min-w-0">
+                                <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-1.5 flex-wrap">
-                                        <span class="text-xs font-bold text-slate-900">Portada / Banner</span>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">16:9 Panorámica</span>
+                                        <span class="text-xs sm:text-sm font-bold text-slate-900">Portada / Banner</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 whitespace-nowrap">16:9 Panorámica</span>
                                     </div>
                                     <p class="text-[11px] text-slate-500 mt-0.5 truncate" id="bannerStatusText">
                                         {% if business.banner_url %}Portada activa{% else %}Sin portada asignada{% endif %}
@@ -318,11 +368,11 @@
                             </div>
 
                             <!-- Button Trigger -->
-                            <div class="shrink-0">
+                            <div class="w-full sm:w-auto shrink-0">
                                 <input type="file" id="bannerFileInput" accept="image/*" class="hidden" onchange="onFileSelected(this, 'banner')">
                                 <button type="button" onclick="triggerImageCrop('banner')"
-                                        class="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 hover:border-rose-900 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition">
-                                    <i data-lucide="crop" class="w-3.5 h-3.5"></i>
+                                        class="w-full sm:w-auto h-10 px-4 rounded-xl bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 hover:border-rose-900 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer">
+                                    <i data-lucide="crop" class="w-4 h-4"></i>
                                     <span>Subir y Recortar</span>
                                 </button>
                             </div>
@@ -396,13 +446,13 @@
 
     </div>
 
-    <!-- 4. LIVE PORTAL PREVIEW SECTION (VISTA PREVIA EN VIVO DEL PORTAL) -->
-    <div class="glass-card rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+    <!-- 4. LIVE PORTAL PREVIEW SECTION (VISTA PREVIA EN VIVO DEL PORTAL - SÓLO DESKTOP/TABLET) -->
+    <div class="hidden md:block glass-card rounded-2xl p-4 sm:p-7 border border-slate-200 shadow-sm space-y-4 sm:space-y-5">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pb-3 sm:pb-4 border-b border-slate-100">
             <div>
                 <div class="flex items-center gap-2">
                     <i data-lucide="layout" class="w-5 h-5 text-rose-900"></i>
-                    <h2 class="text-lg font-bold text-slate-900">Vista Previa en Vivo del Portal</h2>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900">Vista Previa en Vivo del Portal</h2>
                 </div>
                 <p class="text-xs text-slate-500 mt-0.5">
                     Interactúa y prueba la experiencia que tienen tus clientes al reservar citas.
@@ -410,52 +460,54 @@
             </div>
 
             <!-- Controls: Device switcher, refresh, open full -->
-            <div class="flex items-center gap-2.5 flex-wrap">
+            <div class="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
                 <!-- Device Mode Toggle Pills -->
                 <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
                     <button type="button" onclick="setPreviewDevice('mobile')" id="btnDeviceMobile"
-                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-rose-950 shadow-xs">
+                            class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-rose-950 shadow-xs">
                         <i data-lucide="smartphone" class="w-3.5 h-3.5 text-rose-900"></i>
                         <span>Móvil</span>
                     </button>
                     <button type="button" onclick="setPreviewDevice('desktop')" id="btnDeviceDesktop"
-                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+                            class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
                         <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
                         <span>Escritorio</span>
                     </button>
                 </div>
 
-                <!-- Refresh Button -->
-                <button type="button" onclick="refreshPortalPreview()" title="Recargar vista previa"
-                        class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-rose-900 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
-                    <i data-lucide="rotate-cw" class="w-3.5 h-3.5" id="refreshIcon"></i>
-                    <span class="hidden sm:inline">Refrescar</span>
-                </button>
+                <div class="flex items-center gap-1.5">
+                    <!-- Refresh Button -->
+                    <button type="button" onclick="refreshPortalPreview()" title="Recargar vista previa"
+                            class="h-9 px-2.5 sm:px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-rose-900 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                        <i data-lucide="rotate-cw" class="w-3.5 h-3.5" id="refreshIcon"></i>
+                        <span class="hidden md:inline">Refrescar</span>
+                    </button>
 
-                <!-- Open in new tab -->
-                <a href="{% url 'public_booking' business.slug %}" target="_blank"
-                   class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-rose-950 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                    <span>Abrir Completo</span>
-                </a>
+                    <!-- Open in new tab -->
+                    <a href="{% url 'public_booking' business.slug %}" target="_blank"
+                       class="h-9 px-3 sm:px-3.5 rounded-xl bg-slate-900 hover:bg-rose-950 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        <span>Abrir<span class="hidden sm:inline"> Completo</span></span>
+                    </a>
+                </div>
             </div>
         </div>
 
         <!-- PREVIEW FRAME WORKSPACE -->
-        <div class="bg-gradient-to-b from-slate-100 via-slate-100/70 to-slate-200/80 rounded-2xl p-4 sm:p-8 flex justify-center items-center min-h-[640px] overflow-hidden border border-slate-200/80 relative">
+        <div class="bg-gradient-to-b from-slate-100 via-slate-100/70 to-slate-200/80 rounded-2xl p-2.5 sm:p-8 flex justify-center items-center min-h-[580px] sm:min-h-[640px] overflow-hidden border border-slate-200/80 relative">
             
             <!-- SMARTPHONE MOCKUP FRAME -->
-            <div id="mobileDeviceFrame" class="w-[360px] sm:w-[385px] h-[720px] bg-slate-950 rounded-[48px] p-3 shadow-2xl ring-1 ring-slate-800 transition-all duration-300 flex flex-col relative">
+            <div id="mobileDeviceFrame" class="w-full max-w-[380px] h-[640px] sm:h-[720px] bg-slate-950 rounded-[36px] sm:rounded-[48px] p-2.5 sm:p-3 shadow-2xl ring-1 ring-slate-800 transition-all duration-300 flex flex-col relative">
                 <!-- Top Notch / Island -->
-                <div class="h-6 flex items-center justify-center shrink-0">
-                    <div class="w-24 h-4 bg-slate-900 rounded-full flex items-center justify-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-slate-800"></span>
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-900/80"></span>
+                <div class="h-5 sm:h-6 flex items-center justify-center shrink-0">
+                    <div class="w-20 sm:w-24 h-3.5 sm:h-4 bg-slate-900 rounded-full flex items-center justify-center gap-2">
+                        <span class="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-slate-800"></span>
+                        <span class="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-blue-900/80"></span>
                     </div>
                 </div>
 
                 <!-- Smartphone Screen (iframe) -->
-                <div class="flex-1 bg-white rounded-[36px] overflow-hidden relative shadow-inner">
+                <div class="flex-1 bg-white rounded-[26px] sm:rounded-[36px] overflow-hidden relative shadow-inner">
                     <iframe id="portalPreviewIframeMobile" src="{% url 'public_booking' business.slug %}" 
                             class="w-full h-full border-0" loading="lazy"></iframe>
                     <!-- Deactivated Notice Overlay (Mobile) -->
@@ -478,8 +530,8 @@
                 </div>
 
                 <!-- Home Indicator Bar -->
-                <div class="h-4 flex items-center justify-center shrink-0">
-                    <div class="w-28 h-1 bg-slate-700 rounded-full"></div>
+                <div class="h-3.5 sm:h-4 flex items-center justify-center shrink-0">
+                    <div class="w-24 sm:w-28 h-1 bg-slate-700 rounded-full"></div>
                 </div>
             </div>
 

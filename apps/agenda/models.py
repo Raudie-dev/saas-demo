@@ -25,11 +25,29 @@ class Service(TimeStampedModel):
     duration_minutes = models.IntegerField(default=45, verbose_name="Duración (minutos)")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio del Servicio")
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="Comisión (%) (Opcional)")
+    deposit_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Seña / Anticipo (%) (Opcional)")
     is_active = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Servicio"
         verbose_name_plural = "Servicios"
+
+    @property
+    def effective_deposit_percentage(self):
+        from decimal import Decimal
+        if self.deposit_percentage is not None:
+            return self.deposit_percentage
+        if self.business and getattr(self.business, 'default_deposit_percentage', None) is not None:
+            return self.business.default_deposit_percentage
+        return Decimal('0.00')
+
+    @property
+    def effective_deposit_amount(self):
+        from decimal import Decimal
+        pct = self.effective_deposit_percentage or Decimal('0.00')
+        if pct <= 0 or not self.price:
+            return Decimal('0.00')
+        return ((self.price * pct) / Decimal('100.00')).quantize(Decimal('0.01'))
 
     def __str__(self):
         return f"{self.name} - {self.business.currency}{self.price} ({self.duration_minutes} min)"
@@ -54,6 +72,7 @@ class Appointment(TimeStampedModel):
     end_time = models.TimeField(verbose_name="Hora Fin")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='CONFIRMED')
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    deposit_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="Porcentaje de Seña / Anticipo (%)")
     deposit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Seña / Pago Parcial")
     notes = models.TextField(blank=True, null=True)
     whatsapp_sent = models.BooleanField(default=False, verbose_name="Recordatorio WhatsApp Enviado")
@@ -62,6 +81,24 @@ class Appointment(TimeStampedModel):
         verbose_name = "Cita / Reserva"
         verbose_name_plural = "Citas / Reservas"
         ordering = ['date', 'start_time']
+
+    @property
+    def effective_deposit_percentage(self):
+        from decimal import Decimal
+        if self.deposit_percentage and self.deposit_percentage > 0:
+            return self.deposit_percentage
+        total = self.total_price or Decimal('0.00')
+        dep = self.deposit_amount or Decimal('0.00')
+        if total > 0 and dep > 0:
+            return ((dep / total) * Decimal('100.00')).quantize(Decimal('0.01'))
+        return Decimal('0.00')
+
+    @property
+    def balance_due(self):
+        from decimal import Decimal
+        total = self.total_price or Decimal('0.00')
+        dep = self.deposit_amount or Decimal('0.00')
+        return max(Decimal('0.00'), total - dep)
 
     def __str__(self):
         return f"Cita: {self.client.full_name} con {self.staff.full_name} ({self.date} {self.start_time})"

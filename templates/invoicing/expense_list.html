@@ -12,39 +12,66 @@
         </a>
     </div>
 
-    <!-- Unified Expense Card (Sucursales Design) -->
-    <div class="glass-card bg-white p-6 rounded-2xl space-y-6 border border-slate-200 shadow-sm">
-        
-        <!-- Header -->
-        <div class="flex flex-col xl:flex-row items-start xl:items-center justify-between border-b border-slate-100 pb-4 gap-4">
-            <div>
-                <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
-                    <i data-lucide="receipt" class="w-5 h-5 text-rose-900"></i>
-                    <span>Egresos & Gastos Operativos</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">Control de gastos fijos, insumos y pagos a proveedores</p>
+    <!-- Top Module Header Card -->
+    <div class="glass-card bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-rose-50/80 border border-rose-200 text-rose-900 flex items-center justify-center shrink-0">
+                    <i data-lucide="receipt" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-lg sm:text-xl leading-tight">Egresos & Gastos Operativos</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Control de gastos fijos, insumos y pagos a proveedores</p>
+                </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto shrink-0">
-                <a href="{% url 'export_expenses_excel' %}" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0">
-                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Excel
+
+            <!-- Desktop Actions (All in one row on PC) -->
+            <div class="hidden sm:flex items-center gap-2 shrink-0">
+                <a href="{% url 'export_expenses_excel' %}" title="Exportar Excel" class="h-10 px-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 font-bold text-xs shadow-2xs transition inline-flex items-center gap-1.5 shrink-0">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i> Excel
                 </a>
-                <a href="{% url 'export_expenses_pdf' %}" target="_blank" class="px-3.5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0">
-                    <i data-lucide="file-text" class="w-4 h-4"></i> PDF
+                <a href="{% url 'export_expenses_pdf' %}" target="_blank" title="Exportar PDF" class="h-10 px-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 font-bold text-xs shadow-2xs transition inline-flex items-center gap-1.5 shrink-0">
+                    <i data-lucide="file-text" class="w-4 h-4 text-rose-900"></i> PDF
                 </a>
-                <a href="{% url 'expense_create' %}" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0">
-                    <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Gasto
+                <a href="{% url 'expense_create' %}" class="h-10 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-2xs transition">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-rose-400"></i>
+                    <span>Nuevo Gasto</span>
                 </a>
             </div>
         </div>
+        
+        <!-- Mobile Actions (Shown ONLY on mobile) -->
+        <div class="sm:hidden space-y-2 pt-1 border-t border-slate-100">
+            <!-- Primary Action Button (Pill Design) -->
+            <a href="{% url 'expense_create' %}" class="w-full py-3 px-6 rounded-full bg-black hover:bg-slate-900 text-white font-bold text-sm inline-flex items-center justify-center gap-2 shadow-sm transition">
+                <i data-lucide="plus-circle" class="w-4 h-4 text-rose-400"></i>
+                <span>Registrar Nuevo Gasto</span>
+            </a>
 
-        <!-- Expenses Table -->
-        <div class="overflow-x-auto rounded-xl border border-slate-200">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold">
+            <!-- Mobile Export Buttons -->
+            <div class="grid grid-cols-2 gap-2">
+                <a href="{% url 'export_expenses_excel' %}" class="py-2.5 px-3 rounded-xl bg-white text-slate-700 border border-slate-200 font-bold text-xs text-center inline-flex items-center justify-center gap-1.5 shadow-2xs">
+                    <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600"></i> Excel
+                </a>
+                <a href="{% url 'export_expenses_pdf' %}" target="_blank" class="py-2.5 px-3 rounded-xl bg-white text-slate-700 border border-slate-200 font-bold text-xs text-center inline-flex items-center justify-center gap-1.5 shadow-2xs">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-900"></i> PDF
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expenses Table Card -->
+    <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+        <div class="p-4 sm:p-5 border-b border-slate-100 bg-white">
+            <h4 class="font-extrabold text-slate-900 text-lg leading-tight">Gastos Registrados</h4>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-bold">
                     <tr>
                         <th class="p-4">Concepto</th>
                         <th class="p-4">Categoría</th>
-                        <th class="p-4">Proveedor</th>
+                        <th class="p-4 hidden md:table-cell">Proveedor</th>
                         <th class="p-4">Monto</th>
                         <th class="p-4">Fecha</th>
                         <th class="p-4 text-right">Acción</th>
@@ -53,13 +80,16 @@
                 <tbody class="divide-y divide-slate-100">
                     {% for exp in expenses %}
                     <tr class="hover:bg-slate-50/80 transition">
-                        <td class="p-4 font-bold text-slate-900">{{ exp.concept }}</td>
+                        <td class="p-4 font-bold text-slate-900">
+                            <div>{{ exp.concept }}</div>
+                            <div class="text-xs text-slate-500 md:hidden mt-0.5">{% if exp.supplier %}{{ exp.supplier.company_name }}{% endif %}</div>
+                        </td>
                         <td class="p-4 text-slate-600">{% if exp.category %}{{ exp.category.name }}{% else %}General{% endif %}</td>
-                        <td class="p-4 text-slate-600">{% if exp.supplier %}{{ exp.supplier.company_name }}{% else %}-{% endif %}</td>
-                        <td class="p-4 font-extrabold text-rose-900">{{ business.currency }}{{ exp.amount }}</td>
+                        <td class="p-4 text-slate-600 hidden md:table-cell">{% if exp.supplier %}{{ exp.supplier.company_name }}{% else %}-{% endif %}</td>
+                        <td class="p-4 font-black text-rose-900">{{ business.currency }}{{ exp.amount }}</td>
                         <td class="p-4 text-slate-500 text-xs">{{ exp.issue_date|date:"Y-m-d" }}</td>
                         <td class="p-4 text-right">
-                            <a href="{% url 'expense_edit' exp.id %}" class="px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold transition">
+                            <a href="{% url 'expense_edit' exp.id %}" class="h-8 px-3 rounded-lg bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center transition shadow-2xs whitespace-nowrap">
                                 Editar
                             </a>
                         </td>

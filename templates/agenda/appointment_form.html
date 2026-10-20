@@ -154,6 +154,7 @@
                             data-name="{{ srv.name|escape }}" 
                             data-price="{{ srv.price|unlocalize }}" 
                             data-duration="{{ srv.duration_minutes }}"
+                            data-deposit-percentage="{{ srv.effective_deposit_percentage|unlocalize }}"
                             data-allowed-staff="{{ srv.allowed_staff_ids_json|default:'[]'|escape }}">
                         {{ srv.name }} - {{ business.currency }}{{ srv.price }} ({{ srv.duration_minutes }} min)
                     </option>
@@ -281,6 +282,61 @@
                 </div>
             </div>
 
+            <!-- SECCIÓN DE SEÑA / ANTICIPO Y ESTADO DE CITA -->
+            <div class="p-4 sm:p-5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div>
+                        <h4 class="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                            <i data-lucide="wallet" class="w-4 h-4 text-amber-800"></i>
+                            <span>Seña / Anticipo de la Cita</span>
+                        </h4>
+                        <p class="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                            Se calcula automáticamente según los servicios elegidos, o puedes ajustar el porcentaje o monto de anticipo manualmente.
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-3 sm:flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                        <button type="button" onclick="applyAppointmentDepositPreset('auto')" class="px-2.5 py-1.5 sm:py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-[11px] font-bold transition cursor-pointer text-center">Según Servicio</button>
+                        <button type="button" onclick="applyAppointmentDepositPreset(0)" class="px-2 py-1.5 sm:py-1 rounded-lg bg-white hover:bg-amber-50 text-slate-700 border border-slate-200 text-[11px] font-bold transition cursor-pointer text-center">0%</button>
+                        <button type="button" onclick="applyAppointmentDepositPreset(20)" class="px-2 py-1.5 sm:py-1 rounded-lg bg-white hover:bg-amber-50 text-slate-700 border border-slate-200 text-[11px] font-bold transition cursor-pointer text-center">20%</button>
+                        <button type="button" onclick="applyAppointmentDepositPreset(30)" class="px-2 py-1.5 sm:py-1 rounded-lg bg-white hover:bg-amber-50 text-slate-700 border border-slate-200 text-[11px] font-bold transition cursor-pointer text-center">30%</button>
+                        <button type="button" onclick="applyAppointmentDepositPreset(50)" class="px-2 py-1.5 sm:py-1 rounded-lg bg-white hover:bg-amber-50 text-slate-700 border border-slate-200 text-[11px] font-bold transition cursor-pointer text-center">50%</button>
+                        <button type="button" onclick="applyAppointmentDepositPreset(100)" class="px-2 py-1.5 sm:py-1 rounded-lg bg-white hover:bg-amber-50 text-slate-700 border border-slate-200 text-[11px] font-bold transition cursor-pointer text-center">100%</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Porcentaje de Seña (%)</label>
+                        <div class="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-800">
+                            <input type="number" step="0.01" min="0" max="100" name="deposit_percentage" id="appointment_deposit_percentage"
+                                   value="{% if appointment %}{{ appointment.effective_deposit_percentage|unlocalize }}{% else %}{{ business.default_deposit_percentage|default:30|unlocalize }}{% endif %}"
+                                   oninput="onAppointmentDepositPctChanged()"
+                                   class="w-full p-2.5 text-sm font-extrabold text-slate-900 focus:outline-none">
+                            <span class="px-3 py-2.5 bg-slate-100 text-xs font-extrabold text-slate-600 border-l border-slate-200">%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Monto de Seña / Anticipo ({{ business.currency }})</label>
+                        <div class="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-rose-800">
+                            <span class="px-3 py-2.5 bg-slate-100 text-xs font-extrabold text-slate-600 border-r border-slate-200">{{ business.currency }}</span>
+                            <input type="number" step="0.01" min="0" name="deposit_amount" id="appointment_deposit_amount"
+                                   value="{% if appointment %}{{ appointment.deposit_amount|unlocalize }}{% else %}0.00{% endif %}"
+                                   oninput="onAppointmentDepositAmountChanged()"
+                                   class="w-full p-2.5 text-sm font-extrabold text-amber-900 focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Saldo Restante a Cobrar</label>
+                        <div class="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
+                            <span class="text-xs text-slate-500 font-medium">Pendiente:</span>
+                            <span id="appointment_balance_due_display" class="text-sm font-extrabold text-rose-900 font-mono">
+                                {{ business.currency }}{% if appointment %}{{ appointment.balance_due }}{% else %}0.00{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Estado de Cita</label>
                 <select name="status" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">
@@ -296,9 +352,9 @@
                 <textarea name="notes" rows="3" placeholder="Observaciones especiales..." class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:ring-2 focus:ring-rose-800">{{ appointment.notes|default:'' }}</textarea>
             </div>
 
-            <div class="pt-4 border-t border-slate-200 flex justify-end gap-3">
-                <a href="{% url 'agenda' %}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold">Cancelar</a>
-                <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-bold shadow-md shadow-rose-950/20 transition">Guardar Turno</button>
+            <div class="pt-4 border-t border-slate-200 grid grid-cols-2 sm:flex sm:justify-end gap-3">
+                <a href="{% url 'agenda' %}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold text-center">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-bold shadow-md shadow-rose-950/20 transition text-center">Guardar Turno</button>
             </div>
         </form>
     </div>
@@ -743,10 +799,12 @@
     // SERVICIOS: COMBOBOX Y GESTOR MULTI-SERVICIO
     // ==========================================
     const businessCurrency = "{{ business.currency|default:'$' }}";
+    const defaultBusinessDepositPct = parseFloat("{{ business.default_deposit_percentage|default:30|unlocalize }}") || 0;
     let allServices = [];
     let highlightedServiceIndex = -1;
     let visibleFilteredServices = [];
     let selectedServices = [];
+    let depositManuallyEdited = {% if appointment %}true{% else %}false{% endif %};
 
     // Inicializar datos iniciales (desde el backend al editar o re-agendar)
     const initialServicesData = {{ existing_services_json|default:'[]'|safe }};
@@ -761,6 +819,8 @@
                 if (opt.value) {
                     const rawPrice = opt.getAttribute('data-price') || '0';
                     const cleanPrice = parseFloat(String(rawPrice).replace(',', '.')) || 0;
+                    const rawDep = opt.getAttribute('data-deposit-percentage');
+                    const cleanDep = rawDep !== null && rawDep !== '' ? (parseFloat(String(rawDep).replace(',', '.')) || 0) : defaultBusinessDepositPct;
                     let allowedStaff = [];
                     try {
                         allowedStaff = JSON.parse(opt.getAttribute('data-allowed-staff') || '[]').map(String);
@@ -772,6 +832,7 @@
                         name: opt.getAttribute('data-name') || opt.text.split(' - ')[0].trim(),
                         price: cleanPrice,
                         duration: parseInt(opt.getAttribute('data-duration')) || 0,
+                        deposit_percentage: cleanDep,
                         allowed_staff_ids: allowedStaff
                     };
                     allServices.push(srvObj);
@@ -787,6 +848,7 @@
                     name: s.name,
                     price: parseFloat(s.price) || 0,
                     duration: parseInt(s.duration) || 0,
+                    deposit_percentage: s.deposit_percentage !== undefined ? (parseFloat(s.deposit_percentage) || 0) : (catMatch ? catMatch.deposit_percentage : defaultBusinessDepositPct),
                     quantity: Math.max(1, parseInt(s.quantity) || 1),
                     allowed_staff_ids: Array.isArray(s.allowed_staff_ids) ? s.allowed_staff_ids.map(String) : (catMatch ? catMatch.allowed_staff_ids : [])
                 };
@@ -949,11 +1011,13 @@
                 name: srv.name,
                 price: srv.price,
                 duration: srv.duration,
+                deposit_percentage: srv.deposit_percentage !== undefined ? srv.deposit_percentage : defaultBusinessDepositPct,
                 quantity: 1,
                 allowed_staff_ids: srv.allowed_staff_ids || []
             });
         }
 
+        depositManuallyEdited = false;
         renderSelectedServices();
         clearServiceSearch();
         closeServiceDropdown();
@@ -962,6 +1026,7 @@
     function incrementServiceQty(idx) {
         if (selectedServices[idx]) {
             selectedServices[idx].quantity += 1;
+            depositManuallyEdited = false;
             renderSelectedServices();
         }
     }
@@ -973,6 +1038,7 @@
             } else {
                 selectedServices.splice(idx, 1);
             }
+            depositManuallyEdited = false;
             renderSelectedServices();
         }
     }
@@ -981,6 +1047,7 @@
         if (selectedServices[idx]) {
             const parsed = parseInt(val) || 1;
             selectedServices[idx].quantity = Math.max(1, parsed);
+            depositManuallyEdited = false;
             renderSelectedServices();
         }
     }
@@ -988,8 +1055,95 @@
     function removeServiceFromAppointment(idx) {
         if (selectedServices[idx]) {
             selectedServices.splice(idx, 1);
+            depositManuallyEdited = false;
             renderSelectedServices();
         }
+    }
+
+    function getAppointmentTotalPrice() {
+        return selectedServices.reduce((sum, s) => sum + ((parseFloat(s.price) || 0) * (parseInt(s.quantity) || 1)), 0);
+    }
+
+    function updateAppointmentBalanceDisplay(totalPrice, depAmt) {
+        const balEl = document.getElementById('appointment_balance_due_display');
+        if (!balEl) return;
+        const balance = Math.max(0, totalPrice - depAmt);
+        balEl.textContent = `${businessCurrency}${balance.toFixed(2)}`;
+    }
+
+    function recalculateAppointmentDepositFromServices(forceFromServices = false) {
+        const pctInput = document.getElementById('appointment_deposit_percentage');
+        const amtInput = document.getElementById('appointment_deposit_amount');
+        if (!pctInput || !amtInput) return;
+
+        const totalPrice = getAppointmentTotalPrice();
+        if (selectedServices.length === 0 || totalPrice <= 0) {
+            if (!depositManuallyEdited || forceFromServices) {
+                pctInput.value = defaultBusinessDepositPct.toFixed(2);
+                amtInput.value = '0.00';
+            }
+            updateAppointmentBalanceDisplay(0, 0);
+            return;
+        }
+
+        if (!depositManuallyEdited || forceFromServices) {
+            const totalDepAmt = selectedServices.reduce((sum, s) => {
+                const pct = s.deposit_percentage !== undefined ? parseFloat(s.deposit_percentage) : defaultBusinessDepositPct;
+                const sub = (parseFloat(s.price) || 0) * (parseInt(s.quantity) || 1);
+                return sum + ((sub * pct) / 100.0);
+            }, 0);
+            const effPct = totalPrice > 0 ? ((totalDepAmt / totalPrice) * 100.0) : defaultBusinessDepositPct;
+            pctInput.value = effPct.toFixed(2);
+            amtInput.value = totalDepAmt.toFixed(2);
+            updateAppointmentBalanceDisplay(totalPrice, totalDepAmt);
+        } else {
+            const currentAmt = parseFloat(amtInput.value) || 0;
+            updateAppointmentBalanceDisplay(totalPrice, currentAmt);
+        }
+    }
+
+    function applyAppointmentDepositPreset(preset) {
+        const pctInput = document.getElementById('appointment_deposit_percentage');
+        const amtInput = document.getElementById('appointment_deposit_amount');
+        if (!pctInput || !amtInput) return;
+
+        if (preset === 'auto') {
+            depositManuallyEdited = false;
+            recalculateAppointmentDepositFromServices(true);
+            return;
+        }
+
+        depositManuallyEdited = true;
+        const pct = Math.max(0, Math.min(100, parseFloat(preset) || 0));
+        const totalPrice = getAppointmentTotalPrice();
+        const depAmt = (totalPrice * pct) / 100.0;
+        pctInput.value = pct.toFixed(2);
+        amtInput.value = depAmt.toFixed(2);
+        updateAppointmentBalanceDisplay(totalPrice, depAmt);
+    }
+
+    function onAppointmentDepositPctChanged() {
+        depositManuallyEdited = true;
+        const pctInput = document.getElementById('appointment_deposit_percentage');
+        const amtInput = document.getElementById('appointment_deposit_amount');
+        if (!pctInput || !amtInput) return;
+        const pct = Math.max(0, Math.min(100, parseFloat(pctInput.value) || 0));
+        const totalPrice = getAppointmentTotalPrice();
+        const depAmt = (totalPrice * pct) / 100.0;
+        amtInput.value = depAmt.toFixed(2);
+        updateAppointmentBalanceDisplay(totalPrice, depAmt);
+    }
+
+    function onAppointmentDepositAmountChanged() {
+        depositManuallyEdited = true;
+        const pctInput = document.getElementById('appointment_deposit_percentage');
+        const amtInput = document.getElementById('appointment_deposit_amount');
+        if (!pctInput || !amtInput) return;
+        const totalPrice = getAppointmentTotalPrice();
+        const depAmt = Math.max(0, parseFloat(amtInput.value) || 0);
+        const pct = totalPrice > 0 ? Math.min(100, (depAmt / totalPrice) * 100.0) : 0;
+        pctInput.value = pct.toFixed(2);
+        updateAppointmentBalanceDisplay(totalPrice, depAmt);
     }
 
     function filterStaffBySelectedServices() {
@@ -1146,6 +1300,7 @@
             }
             if (servicesInput) servicesInput.value = '[]';
             if (fallbackInput) fallbackInput.value = '';
+            recalculateAppointmentDepositFromServices();
             calculateAutoEndTime(0);
             fetchInternalAgendaSlots();
             if (window.lucide) lucide.createIcons();
@@ -1159,6 +1314,7 @@
         container.innerHTML = selectedServices.map((s, idx) => {
             const lineSubtotal = s.price * s.quantity;
             const lineDuration = s.duration * s.quantity;
+            const srvDepPct = s.deposit_percentage !== undefined ? parseFloat(s.deposit_percentage) : defaultBusinessDepositPct;
             totalQty += s.quantity;
             totalDuration += lineDuration;
             totalPrice += lineSubtotal;
@@ -1171,9 +1327,10 @@
                         </div>
                         <div class="min-w-0 truncate">
                             <h5 class="text-xs font-bold text-slate-900 truncate">${s.name}</h5>
-                            <div class="flex items-center gap-2 text-2xs text-slate-500 font-medium mt-0.5">
+                            <div class="flex items-center gap-2 text-2xs text-slate-500 font-medium mt-0.5 flex-wrap">
                                 <span class="font-mono text-slate-700 font-bold">${businessCurrency}${s.price.toFixed(2)} c/u</span>
                                 ${s.duration ? `<span>• ${s.duration} min c/u</span>` : ''}
+                                ${srvDepPct > 0 ? `<span class="text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded font-bold">Seña: ${srvDepPct}%</span>` : ''}
                             </div>
                         </div>
                     </div>
@@ -1236,6 +1393,7 @@
         if (servicesInput) servicesInput.value = JSON.stringify(selectedServices);
         if (fallbackInput) fallbackInput.value = selectedServices.length > 0 ? selectedServices[0].id : '';
 
+        recalculateAppointmentDepositFromServices();
         calculateAutoEndTime(totalDuration);
         fetchInternalAgendaSlots();
 

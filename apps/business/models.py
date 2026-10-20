@@ -43,6 +43,7 @@ class Business(TimeStampedModel):
     region = models.ForeignKey('superadmin.Region', on_delete=models.SET_NULL, null=True, blank=True, related_name='businesses', verbose_name="Región")
     is_booking_enabled = models.BooleanField(default=True, verbose_name="Portal de Reservas Público Activo")
     pending_booking_expiry_hours = models.PositiveIntegerField(default=24, verbose_name="Horas de Espera para Confirmar Reserva Pendiente")
+    default_deposit_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=30.00, verbose_name="Porcentaje de Seña / Anticipo General (%)")
 
     class Meta:
         verbose_name = "Negocio"
@@ -55,17 +56,26 @@ class Business(TimeStampedModel):
     def is_real_estate(self):
         return self.business_type == 'REAL_ESTATE'
 
+    @property
+    def is_marketing_agency(self):
+        return self.business_type == 'MARKETING'
+
+
     def get_allowed_modules(self):
         sub = getattr(self, 'subscription', None)
         if sub and sub.plan and sub.plan.included_modules:
             modules = list(sub.plan.included_modules)
             if self.is_real_estate and 'properties' not in modules:
                 modules.append('properties')
+            if self.is_marketing_agency and 'projects' not in modules:
+                modules.append('projects')
             return modules
-        return ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties']
+        return ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties', 'projects']
 
     def is_module_allowed_by_plan(self, module_name):
         if module_name == 'properties' and self.is_real_estate:
+            return True
+        if module_name == 'projects' and self.is_marketing_agency:
             return True
         allowed = self.get_allowed_modules()
         return module_name in allowed
@@ -79,6 +89,10 @@ class Business(TimeStampedModel):
             if self.is_real_estate:
                 return True
             return 'properties' in (self.enabled_modules or [])
+        if module_name == 'projects':
+            if self.is_marketing_agency:
+                return True
+            return 'projects' in (self.enabled_modules or [])
         if not self.enabled_modules:
             return True
         return module_name in self.enabled_modules
