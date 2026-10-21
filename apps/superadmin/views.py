@@ -316,6 +316,9 @@ def user_detail_view(request, business_id):
             messages.warning(request, f"Pago #{payment.id} marcado como rechazado.")
             return redirect('superadmin_user_detail', business_id=business.id)
 
+        elif action == 'DELETE_BUSINESS':
+            return delete_business_view(request, business.id)
+
     branches = business.branches.all()
     staff_members = business.staff_members.all()
     payment_methods = business.payment_methods.all()
@@ -339,6 +342,121 @@ def user_detail_view(request, business_id):
         'all_regions': all_regions,
         'subscription_payments': subscription_payments,
     })
+
+def _safe_delete_file(field_file):
+    """Elimina de forma segura un archivo adjunto del almacenamiento sin lanzar excepciones."""
+    if field_file:
+        try:
+            field_file.delete(save=False)
+        except Exception:
+            pass
+
+def delete_business_and_all_records(business, actor_email="SuperAdmin"):
+    """
+    Elimina permanentemente una cuenta de negocio/agencia junto con:
+    1. Archivos multimedia asociados (logos, banners, fotos de personal, recibos, etc.)
+    2. Registros de sucursales, staff, CRM, agenda, facturación, POS, proyectos, inmuebles, marketing, suscripción.
+    3. Todos los usuarios (User) vinculados a la cuenta.
+    4. Registra la acción en SystemAuditLog.
+    """
+    from django.db import transaction
+
+    business_name = business.name
+    business_id_str = str(business.id)
+
+    # Recolectar datos antes del borrado para el log de auditoría
+    user_ids = list(business.users.values_list('id', flat=True))
+    users_count = len(user_ids)
+    branches_count = business.branches.count()
+    staff_count = business.staff_members.count()
+    clients_count = business.clients.count()
+    appointments_count = business.appointments.count()
+
+    # 1. Limpieza segura de archivos (opcional, no bloquea el borrado en base de datos)
+    try:
+        _safe_delete_file(getattr(business, 'logo_url', None))
+        _safe_delete_file(getattr(business, 'banner_url', None))
+
+        if hasattr(business, 'staff_members'):
+            for staff in business.staff_members.all():
+                _safe_delete_file(getattr(staff, 'profile_picture', None))
+
+        if hasattr(business, 'properties'):
+            for prop in business.properties.all():
+                imgs = getattr(prop, 'images', None)
+                if imgs is not None and hasattr(imgs, 'all'):
+                    for pimg in imgs.all():
+                        _safe_delete_file(getattr(pimg, 'image', None))
+
+        if hasattr(business, 'subscription_payments'):
+            for sp in business.subscription_payments.all():
+                _safe_delete_file(getattr(sp, 'receipt_file', None))
+    except Exception:
+        pass
+
+    # 2. Transacción de eliminación atómica
+    with transaction.atomic():
+        # Borra el negocio (activa el CASCADE de Django a todas las relaciones ForeignKey con CASCADE)
+        business.delete()
+
+        # Borra los usuarios de acceso del negocio (User.business tiene on_delete=SET_NULL)
+        if user_ids:
+            User.objects.filter(id__in=user_ids).delete()
+
+        # Registra la auditoría
+        details = (
+            f"SuperAdmin eliminó permanentemente la cuenta '{business_name}' (ID: {business_id_str}) "
+            f"y sus registros: {users_count} usuarios, {branches_count} sucursales, {staff_count} profesionales, "
+            f"{clients_count} clientes CRM, {appointments_count} citas y registros operativos."
+        )
+        SystemAuditLog.objects.create(
+            actor_email=actor_email,
+            action="ELIMINACION_CUENTA",
+            details=details
+        )
+
+    return {
+        'name': business_name,
+        'id': business_id_str,
+        'users_count': users_count,
+        'branches_count': branches_count,
+        'staff_count': staff_count,
+        'clients_count': clients_count,
+        'appointments_count': appointments_count,
+    }
+
+@superadmin_required
+@ensure_csrf_cookie
+def delete_business_view(request, business_id):
+    """
+    Vista para eliminar una cuenta/agencia y todos sus registros asociados.
+    """
+    if request.method != 'POST':
+        messages.warning(request, "La eliminación de una cuenta solo se puede realizar mediante solicitud POST confirmada.")
+        return redirect('superadmin_users')
+
+    business = get_object_or_404(Business, id=business_id)
+    actor_email = getattr(request.superadmin_user, 'email', None) or getattr(request.superadmin_user, 'username', 'SuperAdmin')
+
+    confirmation = request.POST.get('confirmation', '').strip().upper()
+    confirm_flag = request.POST.get('confirm_delete')
+
+    # Validar confirmación de seguridad
+    if confirmation != 'ELIMINAR' and confirm_flag != '1':
+        messages.error(request, "Para eliminar la cuenta debes escribir la palabra de confirmación 'ELIMINAR'.")
+        return redirect('superadmin_user_detail', business_id=business.id)
+
+    try:
+        res = delete_business_and_all_records(business, actor_email=actor_email)
+        messages.success(
+            request,
+            f"¡La cuenta '{res['name']}' y todos sus registros asociados ({res['users_count']} usuarios, {res['branches_count']} sucursales, {res['clients_count']} clientes, etc.) han sido eliminados permanentemente!"
+        )
+    except Exception as e:
+        messages.error(request, f"Ocurrió un error al eliminar la cuenta: {str(e)}")
+        return redirect('superadmin_users')
+
+    return redirect('superadmin_users')
 
 @superadmin_required
 @ensure_csrf_cookie
@@ -807,15 +925,17 @@ def _ensure_default_payment_methods():
     ]
 
     for item in default_methods:
-        pm, created = GlobalPaymentMethod.objects.get_or_create(
-            code=item['code'],
-            defaults={
-                'name': item['name'],
-                'description': item['description'],
-                'is_active': True
-            }
-        )
-        if not created and item['code'] == 'PAGOMOVIL' and pm.name == 'Pago Móvil':
+        pm = GlobalPaymentMethod.objects.filter(code=item['code']).first()
+        if not pm:
+            pm = GlobalPaymentMethod.objects.filter(name=item['name']).first()
+        if not pm:
+            pm = GlobalPaymentMethod.objects.create(
+                code=item['code'],
+                name=item['name'],
+                description=item['description'],
+                is_active=True
+            )
+        elif item['code'] == 'PAGOMOVIL' and pm.name == 'Pago Móvil':
             pm.name = item['name']
             pm.save(update_fields=['name'])
 

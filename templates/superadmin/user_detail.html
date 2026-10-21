@@ -26,6 +26,12 @@
                 <i data-lucide="external-link" class="w-4 h-4 text-brand-900"></i>
                 <span>Ver Landing de Reservas</span>
             </a>
+            <button type="button"
+                    onclick="openDeleteBusinessModal('{{ business.id }}', '{{ business.name|escapejs }}', '{{ business.email|escapejs }}')"
+                    class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-xs transition flex items-center gap-2 shadow-2xs cursor-pointer">
+                <i data-lucide="trash-2" class="w-4 h-4 text-rose-600"></i>
+                <span>Borrar Cuenta</span>
+            </button>
         </div>
     </div>
 
@@ -466,6 +472,36 @@
         {% endif %}
     </div>
 
+    <!-- Danger Zone Card: Borrar Cuenta -->
+    <div class="glass-card bg-rose-50/40 border border-rose-200 rounded-2xl p-6 shadow-2xs space-y-4">
+        <div class="flex items-center justify-between border-b border-rose-100 pb-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-700">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-rose-950 text-base font-display">Zona de Peligro: Borrar Cuenta</h3>
+                    <p class="text-xs text-rose-700">Eliminación definitiva e irreversible de la cuenta y toda su información.</p>
+                </div>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 uppercase">
+                Irreversible
+            </span>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+            <div class="text-slate-600 max-w-2xl leading-relaxed">
+                <p>Al borrar esta cuenta se eliminará permanentemente la empresa <strong class="text-slate-900 font-bold">{{ business.name }}</strong> junto con todos sus registros vinculados: usuarios de inicio de sesión, sucursales, agenda, clientes CRM, ventas, facturas, comprobantes de pago y licencias de suscripción.</p>
+            </div>
+            <button type="button"
+                    onclick="openDeleteBusinessModal('{{ business.id }}', '{{ business.name|escapejs }}', '{{ business.email|escapejs }}')"
+                    class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                <span>Borrar Cuenta y Registros</span>
+            </button>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -493,4 +529,8 @@ function handleDetailDurationChange(val) {
     }
 }
 </script>
+{% endblock %}
+
+{% block modals %}
+{% include 'superadmin/modal_delete_business.html' %}
 {% endblock %}
