@@ -5,6 +5,10 @@ urlpatterns = [
     # Proyectos
     path('', views.project_list_view, name='project_list'),
     path('nuevo/', views.project_create_view, name='project_create'),
+    path('tipos/', views.project_types_view, name='project_types'),
+    path('tipos/nuevo/', views.project_type_create_view, name='project_type_create'),
+    path('tipos/<uuid:type_id>/editar/', views.project_type_edit_view, name='project_type_edit'),
+    path('tipos/<uuid:type_id>/eliminar/', views.project_type_delete_view, name='project_type_delete'),
     path('<uuid:project_id>/', views.project_detail_view, name='project_detail'),
     path('<uuid:project_id>/editar/', views.project_edit_view, name='project_edit'),
     path('<uuid:project_id>/eliminar/', views.project_delete_view, name='project_delete'),

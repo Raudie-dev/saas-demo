@@ -45,9 +45,11 @@
                 <div class="space-y-1.5">
                     <label class="text-xs font-bold text-slate-700 flex items-center justify-between">
                         <span>Cliente / Cuenta</span>
-                        <a href="{% url 'client_create' %}?next={{ request.path }}" class="text-[10px] text-rose-800 hover:underline font-bold">+ Nuevo Cliente</a>
+                        <button type="button" onclick="openQuickClientModal()" class="text-[10px] text-rose-800 hover:text-rose-950 hover:underline font-bold cursor-pointer flex items-center gap-1">
+                            <i data-lucide="user-plus" class="w-3 h-3"></i> + Nuevo Cliente
+                        </button>
                     </label>
-                    <select name="client_id" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                    <select name="client_id" id="project_client_id_select" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
                         <option value="">-- Proyecto Interno (Sin cliente externo) --</option>
                         {% for c in clients %}
                         <option value="{{ c.id }}" {% if project and project.client_id == c.id or preselected_client_id == c.id|stringformat:"s" %}selected{% endif %}>
@@ -70,10 +72,17 @@
                 </div>
 
                 <div class="space-y-1.5">
-                    <label class="text-xs font-bold text-slate-700">Tipo de Proyecto *</label>
-                    <select name="project_type" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
-                        {% for code, label in project_types %}
-                        <option value="{{ code }}" {% if project and project.project_type == code %}selected{% endif %}>{{ label }}</option>
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-bold text-slate-700">Tipo de Proyecto *</label>
+                        <a href="{% url 'project_types' %}" target="_blank" class="text-[11px] font-bold text-rose-800 hover:text-rose-950 hover:underline inline-flex items-center gap-1">
+                            <i data-lucide="tags" class="w-3.5 h-3.5"></i> Administrar Tipos
+                        </a>
+                    </div>
+                    <select name="custom_type_id" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                        {% for pt in project_types %}
+                        <option value="{{ pt.id }}" {% if project and project.custom_type_id == pt.id or not project and forloop.first %}selected{% endif %}>
+                            {{ pt.name }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
@@ -180,4 +189,170 @@
         </div>
     </form>
 </div>
+
+<!-- ============================================================== -->
+<!-- MODAL: REGISTRAR NUEVO CLIENTE RÁPIDO (CRM AJAX)              -->
+<!-- ============================================================== -->
+<div id="quick-client-modal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeQuickClientModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-8 space-y-5 relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-base text-slate-900">Registrar Nuevo Cliente</h3>
+                    <p class="text-xs text-slate-500">Se agregará al CRM y se seleccionará automáticamente en este proyecto.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeQuickClientModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form id="quick-client-form" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <div id="quick-client-error" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 font-semibold text-xs"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nombre *</label>
+                    <input type="text" id="qc-first-name" required placeholder="Ej: María" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Apellido</label>
+                    <input type="text" id="qc-last-name" placeholder="Ej: Pérez" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Teléfono / WhatsApp *</label>
+                    <div class="flex rounded-xl overflow-hidden border border-slate-300 focus-within:ring-2 focus-within:ring-rose-800 bg-slate-50">
+                        <select id="qc-phone-prefix" class="w-[96px] bg-slate-200 text-slate-800 text-xs font-bold px-2 py-2.5 border-r border-slate-300 focus:outline-none cursor-pointer shrink-0">
+                            {% include 'components/phone_prefix_options.html' with selected_prefix=default_phone_prefix|default:'+54' %}
+                        </select>
+                        <input type="text" id="qc-phone" placeholder="91133221100" class="w-full bg-slate-50 text-slate-900 rounded-r-xl p-2.5 font-bold focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">DNI / Número de Identidad / Tax ID</label>
+                    <input type="text" id="qc-tax-id" placeholder="Ej: 12345678" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Correo Electrónico (Opcional)</label>
+                <input type="email" id="qc-email" placeholder="cliente@email.com" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+            </div>
+
+            <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeQuickClientModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" id="qc-submit-btn" class="px-5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openQuickClientModal() {
+        const modal = document.getElementById('quick-client-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            const err = document.getElementById('quick-client-error');
+            if (err) err.classList.add('hidden');
+            setTimeout(() => {
+                const fn = document.getElementById('qc-first-name');
+                if (fn) fn.focus();
+            }, 60);
+        }
+    }
+
+    function closeQuickClientModal() {
+        const modal = document.getElementById('quick-client-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            const form = document.getElementById('quick-client-form');
+            if (form) form.reset();
+            const err = document.getElementById('quick-client-error');
+            if (err) err.classList.add('hidden');
+        }
+    }
+
+    document.getElementById('quick-client-form')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const firstName = document.getElementById('qc-first-name').value.trim();
+        const lastName = document.getElementById('qc-last-name').value.trim();
+        const phonePrefix = document.getElementById('qc-phone-prefix').value.trim();
+        const phoneNumber = document.getElementById('qc-phone').value.trim();
+        const taxId = document.getElementById('qc-tax-id').value.trim();
+        const email = document.getElementById('qc-email').value.trim();
+        const errorDiv = document.getElementById('quick-client-error');
+        const submitBtn = document.getElementById('qc-submit-btn');
+
+        if (!firstName) {
+            errorDiv.textContent = 'El nombre del cliente es obligatorio.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('first_name', firstName);
+        formData.append('last_name', lastName);
+        formData.append('phone_prefix', phonePrefix);
+        formData.append('phone_number', phoneNumber);
+        formData.append('tax_id', taxId);
+        formData.append('email', email);
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        if (csrfToken) {
+            formData.append('csrfmiddlewaretoken', csrfToken);
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Guardando...';
+
+        fetch('{% url "pos_quick_client" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar';
+
+            if (data.success) {
+                const select = document.getElementById('project_client_id_select');
+                if (select) {
+                    const phoneText = data.phone ? ` (${data.phone})` : '';
+                    const newOption = new Option(`${data.full_name}${phoneText}`, data.client_id, true, true);
+                    select.add(newOption);
+                    select.value = data.client_id;
+                }
+                closeQuickClientModal();
+                if (window.lucide) lucide.createIcons();
+            } else {
+                errorDiv.textContent = data.error || 'Error al registrar el cliente.';
+                errorDiv.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            console.error('Error registrando cliente:', err);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar';
+            errorDiv.textContent = 'Error de conexión al guardar el cliente.';
+            errorDiv.classList.remove('hidden');
+        });
+    });
+</script>
 {% endblock %}

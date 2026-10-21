@@ -1,0 +1,2340 @@
+{% extends 'base.html' %}
+{% load l10n %}
+
+{% block title %}Cobranzas & Cuotas - RauDie OS{% endblock %}
+{% block header_title %}Cuentas por Cobrar & Pagos en Cuotas{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Module Header Card -->
+    <div class="glass-card bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center shrink-0 font-bold">
+                    <i data-lucide="hand-coins" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-extrabold text-slate-900 text-lg sm:text-xl leading-tight">Módulo de Cobranzas & Cuotas</h3>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase tracking-wider">Finanzas Sin Lotes POS</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Planifica y gestiona cobros futuros, cuotas por hito o pautas de entrega vinculados a proyectos y servicios.</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                <button type="button" onclick="openDirectChargeModal()" class="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    <span>+ Cobro Directo al Instante</span>
+                </button>
+                <button type="button" onclick="openNewPlanModal()" class="h-10 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                    <i data-lucide="calendar-plus" class="w-4 h-4 text-rose-400"></i>
+                    <span>Planificar Cuotas / Hitos</span>
+                </button>
+                <a href="{% url 'quote_list' %}" class="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="calculator" class="w-4 h-4 text-slate-500"></i>
+                    <span>Cotizaciones</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
+            <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/70">
+                <p class="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Total por Cobrar</p>
+                <p class="text-xl font-black text-blue-900 mt-0.5">{{ business.currency }}{{ total_receivable|floatformat:2 }}</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/70">
+                <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Cobrado este Mes</p>
+                <p class="text-xl font-black text-emerald-900 mt-0.5">{{ business.currency }}{{ collected_month|floatformat:2 }}</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/70">
+                <p class="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Cuotas Vencidas</p>
+                <div class="flex items-baseline gap-1 mt-0.5">
+                    <span class="text-xl font-black text-rose-900">{{ business.currency }}{{ overdue_amount|floatformat:2 }}</span>
+                    {% if overdue_count > 0 %}
+                    <span class="text-xs font-bold text-rose-700">({{ overdue_count }})</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200/70">
+                <p class="text-[10px] font-bold text-purple-700 uppercase tracking-wider">Planificado Próx. 30 Días</p>
+                <p class="text-xl font-black text-purple-900 mt-0.5">{{ business.currency }}{{ upcoming_30_days|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Switcher Bar -->
+    <div class="glass-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        
+        <!-- Status Tabs -->
+        <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+            <a href="{% url 'payment_plan_list' %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'ALL' or not status_filter %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Todas las Cuotas
+            </a>
+            <a href="{% url 'payment_plan_list' %}?status=PENDING" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PENDING' %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Próximas por Cobrar
+            </a>
+            <a href="{% url 'payment_plan_list' %}?status=OVERDUE" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'OVERDUE' %}bg-rose-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Vencidas
+            </a>
+            <a href="{% url 'payment_plan_list' %}?status=PARTIAL" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PARTIAL' %}bg-purple-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Parciales
+            </a>
+            <a href="{% url 'payment_plan_list' %}?status=PAID" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PAID' %}bg-emerald-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Cobros Realizados
+            </a>
+        </div>
+
+        <!-- Filter Form -->
+        <form method="GET" action="{% url 'payment_plan_list' %}" class="flex flex-wrap items-center gap-2">
+            {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+
+            <!-- 1. FILTRO DINÁMICO CLIENTE -->
+            <div class="relative min-w-[210px]" id="filter-client-combobox-wrapper">
+                <input type="hidden" name="client_id" id="filter_client_id" value="{{ client_id }}">
+                <div class="relative flex items-center">
+                    <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none"></i>
+                    <input type="text"
+                           id="filter-client-search-input"
+                           autocomplete="off"
+                           value="{% for c in clients %}{% if client_id == c.id|stringformat:'s' %}{{ c.full_name }}{% endif %}{% endfor %}"
+                           placeholder="Todos los Clientes"
+                           class="w-full bg-white border border-slate-200 text-slate-900 rounded-xl pl-8 pr-7 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-rose-800 focus:border-rose-800 transition shadow-2xs placeholder:text-slate-500 placeholder:font-normal"
+                           onfocus="openFilterClientDropdown()"
+                           oninput="filterFilterClients(this.value)">
+                    <div class="absolute right-2 flex items-center">
+                        {% if client_id %}
+                        <button type="button" onclick="clearFilterClient(event)" class="text-slate-400 hover:text-rose-600 p-0.5 cursor-pointer" title="Quitar filtro de cliente">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                        {% else %}
+                        <button type="button" onclick="toggleFilterClientDropdown(event)" class="text-slate-400 hover:text-slate-700 p-0.5 cursor-pointer">
+                            <i data-lucide="chevron-down" id="filter-client-chevron" class="w-3.5 h-3.5 transition-transform duration-200"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Panel Flotante Resultados Cliente -->
+                <div id="filter-client-dropdown-results" 
+                     class="hidden absolute left-0 top-full mt-1.5 w-72 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-60 overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+                </div>
+            </div>
+
+            <!-- 2. FILTRO DINÁMICO PROYECTO -->
+            <div class="relative min-w-[210px]" id="filter-project-combobox-wrapper">
+                <input type="hidden" name="project_id" id="filter_project_id" value="{{ project_id }}">
+                <div class="relative flex items-center">
+                    <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-rose-800 absolute left-3 pointer-events-none"></i>
+                    <input type="text"
+                           id="filter-project-search-input"
+                           autocomplete="off"
+                           value="{% for pr in projects %}{% if project_id == pr.id|stringformat:'s' %}{{ pr.name }}{% endif %}{% endfor %}"
+                           placeholder="Todos los Proyectos"
+                           class="w-full bg-white border border-slate-200 text-slate-900 rounded-xl pl-8 pr-7 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-rose-800 focus:border-rose-800 transition shadow-2xs placeholder:text-slate-500 placeholder:font-normal"
+                           onfocus="openFilterProjectDropdown()"
+                           oninput="filterFilterProjects(this.value)">
+                    <div class="absolute right-2 flex items-center">
+                        {% if project_id %}
+                        <button type="button" onclick="clearFilterProject(event)" class="text-slate-400 hover:text-rose-600 p-0.5 cursor-pointer" title="Quitar filtro de proyecto">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                        {% else %}
+                        <button type="button" onclick="toggleFilterProjectDropdown(event)" class="text-slate-400 hover:text-slate-700 p-0.5 cursor-pointer">
+                            <i data-lucide="chevron-down" id="filter-project-chevron" class="w-3.5 h-3.5 transition-transform duration-200"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Panel Flotante Resultados Proyecto -->
+                <div id="filter-project-dropdown-results" 
+                     class="hidden absolute left-0 top-full mt-1.5 w-72 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-60 overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+                </div>
+            </div>
+
+            <div class="relative flex-1 sm:w-48">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Buscar concepto o ref..." class="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+            </div>
+
+            <button type="submit" class="h-8 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                Filtrar
+            </button>
+            {% if search_query or client_id or project_id or status_filter != 'ALL' %}
+            <a href="{% url 'payment_plan_list' %}" class="p-2 text-slate-400 hover:text-rose-600 transition" title="Limpiar filtros">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Installments Table / Feed & Calendar View -->
+    <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <i data-lucide="calendar-clock" class="w-4 h-4 text-rose-900"></i>
+                <h4 class="font-extrabold text-slate-900 text-sm">Cronograma de Cobros & Cuotas</h4>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                    {{ installments|length }} cuotas
+                </span>
+            </div>
+
+            <!-- View Switcher (Tabla vs Calendario) -->
+            <div class="flex items-center gap-2 shrink-0">
+                <div class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/80">
+                    <button type="button" onclick="switchCobranzasView('table')" id="btnViewTable" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-slate-900 shadow-2xs cursor-pointer">
+                        <i data-lucide="list" class="w-3.5 h-3.5 text-rose-900"></i>
+                        <span>Tabla</span>
+                    </button>
+                    <button type="button" onclick="switchCobranzasView('calendar')" id="btnViewCalendar" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 cursor-pointer">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span>Calendario</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="installmentsTableView" class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200/80">
+                        <th class="py-3 px-4">Cuota / Concepto</th>
+                        <th class="py-3 px-4">Cliente / Origen</th>
+                        <th class="py-3 px-4">Vencimiento</th>
+                        <th class="py-3 px-4 text-right">Monto</th>
+                        <th class="py-3 px-4 text-right">Cobrado</th>
+                        <th class="py-3 px-4 text-right">Saldo Pendiente</th>
+                        <th class="py-3 px-4 text-center">Estado</th>
+                        <th class="py-3 px-4 text-right">Acción</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% for inst in installments %}
+                    <tr class="hover:bg-slate-50/80 transition {% if inst.status == 'PAID' %}bg-slate-50/30 opacity-85{% elif inst.is_overdue %}bg-rose-50/20{% endif %}">
+                        
+                        <!-- Concept & Installment Number -->
+                        <td class="py-3.5 px-4 cursor-pointer group" onclick="showInstallmentDetailFromTable('{{ inst.id }}')" title="Ver detalle de cuota">
+                            <div class="font-bold text-slate-900 group-hover:text-rose-900 transition flex items-center gap-1.5">
+                                <span>{{ inst.concept }}</span>
+                                <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-700 opacity-60 group-hover:opacity-100 transition"></i>
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">
+                                Plan: <span class="font-medium text-slate-600">{{ inst.plan.title }}</span>
+                            </div>
+                        </td>
+
+                        <!-- Client & Project -->
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center gap-1.5 font-bold text-slate-800">
+                                <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
+                                <span>{{ inst.client.full_name|default:"Cliente General" }}</span>
+                            </div>
+                            {% if inst.project %}
+                            <div class="flex items-center gap-1 text-[11px] text-rose-900 font-medium mt-0.5">
+                                <i data-lucide="folder-kanban" class="w-3 h-3 text-rose-700"></i>
+                                <a href="{% url 'project_detail' inst.project.id %}" class="hover:underline">{{ inst.project.name }}</a>
+                            </div>
+                            {% elif inst.quote %}
+                            <div class="flex items-center gap-1 text-[11px] text-purple-800 font-medium mt-0.5">
+                                <i data-lucide="calculator" class="w-3 h-3 text-purple-600"></i>
+                                <a href="{% url 'quote_detail' inst.quote.id %}" class="hover:underline">Cotiz. #{{ inst.quote.quote_number }}</a>
+                            </div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Due Date -->
+                        <td class="py-3.5 px-4 whitespace-nowrap">
+                            <div class="font-bold {% if inst.is_overdue %}text-rose-700{% else %}text-slate-700{% endif %}">
+                                {{ inst.due_date|date:"d/m/Y" }}
+                            </div>
+                            {% if inst.status == 'PAID' and inst.paid_date %}
+                            <div class="text-[10px] text-emerald-700 font-medium mt-0.5">
+                                Cobrado: {{ inst.paid_date|date:"d/m/Y" }}
+                            </div>
+                            {% elif inst.is_overdue %}
+                            <div class="text-[10px] text-rose-600 font-bold mt-0.5">
+                                ¡Vencida!
+                            </div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Amount -->
+                        <td class="py-3.5 px-4 text-right font-black text-slate-900 whitespace-nowrap">
+                            {{ business.currency }}{{ inst.amount|floatformat:2 }}
+                        </td>
+
+                        <!-- Amount Paid -->
+                        <td class="py-3.5 px-4 text-right font-bold text-emerald-700 whitespace-nowrap">
+                            {{ business.currency }}{{ inst.amount_paid|floatformat:2 }}
+                            {% if inst.payment_method %}
+                            <div class="text-[10px] text-slate-400 font-medium mt-0.5">
+                                {{ inst.payment_method }}
+                            </div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Balance -->
+                        <td class="py-3.5 px-4 text-right font-black text-slate-800 whitespace-nowrap">
+                            {{ business.currency }}{{ inst.balance|floatformat:2 }}
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td class="py-3.5 px-4 text-center whitespace-nowrap cursor-pointer" onclick="showInstallmentDetailFromTable('{{ inst.id }}')" title="Clic para ver detalle">
+                            {% if inst.status == 'PAID' %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1 transition">
+                                <i data-lucide="check" class="w-3 h-3"></i> Cobrado
+                            </span>
+                            {% elif inst.status == 'PARTIAL' %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-purple-100 hover:bg-purple-200 text-purple-800 border border-purple-200 inline-flex items-center gap-1 transition">
+                                Pago Parcial
+                            </span>
+                            {% elif inst.is_overdue %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-200 inline-flex items-center gap-1 transition">
+                                <i data-lucide="alert-circle" class="w-3 h-3"></i> Vencido
+                            </span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-200 inline-flex items-center gap-1 transition">
+                                Pendiente
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <!-- Botón Ver Detalle (Abre el mismo modal de detalle) -->
+                                <button type="button" 
+                                        onclick="showInstallmentDetailFromTable('{{ inst.id }}')"
+                                        class="h-8 w-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 inline-flex items-center justify-center transition shadow-2xs cursor-pointer"
+                                        title="Ver Detalle de Cuota">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                </button>
+
+                                {% if inst.status != 'PAID' %}
+                                <button type="button" 
+                                        onclick="openChargeModal('{{ inst.id }}', '{{ inst.concept|escapejs }}', '{{ inst.balance|unlocalize }}', '{{ inst.client.full_name|escapejs }}')"
+                                        class="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs cursor-pointer">
+                                    <i data-lucide="dollar-sign" class="w-3.5 h-3.5"></i>
+                                    <span>Cobrar</span>
+                                </button>
+                                {% else %}
+                                <button type="button" 
+                                        onclick="showInstallmentDetailFromTable('{{ inst.id }}')"
+                                        class="h-8 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[11px] inline-flex items-center gap-1 transition cursor-pointer"
+                                        title="Ver comprobante de cobro">
+                                    <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                    <span>Ver Pago</span>
+                                </button>
+                                {% endif %}
+
+                                <form method="POST" action="{% url 'payment_installment_delete' inst.id %}" onsubmit="return confirm('¿Eliminar esta cuota planificada?');" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="p-1.5 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer" title="Eliminar cuota">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="p-8 text-center text-slate-400">
+                            <div class="max-w-xs mx-auto space-y-2">
+                                <i data-lucide="hand-coins" class="w-8 h-8 mx-auto text-slate-300"></i>
+                                <p class="font-bold text-xs text-slate-700">No hay cuotas registradas con los filtros actuales</p>
+                                <p class="text-[11px] text-slate-400">Comienza planificando los cobros por hitos de entrega o cuotas de tus clientes.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 2. VISTA CALENDARIO DE PRÓXIMAS CUOTAS -->
+        <div id="installmentsCalendarView" class="hidden p-4 sm:p-6 space-y-4">
+            <!-- Barra de Leyenda & Ayuda -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
+                <div class="flex items-center gap-3.5 flex-wrap">
+                    <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Estado de Cuotas:</span>
+                    <span class="flex items-center gap-1.5 text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Pagada
+                    </span>
+                    <span class="flex items-center gap-1.5 text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span> Próxima por Cobrar
+                    </span>
+                    <span class="flex items-center gap-1.5 text-rose-800 font-bold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span> Vencida
+                    </span>
+                    <span class="flex items-center gap-1.5 text-blue-800 font-bold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                        <span class="w-2 h-2 rounded-full bg-blue-500"></span> Cobro Parcial
+                    </span>
+                </div>
+                <div class="text-[11px] text-slate-500 flex items-center gap-1.5 shrink-0">
+                    <i data-lucide="info" class="w-3.5 h-3.5 text-rose-800 shrink-0"></i>
+                    <span>Haz clic en cualquier cuota del calendario para cobrarla al instante.</span>
+                </div>
+            </div>
+
+            <!-- Calendario FullCalendar -->
+            <div id="cobranzasCalendar" class="bg-white rounded-2xl border border-slate-200 p-2 sm:p-4 shadow-2xs min-h-[580px]"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL FLOTANTE 0: DETALLE DE CUOTA / COBRANZA EN CALENDARIO    -->
+<!-- ============================================================== -->
+<div id="installmentDetailModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeInstallmentDetailModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-7 space-y-5 relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <!-- Header con ícono y badge de estado -->
+        <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div id="detailModalIconWrapper" class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-extrabold text-slate-900 text-base leading-tight">Detalle de Cuota</h3>
+                        <span id="detailModalStatusBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            Pagada
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5" id="detailModalPlanTitle">Plan de Cobros</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeInstallmentDetailModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Concepto & Cliente Card -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+            <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Concepto</span>
+                    <h4 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug mt-0.5" id="detailModalConcept">-</h4>
+                </div>
+                <div id="detailModalProjectWrapper" class="hidden shrink-0">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 text-[11px] font-bold">
+                        <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-rose-700"></i>
+                        <span id="detailModalProjectName">Proyecto</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs text-slate-600">
+                <div class="flex items-center gap-1.5 font-bold text-slate-800">
+                    <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span id="detailModalClientName">Cliente</span>
+                </div>
+                <div id="detailModalClientPhoneWrapper" class="text-[11px] text-slate-500 flex items-center gap-1">
+                    <i data-lucide="phone" class="w-3 h-3 text-slate-400"></i>
+                    <span id="detailModalClientPhone">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas Financieras (Monto, Cobrado, Saldo) -->
+        <div class="grid grid-cols-3 gap-2.5">
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Monto Total</span>
+                <p class="text-sm sm:text-base font-black text-slate-900 mt-0.5" id="detailModalAmount">$0.00</p>
+            </div>
+            <div class="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/70 text-center">
+                <span class="text-[10px] font-bold text-emerald-700 uppercase">Cobrado</span>
+                <p class="text-sm sm:text-base font-black text-emerald-800 mt-0.5" id="detailModalPaidAmount">$0.00</p>
+            </div>
+            <div class="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/70 text-center">
+                <span class="text-[10px] font-bold text-amber-700 uppercase">Saldo Pendiente</span>
+                <p class="text-sm sm:text-base font-black text-amber-900 mt-0.5" id="detailModalBalance">$0.00</p>
+            </div>
+        </div>
+
+        <!-- Fechas, Método y Transacción -->
+        <div class="space-y-2 text-xs">
+            <div class="grid grid-cols-2 gap-2.5">
+                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Vencimiento</span>
+                    <span class="font-extrabold text-slate-800 text-xs" id="detailModalDueDate">-</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Fecha de Cobro</span>
+                    <span class="font-extrabold text-slate-800 text-xs" id="detailModalPaidDate">Pendiente</span>
+                </div>
+            </div>
+
+            <div id="detailModalPaymentInfoRow" class="grid grid-cols-2 gap-2.5">
+                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Método de Pago</span>
+                    <span class="font-bold text-slate-800 text-xs" id="detailModalPaymentMethod">-</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Nº Operación / Ref</span>
+                    <span class="font-bold text-slate-800 text-xs" id="detailModalReference">-</span>
+                </div>
+            </div>
+
+            <div id="detailModalNotesRow" class="hidden p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Observaciones</span>
+                <p class="text-xs text-slate-700 mt-0.5" id="detailModalNotes">-</p>
+            </div>
+        </div>
+
+        <!-- Botones de Acción al Pie -->
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <button type="button" onclick="closeInstallmentDetailModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+                Cerrar
+            </button>
+            <button type="button" id="detailModalActionBtn" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="dollar-sign" class="w-4 h-4"></i>
+                <span>Registrar Cobro</span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL FLOTANTE: REGISTRAR COBRO DE CUOTA -->
+<!-- ============================================================== -->
+<div id="chargeModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeChargeModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md p-6 sm:p-7 space-y-5 relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center font-bold">
+                    <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-base leading-tight">Registrar Cobro de Cuota</h3>
+                    <p class="text-xs text-slate-500 mt-0.5" id="chargeModalSubtitle">Ingresa el pago del cliente.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeChargeModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST" id="chargeForm" action="" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Concepto de la Cuota</p>
+                <p class="text-xs font-black text-slate-900" id="chargeModalConcept">-</p>
+                <p class="text-[11px] text-slate-500" id="chargeModalClient">-</p>
+            </div>
+
+            <!-- Monto a Cobrar -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <label class="block font-bold text-slate-700">Monto a Cobrar ({{ business.currency }}) *</label>
+                    <span class="text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 flex items-center gap-1">
+                        <span>Saldo restante:</span>
+                        <strong id="chargeModalRemainingAmount">$0.00</strong>
+                    </span>
+                </div>
+                <div class="relative">
+                    <input type="number" step="0.01" min="0.01" name="charge_amount" id="chargeAmountInput" required class="w-full pl-3.5 pr-28 py-2.5 rounded-xl border border-slate-200 text-sm font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600">
+                    <button type="button" onclick="loadRemainingIntoInput()" class="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200 transition cursor-pointer" title="Cargar saldo restante exacto">
+                        Cargar Restante
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-400">Se precarga automáticamente el saldo restante por cobrar. Puedes ingresar un monto menor si el abono es parcial.</p>
+            </div>
+
+            <!-- Método de Pago Interactivo -->
+            <div class="space-y-1 relative" id="charge-payment-method-wrapper">
+                <label class="block font-bold text-slate-700">Método de Pago *</label>
+                <input type="hidden" name="payment_method" id="charge_payment_method" value="Transferencia" required>
+                
+                <button type="button" 
+                        onclick="toggleChargeMethodDropdown(event)"
+                        id="charge-method-btn"
+                        class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition cursor-pointer">
+                    <div class="flex items-center gap-2" id="charge-method-display">
+                        <i data-lucide="landmark" class="w-4 h-4 text-emerald-600"></i>
+                        <span>Transferencia Bancaria</span>
+                    </div>
+                    <i data-lucide="chevron-down" id="charge-method-chevron" class="w-4 h-4 text-slate-400 transition-transform duration-200"></i>
+                </button>
+
+                <!-- Menú desplegable interactivo -->
+                <div id="charge-method-dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-1.5 space-y-1">
+                    {% for pcode, plabel in payment_methods %}
+                    <button type="button" 
+                            onclick="selectChargeMethod('{{ pcode }}', '{{ plabel }}')"
+                            class="w-full flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-emerald-50 hover:text-emerald-900 transition text-left cursor-pointer group">
+                        <div class="flex items-center gap-2">
+                            {% if pcode == 'Transferencia' %}
+                            <i data-lucide="landmark" class="w-4 h-4 text-emerald-600"></i>
+                            {% elif pcode == 'Efectivo' %}
+                            <i data-lucide="banknote" class="w-4 h-4 text-emerald-600"></i>
+                            {% elif pcode == 'Tarjeta' %}
+                            <i data-lucide="credit-card" class="w-4 h-4 text-emerald-600"></i>
+                            {% elif pcode == 'Zelle' %}
+                            <i data-lucide="zap" class="w-4 h-4 text-emerald-600"></i>
+                            {% elif pcode == 'PagoMovil' %}
+                            <i data-lucide="qr-code" class="w-4 h-4 text-emerald-600"></i>
+                            {% else %}
+                            <i data-lucide="wallet" class="w-4 h-4 text-emerald-600"></i>
+                            {% endif %}
+                            <span>{{ plabel }}</span>
+                        </div>
+                        <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 method-check {% if pcode == 'Transferencia' %}{% else %}hidden{% endif %}" data-method="{{ pcode }}"></i>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Referencia & Fecha -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="space-y-1">
+                    <label class="block font-bold text-slate-700">Nº Referencia / Voucher</label>
+                    <input type="text" name="reference" placeholder="Ej: REF-928173 / Zelle ID" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600">
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-bold text-slate-700">Fecha de Cobro *</label>
+                    <input type="date" name="paid_date" value="{{ today|date:'Y-m-d' }}" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600">
+                </div>
+            </div>
+
+            <!-- Notas -->
+            <div class="space-y-1">
+                <label class="block font-bold text-slate-700">Observaciones (Opcional)</label>
+                <textarea name="notes" rows="2" placeholder="Detalles de la transferencia o acuerdo..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onclick="closeChargeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    <span>Confirmar Ingreso</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL FLOTANTE 1: COBRO DIRECTO AL INSTANTE (SIN POS NI CAJA)  -->
+<!-- ============================================================== -->
+<div id="directChargeModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeDirectChargeModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-xl p-6 sm:p-8 space-y-5 relative max-h-[92vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center font-bold shrink-0">
+                    <i data-lucide="zap" class="w-5 h-5 text-emerald-600"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-extrabold text-slate-900 text-base sm:text-lg leading-tight">Cobro Directo al Instante</h3>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase">Sin POS</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5">Cobra un trabajo rápido o servicio sin abrir caja ni planificar cuotas. Afecta directamente a Finanzas.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeDirectChargeModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'payment_direct_charge' %}" id="directChargeForm" class="space-y-4 text-xs">
+            {% csrf_token %}
+
+            <!-- 1. SELECT INTERACTIVO: CLIENTE (Búsqueda en vivo tipo POS) -->
+            <div class="space-y-1.5 relative">
+                <div class="flex items-center justify-between">
+                    <label class="block font-bold text-slate-700">Cliente *</label>
+                    <button type="button" onclick="openQuickClientModal('dc')" class="text-[11px] font-bold text-rose-900 hover:underline flex items-center gap-1 cursor-pointer">
+                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> + Nuevo Cliente
+                    </button>
+                </div>
+
+                <input type="hidden" name="client_id" id="dc_client_id_input" value="">
+
+                <div class="relative" id="dc-client-combobox-wrapper">
+                    <div class="relative flex items-center">
+                        <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+                        <input type="text" 
+                               id="dc-client-search-input" 
+                               autocomplete="off"
+                               placeholder="Buscar cliente por nombre, teléfono, DNI o cliente general..." 
+                               class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-10 pr-20 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 transition"
+                               onfocus="openDcClientDropdown()"
+                               oninput="filterDcClients(this.value)">
+                        
+                        <div class="absolute right-2.5 flex items-center gap-1">
+                            <button type="button" 
+                                    id="dc-client-clear-btn" 
+                                    onclick="clearDcClientSelection(event)" 
+                                    class="hidden p-1.5 rounded-lg text-slate-400 hover:text-rose-700 hover:bg-slate-100 transition" 
+                                    title="Quitar cliente">
+                                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" 
+                                    onclick="toggleDcClientDropdown(event)" 
+                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                                <i data-lucide="chevron-down" id="dc-client-chevron" class="w-4 h-4 transition-transform duration-200"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel Flotante de Resultados -->
+                    <div id="dc-client-dropdown-results" 
+                         class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-56 overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+                    </div>
+                </div>
+
+                <!-- Resumen Visual del Cliente Seleccionado -->
+                <div id="dc-selected-client-badge" class="hidden items-center justify-between p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-700 text-white font-extrabold flex items-center justify-center text-[10px] shrink-0" id="dc-selected-client-initials">
+                            CL
+                        </div>
+                        <div class="truncate">
+                            <span class="font-bold text-slate-900" id="dc-selected-client-name">Cliente</span>
+                            <span class="text-slate-500 font-mono text-[10px] ml-1.5" id="dc-selected-client-phone"></span>
+                        </div>
+                    </div>
+                    <button type="button" onclick="clearDcClientSelection(event)" class="text-emerald-800 hover:text-rose-600 p-1 text-[11px] font-bold">Cambiar</button>
+                </div>
+            </div>
+
+            <!-- 2. SELECT INTERACTIVO: SERVICIO DEL CATÁLOGO (Opcional - Rellena concepto y precio) -->
+            <div class="space-y-1.5 relative">
+                <label class="block font-bold text-slate-700">Servicio del Catálogo (Opcional)</label>
+                <input type="hidden" name="service_id" id="dc_service_id_input" value="">
+
+                <div class="relative" id="dc-service-combobox-wrapper">
+                    <div class="relative flex items-center">
+                        <i data-lucide="scissors" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+                        <input type="text" 
+                               id="dc-service-search-input" 
+                               autocomplete="off"
+                               placeholder="Selecciona un servicio para autocompletar precio y concepto..." 
+                               class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-10 pr-20 py-2.5 text-xs font-medium focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 transition"
+                               onfocus="openDcServiceDropdown()"
+                               oninput="filterDcServices(this.value)">
+                        
+                        <div class="absolute right-2.5 flex items-center gap-1">
+                            <button type="button" 
+                                    id="dc-service-clear-btn" 
+                                    onclick="clearDcServiceSelection(event)" 
+                                    class="hidden p-1.5 rounded-lg text-slate-400 hover:text-rose-700 hover:bg-slate-100 transition" 
+                                    title="Quitar servicio">
+                                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" 
+                                    onclick="toggleDcServiceDropdown(event)" 
+                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                                <i data-lucide="chevron-down" id="dc-service-chevron" class="w-4 h-4 transition-transform duration-200"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel Flotante Servicios -->
+                    <div id="dc-service-dropdown-results" 
+                         class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. CONCEPTO Y MONTO (Libre) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="sm:col-span-2 space-y-1.5">
+                    <label class="block font-bold text-slate-700">Concepto o Detalle del Cobro *</label>
+                    <input type="text" 
+                           name="concept" 
+                           id="dc_concept_input" 
+                           required 
+                           placeholder="Ej: Levantamiento de sitio web / Mantenimiento WordPress" 
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-bold text-slate-700">Monto ({{ business.currency }}) *</label>
+                    <input type="number" 
+                           step="0.01" 
+                           min="0.01" 
+                           name="amount" 
+                           id="dc_amount_input" 
+                           required 
+                           placeholder="0.00" 
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-black text-slate-900 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600">
+                </div>
+            </div>
+
+            <!-- 4. SELECT INTERACTIVO: PROYECTO RELACIONADO (Opcional) -->
+            <div class="space-y-1.5 relative">
+                <label class="block font-bold text-slate-700">Proyecto Relacionado (Opcional)</label>
+                <input type="hidden" name="project_id" id="dc_project_id_input" value="">
+
+                <div class="relative" id="dc-project-combobox-wrapper">
+                    <div class="relative flex items-center">
+                        <i data-lucide="folder-kanban" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+                        <input type="text" 
+                               id="dc-project-search-input" 
+                               autocomplete="off"
+                               placeholder="Vincular a un proyecto (o déjalo en blanco si es cobro general)..." 
+                               class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-10 pr-20 py-2.5 text-xs font-medium focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 transition"
+                               onfocus="openDcProjectDropdown()"
+                               oninput="filterDcProjects(this.value)">
+                        
+                        <div class="absolute right-2.5 flex items-center gap-1">
+                            <button type="button" 
+                                    id="dc-project-clear-btn" 
+                                    onclick="clearDcProjectSelection(event)" 
+                                    class="hidden p-1.5 rounded-lg text-slate-400 hover:text-rose-700 hover:bg-slate-100 transition" 
+                                    title="Quitar proyecto">
+                                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" 
+                                    onclick="toggleDcProjectDropdown(event)" 
+                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                                <i data-lucide="chevron-down" id="dc-project-chevron" class="w-4 h-4 transition-transform duration-200"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel Flotante Proyectos -->
+                    <div id="dc-project-dropdown-results" 
+                         class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. FORMA DE PAGO, FECHA Y REFERENCIA -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="space-y-1.5 relative" id="dc-payment-method-wrapper">
+                    <label class="block font-bold text-slate-700">Método de Pago *</label>
+                    <input type="hidden" name="payment_method" id="dc_payment_method" value="Transferencia" required>
+                    
+                    <button type="button" 
+                            onclick="toggleDcMethodDropdown(event)"
+                            id="dc-method-btn"
+                            class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white hover:bg-slate-50 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 transition cursor-pointer">
+                        <div class="flex items-center gap-2 truncate" id="dc-method-display">
+                            <i data-lucide="landmark" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                            <span class="truncate">Transferencia</span>
+                        </div>
+                        <i data-lucide="chevron-down" id="dc-method-chevron" class="w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0"></i>
+                    </button>
+
+                    <!-- Menú desplegable interactivo -->
+                    <div id="dc-method-dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-1.5 space-y-1">
+                        {% for pcode, plabel in payment_methods %}
+                        <button type="button" 
+                                onclick="selectDcMethod('{{ pcode }}', '{{ plabel }}')"
+                                class="w-full flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-emerald-50 hover:text-emerald-900 transition text-left cursor-pointer group">
+                            <div class="flex items-center gap-2 min-w-0">
+                                {% if pcode == 'Transferencia' %}
+                                <i data-lucide="landmark" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                {% elif pcode == 'Efectivo' %}
+                                <i data-lucide="banknote" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                {% elif pcode == 'Tarjeta' %}
+                                <i data-lucide="credit-card" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                {% elif pcode == 'Zelle' %}
+                                <i data-lucide="zap" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                {% elif pcode == 'PagoMovil' %}
+                                <i data-lucide="qr-code" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                {% else %}
+                                <i data-lucide="wallet" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                {% endif %}
+                                <span class="truncate">{{ plabel }}</span>
+                            </div>
+                            <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 dc-method-check {% if pcode == 'Transferencia' %}{% else %}hidden{% endif %}" data-method="{{ pcode }}"></i>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-bold text-slate-700">Fecha de Cobro *</label>
+                    <input type="date" name="paid_date" value="{{ today|date:'Y-m-d' }}" required class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-bold text-slate-700">Nº Operación / Ref</label>
+                    <input type="text" name="reference" placeholder="Ej: Transf. #94820" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600">
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Observaciones (Opcional)</label>
+                <textarea name="notes" rows="2" placeholder="Detalles de la entrega o acuerdo..." class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 resize-none focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600"></textarea>
+            </div>
+
+            <!-- Info Box -->
+            <div class="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200/80 text-[11px] text-emerald-900 flex items-start gap-2">
+                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+                <span>Este cobro se registrará directamente como venta completada en el módulo de Finanzas, aumentando tus ingresos sin necesidad de aperturas de caja ni lotes del POS.</span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeDirectChargeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Confirmar Cobro al Instante</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL FLOTANTE 2: PLANIFICAR NUEVO PLAN DE COBRO / CUOTAS     -->
+<!-- ============================================================== -->
+<div id="newPlanModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeNewPlanModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl p-6 sm:p-8 space-y-5 relative max-h-[92vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold shrink-0">
+                    <i data-lucide="calendar-plus" class="w-5 h-5 text-rose-900"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-base leading-tight">Planificar Cobros & Cuotas Futuras</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Establece un calendario de pagos por hitos o cuotas mensuales.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeNewPlanModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'payment_plan_create' %}" id="newPlanForm" class="space-y-4 text-xs">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Cliente Combobox Interactivo -->
+                <div class="space-y-1.5 relative">
+                    <div class="flex items-center justify-between">
+                        <label class="block font-bold text-slate-700">Cliente *</label>
+                        <button type="button" onclick="openQuickClientModal('plan')" class="text-[11px] font-bold text-rose-900 hover:underline flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> + Nuevo
+                        </button>
+                    </div>
+
+                    <input type="hidden" name="client_id" id="plan_client_id_input" value="">
+
+                    <div class="relative">
+                        <div class="relative flex items-center">
+                            <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+                            <input type="text" 
+                                   id="plan-client-search-input" 
+                                   autocomplete="off"
+                                   placeholder="Buscar cliente..." 
+                                   class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-10 pr-20 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-rose-800 focus:border-rose-800"
+                                   onfocus="openPlanClientDropdown()"
+                                   oninput="filterPlanClients(this.value)">
+                            
+                            <div class="absolute right-2.5 flex items-center gap-1">
+                                <button type="button" 
+                                        id="plan-client-clear-btn" 
+                                        onclick="clearPlanClientSelection(event)" 
+                                        class="hidden p-1.5 rounded-lg text-slate-400 hover:text-rose-700 hover:bg-slate-100 transition">
+                                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button type="button" 
+                                        onclick="togglePlanClientDropdown(event)" 
+                                        class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="plan-client-dropdown-results" 
+                             class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+                        </div>
+                    </div>
+
+                    <div id="plan-selected-client-badge" class="hidden items-center justify-between p-2 rounded-xl bg-rose-50 border border-rose-200 text-xs">
+                        <div class="truncate font-bold text-slate-900" id="plan-selected-client-name">Cliente</div>
+                        <button type="button" onclick="clearPlanClientSelection(event)" class="text-rose-800 hover:text-rose-950 p-1 text-[11px] font-bold">Cambiar</button>
+                    </div>
+                </div>
+
+                <!-- Proyecto Combobox Interactivo -->
+                <div class="space-y-1.5 relative">
+                    <label class="block font-bold text-slate-700">Proyecto Vinculado (Opcional)</label>
+                    <input type="hidden" name="project_id" id="plan_project_id_input" value="">
+
+                    <div class="relative">
+                        <div class="relative flex items-center">
+                            <i data-lucide="folder-kanban" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+                            <input type="text" 
+                                   id="plan-project-search-input" 
+                                   autocomplete="off"
+                                   placeholder="Vincular a un proyecto..." 
+                                   class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-10 pr-20 py-2.5 text-xs font-medium focus:ring-2 focus:ring-rose-800 focus:border-rose-800"
+                                   onfocus="openPlanProjectDropdown()"
+                                   oninput="filterPlanProjects(this.value)">
+                            
+                            <div class="absolute right-2.5 flex items-center gap-1">
+                                <button type="button" 
+                                        id="plan-project-clear-btn" 
+                                        onclick="clearPlanProjectSelection(event)" 
+                                        class="hidden p-1.5 rounded-lg text-slate-400 hover:text-rose-700 hover:bg-slate-100 transition">
+                                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button type="button" 
+                                        onclick="togglePlanProjectDropdown(event)" 
+                                        class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="plan-project-dropdown-results" 
+                             class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+                        </div>
+                    </div>
+
+                    <div id="plan-selected-project-badge" class="hidden items-center justify-between p-2 rounded-xl bg-purple-50 border border-purple-200 text-xs">
+                        <div class="truncate font-bold text-purple-900" id="plan-selected-project-name">Proyecto</div>
+                        <button type="button" onclick="clearPlanProjectSelection(event)" class="text-purple-800 hover:text-purple-950 p-1 text-[11px] font-bold">Cambiar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2 space-y-1.5">
+                    <label class="block font-bold text-slate-700">Título / Concepto del Plan *</label>
+                    <input type="text" name="title" required placeholder="Ej: Desarrollo Web E-Commerce - Pagos en 3 Cuotas" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-bold text-slate-700">Monto Total ({{ business.currency }}) *</label>
+                    <input type="number" step="0.01" min="0.01" name="total_amount" id="planTotalAmountInput" oninput="recalcInstallmentAmounts()" required placeholder="0.00" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                </div>
+            </div>
+
+            <!-- Generador Rápido de Cuotas -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-extrabold text-slate-900 text-xs">Pautas de Entrega & Cuotas</p>
+                        <p class="text-[11px] text-slate-400">Distribuye los hitos de pago según el avance.</p>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="generatePresetInstallments(1)" class="px-2 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-[10px] font-bold text-slate-700">1 Pago</button>
+                        <button type="button" onclick="generatePresetInstallments(2)" class="px-2 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-[10px] font-bold text-slate-700">2 Cuotas (50/50)</button>
+                        <button type="button" onclick="generatePresetInstallments(3)" class="px-2 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-[10px] font-bold text-slate-700">3 Cuotas</button>
+                    </div>
+                </div>
+
+                <div id="installmentsRowsContainer" class="space-y-2 pt-1">
+                    <!-- Filas dinámicas generadas vía JS -->
+                </div>
+
+                <div class="pt-2 flex items-center justify-between">
+                    <button type="button" onclick="addInstallmentRow()" class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold inline-flex items-center gap-1.5 transition">
+                        <i data-lucide="plus" class="w-3.5 h-3.5 text-rose-900"></i>
+                        <span>Añadir Cuota Manual</span>
+                    </button>
+                    <span class="text-[11px] font-bold text-slate-500" id="installmentsSumStatus">Suma de cuotas: {{ business.currency }}0.00</span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeNewPlanModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-slate-950 hover:bg-rose-900 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="calendar-check" class="w-4 h-4 text-rose-400"></i>
+                    <span>Crear Plan de Cobros</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL FLOTANTE 3: CREAR NUEVO CLIENTE RÁPIDO (AJAX CRM)        -->
+<!-- ============================================================== -->
+<div id="quick-client-modal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-8 space-y-5 relative animate-in fade-in zoom-in-95 duration-200">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-base text-slate-900">Registrar Nuevo Cliente</h3>
+                    <p class="text-xs text-slate-500">Se agregará al CRM y se seleccionará para esta cobranza.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeQuickClientModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form id="quick-client-form" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <div id="quick-client-error" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 font-semibold text-xs"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nombre *</label>
+                    <input type="text" id="qc-first-name" required placeholder="Ej: María" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Apellido</label>
+                    <input type="text" id="qc-last-name" placeholder="Ej: Pérez" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Teléfono / WhatsApp</label>
+                    <div class="flex gap-1.5">
+                        <input type="text" id="qc-phone-prefix" value="+569" class="w-16 bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 text-center font-bold focus:outline-none focus:border-rose-900">
+                        <input type="text" id="qc-phone" placeholder="12345678" class="flex-1 bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">RUT / DNI / Tax ID</label>
+                    <input type="text" id="qc-tax-id" placeholder="Ej: 12.345.678-9" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Correo Electrónico</label>
+                <input type="email" id="qc-email" placeholder="cliente@correo.com" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-medium focus:outline-none focus:border-rose-900">
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeQuickClientModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                    Cancelar
+                </button>
+                <button type="submit" id="qc-submit-btn" class="px-5 py-2 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold transition flex items-center gap-1.5">
+                    <i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Include FullCalendar 6.1.10 CDN & Spanish Locale -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/es.global.min.js"></script>
+
+<style>
+    /* Custom Styling for FullCalendar with Vinotinto & Slate Accents */
+    .fc {
+        --fc-border-color: #e2e8f0;
+        --fc-page-bg-color: #ffffff;
+        --fc-neutral-bg-color: #f8fafc;
+        --fc-list-event-hover-bg-color: rgba(112, 26, 43, 0.08);
+        --fc-today-bg-color: rgba(254, 242, 244, 0.8) !important;
+        color: #0f172a;
+        font-family: inherit;
+    }
+    .fc .fc-toolbar-title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #0f172a;
+        background-color: #f8fafc;
+        padding: 0.4rem 0.8rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+    }
+    .fc .fc-button-primary {
+        background-color: #0f172a;
+        border-color: #0f172a;
+        color: #ffffff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border-radius: 0.75rem;
+        padding: 0.4rem 0.8rem;
+        text-transform: capitalize;
+    }
+    .fc .fc-button-primary:hover {
+        background-color: #701a2b;
+        border-color: #701a2b;
+    }
+    .fc .fc-button-active {
+        background-color: #701a2b !important;
+        border-color: #701a2b !important;
+    }
+    .fc .fc-col-header-cell {
+        padding: 0.6rem 0;
+        background-color: #f8fafc;
+        color: #475569;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .fc-event {
+        cursor: pointer;
+        border-radius: 0.5rem !important;
+        padding: 2.5px 5px !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .fc-event:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+</style>
+
+<script>
+    // ==========================================
+    // DATOS MAESTROS PARA COMBOBOXES INTERACTIVOS
+    // ==========================================
+    const currencySymbol = '{{ business.currency }}';
+
+    // 1. Clientes
+    const rawClients = [
+        { id: '', name: 'Cliente General (Mostrador/Web)', phone: '', taxid: '', initials: 'CG', isGeneral: true },
+        {% for c in clients %}
+        {
+            id: '{{ c.id }}',
+            name: '{{ c.full_name|escapejs }}',
+            phone: '{{ c.phone|default:""|escapejs }}',
+            taxid: '{{ c.tax_id|default:""|escapejs }}',
+            initials: '{{ c.initials|default:"CL"|escapejs }}',
+            isGeneral: false
+        },
+        {% endfor %}
+    ];
+
+    // 2. Servicios
+    const rawServices = [
+        {% for s in services %}
+        {
+            id: '{{ s.id }}',
+            name: '{{ s.name|escapejs }}',
+            price: parseFloat('{{ s.price|default:"0.00" }}') || 0
+        },
+        {% endfor %}
+    ];
+
+    // 3. Proyectos
+    const rawProjects = [
+        { id: '', name: 'Ninguno / Sin Proyecto Vinculado', clientName: '' },
+        {% for pr in projects %}
+        {
+            id: '{{ pr.id }}',
+            name: '{{ pr.name|escapejs }}',
+            clientName: '{{ pr.client.full_name|default:""|escapejs }}'
+        },
+        {% endfor %}
+    ];
+
+    let quickClientTarget = 'dc'; // 'dc' o 'plan'
+
+    // ==========================================
+    // COMBOBOX: COBRO DIRECTO -> CLIENTE
+    // ==========================================
+    function openDcClientDropdown() {
+        document.getElementById('dc-client-dropdown-results').classList.remove('hidden');
+        document.getElementById('dc-client-chevron')?.classList.add('rotate-180');
+        filterDcClients(document.getElementById('dc-client-search-input').value);
+    }
+
+    function closeDcClientDropdown() {
+        document.getElementById('dc-client-dropdown-results')?.classList.add('hidden');
+        document.getElementById('dc-client-chevron')?.classList.remove('rotate-180');
+    }
+
+    function toggleDcClientDropdown(e) {
+        e.stopPropagation();
+        const dd = document.getElementById('dc-client-dropdown-results');
+        if (dd.classList.contains('hidden')) {
+            openDcClientDropdown();
+        } else {
+            closeDcClientDropdown();
+        }
+    }
+
+    function filterDcClients(query) {
+        const q = (query || '').toLowerCase().trim();
+        const container = document.getElementById('dc-client-dropdown-results');
+        if (!container) return;
+
+        const filtered = rawClients.filter(c => {
+            if (!q) return true;
+            return c.name.toLowerCase().includes(q) || 
+                   c.phone.toLowerCase().includes(q) || 
+                   c.taxid.toLowerCase().includes(q);
+        });
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="p-3 text-center text-slate-400 text-xs">
+                    No se encontró cliente. <button type="button" onclick="openQuickClientModal('dc')" class="text-rose-900 font-bold underline">+ Crear Nuevo</button>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = filtered.map(c => `
+            <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 cursor-pointer transition select-none"
+                 onclick="selectDcClient('${c.id}', '${c.name.replace(/'/g, "\\'")}', '${c.phone}', '${c.initials}')">
+                <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-7 h-7 rounded-lg ${c.isGeneral ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-900'} font-bold flex items-center justify-center text-[10px] shrink-0">
+                        ${c.initials}
+                    </div>
+                    <div class="truncate text-left">
+                        <p class="font-bold text-slate-900 truncate">${c.name}</p>
+                        <p class="text-[10px] text-slate-400 font-mono">${c.phone || (c.isGeneral ? 'Cobro libre sin CRM' : 'Sin teléfono')}</p>
+                    </div>
+                </div>
+                ${c.taxid ? `<span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 font-mono">${c.taxid}</span>` : ''}
+            </div>
+        `).join('');
+    }
+
+    function selectDcClient(id, name, phone, initials) {
+        document.getElementById('dc_client_id_input').value = id;
+        document.getElementById('dc-client-search-input').value = name;
+        document.getElementById('dc-client-clear-btn').classList.remove('hidden');
+
+        const badge = document.getElementById('dc-selected-client-badge');
+        if (badge) {
+            document.getElementById('dc-selected-client-name').textContent = name;
+            document.getElementById('dc-selected-client-phone').textContent = phone;
+            document.getElementById('dc-selected-client-initials').textContent = initials || 'CL';
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+        }
+        closeDcClientDropdown();
+    }
+
+    function clearDcClientSelection(e) {
+        if (e) e.stopPropagation();
+        document.getElementById('dc_client_id_input').value = '';
+        document.getElementById('dc-client-search-input').value = '';
+        document.getElementById('dc-client-clear-btn').classList.add('hidden');
+        const badge = document.getElementById('dc-selected-client-badge');
+        if (badge) {
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+        }
+        closeDcClientDropdown();
+    }
+
+    // ==========================================
+    // COMBOBOX: COBRO DIRECTO -> SERVICIO
+    // ==========================================
+    function openDcServiceDropdown() {
+        document.getElementById('dc-service-dropdown-results').classList.remove('hidden');
+        document.getElementById('dc-service-chevron')?.classList.add('rotate-180');
+        filterDcServices(document.getElementById('dc-service-search-input').value);
+    }
+
+    function closeDcServiceDropdown() {
+        document.getElementById('dc-service-dropdown-results')?.classList.add('hidden');
+        document.getElementById('dc-service-chevron')?.classList.remove('rotate-180');
+    }
+
+    function toggleDcServiceDropdown(e) {
+        e.stopPropagation();
+        const dd = document.getElementById('dc-service-dropdown-results');
+        if (dd.classList.contains('hidden')) {
+            openDcServiceDropdown();
+        } else {
+            closeDcServiceDropdown();
+        }
+    }
+
+    function filterDcServices(query) {
+        const q = (query || '').toLowerCase().trim();
+        const container = document.getElementById('dc-service-dropdown-results');
+        if (!container) return;
+
+        const filtered = rawServices.filter(s => !q || s.name.toLowerCase().includes(q));
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="p-3 text-center text-slate-400 text-xs">
+                    No se encontraron servicios en el catálogo. Puedes escribir el concepto libre abajo.
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = filtered.map(s => `
+            <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 cursor-pointer transition select-none"
+                 onclick="selectDcService('${s.id}', '${s.name.replace(/'/g, "\\'")}', ${s.price})">
+                <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-6 h-6 rounded-lg bg-rose-50 text-rose-900 flex items-center justify-center shrink-0">
+                        <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <span class="font-bold text-slate-800 truncate">${s.name}</span>
+                </div>
+                <span class="font-black text-slate-900">${currencySymbol}${s.price.toFixed(2)}</span>
+            </div>
+        `).join('');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function selectDcService(id, name, price) {
+        document.getElementById('dc_service_id_input').value = id;
+        document.getElementById('dc-service-search-input').value = name;
+        document.getElementById('dc-service-clear-btn').classList.remove('hidden');
+
+        // Autocompletar Concepto y Monto si están vacíos o si se selecciona el servicio
+        const conceptInput = document.getElementById('dc_concept_input');
+        const amountInput = document.getElementById('dc_amount_input');
+        if (conceptInput) conceptInput.value = name;
+        if (amountInput) amountInput.value = price.toFixed(2);
+
+        closeDcServiceDropdown();
+    }
+
+    function clearDcServiceSelection(e) {
+        if (e) e.stopPropagation();
+        document.getElementById('dc_service_id_input').value = '';
+        document.getElementById('dc-service-search-input').value = '';
+        document.getElementById('dc-service-clear-btn').classList.add('hidden');
+        closeDcServiceDropdown();
+    }
+
+    // ==========================================
+    // COMBOBOX: COBRO DIRECTO -> PROYECTO
+    // ==========================================
+    function openDcProjectDropdown() {
+        document.getElementById('dc-project-dropdown-results').classList.remove('hidden');
+        document.getElementById('dc-project-chevron')?.classList.add('rotate-180');
+        filterDcProjects(document.getElementById('dc-project-search-input').value);
+    }
+
+    function closeDcProjectDropdown() {
+        document.getElementById('dc-project-dropdown-results')?.classList.add('hidden');
+        document.getElementById('dc-project-chevron')?.classList.remove('rotate-180');
+    }
+
+    function toggleDcProjectDropdown(e) {
+        e.stopPropagation();
+        const dd = document.getElementById('dc-project-dropdown-results');
+        if (dd.classList.contains('hidden')) {
+            openDcProjectDropdown();
+        } else {
+            closeDcProjectDropdown();
+        }
+    }
+
+    function filterDcProjects(query) {
+        const q = (query || '').toLowerCase().trim();
+        const container = document.getElementById('dc-project-dropdown-results');
+        if (!container) return;
+
+        const filtered = rawProjects.filter(p => !q || p.name.toLowerCase().includes(q) || (p.clientName && p.clientName.toLowerCase().includes(q)));
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<div class="p-3 text-center text-slate-400 text-xs">No hay proyectos coincidentes.</div>`;
+            return;
+        }
+
+        container.innerHTML = filtered.map(p => `
+            <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 cursor-pointer transition select-none"
+                 onclick="selectDcProject('${p.id}', '${p.name.replace(/'/g, "\\'")}')">
+                <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-6 h-6 rounded-lg ${p.id ? 'bg-purple-100 text-purple-900' : 'bg-slate-200 text-slate-600'} flex items-center justify-center shrink-0">
+                        <i data-lucide="${p.id ? 'folder' : 'minus'}" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <div class="truncate text-left">
+                        <span class="font-bold text-slate-800 truncate block">${p.name}</span>
+                        ${p.clientName ? `<span class="text-[10px] text-slate-400 block">${p.clientName}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function selectDcProject(id, name) {
+        document.getElementById('dc_project_id_input').value = id;
+        document.getElementById('dc-project-search-input').value = id ? name : '';
+        if (id) {
+            document.getElementById('dc-project-clear-btn').classList.remove('hidden');
+        } else {
+            document.getElementById('dc-project-clear-btn').classList.add('hidden');
+        }
+        closeDcProjectDropdown();
+    }
+
+    function clearDcProjectSelection(e) {
+        if (e) e.stopPropagation();
+        document.getElementById('dc_project_id_input').value = '';
+        document.getElementById('dc-project-search-input').value = '';
+        document.getElementById('dc-project-clear-btn').classList.add('hidden');
+        closeDcProjectDropdown();
+    }
+
+    // ==========================================
+    // COMBOBOXES PARA PLANIFICAR CUOTAS (NUEVO PLAN)
+    // ==========================================
+    function openPlanClientDropdown() {
+        document.getElementById('plan-client-dropdown-results').classList.remove('hidden');
+        filterPlanClients(document.getElementById('plan-client-search-input').value);
+    }
+    function closePlanClientDropdown() {
+        document.getElementById('plan-client-dropdown-results')?.classList.add('hidden');
+    }
+    function togglePlanClientDropdown(e) {
+        e.stopPropagation();
+        const dd = document.getElementById('plan-client-dropdown-results');
+        dd.classList.contains('hidden') ? openPlanClientDropdown() : closePlanClientDropdown();
+    }
+    function filterPlanClients(query) {
+        const q = (query || '').toLowerCase().trim();
+        const container = document.getElementById('plan-client-dropdown-results');
+        if (!container) return;
+        const filtered = rawClients.filter(c => !c.isGeneral && (!q || c.name.toLowerCase().includes(q) || c.phone.toLowerCase().includes(q)));
+        container.innerHTML = filtered.map(c => `
+            <div class="p-2 rounded-xl hover:bg-slate-50 cursor-pointer font-bold text-slate-800"
+                 onclick="selectPlanClient('${c.id}', '${c.name.replace(/'/g, "\\'")}')">
+                ${c.name} <span class="text-[10px] text-slate-400 font-normal">(${c.phone || 'Sin tel'})</span>
+            </div>
+        `).join('');
+    }
+    function selectPlanClient(id, name) {
+        document.getElementById('plan_client_id_input').value = id;
+        document.getElementById('plan-client-search-input').value = name;
+        document.getElementById('plan-client-clear-btn').classList.remove('hidden');
+        const badge = document.getElementById('plan-selected-client-badge');
+        if (badge) {
+            document.getElementById('plan-selected-client-name').textContent = name;
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+        }
+        closePlanClientDropdown();
+    }
+    function clearPlanClientSelection(e) {
+        if (e) e.stopPropagation();
+        document.getElementById('plan_client_id_input').value = '';
+        document.getElementById('plan-client-search-input').value = '';
+        document.getElementById('plan-client-clear-btn').classList.add('hidden');
+        document.getElementById('plan-selected-client-badge')?.classList.add('hidden');
+        document.getElementById('plan-selected-client-badge')?.classList.remove('flex');
+        closePlanClientDropdown();
+    }
+
+    // Plan Proyecto
+    function openPlanProjectDropdown() {
+        document.getElementById('plan-project-dropdown-results').classList.remove('hidden');
+        filterPlanProjects(document.getElementById('plan-project-search-input').value);
+    }
+    function closePlanProjectDropdown() {
+        document.getElementById('plan-project-dropdown-results')?.classList.add('hidden');
+    }
+    function togglePlanProjectDropdown(e) {
+        e.stopPropagation();
+        const dd = document.getElementById('plan-project-dropdown-results');
+        dd.classList.contains('hidden') ? openPlanProjectDropdown() : closePlanProjectDropdown();
+    }
+    function filterPlanProjects(query) {
+        const q = (query || '').toLowerCase().trim();
+        const container = document.getElementById('plan-project-dropdown-results');
+        if (!container) return;
+        const filtered = rawProjects.filter(p => !q || p.name.toLowerCase().includes(q));
+        container.innerHTML = filtered.map(p => `
+            <div class="p-2 rounded-xl hover:bg-slate-50 cursor-pointer font-bold text-slate-800"
+                 onclick="selectPlanProject('${p.id}', '${p.name.replace(/'/g, "\\'")}')">
+                ${p.name}
+            </div>
+        `).join('');
+    }
+    function selectPlanProject(id, name) {
+        document.getElementById('plan_project_id_input').value = id;
+        document.getElementById('plan-project-search-input').value = id ? name : '';
+        if (id) {
+            document.getElementById('plan-project-clear-btn').classList.remove('hidden');
+            const badge = document.getElementById('plan-selected-project-badge');
+            if (badge) {
+                document.getElementById('plan-selected-project-name').textContent = name;
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+            }
+        }
+        closePlanProjectDropdown();
+    }
+    function clearPlanProjectSelection(e) {
+        if (e) e.stopPropagation();
+        document.getElementById('plan_project_id_input').value = '';
+        document.getElementById('plan-project-search-input').value = '';
+        document.getElementById('plan-project-clear-btn').classList.add('hidden');
+        document.getElementById('plan-selected-project-badge')?.classList.add('hidden');
+        document.getElementById('plan-selected-project-badge')?.classList.remove('flex');
+        closePlanProjectDropdown();
+    }
+
+    // ==========================================
+    // FILTROS DINÁMICOS (CLIENTE & PROYECTO)
+    // ==========================================
+    function openFilterClientDropdown() {
+        document.getElementById('filter-client-dropdown-results').classList.remove('hidden');
+        document.getElementById('filter-client-chevron')?.classList.add('rotate-180');
+        filterFilterClients(document.getElementById('filter-client-search-input').value);
+    }
+
+    function closeFilterClientDropdown() {
+        document.getElementById('filter-client-dropdown-results')?.classList.add('hidden');
+        document.getElementById('filter-client-chevron')?.classList.remove('rotate-180');
+    }
+
+    function toggleFilterClientDropdown(e) {
+        e.stopPropagation();
+        const dd = document.getElementById('filter-client-dropdown-results');
+        if (dd.classList.contains('hidden')) {
+            openFilterClientDropdown();
+        } else {
+            closeFilterClientDropdown();
+        }
+    }
+
+    function filterFilterClients(query) {
+        const q = (query || '').toLowerCase().trim();
+        const container = document.getElementById('filter-client-dropdown-results');
+        if (!container) return;
+
+        let html = `
+            <div class="flex items-center gap-2 p-2 rounded-xl hover:bg-slate-100 cursor-pointer transition select-none text-slate-700 font-bold text-xs"
+                 onclick="selectFilterClient('', 'Todos los Clientes')">
+                <div class="w-7 h-7 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] shrink-0">
+                    <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                </div>
+                <span>Todos los Clientes</span>
+            </div>
+        `;
+
+        const filtered = rawClients.filter(c => {
+            if (!c.id) return false;
+            if (!q) return true;
+            return c.name.toLowerCase().includes(q) || 
+                   c.phone.toLowerCase().includes(q) || 
+                   c.taxid.toLowerCase().includes(q);
+        });
+
+        if (filtered.length === 0 && q) {
+            html += `<div class="p-3 text-center text-slate-400 text-xs">Sin clientes que coincidan</div>`;
+        } else {
+            html += filtered.map(c => `
+                <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 cursor-pointer transition select-none"
+                     onclick="selectFilterClient('${c.id}', '${c.name.replace(/'/g, "\\'")}')">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-7 h-7 rounded-lg bg-rose-100 text-rose-900 font-bold flex items-center justify-center text-[10px] shrink-0">
+                            ${c.initials}
+                        </div>
+                        <div class="truncate text-left">
+                            <p class="font-bold text-slate-900 text-xs leading-tight truncate">${c.name}</p>
+                            ${c.phone ? `<p class="text-[10px] text-slate-400 font-mono">${c.phone}</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function selectFilterClient(id, name) {
+        document.getElementById('filter_client_id').value = id;
+        document.getElementById('filter-client-search-input').value = id ? name : '';
+        closeFilterClientDropdown();
+        document.getElementById('paymentPlanFilterForm').submit();
+    }
+
+    function clearFilterClient(e) {
+        e.stopPropagation();
+        document.getElementById('filter_client_id').value = '';
+        document.getElementById('filter-client-search-input').value = '';
+        document.getElementById('paymentPlanFilterForm').submit();
+    }
+
+    // --- PROYECTO ---
+    function openFilterProjectDropdown() {
+        document.getElementById('filter-project-dropdown-results').classList.remove('hidden');
+        document.getElementById('filter-project-chevron')?.classList.add('rotate-180');
+        filterFilterProjects(document.getElementById('filter-project-search-input').value);
+    }
+
+    function closeFilterProjectDropdown() {
+        document.getElementById('filter-project-dropdown-results')?.classList.add('hidden');
+        document.getElementById('filter-project-chevron')?.classList.remove('rotate-180');
+    }
+
+    function toggleFilterProjectDropdown(e) {
+        e.stopPropagation();
+        const dd = document.getElementById('filter-project-dropdown-results');
+        if (dd.classList.contains('hidden')) {
+            openFilterProjectDropdown();
+        } else {
+            closeFilterProjectDropdown();
+        }
+    }
+
+    function filterFilterProjects(query) {
+        const q = (query || '').toLowerCase().trim();
+        const container = document.getElementById('filter-project-dropdown-results');
+        if (!container) return;
+
+        let html = `
+            <div class="flex items-center gap-2 p-2 rounded-xl hover:bg-slate-100 cursor-pointer transition select-none text-slate-700 font-bold text-xs"
+                 onclick="selectFilterProject('', 'Todos los Proyectos')">
+                <div class="w-7 h-7 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] shrink-0">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                </div>
+                <span>Todos los Proyectos</span>
+            </div>
+        `;
+
+        const filtered = rawProjects.filter(p => {
+            if (!p.id) return false;
+            if (!q) return true;
+            return p.name.toLowerCase().includes(q) || 
+                   p.clientName.toLowerCase().includes(q);
+        });
+
+        if (filtered.length === 0 && q) {
+            html += `<div class="p-3 text-center text-slate-400 text-xs">Sin proyectos que coincidan</div>`;
+        } else {
+            html += filtered.map(p => `
+                <div class="p-2 rounded-xl hover:bg-slate-50 cursor-pointer transition select-none text-left"
+                     onclick="selectFilterProject('${p.id}', '${p.name.replace(/'/g, "\\'")}')">
+                    <p class="font-bold text-slate-900 text-xs leading-tight truncate">${p.name}</p>
+                    ${p.clientName ? `<p class="text-[10px] text-slate-400 mt-0.5 truncate">Cliente: ${p.clientName}</p>` : ''}
+                </div>
+            `).join('');
+        }
+
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function selectFilterProject(id, name) {
+        document.getElementById('filter_project_id').value = id;
+        document.getElementById('filter-project-search-input').value = id ? name : '';
+        closeFilterProjectDropdown();
+        document.getElementById('paymentPlanFilterForm').submit();
+    }
+
+    function clearFilterProject(e) {
+        e.stopPropagation();
+        document.getElementById('filter_project_id').value = '';
+        document.getElementById('filter-project-search-input').value = '';
+        document.getElementById('paymentPlanFilterForm').submit();
+    }
+
+    // ==========================================
+    // CERRAR DROPDOWNS AL HACER CLIC FUERA
+    // ==========================================
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#dc-client-combobox-wrapper')) closeDcClientDropdown();
+        if (!e.target.closest('#dc-service-combobox-wrapper')) closeDcServiceDropdown();
+        if (!e.target.closest('#dc-project-combobox-wrapper')) closeDcProjectDropdown();
+        if (!e.target.closest('#plan-client-dropdown-results') && !e.target.closest('#plan-client-search-input')) closePlanClientDropdown();
+        if (!e.target.closest('#plan-project-dropdown-results') && !e.target.closest('#plan-project-search-input')) closePlanProjectDropdown();
+        if (!e.target.closest('#filter-client-combobox-wrapper')) closeFilterClientDropdown();
+        if (!e.target.closest('#filter-project-combobox-wrapper')) closeFilterProjectDropdown();
+
+        if (!e.target.closest('#charge-payment-method-wrapper')) {
+            const dd = document.getElementById('charge-method-dropdown');
+            const chev = document.getElementById('charge-method-chevron');
+            if (dd && !dd.classList.contains('hidden')) {
+                dd.classList.add('hidden');
+                if (chev) chev.classList.remove('rotate-180');
+            }
+        }
+        if (!e.target.closest('#dc-payment-method-wrapper')) {
+            const dd = document.getElementById('dc-method-dropdown');
+            const chev = document.getElementById('dc-method-chevron');
+            if (dd && !dd.classList.contains('hidden')) {
+                dd.classList.add('hidden');
+                if (chev) chev.classList.remove('rotate-180');
+            }
+        }
+    });
+
+    // ==========================================
+    // SELECTORES INTERACTIVOS DE MÉTODO DE PAGO
+    // ==========================================
+    const paymentMethodIcons = {
+        'Transferencia': 'landmark',
+        'Efectivo': 'banknote',
+        'Tarjeta': 'credit-card',
+        'Zelle': 'zap',
+        'PagoMovil': 'qr-code',
+        'Otro': 'wallet'
+    };
+
+    function toggleChargeMethodDropdown(e) {
+        if (e) e.stopPropagation();
+        const dd = document.getElementById('charge-method-dropdown');
+        const chev = document.getElementById('charge-method-chevron');
+        if (!dd) return;
+        const isHidden = dd.classList.contains('hidden');
+        if (isHidden) {
+            dd.classList.remove('hidden');
+            if (chev) chev.classList.add('rotate-180');
+            if (window.lucide) lucide.createIcons();
+        } else {
+            dd.classList.add('hidden');
+            if (chev) chev.classList.remove('rotate-180');
+        }
+    }
+
+    function selectChargeMethod(code, label) {
+        const input = document.getElementById('charge_payment_method');
+        if (input) input.value = code;
+        const iconName = paymentMethodIcons[code] || 'wallet';
+        const display = document.getElementById('charge-method-display');
+        if (display) {
+            display.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 text-emerald-600"></i><span>${label}</span>`;
+        }
+        document.querySelectorAll('#charge-method-dropdown .method-check').forEach(el => {
+            if (el.getAttribute('data-method') === code) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        });
+        const dd = document.getElementById('charge-method-dropdown');
+        const chev = document.getElementById('charge-method-chevron');
+        if (dd) dd.classList.add('hidden');
+        if (chev) chev.classList.remove('rotate-180');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleDcMethodDropdown(e) {
+        if (e) e.stopPropagation();
+        const dd = document.getElementById('dc-method-dropdown');
+        const chev = document.getElementById('dc-method-chevron');
+        if (!dd) return;
+        const isHidden = dd.classList.contains('hidden');
+        if (isHidden) {
+            dd.classList.remove('hidden');
+            if (chev) chev.classList.add('rotate-180');
+            if (window.lucide) lucide.createIcons();
+        } else {
+            dd.classList.add('hidden');
+            if (chev) chev.classList.remove('rotate-180');
+        }
+    }
+
+    function selectDcMethod(code, label) {
+        const input = document.getElementById('dc_payment_method');
+        if (input) input.value = code;
+        const iconName = paymentMethodIcons[code] || 'wallet';
+        const display = document.getElementById('dc-method-display');
+        if (display) {
+            display.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 text-emerald-600 shrink-0"></i><span class="truncate">${label}</span>`;
+        }
+        document.querySelectorAll('#dc-method-dropdown .dc-method-check').forEach(el => {
+            if (el.getAttribute('data-method') === code) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        });
+        const dd = document.getElementById('dc-method-dropdown');
+        const chev = document.getElementById('dc-method-chevron');
+        if (dd) dd.classList.add('hidden');
+        if (chev) chev.classList.remove('rotate-180');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // ==========================================
+    // CONTROL DE MODALES (COBRO DIRECTO, PLAN, CUOTA)
+    // ==========================================
+    function openDirectChargeModal() {
+        const modal = document.getElementById('directChargeModal');
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        setTimeout(() => document.getElementById('dc-client-search-input')?.focus(), 100);
+    }
+
+    function closeDirectChargeModal() {
+        const modal = document.getElementById('directChargeModal');
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    let currentModalRemainingBalance = 0;
+
+    function openChargeModal(installmentId, concept, balance, clientName) {
+        const modal = document.getElementById('chargeModal');
+        const form = document.getElementById('chargeForm');
+        form.action = `/facturacion/cobranzas/cuota/${installmentId}/cobrar/`;
+
+        // Handle both numeric float and string with comma or dot (e.g. '0,50' or '0.50' or 0.5)
+        let numBalance = 0;
+        if (typeof balance === 'number') {
+            numBalance = balance;
+        } else {
+            numBalance = parseFloat(String(balance || '0').replace(',', '.').trim()) || 0;
+        }
+        currentModalRemainingBalance = numBalance;
+        const formatted = numBalance.toFixed(2);
+
+        document.getElementById('chargeModalConcept').textContent = concept || 'Cuota';
+        document.getElementById('chargeModalClient').textContent = `Cliente: ${clientName || 'Cliente General'}`;
+
+        const remainingEl = document.getElementById('chargeModalRemainingAmount');
+        if (remainingEl) remainingEl.textContent = `${currencySymbol}${formatted}`;
+
+        const amountInput = document.getElementById('chargeAmountInput');
+        if (amountInput) {
+            amountInput.value = formatted;
+            amountInput.max = formatted;
+        }
+
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        setTimeout(() => {
+            if (amountInput) {
+                amountInput.focus();
+                amountInput.select();
+            }
+        }, 100);
+    }
+
+    function loadRemainingIntoInput() {
+        const amountInput = document.getElementById('chargeAmountInput');
+        if (amountInput) {
+            amountInput.value = currentModalRemainingBalance.toFixed(2);
+        }
+    }
+
+    function closeChargeModal() {
+        const modal = document.getElementById('chargeModal');
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function openNewPlanModal() {
+        const modal = document.getElementById('newPlanModal');
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        if (document.getElementById('installmentsRowsContainer').children.length === 0) {
+            generatePresetInstallments(2);
+        }
+    }
+
+    function closeNewPlanModal() {
+        const modal = document.getElementById('newPlanModal');
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    // ==========================================
+    // MODAL CREAR NUEVO CLIENTE (CRM AJAX)
+    // ==========================================
+    function openQuickClientModal(target = 'dc') {
+        quickClientTarget = target;
+        document.getElementById('quick-client-modal').classList.remove('hidden');
+        document.getElementById('quick-client-error').classList.add('hidden');
+        document.getElementById('qc-first-name').focus();
+    }
+
+    function closeQuickClientModal() {
+        document.getElementById('quick-client-modal').classList.add('hidden');
+        document.getElementById('quick-client-form').reset();
+    }
+
+    document.getElementById('quick-client-form')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const firstName = document.getElementById('qc-first-name').value.trim();
+        const lastName = document.getElementById('qc-last-name').value.trim();
+        const phonePrefix = document.getElementById('qc-phone-prefix').value.trim();
+        const phoneNumber = document.getElementById('qc-phone').value.trim();
+        const taxId = document.getElementById('qc-tax-id').value.trim();
+        const email = document.getElementById('qc-email').value.trim();
+        const errorDiv = document.getElementById('quick-client-error');
+        const submitBtn = document.getElementById('qc-submit-btn');
+
+        if (!firstName) return;
+
+        const formData = new FormData();
+        formData.append('first_name', firstName);
+        formData.append('last_name', lastName);
+        formData.append('phone_prefix', phonePrefix);
+        formData.append('phone_number', phoneNumber);
+        formData.append('tax_id', taxId);
+        formData.append('email', email);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Guardando...';
+
+        fetch('{% url "pos_quick_client" %}', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar';
+
+            if (data.success) {
+                const words = data.full_name.split(' ');
+                const initials = words.length > 1 ? (words[0][0] + words[1][0]).toUpperCase() : data.full_name.substring(0, 2).toUpperCase();
+                const newClientObj = {
+                    id: data.client_id,
+                    name: data.full_name,
+                    phone: data.phone || '',
+                    taxid: taxId,
+                    initials: initials,
+                    isGeneral: false
+                };
+                rawClients.splice(1, 0, newClientObj);
+
+                if (quickClientTarget === 'dc') {
+                    selectDcClient(data.client_id, data.full_name, data.phone || '', initials);
+                } else {
+                    selectPlanClient(data.client_id, data.full_name);
+                }
+
+                closeQuickClientModal();
+                if (window.lucide) lucide.createIcons();
+            } else {
+                errorDiv.textContent = data.error || 'Error al registrar el cliente.';
+                errorDiv.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar';
+            errorDiv.textContent = 'Error de conexión. Intenta nuevamente.';
+            errorDiv.classList.remove('hidden');
+        });
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDirectChargeModal();
+            closeChargeModal();
+            closeNewPlanModal();
+            closeQuickClientModal();
+        }
+    });
+
+    // ==========================================
+    // GENERADOR DINÁMICO DE CUOTAS (NUEVO PLAN)
+    // ==========================================
+    function addInstallmentRow(concept = '', amount = '', dueDate = '') {
+        const container = document.getElementById('installmentsRowsContainer');
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-12 gap-2 items-center installment-row';
+        
+        row.innerHTML = `
+            <div class="col-span-5">
+                <input type="text" name="concept[]" required value="${concept}" placeholder="Ej: Anticipo 50% / Entrega Diseños" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 font-medium">
+            </div>
+            <div class="col-span-3">
+                <input type="number" step="0.01" min="0.01" name="amount[]" required value="${amount}" oninput="updateInstallmentsSum()" placeholder="Monto" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-900">
+            </div>
+            <div class="col-span-3">
+                <input type="date" name="due_date[]" required value="${dueDate}" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800">
+            </div>
+            <div class="col-span-1 text-center">
+                <button type="button" onclick="this.closest('.installment-row').remove(); updateInstallmentsSum();" class="p-1 text-slate-400 hover:text-rose-600 transition">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(row);
+        if (window.lucide) lucide.createIcons();
+        updateInstallmentsSum();
+    }
+
+    function generatePresetInstallments(count) {
+        const container = document.getElementById('installmentsRowsContainer');
+        container.innerHTML = '';
+
+        const total = parseFloat(document.getElementById('planTotalAmountInput').value) || 0;
+        const part = count > 0 ? (total / count).toFixed(2) : '0.00';
+        const today = new Date();
+
+        for (let i = 1; i <= count; i++) {
+            const dateObj = new Date();
+            dateObj.setDate(today.getDate() + ((i - 1) * 15));
+            const dateStr = dateObj.toISOString().split('T')[0];
+
+            let conceptName = `Cuota #${i}`;
+            if (count === 2) {
+                conceptName = i === 1 ? 'Anticipo 50% al Iniciar' : 'Liquidación 50% Contra Entrega Final';
+            } else if (count === 3) {
+                conceptName = i === 1 ? 'Anticipo 40% Inicio' : i === 2 ? 'Hito 30% Avance / Mockups' : 'Finiquito 30% Entrega Final';
+            }
+
+            addInstallmentRow(conceptName, part, dateStr);
+        }
+    }
+
+    function recalcInstallmentAmounts() {
+        const total = parseFloat(document.getElementById('planTotalAmountInput').value) || 0;
+        const rows = document.querySelectorAll('.installment-row');
+        if (rows.length > 0 && total > 0) {
+            const part = (total / rows.length).toFixed(2);
+            rows.forEach((r, idx) => {
+                const amtInput = r.querySelector('input[name="amount[]"]');
+                if (amtInput && !amtInput.dataset.manual) {
+                    amtInput.value = part;
+                }
+            });
+            updateInstallmentsSum();
+        }
+    }
+
+    function updateInstallmentsSum() {
+        let sum = 0;
+        document.querySelectorAll('input[name="amount[]"]').forEach(inp => {
+            const val = parseFloat(inp.value) || 0;
+            sum += val;
+        });
+        const statusEl = document.getElementById('installmentsSumStatus');
+        if (statusEl) {
+            statusEl.textContent = `Suma de cuotas: ${currencySymbol}${sum.toFixed(2)}`;
+        }
+    }
+
+    // ==========================================
+    // CALENDARIO DE PRÓXIMAS CUOTAS (FULLCALENDAR)
+    // ==========================================
+    const rawCalendarEvents = {{ calendar_events_json|safe }};
+    let cobranzasCalendar = null;
+
+    function initCobranzasCalendar() {
+        const calendarEl = document.getElementById('cobranzasCalendar');
+        if (!calendarEl || cobranzasCalendar) return;
+
+        cobranzasCalendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'es',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: ''
+            },
+            buttonText: {
+                today: 'Hoy'
+            },
+            events: rawCalendarEvents,
+            height: 'auto',
+            dayMaxEvents: 3,
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                meridiem: false
+            },
+            eventClick: function(info) {
+                const props = info.event.extendedProps;
+                if (!props) return;
+                openInstallmentDetailModal(props);
+            },
+            eventDidMount: function(info) {
+                const props = info.event.extendedProps;
+                if (props) {
+                    const statusText = props.isPaid ? 'Pagada' : (props.isOverdue ? '¡Vencida!' : 'Pendiente');
+                    info.el.setAttribute('title', `${props.concept}\nCliente: ${props.clientName}\nEstado: ${statusText}\nSaldo: ${currencySymbol}${props.balance.toFixed(2)}\nClic para ver detalles`);
+                }
+            }
+        });
+
+        cobranzasCalendar.render();
+    }
+
+    // ==========================================
+    // MODAL DE DETALLES DE CUOTA EN CALENDARIO
+    // ==========================================
+    let currentDetailProps = null;
+
+    function openInstallmentDetailModal(props) {
+        currentDetailProps = props;
+        const modal = document.getElementById('installmentDetailModal');
+        if (!modal) return;
+
+        const badge = document.getElementById('detailModalStatusBadge');
+        const iconWrapper = document.getElementById('detailModalIconWrapper');
+        const actionBtn = document.getElementById('detailModalActionBtn');
+
+        if (props.isPaid) {
+            badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200';
+            badge.textContent = 'Pagada';
+            iconWrapper.className = 'w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold shrink-0';
+            iconWrapper.innerHTML = '<i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600"></i>';
+            actionBtn.classList.add('hidden');
+        } else if (props.isOverdue) {
+            badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200';
+            badge.textContent = 'Vencida';
+            iconWrapper.className = 'w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center justify-center font-bold shrink-0';
+            iconWrapper.innerHTML = '<i data-lucide="alert-circle" class="w-5 h-5 text-rose-600"></i>';
+            actionBtn.classList.remove('hidden');
+            actionBtn.innerHTML = '<i data-lucide="dollar-sign" class="w-4 h-4"></i><span>Cobrar Ahora</span>';
+            actionBtn.onclick = function() {
+                closeInstallmentDetailModal();
+                openChargeModal(props.installmentId, props.concept, props.balance, props.clientName);
+            };
+        } else if (props.status === 'PARTIAL') {
+            badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200';
+            badge.textContent = 'Pago Parcial';
+            iconWrapper.className = 'w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center font-bold shrink-0';
+            iconWrapper.innerHTML = '<i data-lucide="clock" class="w-5 h-5 text-blue-600"></i>';
+            actionBtn.classList.remove('hidden');
+            actionBtn.innerHTML = '<i data-lucide="dollar-sign" class="w-4 h-4"></i><span>Cobrar Saldo</span>';
+            actionBtn.onclick = function() {
+                closeInstallmentDetailModal();
+                openChargeModal(props.installmentId, props.concept, props.balance, props.clientName);
+            };
+        } else {
+            badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200';
+            badge.textContent = 'Pendiente';
+            iconWrapper.className = 'w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center font-bold shrink-0';
+            iconWrapper.innerHTML = '<i data-lucide="calendar" class="w-5 h-5 text-amber-600"></i>';
+            actionBtn.classList.remove('hidden');
+            actionBtn.innerHTML = '<i data-lucide="dollar-sign" class="w-4 h-4"></i><span>Registrar Cobro</span>';
+            actionBtn.onclick = function() {
+                closeInstallmentDetailModal();
+                openChargeModal(props.installmentId, props.concept, props.balance, props.clientName);
+            };
+        }
+
+        // Details
+        document.getElementById('detailModalPlanTitle').textContent = props.planTitle || 'Cobro Directo / Hito Individual';
+        document.getElementById('detailModalConcept').textContent = props.concept;
+        document.getElementById('detailModalClientName').textContent = props.clientName;
+        
+        const phoneWrapper = document.getElementById('detailModalClientPhoneWrapper');
+        if (props.clientPhone) {
+            phoneWrapper.classList.remove('hidden');
+            document.getElementById('detailModalClientPhone').textContent = props.clientPhone;
+        } else {
+            phoneWrapper.classList.add('hidden');
+        }
+
+        const projectWrapper = document.getElementById('detailModalProjectWrapper');
+        if (props.projectName) {
+            projectWrapper.classList.remove('hidden');
+            document.getElementById('detailModalProjectName').textContent = props.projectName;
+        } else if (props.quoteNumber) {
+            projectWrapper.classList.remove('hidden');
+            document.getElementById('detailModalProjectName').textContent = `Cotiz. #${props.quoteNumber}`;
+        } else {
+            projectWrapper.classList.add('hidden');
+        }
+
+        // Financials
+        document.getElementById('detailModalAmount').textContent = `${currencySymbol}${parseFloat(props.amount).toFixed(2)}`;
+        document.getElementById('detailModalPaidAmount').textContent = `${currencySymbol}${parseFloat(props.amountPaid).toFixed(2)}`;
+        document.getElementById('detailModalBalance').textContent = `${currencySymbol}${parseFloat(props.balance).toFixed(2)}`;
+
+        // Dates & Payments
+        document.getElementById('detailModalDueDate').textContent = props.dueDate || '-';
+        document.getElementById('detailModalPaidDate').textContent = props.paidDate ? props.paidDate : (props.isPaid ? 'Cobrado' : 'Pendiente de pago');
+        document.getElementById('detailModalPaymentMethod').textContent = props.paymentMethod || 'No registrado aún';
+        document.getElementById('detailModalReference').textContent = props.reference || 'Sin número de ref.';
+
+        const notesRow = document.getElementById('detailModalNotesRow');
+        if (props.notes) {
+            notesRow.classList.remove('hidden');
+            document.getElementById('detailModalNotes').textContent = props.notes;
+        } else {
+            notesRow.classList.add('hidden');
+        }
+
+        if (window.lucide) lucide.createIcons();
+
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeInstallmentDetailModal() {
+        const modal = document.getElementById('installmentDetailModal');
+        if (modal) modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function showInstallmentDetailFromTable(installmentId) {
+        if (!rawCalendarEvents || rawCalendarEvents.length === 0) return;
+        const item = rawCalendarEvents.find(e => String(e.id) === String(installmentId));
+        if (item && item.extendedProps) {
+            openInstallmentDetailModal(item.extendedProps);
+        }
+    }
+
+    function switchCobranzasView(mode) {
+        const tableView = document.getElementById('installmentsTableView');
+        const calendarView = document.getElementById('installmentsCalendarView');
+        const btnTable = document.getElementById('btnViewTable');
+        const btnCalendar = document.getElementById('btnViewCalendar');
+
+        if (mode === 'calendar') {
+            tableView.classList.add('hidden');
+            calendarView.classList.remove('hidden');
+
+            btnCalendar.classList.add('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnCalendar.classList.remove('text-slate-600', 'hover:text-slate-900');
+            btnCalendar.querySelector('i')?.classList.replace('text-slate-400', 'text-rose-900');
+
+            btnTable.classList.remove('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnTable.classList.add('text-slate-600', 'hover:text-slate-900');
+            btnTable.querySelector('i')?.classList.replace('text-rose-900', 'text-slate-400');
+
+            if (!cobranzasCalendar) {
+                initCobranzasCalendar();
+            } else {
+                setTimeout(() => cobranzasCalendar.render(), 50);
+            }
+
+            localStorage.setItem('cobranzas_view_preference', 'calendar');
+        } else {
+            calendarView.classList.add('hidden');
+            tableView.classList.remove('hidden');
+
+            btnTable.classList.add('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnTable.classList.remove('text-slate-600', 'hover:text-slate-900');
+            btnTable.querySelector('i')?.classList.replace('text-slate-400', 'text-rose-900');
+
+            btnCalendar.classList.remove('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnCalendar.classList.add('text-slate-600', 'hover:text-slate-900');
+            btnCalendar.querySelector('i')?.classList.replace('text-rose-900', 'text-slate-400');
+
+            localStorage.setItem('cobranzas_view_preference', 'table');
+        }
+    }
+
+    // Restaurar vista previa al cargar la página si el usuario prefiere Calendario
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedView = localStorage.getItem('cobranzas_view_preference');
+        if (savedView === 'calendar') {
+            switchCobranzasView('calendar');
+        }
+    });
+</script>
+{% endblock %}

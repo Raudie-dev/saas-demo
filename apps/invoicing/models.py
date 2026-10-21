@@ -171,3 +171,121 @@ class PaymentReceipt(TimeStampedModel):
 
     def __str__(self):
         return f"Recibo de Pago #{self.receipt_number} - ${self.amount}"
+
+
+class PaymentPlan(TimeStampedModel):
+    STATUS_CHOICES = [
+        ('ACTIVE', 'En Cobro / Activo'),
+        ('COMPLETED', 'Completado / Liquidado'),
+        ('CANCELLED', 'Cancelado'),
+    ]
+
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="payment_plans")
+    client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, blank=True, related_name="payment_plans", verbose_name="Cliente")
+    quote = models.ForeignKey('invoicing.Quote', on_delete=models.SET_NULL, null=True, blank=True, related_name="payment_plans", verbose_name="Cotización Origen")
+    project = models.ForeignKey('projects.Project', on_delete=models.SET_NULL, null=True, blank=True, related_name="payment_plans", verbose_name="Proyecto Vinculado")
+    
+    title = models.CharField(max_length=200, verbose_name="Título o Concepto")
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Monto Total")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE', verbose_name="Estado del Plan")
+    notes = models.TextField(blank=True, null=True, verbose_name="Condiciones o Notas de Cobro")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Plan de Cobro / Cuotas"
+        verbose_name_plural = "Planes de Cobro / Cuotas"
+
+    def __str__(self):
+        client_name = self.client.full_name if self.client else "Cliente General"
+        return f"{self.title} - {client_name} (${self.total_amount})"
+
+    @property
+    def amount_paid(self):
+        from decimal import Decimal
+        return sum((inst.amount_paid for inst in self.installments.all()), Decimal('0.00'))
+
+    @property
+    def balance_pending(self):
+        from decimal import Decimal
+        return max(Decimal('0.00'), self.total_amount - self.amount_paid)
+
+    @property
+    def progress_percent(self):
+        if self.total_amount > 0:
+            return min(100, int((self.amount_paid / self.total_amount) * 100))
+        return 0
+
+    @property
+    def total_installments(self):
+        return self.installments.count()
+
+    @property
+    def paid_installments(self):
+        return self.installments.filter(status='PAID').count()
+
+    def update_status(self):
+        from decimal import Decimal
+        if self.balance_pending <= Decimal('0.00') and self.total_amount > 0:
+            self.status = 'COMPLETED'
+        elif self.status != 'CANCELLED':
+            self.status = 'ACTIVE'
+        self.save(update_fields=['status'])
+
+
+class PaymentInstallment(TimeStampedModel):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pendiente'),
+        ('PARTIAL', 'Cobro Parcial'),
+        ('PAID', 'Cobrado / Liquidado'),
+        ('OVERDUE', 'Vencido'),
+        ('CANCELLED', 'Cancelado'),
+    ]
+
+    PAYMENT_METHOD_CHOICES = [
+        ('Transferencia', 'Transferencia Bancaria'),
+        ('Efectivo', 'Efectivo'),
+        ('Tarjeta', 'Tarjeta de Débito / Crédito'),
+        ('Zelle', 'Zelle / Pago Digital'),
+        ('PagoMovil', 'Pago Móvil / QR'),
+        ('Otro', 'Otro Método'),
+    ]
+
+    plan = models.ForeignKey(PaymentPlan, on_delete=models.CASCADE, related_name="installments", verbose_name="Plan de Cobro")
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="installments")
+    client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, blank=True, related_name="installments")
+    project = models.ForeignKey('projects.Project', on_delete=models.SET_NULL, null=True, blank=True, related_name="installments")
+    quote = models.ForeignKey('invoicing.Quote', on_delete=models.SET_NULL, null=True, blank=True, related_name="installments")
+    
+    installment_number = models.PositiveIntegerField(default=1, verbose_name="Nº de Cuota / Hito")
+    concept = models.CharField(max_length=200, verbose_name="Concepto / Pauta de Entrega")
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto Programado")
+    amount_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Monto Cobrado")
+    
+    due_date = models.DateField(verbose_name="Fecha Límite / Programada")
+    paid_date = models.DateField(null=True, blank=True, verbose_name="Fecha de Cobro Real")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', verbose_name="Estado")
+    
+    payment_method = models.CharField(max_length=50, blank=True, null=True, verbose_name="Método de Pago")
+    reference = models.CharField(max_length=100, blank=True, null=True, verbose_name="Nº Referencia / Comprobante")
+    sale = models.ForeignKey(Sale, on_delete=models.SET_NULL, null=True, blank=True, related_name="installment_payments", verbose_name="Venta Financiera Generada")
+    notes = models.TextField(blank=True, null=True, verbose_name="Notas del Cobro")
+
+    class Meta:
+        ordering = ['due_date', 'installment_number']
+        verbose_name = "Cuota / Cobro Planificado"
+        verbose_name_plural = "Cuotas / Cobros Planificados"
+
+    def __str__(self):
+        return f"Cuota #{self.installment_number}: {self.concept} - ${self.amount} ({self.get_status_display()})"
+
+    @property
+    def balance(self):
+        from decimal import Decimal
+        return max(Decimal('0.00'), self.amount - self.amount_paid)
+
+    @property
+    def is_overdue(self):
+        from django.utils import timezone
+        if self.status in ['PENDING', 'PARTIAL'] and self.due_date and self.due_date < timezone.now().date():
+            return True
+        return False

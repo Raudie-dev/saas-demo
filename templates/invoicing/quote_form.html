@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load l10n %}
 
 {% block title %}{% if quote %}Editar Cotización #{{ quote.quote_number }}{% else %}Nueva Cotización{% endif %} - RauDie OS{% endblock %}
 {% block header_title %}{% if quote %}Editar Cotización #{{ quote.quote_number }}{% else %}Crear Cotización Comercial{% endif %}{% endblock %}
@@ -81,20 +82,48 @@
 
             <!-- Client & Dates Grid -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Client Selection -->
-                <div class="space-y-1.5">
-                    <label class="text-xs font-bold text-slate-700 flex items-center justify-between">
-                        <span>Cliente / Empresa *</span>
-                        <a href="{% url 'client_create' %}?next={{ request.path }}" class="text-[10px] text-rose-800 hover:underline font-bold">+ Nuevo Cliente</a>
-                    </label>
-                    <select name="client_id" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
-                        <option value="">-- Seleccionar Cliente --</option>
-                        {% for c in clients %}
-                        <option value="{{ c.id }}" {% if quote and quote.client_id == c.id or preselected_client_id == c.id|stringformat:"s" %}selected{% endif %}>
-                            {{ c.full_name }} {% if c.phone %}({{ c.phone }}){% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
+                <!-- Selector Dinámico de Cliente -->
+                <div class="space-y-1.5 relative" id="quote-client-combobox-wrapper">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-bold text-slate-700">Cliente / Empresa *</label>
+                        <button type="button" onclick="openQuickClientModal()" class="text-[10px] text-rose-800 hover:text-rose-950 font-bold hover:underline flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="user-plus" class="w-3 h-3"></i> + Nuevo Cliente
+                        </button>
+                    </div>
+
+                    <input type="hidden" name="client_id" id="quote_client_id" value="{% if quote %}{{ quote.client_id }}{% elif preselected_client_id %}{{ preselected_client_id }}{% endif %}" required>
+
+                    <div class="relative flex items-center">
+                        <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+                        <input type="text"
+                               id="quote-client-search-input"
+                               autocomplete="off"
+                               placeholder="Buscar cliente por nombre o teléfono..."
+                               value="{% if quote and quote.client %}{{ quote.client.full_name }}{% else %}{% for c in clients %}{% if preselected_client_id == c.id|stringformat:'s' %}{{ c.full_name }}{% endif %}{% endfor %}{% endif %}"
+                               class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-10 pr-20 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-rose-800 focus:border-rose-800 transition shadow-2xs"
+                               onfocus="openQuoteClientDropdown()"
+                               oninput="filterQuoteClients(this.value)">
+
+                        <div class="absolute right-2.5 flex items-center gap-1">
+                            <button type="button" 
+                                    id="quote-client-clear-btn" 
+                                    onclick="clearQuoteClient(event)" 
+                                    class="{% if not quote.client_id and not preselected_client_id %}hidden{% endif %} p-1.5 rounded-lg text-slate-400 hover:text-rose-700 hover:bg-slate-100 transition cursor-pointer" 
+                                    title="Quitar cliente">
+                                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" 
+                                    onclick="toggleQuoteClientDropdown(event)" 
+                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer">
+                                <i data-lucide="chevron-down" id="quote-client-chevron" class="w-4 h-4 transition-transform duration-200"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel Flotante Clientes -->
+                    <div id="quote-client-dropdown-results" 
+                         class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-56 overflow-y-auto custom-scrollbar p-1.5 space-y-1">
+                    </div>
                 </div>
 
                 <!-- Date -->
@@ -139,23 +168,71 @@
 
             <!-- Items Table Section -->
             <div class="space-y-3 pt-4 border-t border-slate-100">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <h4 class="font-extrabold text-slate-900 text-sm">Detalle de Conceptos / Horas / Metas</h4>
-                        <p class="text-xs text-slate-500">Agrega entregables, bloques de horas o hitos de desempeño.</p>
+                        <p class="text-xs text-slate-500">Agrega entregables, servicios del catálogo, productos de inventario o hitos de desempeño.</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button type="button" onclick="addNewItemRow('HOURLY')" class="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs inline-flex items-center gap-1 border border-blue-200 transition">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button type="button" onclick="addNewItemRow('HOURLY')" class="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs inline-flex items-center gap-1 border border-blue-200 transition cursor-pointer">
                             <i data-lucide="clock" class="w-3.5 h-3.5"></i>
                             <span>+ Horas</span>
                         </button>
-                        <button type="button" onclick="addNewItemRow('PERFORMANCE')" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs inline-flex items-center gap-1 border border-emerald-200 transition">
+                        <button type="button" onclick="addNewItemRow('PERFORMANCE')" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs inline-flex items-center gap-1 border border-emerald-200 transition cursor-pointer">
                             <i data-lucide="target" class="w-3.5 h-3.5"></i>
                             <span>+ Desempeño</span>
                         </button>
-                        <button type="button" onclick="addNewItemRow('FIXED')" class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs">
+                        <button type="button" onclick="addNewItemRow('FIXED')" class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs cursor-pointer">
                             <i data-lucide="plus" class="w-3.5 h-3.5 text-rose-400"></i>
                             <span>+ Ítem Fijo</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Barra Dinámica de Búsqueda y Selección de Catálogo (Servicios y Productos) -->
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col md:flex-row items-stretch md:items-center gap-3 relative" id="catalog-combobox-wrapper">
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs">
+                            <i data-lucide="package-search" class="w-3.5 h-3.5 text-rose-800"></i>
+                            <span>Catálogo Registrado</span>
+                        </span>
+                    </div>
+
+                    <div class="relative flex-1">
+                        <div class="relative flex items-center">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+                            <input type="text"
+                                   id="catalogSearchInput"
+                                   autocomplete="off"
+                                   placeholder="Buscar servicio o producto registrado para agregar al instante..."
+                                   class="w-full bg-white border border-slate-200 text-slate-900 rounded-xl pl-10 pr-10 py-2 text-xs font-medium focus:ring-2 focus:ring-rose-800 focus:border-rose-800 transition shadow-2xs placeholder:text-slate-400"
+                                   onfocus="openCatalogDropdown()"
+                                   oninput="filterCatalog(this.value)">
+
+                            <button type="button" 
+                                    onclick="toggleCatalogDropdown(event)" 
+                                    class="absolute right-2 p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer">
+                                <i data-lucide="chevron-down" id="catalog-chevron" class="w-4 h-4 transition-transform duration-200"></i>
+                            </button>
+                        </div>
+
+                        <!-- Dropdown Flotante con Servicios y Productos -->
+                        <div id="catalog-dropdown-results" 
+                             class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-72 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button type="button" onclick="showCatalogTab('ALL')" id="catalogTabAll" class="catalog-filter-btn px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white font-bold text-[11px] text-slate-700 hover:bg-slate-100 transition cursor-pointer">
+                            Todos
+                        </button>
+                        <button type="button" onclick="showCatalogTab('SERVICE')" id="catalogTabServices" class="catalog-filter-btn px-2.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50 font-bold text-[11px] text-purple-900 hover:bg-purple-100 transition flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="scissors" class="w-3 h-3 text-purple-600"></i>
+                            <span>Servicios ({{ services|length }})</span>
+                        </button>
+                        <button type="button" onclick="showCatalogTab('PRODUCT')" id="catalogTabProducts" class="catalog-filter-btn px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 font-bold text-[11px] text-amber-900 hover:bg-amber-100 transition flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="package" class="w-3 h-3 text-amber-600"></i>
+                            <span>Productos ({{ products|length }})</span>
                         </button>
                     </div>
                 </div>
@@ -185,7 +262,16 @@
                                         </select>
                                     </td>
                                     <td class="p-2.5 space-y-1">
-                                        <input type="text" name="item_description[]" required value="{{ it.description }}" placeholder="Descripción del entregable o servicio..." class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                                        <div class="flex items-center gap-1.5">
+                                            <input type="text" name="item_description[]" required value="{{ it.description }}" placeholder="Descripción del entregable o servicio..." class="item-desc-input w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                                            <button type="button" 
+                                                    onclick="openRowCatalogSelector(this)" 
+                                                    class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-[10px] font-bold text-slate-600 hover:text-rose-900 border border-slate-200 transition shrink-0 inline-flex items-center gap-1 cursor-pointer"
+                                                    title="Cargar servicio o producto registrado en esta fila">
+                                                <i data-lucide="tag" class="w-3 h-3 text-rose-800"></i>
+                                                <span>Catálogo</span>
+                                            </button>
+                                        </div>
                                         <input type="text" name="item_performance_kpi[]" value="{{ it.performance_kpi|default:'' }}" placeholder="Meta de Desempeño / KPI (opcional)..." class="kpi-input w-full px-2.5 py-1 rounded-md border border-emerald-200 bg-emerald-50/30 text-[11px] text-emerald-900 {% if it.item_type != 'PERFORMANCE' %}hidden{% endif %}">
                                     </td>
                                     <td class="p-2.5">
@@ -217,7 +303,16 @@
                                         </select>
                                     </td>
                                     <td class="p-2.5 space-y-1">
-                                        <input type="text" name="item_description[]" required placeholder="Ej: Plan de Redes Sociales / Horas de Edición / Campaña por Leads" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                                        <div class="flex items-center gap-1.5">
+                                            <input type="text" name="item_description[]" required placeholder="Ej: Plan de Redes Sociales / Horas de Edición / Campaña por Leads" class="item-desc-input w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                                            <button type="button" 
+                                                    onclick="openRowCatalogSelector(this)" 
+                                                    class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-[10px] font-bold text-slate-600 hover:text-rose-900 border border-slate-200 transition shrink-0 inline-flex items-center gap-1 cursor-pointer"
+                                                    title="Cargar servicio o producto registrado en esta fila">
+                                                <i data-lucide="tag" class="w-3 h-3 text-rose-800"></i>
+                                                <span>Catálogo</span>
+                                            </button>
+                                        </div>
                                         <input type="text" name="item_performance_kpi[]" placeholder="Meta de Desempeño / KPI (opcional)..." class="kpi-input hidden w-full px-2.5 py-1 rounded-md border border-emerald-200 bg-emerald-50/30 text-[11px] text-emerald-900">
                                     </td>
                                     <td class="p-2.5">
@@ -394,7 +489,16 @@ Revisiones: Incluye rondas de ajustes especificadas en el alcance.{% endif %}</t
                 </select>
             </td>
             <td class="p-2.5 space-y-1">
-                <input type="text" name="item_description[]" required placeholder="Descripción del servicio, hito u horas..." class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                <div class="flex items-center gap-1.5">
+                    <input type="text" name="item_description[]" required placeholder="Descripción del servicio, producto o hito..." class="item-desc-input w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20">
+                    <button type="button" 
+                            onclick="openRowCatalogSelector(this)" 
+                            class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-[10px] font-bold text-slate-600 hover:text-rose-900 border border-slate-200 transition shrink-0 inline-flex items-center gap-1 cursor-pointer"
+                            title="Cargar servicio o producto registrado en esta fila">
+                        <i data-lucide="tag" class="w-3 h-3 text-rose-800"></i>
+                        <span>Catálogo</span>
+                    </button>
+                </div>
                 <input type="text" name="item_performance_kpi[]" placeholder="Meta de Desempeño / KPI (opcional)..." class="kpi-input ${showKpi} w-full px-2.5 py-1 rounded-md border border-emerald-200 bg-emerald-50/30 text-[11px] text-emerald-900">
             </td>
             <td class="p-2.5">
@@ -410,7 +514,7 @@ Revisiones: Incluye rondas de ajustes especificadas en el alcance.{% endif %}</t
                 ${currencySymbol}0.00
             </td>
             <td class="p-2.5 text-center">
-                <button type="button" class="remove-row-btn p-1 text-slate-400 hover:text-rose-600 transition" title="Eliminar fila">
+                <button type="button" class="remove-row-btn p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer" title="Eliminar fila">
                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
             </td>
@@ -443,6 +547,497 @@ Revisiones: Incluye rondas de ajustes especificadas en el alcance.{% endif %}</t
         }
     });
 
+    // ==========================================
+    // DATOS DE CLIENTES, SERVICIOS Y PRODUCTOS
+    // ==========================================
+    const rawClients = [
+        {% for c in clients %}
+        {
+            id: '{{ c.id }}',
+            name: '{{ c.full_name|escapejs }}',
+            phone: '{{ c.phone|default:""|escapejs }}',
+            email: '{{ c.email|default:""|escapejs }}',
+            initials: '{{ c.first_name|slice:":1" }}{{ c.last_name|slice:":1" }}'
+        },
+        {% endfor %}
+    ];
+
+    const rawServices = [
+        {% for s in services %}
+        {
+            id: '{{ s.id }}',
+            name: '{{ s.name|escapejs }}',
+            price: parseFloat('{{ s.price|unlocalize }}') || 0,
+            duration: '{{ s.duration_minutes }} min',
+            unit: 'serv',
+            type: 'SERVICE'
+        },
+        {% endfor %}
+    ];
+
+    const rawProducts = [
+        {% for p in products %}
+        {
+            id: '{{ p.id }}',
+            name: '{{ p.name|escapejs }}',
+            price: parseFloat('{{ p.sale_price|unlocalize }}') || 0,
+            sku: '{{ p.sku|default:""|escapejs }}',
+            stock: '{{ p.stock }}',
+            unit: '{{ p.unit|default:"unid"|escapejs }}',
+            type: 'PRODUCT'
+        },
+        {% endfor %}
+    ];
+
+    // ==========================================
+    // SELECTOR DINÁMICO DE CLIENTES
+    // ==========================================
+    function openQuoteClientDropdown() {
+        const dd = document.getElementById('quote-client-dropdown-results');
+        const chev = document.getElementById('quote-client-chevron');
+        if (!dd) return;
+        dd.classList.remove('hidden');
+        if (chev) chev.classList.add('rotate-180');
+        filterQuoteClients(document.getElementById('quote-client-search-input').value);
+    }
+
+    function closeQuoteClientDropdown() {
+        const dd = document.getElementById('quote-client-dropdown-results');
+        const chev = document.getElementById('quote-client-chevron');
+        if (dd) dd.classList.add('hidden');
+        if (chev) chev.classList.remove('rotate-180');
+    }
+
+    function toggleQuoteClientDropdown(e) {
+        if (e) e.stopPropagation();
+        const dd = document.getElementById('quote-client-dropdown-results');
+        if (dd && !dd.classList.contains('hidden')) {
+            closeQuoteClientDropdown();
+        } else {
+            openQuoteClientDropdown();
+        }
+    }
+
+    function filterQuoteClients(query) {
+        const q = (query || '').toLowerCase().trim();
+        const dd = document.getElementById('quote-client-dropdown-results');
+        if (!dd) return;
+
+        const filtered = rawClients.filter(c => 
+            c.name.toLowerCase().includes(q) || 
+            c.phone.toLowerCase().includes(q) || 
+            c.email.toLowerCase().includes(q)
+        );
+
+        if (filtered.length === 0) {
+            dd.innerHTML = `
+                <div class="p-3.5 text-center text-xs text-slate-400">
+                    <p class="font-bold text-slate-600">No se encontraron clientes</p>
+                    <button type="button" onclick="openQuickClientModal()" class="text-[11px] font-bold text-rose-800 hover:underline mt-1 inline-block cursor-pointer">+ Registrar Nuevo Cliente</button>
+                </div>
+            `;
+            return;
+        }
+
+        dd.innerHTML = filtered.map(c => `
+            <div onclick="selectQuoteClient('${c.id}', '${c.name.replace(/'/g, "\\'")}', '${c.phone}')"
+                 class="p-2 rounded-xl hover:bg-rose-50 transition cursor-pointer flex items-center justify-between group">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-7 h-7 rounded-lg bg-rose-100 text-rose-900 font-extrabold flex items-center justify-center text-[10px] shrink-0">
+                        ${c.initials || 'CL'}
+                    </div>
+                    <div class="truncate">
+                        <p class="font-bold text-slate-800 group-hover:text-rose-900 text-xs truncate">${c.name}</p>
+                        <p class="text-[10px] text-slate-400 truncate">${c.phone || c.email || 'Sin datos de contacto'}</p>
+                    </div>
+                </div>
+                <i data-lucide="check" class="w-3.5 h-3.5 text-rose-800 opacity-0 group-hover:opacity-100 transition shrink-0"></i>
+            </div>
+        `).join('');
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function selectQuoteClient(id, name, phone) {
+        document.getElementById('quote_client_id').value = id;
+        document.getElementById('quote-client-search-input').value = name;
+        const clearBtn = document.getElementById('quote-client-clear-btn');
+        if (clearBtn) clearBtn.classList.remove('hidden');
+        closeQuoteClientDropdown();
+    }
+
+    function clearQuoteClient(e) {
+        if (e) e.stopPropagation();
+        document.getElementById('quote_client_id').value = '';
+        document.getElementById('quote-client-search-input').value = '';
+        const clearBtn = document.getElementById('quote-client-clear-btn');
+        if (clearBtn) clearBtn.classList.add('hidden');
+        closeQuoteClientDropdown();
+    }
+
+    // ==========================================
+    // BARRA Y DROPDOWN DE CATÁLOGO (SERVICIOS Y PRODUCTOS)
+    // ==========================================
+    let currentCatalogFilter = 'ALL';
+
+    function openCatalogDropdown() {
+        const dd = document.getElementById('catalog-dropdown-results');
+        const chev = document.getElementById('catalog-chevron');
+        if (!dd) return;
+        dd.classList.remove('hidden');
+        if (chev) chev.classList.add('rotate-180');
+        filterCatalog(document.getElementById('catalogSearchInput').value);
+    }
+
+    function closeCatalogDropdown() {
+        const dd = document.getElementById('catalog-dropdown-results');
+        const chev = document.getElementById('catalog-chevron');
+        if (dd) dd.classList.add('hidden');
+        if (chev) chev.classList.remove('rotate-180');
+    }
+
+    function toggleCatalogDropdown(e) {
+        if (e) e.stopPropagation();
+        const dd = document.getElementById('catalog-dropdown-results');
+        if (dd && !dd.classList.contains('hidden')) {
+            closeCatalogDropdown();
+        } else {
+            openCatalogDropdown();
+        }
+    }
+
+    function showCatalogTab(tab) {
+        currentCatalogFilter = tab;
+        document.querySelectorAll('.catalog-filter-btn').forEach(btn => {
+            btn.classList.remove('ring-2', 'ring-rose-800', 'font-black');
+        });
+        if (tab === 'ALL') document.getElementById('catalogTabAll')?.classList.add('ring-2', 'ring-rose-800');
+        if (tab === 'SERVICE') document.getElementById('catalogTabServices')?.classList.add('ring-2', 'ring-rose-800');
+        if (tab === 'PRODUCT') document.getElementById('catalogTabProducts')?.classList.add('ring-2', 'ring-rose-800');
+        openCatalogDropdown();
+        filterCatalog(document.getElementById('catalogSearchInput').value);
+    }
+
+    function filterCatalog(query) {
+        const q = (query || '').toLowerCase().trim();
+        const dd = document.getElementById('catalog-dropdown-results');
+        if (!dd) return;
+
+        let items = [];
+        if (currentCatalogFilter === 'ALL' || currentCatalogFilter === 'SERVICE') {
+            items = items.concat(rawServices);
+        }
+        if (currentCatalogFilter === 'ALL' || currentCatalogFilter === 'PRODUCT') {
+            items = items.concat(rawProducts);
+        }
+
+        const filtered = items.filter(it => 
+            it.name.toLowerCase().includes(q) || 
+            (it.sku && it.sku.toLowerCase().includes(q))
+        );
+
+        if (filtered.length === 0) {
+            dd.innerHTML = `
+                <div class="p-4 text-center text-xs text-slate-400">
+                    <i data-lucide="package-search" class="w-6 h-6 mx-auto mb-1 text-slate-300"></i>
+                    <p class="font-bold text-slate-600">No se encontraron ítems en el catálogo</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Puedes escribir la descripción libremente en la fila.</p>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        dd.innerHTML = filtered.map(it => {
+            const isService = it.type === 'SERVICE';
+            const badge = isService 
+                ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 inline-flex items-center gap-1 shrink-0"><i data-lucide="scissors" class="w-3 h-3"></i> Servicio</span>`
+                : `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1 shrink-0"><i data-lucide="package" class="w-3 h-3"></i> Producto</span>`;
+            const extra = isService ? it.duration : `Stock: ${it.stock}`;
+            return `
+                <div onclick="addCatalogItemToQuote('${it.type}', '${it.name.replace(/'/g, "\\'")}', ${it.price}, '${it.unit || 'unid'}')"
+                     class="p-2.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition cursor-pointer flex items-center justify-between group">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        ${badge}
+                        <div class="truncate">
+                            <p class="font-bold text-slate-800 group-hover:text-rose-900 text-xs truncate">${it.name}</p>
+                            <p class="text-[10px] text-slate-400">${extra} • <strong class="text-slate-700">${currencySymbol}${it.price.toFixed(2)}</strong></p>
+                        </div>
+                    </div>
+                    <button type="button" class="px-2.5 py-1 rounded-lg bg-rose-900 text-white font-bold text-[10px] inline-flex items-center gap-1 shadow-2xs group-hover:bg-rose-950 transition shrink-0">
+                        <i data-lucide="plus" class="w-3 h-3"></i>
+                        <span>Agregar</span>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function addCatalogItemToQuote(type, name, price, unit) {
+        const rows = document.querySelectorAll('.item-row');
+        let targetRow = null;
+        if (rows.length === 1) {
+            const descInput = rows[0].querySelector('.item-desc-input') || rows[0].querySelector('input[name="item_description[]"]');
+            if (descInput && !descInput.value.trim()) {
+                targetRow = rows[0];
+            }
+        }
+
+        if (targetRow) {
+            const descInput = targetRow.querySelector('.item-desc-input') || targetRow.querySelector('input[name="item_description[]"]');
+            const priceInput = targetRow.querySelector('.item-price');
+            const unitInput = targetRow.querySelector('.item-unit-label');
+            const qtyInput = targetRow.querySelector('.item-qty');
+
+            if (descInput) descInput.value = name;
+            if (priceInput) priceInput.value = price.toFixed(2);
+            if (unitInput) unitInput.value = unit || 'unid';
+            if (qtyInput && (!qtyInput.value || parseFloat(qtyInput.value) <= 0)) qtyInput.value = '1';
+        } else {
+            addNewItemRow('FIXED');
+            const allRows = document.querySelectorAll('.item-row');
+            const newRow = allRows[allRows.length - 1];
+            if (newRow) {
+                const descInput = newRow.querySelector('.item-desc-input') || newRow.querySelector('input[name="item_description[]"]');
+                const priceInput = newRow.querySelector('.item-price');
+                const unitInput = newRow.querySelector('.item-unit-label');
+                const qtyInput = newRow.querySelector('.item-qty');
+
+                if (descInput) descInput.value = name;
+                if (priceInput) priceInput.value = price.toFixed(2);
+                if (unitInput) unitInput.value = unit || 'unid';
+                if (qtyInput) qtyInput.value = '1';
+            }
+        }
+
+        recalculateTotals();
+        closeCatalogDropdown();
+        document.getElementById('catalogSearchInput').value = '';
+    }
+
+    // ==========================================
+    // MODAL DE SELECCIÓN DE CATÁLOGO POR FILA
+    // ==========================================
+    let currentRowTarget = null;
+
+    function openRowCatalogSelector(btn) {
+        currentRowTarget = btn.closest('.item-row');
+        const modal = document.getElementById('catalogPickerModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            setModalCatalogTab('ALL');
+            setTimeout(() => document.getElementById('modalCatalogSearchInput')?.focus(), 100);
+        }
+    }
+
+    function closeCatalogPickerModal() {
+        const modal = document.getElementById('catalogPickerModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+        currentRowTarget = null;
+    }
+
+    let currentModalTab = 'ALL';
+
+    function setModalCatalogTab(tab) {
+        currentModalTab = tab;
+        document.getElementById('modalTabAll')?.classList.toggle('bg-slate-900', tab === 'ALL');
+        document.getElementById('modalTabAll')?.classList.toggle('text-white', tab === 'ALL');
+        document.getElementById('modalTabService')?.classList.toggle('ring-2', tab === 'SERVICE');
+        document.getElementById('modalTabProduct')?.classList.toggle('ring-2', tab === 'PRODUCT');
+        filterModalCatalog(document.getElementById('modalCatalogSearchInput')?.value || '');
+    }
+
+    function filterModalCatalog(query) {
+        const q = (query || '').toLowerCase().trim();
+        const list = document.getElementById('modalCatalogList');
+        if (!list) return;
+
+        let items = [];
+        if (currentModalTab === 'ALL' || currentModalTab === 'SERVICE') items = items.concat(rawServices);
+        if (currentModalTab === 'ALL' || currentModalTab === 'PRODUCT') items = items.concat(rawProducts);
+
+        const filtered = items.filter(it => 
+            it.name.toLowerCase().includes(q) || 
+            (it.sku && it.sku.toLowerCase().includes(q))
+        );
+
+        if (filtered.length === 0) {
+            list.innerHTML = `
+                <div class="p-6 text-center text-xs text-slate-400">
+                    <p class="font-bold text-slate-600">No se encontraron resultados en el catálogo</p>
+                </div>
+            `;
+            return;
+        }
+
+        list.innerHTML = filtered.map(it => {
+            const isService = it.type === 'SERVICE';
+            const badge = isService 
+                ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 inline-flex items-center gap-1 shrink-0"><i data-lucide="scissors" class="w-3 h-3"></i> Servicio</span>`
+                : `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1 shrink-0"><i data-lucide="package" class="w-3 h-3"></i> Producto</span>`;
+            const extra = isService ? it.duration : `Stock: ${it.stock}`;
+            return `
+                <div onclick="selectCatalogItemForRow('${it.name.replace(/'/g, "\\'")}', ${it.price}, '${it.unit || 'unid'}')"
+                     class="p-2.5 rounded-2xl hover:bg-rose-50 border border-slate-100 hover:border-rose-200 transition cursor-pointer flex items-center justify-between group">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        ${badge}
+                        <div class="truncate">
+                            <p class="font-bold text-slate-800 group-hover:text-rose-900 text-xs truncate">${it.name}</p>
+                            <p class="text-[10px] text-slate-400">${extra}</p>
+                        </div>
+                    </div>
+                    <span class="font-black text-rose-900 text-xs">${currencySymbol}${it.price.toFixed(2)}</span>
+                </div>
+            `;
+        }).join('');
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function selectCatalogItemForRow(name, price, unit) {
+        if (currentRowTarget) {
+            const descInput = currentRowTarget.querySelector('.item-desc-input') || currentRowTarget.querySelector('input[name="item_description[]"]');
+            const priceInput = currentRowTarget.querySelector('.item-price');
+            const unitInput = currentRowTarget.querySelector('.item-unit-label');
+            const qtyInput = currentRowTarget.querySelector('.item-qty');
+
+            if (descInput) descInput.value = name;
+            if (priceInput) priceInput.value = price.toFixed(2);
+            if (unitInput) unitInput.value = unit || 'unid';
+            if (qtyInput && (!qtyInput.value || parseFloat(qtyInput.value) <= 0)) qtyInput.value = '1';
+
+            recalculateTotals();
+        }
+        closeCatalogPickerModal();
+    }
+
+    // ==========================================
+    // CERRAR DROPDOWNS AL HACER CLIC FUERA
+    // ==========================================
+    document.addEventListener('click', (e) => {
+        const clientWrapper = document.getElementById('quote-client-combobox-wrapper');
+        if (clientWrapper && !clientWrapper.contains(e.target)) {
+            closeQuoteClientDropdown();
+        }
+        const catalogWrapper = document.getElementById('catalog-combobox-wrapper');
+        if (catalogWrapper && !catalogWrapper.contains(e.target)) {
+            closeCatalogDropdown();
+        }
+    });
+
+    // ==========================================
+    // MODAL CREAR NUEVO CLIENTE (CRM AJAX)
+    // ==========================================
+    function openQuickClientModal() {
+        const modal = document.getElementById('quick-client-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            const err = document.getElementById('quick-client-error');
+            if (err) err.classList.add('hidden');
+            setTimeout(() => {
+                const fn = document.getElementById('qc-first-name');
+                if (fn) fn.focus();
+            }, 60);
+        }
+    }
+
+    function closeQuickClientModal() {
+        const modal = document.getElementById('quick-client-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            const form = document.getElementById('quick-client-form');
+            if (form) form.reset();
+            const err = document.getElementById('quick-client-error');
+            if (err) err.classList.add('hidden');
+        }
+    }
+
+    document.getElementById('quick-client-form')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const firstName = document.getElementById('qc-first-name').value.trim();
+        const lastName = document.getElementById('qc-last-name').value.trim();
+        const phonePrefix = document.getElementById('qc-phone-prefix').value.trim();
+        const phoneNumber = document.getElementById('qc-phone').value.trim();
+        const taxId = document.getElementById('qc-tax-id').value.trim();
+        const email = document.getElementById('qc-email').value.trim();
+        const errorDiv = document.getElementById('quick-client-error');
+        const submitBtn = document.getElementById('qc-submit-btn');
+
+        if (!firstName) {
+            errorDiv.textContent = 'El nombre del cliente es obligatorio.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('first_name', firstName);
+        formData.append('last_name', lastName);
+        formData.append('phone_prefix', phonePrefix);
+        formData.append('phone_number', phoneNumber);
+        formData.append('tax_id', taxId);
+        formData.append('email', email);
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        if (csrfToken) {
+            formData.append('csrfmiddlewaretoken', csrfToken);
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Guardando...';
+
+        fetch('{% url "pos_quick_client" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar';
+
+            if (data.success) {
+                const fullName = data.full_name || `${firstName} ${lastName}`.trim();
+                const words = fullName.split(' ');
+                const initials = words.length > 1 ? (words[0][0] + words[1][0]).toUpperCase() : fullName.substring(0, 2).toUpperCase();
+                
+                const newClientObj = {
+                    id: String(data.client_id),
+                    name: fullName,
+                    phone: data.phone || (phoneNumber ? `${phonePrefix} ${phoneNumber}` : ''),
+                    email: email,
+                    initials: initials
+                };
+
+                // Insertar al inicio de la lista de clientes
+                rawClients.unshift(newClientObj);
+
+                // Auto-seleccionar el cliente en el formulario de cotización
+                selectQuoteClient(newClientObj.id, newClientObj.name, newClientObj.phone);
+
+                closeQuickClientModal();
+                if (window.lucide) lucide.createIcons();
+            } else {
+                errorDiv.textContent = data.error || 'Error al registrar el cliente.';
+                errorDiv.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            console.error('Error registrando cliente:', err);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar';
+            errorDiv.textContent = 'Error de conexión al guardar el cliente.';
+            errorDiv.classList.remove('hidden');
+        });
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         const checkedType = document.querySelector('input[name="pricing_type"]:checked');
         if (checkedType) {
@@ -451,4 +1046,119 @@ Revisiones: Incluye rondas de ajustes especificadas en el alcance.{% endif %}</t
         recalculateTotals();
     });
 </script>
+
+<!-- ============================================================== -->
+<!-- MODAL: SELECCIONAR DEL CATÁLOGO                                -->
+<!-- ============================================================== -->
+<div id="catalogPickerModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeCatalogPickerModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-5 sm:p-6 space-y-4 relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold shrink-0">
+                    <i data-lucide="package-search" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="font-black text-slate-900 text-sm">Seleccionar del Catálogo</h3>
+                    <p class="text-[11px] text-slate-400">Escoge un servicio o producto para precargar en esta fila.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCatalogPickerModal()" class="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Search & Filter Tabs -->
+        <div class="space-y-2">
+            <div class="relative flex items-center">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none"></i>
+                <input type="text"
+                       id="modalCatalogSearchInput"
+                       placeholder="Buscar por nombre, código SKU o precio..."
+                       class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-9 pr-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-rose-800 focus:border-rose-800 transition"
+                       oninput="filterModalCatalog(this.value)">
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <button type="button" onclick="setModalCatalogTab('ALL')" id="modalTabAll" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white transition cursor-pointer">Todos</button>
+                <button type="button" onclick="setModalCatalogTab('SERVICE')" id="modalTabService" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-900 border border-purple-200 hover:bg-purple-100 transition cursor-pointer">Servicios ({{ services|length }})</button>
+                <button type="button" onclick="setModalCatalogTab('PRODUCT')" id="modalTabProduct" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 transition cursor-pointer">Productos ({{ products|length }})</button>
+            </div>
+        </div>
+
+        <!-- List container -->
+        <div id="modalCatalogList" class="max-h-72 overflow-y-auto custom-scrollbar space-y-1.5 p-1">
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL: REGISTRAR NUEVO CLIENTE RÁPIDO (CRM AJAX)              -->
+<!-- ============================================================== -->
+<div id="quick-client-modal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeQuickClientModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-8 space-y-5 relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold">
+                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-base text-slate-900">Registrar Nuevo Cliente</h3>
+                    <p class="text-xs text-slate-500">Se agregará al CRM y se seleccionará automáticamente en esta cotización.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeQuickClientModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form id="quick-client-form" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <div id="quick-client-error" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 font-semibold text-xs"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nombre *</label>
+                    <input type="text" id="qc-first-name" required placeholder="Ej: María" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Apellido</label>
+                    <input type="text" id="qc-last-name" placeholder="Ej: Pérez" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Teléfono / WhatsApp *</label>
+                    <div class="flex rounded-xl overflow-hidden border border-slate-300 focus-within:ring-2 focus-within:ring-rose-800 bg-slate-50">
+                        <select id="qc-phone-prefix" class="w-[96px] bg-slate-200 text-slate-800 text-xs font-bold px-2 py-2.5 border-r border-slate-300 focus:outline-none cursor-pointer shrink-0">
+                            {% include 'components/phone_prefix_options.html' with selected_prefix=default_phone_prefix|default:'+54' %}
+                        </select>
+                        <input type="text" id="qc-phone" placeholder="91133221100" class="w-full bg-slate-50 text-slate-900 rounded-r-xl p-2.5 font-bold focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">DNI / Número de Identidad / Tax ID</label>
+                    <input type="text" id="qc-tax-id" placeholder="Ej: 12345678" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Correo Electrónico (Opcional)</label>
+                <input type="email" id="qc-email" placeholder="cliente@email.com" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 font-bold focus:outline-none focus:border-rose-900">
+            </div>
+
+            <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeQuickClientModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" id="qc-submit-btn" class="px-5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i> Guardar y Seleccionar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

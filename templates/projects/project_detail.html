@@ -40,8 +40,9 @@
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-100">
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-900 border border-rose-200">
-                        {{ project.get_project_type_display }}
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 border {{ project.type_badge_class }}">
+                        <i data-lucide="{{ project.type_icon }}" class="w-3 h-3"></i>
+                        <span>{{ project.display_type }}</span>
                     </span>
                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-800 border border-purple-200">
                         {{ project.get_pricing_type_display }}
@@ -158,6 +159,7 @@
         </div>
         {% endif %}
     </div>
+
 
     <!-- Tasks & Deliverables Section (Trello Kanban & List View) -->
     <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
@@ -485,6 +487,8 @@
 
 </div>
 
+
+
 <!-- Floating Toast Notification -->
 <div id="taskKanbanToast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-bold border border-slate-700">
@@ -717,5 +721,6 @@
             });
         });
     });
+
 </script>
 {% endblock %}

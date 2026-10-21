@@ -111,25 +111,6 @@
                 <span>Imprimir / PDF</span>
             </button>
 
-            <!-- Convert to Project -->
-            <a href="{% url 'quote_convert_to_project' quote.id %}" onclick="return confirm('¿Deseas iniciar un nuevo proyecto con las tareas y horas de esta cotización?');" class="h-9 px-3 rounded-xl bg-rose-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs" title="Crear proyecto en el gestor">
-                <i data-lucide="folder-kanban" class="w-4 h-4 text-rose-400"></i>
-                <span>Convertir a Proyecto</span>
-            </a>
-
-            <!-- Convert to Invoice -->
-            {% if not quote.converted_to_invoice %}
-            <a href="{% url 'quote_convert_to_invoice' quote.id %}" onclick="return confirm('¿Generar la factura electrónica o comercial a partir de este presupuesto?');" class="h-9 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-900 font-bold text-xs inline-flex items-center gap-1.5 transition">
-                <i data-lucide="file-check" class="w-4 h-4 text-rose-700"></i>
-                <span>Facturar</span>
-            </a>
-            {% else %}
-            <a href="{% url 'invoice_detail' quote.converted_to_invoice.id %}" class="h-9 px-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-xs inline-flex items-center gap-1.5 transition">
-                <i data-lucide="file-text" class="w-4 h-4 text-emerald-600"></i>
-                <span>Ver Factura</span>
-            </a>
-            {% endif %}
-
             <!-- Edit -->
             <a href="{% url 'quote_edit' quote.id %}" class="h-9 px-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs inline-flex items-center gap-1.5 transition">
                 <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-500"></i>
@@ -146,6 +127,123 @@
                     <option value="REJECTED" {% if quote.status == 'REJECTED' %}selected{% endif %}>Rechazada</option>
                 </select>
             </form>
+        </div>
+    </div>
+
+    <!-- Derivaciones & Trazabilidad Comercial Banner -->
+    <div class="glass-card bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="workflow" class="w-4 h-4 text-rose-400"></i>
+                <h4 class="font-extrabold text-white text-xs sm:text-sm uppercase tracking-wider">Derivación & Ejecución del Presupuesto</h4>
+            </div>
+            <span class="text-[11px] text-slate-400 font-medium hidden sm:inline">Convierte esta cotización aprobada en proyectos, citas, cuotas o facturas</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+            <!-- 1. Derivar a Proyecto -->
+            <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between space-y-2">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">1. Proyecto</span>
+                        {% if linked_project %}
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs font-bold text-slate-200 mt-0.5">
+                        {% if linked_project %}Proyecto Activo{% else %}Gestión & Tareas{% endif %}
+                    </p>
+                </div>
+                {% if linked_project %}
+                <a href="{% url 'project_detail' linked_project.id %}" class="h-8 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="folder-check" class="w-3.5 h-3.5"></i>
+                    <span>Ver Proyecto ({{ linked_project.progress_percent }}%)</span>
+                </a>
+                {% else %}
+                <a href="{% url 'quote_convert_to_project' quote.id %}" onclick="return confirm('¿Crear proyecto con las tareas y horas de esta cotización?');" class="h-8 px-2.5 rounded-lg bg-rose-900 hover:bg-rose-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
+                    <span>Crear Proyecto</span>
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- 2. Derivar a Cobros & Cuotas -->
+            <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between space-y-2">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">2. Cobranzas & Cuotas</span>
+                        {% if linked_payment_plan %}
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs font-bold text-slate-200 mt-0.5">
+                        {% if linked_payment_plan %}Plan de Pagos Activo{% else %}Cobros por Hito / Cuotas{% endif %}
+                    </p>
+                </div>
+                {% if linked_payment_plan %}
+                <a href="{% url 'payment_plan_list' %}?client_id={{ quote.client.id }}" class="h-8 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="hand-coins" class="w-3.5 h-3.5"></i>
+                    <span>Ver Cuotas ({{ linked_payment_plan.progress_percent }}%)</span>
+                </a>
+                {% else %}
+                <button type="button" onclick="openQuotePlanModal()" class="h-8 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer">
+                    <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+                    <span>Planificar Cuotas</span>
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- 3. Derivar a Cita / Agenda -->
+            <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between space-y-2">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">3. Cita / Agenda</span>
+                        {% if linked_appointments %}
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs font-bold text-slate-200 mt-0.5">
+                        {% if linked_appointments %}Cita Agendada{% else %}Agendar Servicio / Sesión{% endif %}
+                    </p>
+                </div>
+                {% if linked_appointments %}
+                <a href="{% url 'agenda_dashboard' %}" class="h-8 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
+                    <span>Ver en Agenda</span>
+                </a>
+                {% else %}
+                <button type="button" onclick="openQuoteAppointmentModal()" class="h-8 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer">
+                    <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+                    <span>Agendar Cita</span>
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- 4. Derivar a Factura -->
+            <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between space-y-2">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">4. Facturación</span>
+                        {% if quote.converted_to_invoice %}
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs font-bold text-slate-200 mt-0.5">
+                        {% if quote.converted_to_invoice %}Factura Emitida{% else %}Comprobante Fiscal{% endif %}
+                    </p>
+                </div>
+                {% if quote.converted_to_invoice %}
+                <a href="{% url 'invoice_detail' quote.converted_to_invoice.id %}" class="h-8 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
+                    <span>Ver Factura</span>
+                </a>
+                {% else %}
+                <a href="{% url 'quote_convert_to_invoice' quote.id %}" onclick="return confirm('¿Generar la factura electrónica o comercial a partir de este presupuesto?');" class="h-8 px-2.5 rounded-lg bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                    <span>Facturar</span>
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -326,4 +424,178 @@
     </div>
 
 </div>
+
+<!-- ============================================================== -->
+<!-- MODAL FLOTANTE: AGENDAR CITA DESDE COTIZACIÓN -->
+<!-- ============================================================== -->
+<div id="quoteAppointmentModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeQuoteAppointmentModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-7 space-y-5 relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 flex items-center justify-center font-bold">
+                    <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-base leading-tight">Agendar Cita / Sesión</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Crea la cita en la agenda para {{ quote.client.full_name }}.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeQuoteAppointmentModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'quote_convert_to_appointment' quote.id %}" class="space-y-4 text-xs">
+            {% csrf_token %}
+
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Profesional / Responsable *</label>
+                <select name="staff_id" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+                    <option value="">-- Seleccionar Profesional --</option>
+                    {% for s in staff_members %}
+                    <option value="{{ s.id }}">{{ s.full_name }} ({{ s.role_title }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Servicio de la Agenda (Opcional)</label>
+                <select name="service_id" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+                    <option value="">-- Servicio Especial de Cotización (Monto Total: {{ business.currency }}{{ quote.total_amount|floatformat:2 }}) --</option>
+                    {% for sv in services %}
+                    <option value="{{ sv.id }}">{{ sv.name }} ({{ business.currency }}{{ sv.price }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="space-y-1.5">
+                    <label class="block font-bold text-slate-700">Fecha *</label>
+                    <input type="date" name="date" required value="{{ quote.valid_until|date:'Y-m-d' }}" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-bold text-slate-700">Hora Inicio *</label>
+                    <input type="time" name="start_time" required value="10:00" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-bold text-slate-700">Hora Fin *</label>
+                    <input type="time" name="end_time" required value="11:00" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Seña / Anticipo Pagado (Opcional)</label>
+                <input type="number" step="0.01" min="0" name="deposit_amount" value="0.00" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeQuoteAppointmentModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="calendar-check" class="w-4 h-4"></i>
+                    <span>Confirmar Cita</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL FLOTANTE: CREAR PLAN DE CUOTAS DESDE COTIZACIÓN -->
+<!-- ============================================================== -->
+<div id="quotePlanModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeQuotePlanModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-7 space-y-5 relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center font-bold">
+                    <i data-lucide="hand-coins" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-base leading-tight">Planificar Cuotas / Pautas de Cobro</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Total cotizado: <strong class="text-slate-900">{{ business.currency }}{{ quote.total_amount|floatformat:2 }}</strong></p>
+                </div>
+            </div>
+            <button type="button" onclick="closeQuotePlanModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'quote_create_payment_plan' quote.id %}" class="space-y-4 text-xs">
+            {% csrf_token %}
+
+            <div class="space-y-2">
+                <label class="block font-bold text-slate-700">Modalidad de Cuotas *</label>
+                
+                <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:border-emerald-600/60 bg-slate-50/50 cursor-pointer transition">
+                    <input type="radio" name="plan_type" value="2_PARTS" checked class="mt-0.5 text-emerald-600 focus:ring-emerald-500">
+                    <div>
+                        <span class="font-extrabold text-slate-900 block">50% Anticipo Inicial + 50% Contra Entrega</span>
+                        <span class="text-[11px] text-slate-500 block">Cuota 1 hoy: {{ business.currency }}{{ quote.total_amount|floatformat:2|slice:":-3" }} / 2 | Cuota 2 en fecha límite</span>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:border-emerald-600/60 bg-slate-50/50 cursor-pointer transition">
+                    <input type="radio" name="plan_type" value="3_PARTS" class="mt-0.5 text-emerald-600 focus:ring-emerald-500">
+                    <div>
+                        <span class="font-extrabold text-slate-900 block">3 Hitos de Pago (40% / 30% / 30%)</span>
+                        <span class="text-[11px] text-slate-500 block">40% al iniciar, 30% en hito intermedio (15 días) y 30% en entrega final</span>
+                    </div>
+                </label>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Notas / Términos de Pago (Opcional)</label>
+                <textarea name="notes" rows="2" placeholder="Especificaciones sobre transferencias o hitos..." class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeQuotePlanModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    <span>Crear Plan de Cobros</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+    function openQuoteAppointmentModal() {
+        const modal = document.getElementById('quoteAppointmentModal');
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+    function closeQuoteAppointmentModal() {
+        const modal = document.getElementById('quoteAppointmentModal');
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function openQuotePlanModal() {
+        const modal = document.getElementById('quotePlanModal');
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+    function closeQuotePlanModal() {
+        const modal = document.getElementById('quotePlanModal');
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeQuoteAppointmentModal();
+            closeQuotePlanModal();
+        }
+    });
+</script>
 {% endblock %}

@@ -3,13 +3,89 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.db import models
 from django.core.paginator import Paginator
 
 from apps.business.models import Business, StaffMember
 from apps.crm.models import Client
-from apps.projects.models import Project, ProjectTask, SocialPost
+from apps.projects.models import Project, ProjectType, ProjectTask, SocialPost
 from apps.core.utils import parse_decimal
+
+DEFAULT_PROJECT_TYPES = [
+    {
+        'name': 'Gestión de Redes Sociales',
+        'code': 'SOCIAL_MEDIA',
+        'color': 'pink',
+        'icon': 'share-2',
+        'description': 'Estrategia, parrillas de contenido, reels y community management.'
+    },
+    {
+        'name': 'Diseño de Marca & Identidad',
+        'code': 'BRANDING',
+        'color': 'purple',
+        'icon': 'palette',
+        'description': 'Logotipos, manuales de marca, tipografía y diseño gráfico corporativo.'
+    },
+    {
+        'name': 'Desarrollo Web / E-Commerce',
+        'code': 'WEB_DEV',
+        'color': 'blue',
+        'icon': 'globe',
+        'description': 'Sitios web corporativos, tiendas online, landing pages y plataformas.'
+    },
+    {
+        'name': 'Campañas Publicitarias & Ads',
+        'code': 'MARKETING_ADS',
+        'color': 'amber',
+        'icon': 'target',
+        'description': 'Pauta digital en Meta Ads, Google Ads y generación de leads.'
+    },
+    {
+        'name': 'Producción Audiovisual & Foto',
+        'code': 'AUDIOVISUAL',
+        'color': 'rose',
+        'icon': 'video',
+        'description': 'Grabación de video, sesiones de fotos de producto y post-producción.'
+    },
+    {
+        'name': 'Consultoría & Estrategia',
+        'code': 'CONSULTING',
+        'color': 'emerald',
+        'icon': 'briefcase',
+        'description': 'Asesoría de negocio, auditorías digitales y optimización de embudos.'
+    },
+    {
+        'name': 'Servicio General / Otro',
+        'code': 'OTHER',
+        'color': 'slate',
+        'icon': 'folder-kanban',
+        'description': 'Proyectos a medida, desarrollos especiales u otros entregables.'
+    },
+]
+
+def ensure_default_project_types(business):
+    if not business:
+        return
+    if not ProjectType.objects.filter(business=business).exists():
+        for item in DEFAULT_PROJECT_TYPES:
+            ProjectType.objects.create(
+                business=business,
+                name=item['name'],
+                code=item['code'],
+                color=item['color'],
+                icon=item['icon'],
+                description=item['description'],
+                is_active=True
+            )
+    # Vincular proyectos existentes que no tengan custom_type
+    projects_without_type = Project.objects.filter(business=business, custom_type__isnull=True)
+    if projects_without_type.exists():
+        types_by_code = {t.code: t for t in ProjectType.objects.filter(business=business)}
+        for p in projects_without_type:
+            if p.project_type in types_by_code:
+                p.custom_type = types_by_code[p.project_type]
+                p.save(update_fields=['custom_type'])
 
 # ==========================================
 # GESTIÓN DE PROYECTOS Y ENTREGABLES
@@ -21,15 +97,19 @@ def project_list_view(request):
     if not business:
         return redirect('onboarding')
 
+    ensure_default_project_types(business)
+
     status_filter = request.GET.get('status', '').strip()
     type_filter = request.GET.get('type', '').strip()
     search_query = request.GET.get('q', '').strip()
     view_mode = request.GET.get('view', 'kanban').strip()
 
-    projects_qs = Project.objects.filter(business=business).select_related('client', 'responsible').prefetch_related('tasks')
+    projects_qs = Project.objects.filter(business=business).select_related('client', 'responsible', 'custom_type').prefetch_related('tasks')
 
     if type_filter:
-        projects_qs = projects_qs.filter(project_type=type_filter)
+        projects_qs = projects_qs.filter(
+            models.Q(custom_type_id=type_filter) | models.Q(project_type=type_filter)
+        )
     if search_query:
         projects_qs = projects_qs.filter(
             models.Q(name__icontains=search_query) |
@@ -123,7 +203,7 @@ def project_list_view(request):
         'active_projects': active_projects,
         'completed_projects': completed_projects,
         'total_budget': total_budget,
-        'project_types': Project.PROJECT_TYPE_CHOICES,
+        'project_types': ProjectType.objects.filter(business=business, is_active=True).order_by('name'),
         'status_choices': Project.STATUS_CHOICES,
     })
 
@@ -146,7 +226,11 @@ def project_create_view(request):
 
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
-        project_type = request.POST.get('project_type', 'SOCIAL_MEDIA')
+
+        custom_type_id = request.POST.get('custom_type_id') or request.POST.get('project_type')
+        custom_type = ProjectType.objects.filter(id=custom_type_id, business=business).first() if custom_type_id else None
+        project_type_code = custom_type.code if custom_type and custom_type.code else (request.POST.get('project_type') or 'OTHER')
+
         pricing_type = request.POST.get('pricing_type', 'FIXED')
         status = request.POST.get('status', 'PLANNING')
         priority = request.POST.get('priority', 'MEDIUM')
@@ -164,7 +248,8 @@ def project_create_view(request):
             responsible=responsible,
             name=name,
             description=description,
-            project_type=project_type,
+            project_type=project_type_code,
+            custom_type=custom_type,
             pricing_type=pricing_type,
             status=status,
             priority=priority,
@@ -190,7 +275,7 @@ def project_create_view(request):
         'staff_members': staff_members,
         'preselected_client_id': preselected_client_id,
         'preselected_status': preselected_status,
-        'project_types': Project.PROJECT_TYPE_CHOICES,
+        'project_types': ProjectType.objects.filter(business=business, is_active=True).order_by('name'),
         'pricing_types': Project.PRICING_TYPE_CHOICES,
         'status_choices': Project.STATUS_CHOICES,
         'priority_choices': Project.PRIORITY_CHOICES,
@@ -271,6 +356,7 @@ def project_detail_view(request, project_id):
         'task_status_choices': ProjectTask.STATUS_CHOICES,
         'total_task_estimated_hours': total_task_estimated_hours,
         'total_task_logged_hours': total_task_logged_hours,
+        'today': timezone.now().date(),
     })
 
 
@@ -293,7 +379,17 @@ def project_edit_view(request, project_id):
 
         project.name = request.POST.get('name', project.name).strip()
         project.description = request.POST.get('description', '').strip()
-        project.project_type = request.POST.get('project_type', project.project_type)
+
+        custom_type_id = request.POST.get('custom_type_id') or request.POST.get('project_type')
+        if custom_type_id:
+            custom_type = ProjectType.objects.filter(id=custom_type_id, business=business).first()
+            if custom_type:
+                project.custom_type = custom_type
+                if custom_type.code:
+                    project.project_type = custom_type.code
+            else:
+                project.project_type = custom_type_id
+
         project.pricing_type = request.POST.get('pricing_type', project.pricing_type)
         project.status = request.POST.get('status', project.status)
         project.priority = request.POST.get('priority', project.priority)
@@ -321,7 +417,7 @@ def project_edit_view(request, project_id):
         'project': project,
         'clients': clients,
         'staff_members': staff_members,
-        'project_types': Project.PROJECT_TYPE_CHOICES,
+        'project_types': ProjectType.objects.filter(business=business, is_active=True).order_by('name'),
         'pricing_types': Project.PRICING_TYPE_CHOICES,
         'status_choices': Project.STATUS_CHOICES,
         'priority_choices': Project.PRIORITY_CHOICES,
@@ -739,3 +835,116 @@ def social_post_delete_view(request, post_id):
         return redirect('content_planner')
 
     return redirect('content_planner')
+
+
+# ==========================================
+# GESTIÓN DE TIPOS DE PROYECTO
+# ==========================================
+
+@login_required
+def project_types_view(request):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+
+    ensure_default_project_types(business)
+
+    types = ProjectType.objects.filter(business=business).annotate(
+        projects_count=models.Count('projects')
+    ).order_by('-is_active', 'name')
+
+    total_types = types.count()
+    active_types = types.filter(is_active=True).count()
+    total_linked_projects = Project.objects.filter(business=business, custom_type__isnull=False).count()
+
+    return render(request, 'projects/project_types.html', {
+        'business': business,
+        'types': types,
+        'total_types': total_types,
+        'active_types': active_types,
+        'total_linked_projects': total_linked_projects,
+        'color_choices': ProjectType.COLOR_CHOICES,
+    })
+
+
+@login_required
+def project_type_create_view(request):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        color = request.POST.get('color', 'rose').strip()
+        icon = request.POST.get('icon', 'folder-kanban').strip()
+
+        if name:
+            pt = ProjectType.objects.create(
+                business=business,
+                name=name,
+                description=description,
+                color=color,
+                icon=icon or 'folder-kanban',
+                is_active=True
+            )
+            messages.success(request, f"Tipo de proyecto '{name}' creado exitosamente.")
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+                return JsonResponse({
+                    'success': True,
+                    'id': str(pt.id),
+                    'name': pt.name,
+                    'color': pt.color,
+                    'badge_class': pt.badge_class,
+                })
+        else:
+            messages.error(request, "El nombre del tipo de proyecto es obligatorio.")
+
+    next_url = request.POST.get('next') or request.GET.get('next') or 'project_types'
+    return redirect(next_url)
+
+
+@login_required
+def project_type_edit_view(request, type_id):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+
+    pt = get_object_or_404(ProjectType, id=type_id, business=business)
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        color = request.POST.get('color', pt.color).strip()
+        icon = request.POST.get('icon', pt.icon).strip()
+        is_active = request.POST.get('is_active') in ['true', '1', 'on'] or 'is_active' in request.POST
+
+        if name:
+            pt.name = name
+            pt.description = description
+            pt.color = color
+            pt.icon = icon or 'folder-kanban'
+            pt.is_active = is_active
+            pt.save()
+            messages.success(request, f"Tipo de proyecto '{name}' actualizado.")
+        else:
+            messages.error(request, "El nombre es obligatorio.")
+
+    return redirect('project_types')
+
+
+@login_required
+def project_type_delete_view(request, type_id):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+
+    pt = get_object_or_404(ProjectType, id=type_id, business=business)
+
+    if request.method == 'POST':
+        name = pt.name
+        pt.delete()
+        messages.success(request, f"Tipo de proyecto '{name}' eliminado.")
+
+    return redirect('project_types')
+

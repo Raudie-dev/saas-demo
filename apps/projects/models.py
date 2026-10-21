@@ -4,6 +4,63 @@ from apps.business.models import Business, StaffMember
 from apps.crm.models import Client
 from apps.invoicing.models import Quote
 
+class ProjectType(TimeStampedModel):
+    COLOR_CHOICES = [
+        ('rose', 'Vinotinto / Rose'),
+        ('blue', 'Azul'),
+        ('emerald', 'Verde Esmeralda'),
+        ('purple', 'Púrpura'),
+        ('pink', 'Rosa Fucsia'),
+        ('amber', 'Ámbar / Naranja'),
+        ('indigo', 'Índigo'),
+        ('slate', 'Gris Pizarra'),
+    ]
+
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="project_types")
+    name = models.CharField(max_length=100, verbose_name="Nombre del Tipo")
+    code = models.CharField(max_length=50, blank=True, verbose_name="Código")
+    description = models.TextField(blank=True, null=True, verbose_name="Descripción / Alcance")
+    color = models.CharField(max_length=30, choices=COLOR_CHOICES, default='rose', verbose_name="Color de Etiqueta")
+    icon = models.CharField(max_length=50, default='folder-kanban', verbose_name="Ícono Lucide")
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Tipo de Proyecto"
+        verbose_name_plural = "Tipos de Proyecto"
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def badge_class(self):
+        color_map = {
+            'rose': 'bg-rose-50 text-rose-700 border-rose-200',
+            'blue': 'bg-blue-50 text-blue-700 border-blue-200',
+            'emerald': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'purple': 'bg-purple-50 text-purple-700 border-purple-200',
+            'pink': 'bg-pink-50 text-pink-700 border-pink-200',
+            'amber': 'bg-amber-50 text-amber-700 border-amber-200',
+            'indigo': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+            'slate': 'bg-slate-100 text-slate-700 border-slate-200',
+        }
+        return color_map.get(self.color, 'bg-slate-100 text-slate-700 border-slate-200')
+
+    @property
+    def dot_color(self):
+        dot_map = {
+            'rose': 'bg-rose-500',
+            'blue': 'bg-blue-500',
+            'emerald': 'bg-emerald-500',
+            'purple': 'bg-purple-500',
+            'pink': 'bg-pink-500',
+            'amber': 'bg-amber-500',
+            'indigo': 'bg-indigo-500',
+            'slate': 'bg-slate-500',
+        }
+        return dot_map.get(self.color, 'bg-slate-500')
+
+
 class Project(TimeStampedModel):
     PROJECT_TYPE_CHOICES = [
         ('SOCIAL_MEDIA', 'Gestión de Redes Sociales'),
@@ -45,7 +102,15 @@ class Project(TimeStampedModel):
 
     name = models.CharField(max_length=200, verbose_name="Nombre del Proyecto")
     description = models.TextField(blank=True, null=True, verbose_name="Descripción / Alcance")
-    project_type = models.CharField(max_length=30, choices=PROJECT_TYPE_CHOICES, default='SOCIAL_MEDIA', verbose_name="Tipo de Proyecto")
+    project_type = models.CharField(max_length=30, choices=PROJECT_TYPE_CHOICES, default='SOCIAL_MEDIA', verbose_name="Tipo de Proyecto (Legacy)")
+    custom_type = models.ForeignKey(
+        ProjectType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="projects",
+        verbose_name="Tipo de Proyecto Personalizado"
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PLANNING', verbose_name="Estado")
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM', verbose_name="Prioridad")
     pricing_type = models.CharField(max_length=20, choices=PRICING_TYPE_CHOICES, default='FIXED', verbose_name="Modalidad")
@@ -70,6 +135,42 @@ class Project(TimeStampedModel):
     def __str__(self):
         client_name = self.client.full_name if self.client else "Interno"
         return f"{self.name} ({client_name})"
+
+    @property
+    def display_type(self):
+        if self.custom_type:
+            return self.custom_type.name
+        return self.get_project_type_display()
+
+    @property
+    def type_badge_class(self):
+        if self.custom_type:
+            return self.custom_type.badge_class
+        type_color_map = {
+            'SOCIAL_MEDIA': 'bg-pink-50 text-pink-700 border-pink-200',
+            'BRANDING': 'bg-purple-50 text-purple-700 border-purple-200',
+            'WEB_DEV': 'bg-blue-50 text-blue-700 border-blue-200',
+            'MARKETING_ADS': 'bg-amber-50 text-amber-700 border-amber-200',
+            'AUDIOVISUAL': 'bg-rose-50 text-rose-700 border-rose-200',
+            'CONSULTING': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'OTHER': 'bg-slate-100 text-slate-700 border-slate-200',
+        }
+        return type_color_map.get(self.project_type, 'bg-slate-100 text-slate-700 border-slate-200')
+
+    @property
+    def type_icon(self):
+        if self.custom_type and self.custom_type.icon:
+            return self.custom_type.icon
+        type_icon_map = {
+            'SOCIAL_MEDIA': 'share-2',
+            'BRANDING': 'palette',
+            'WEB_DEV': 'globe',
+            'MARKETING_ADS': 'target',
+            'AUDIOVISUAL': 'video',
+            'CONSULTING': 'briefcase',
+            'OTHER': 'folder-kanban',
+        }
+        return type_icon_map.get(self.project_type, 'folder-kanban')
 
     @property
     def completed_tasks_count(self):

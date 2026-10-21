@@ -1,0 +1,516 @@
+{% extends 'base.html' %}
+
+{% block title %}Tipos de Proyecto - RauDie OS{% endblock %}
+{% block header_title %}Configuración de Tipos de Proyecto{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Card -->
+    <div class="glass-card bg-white p-5 sm:p-7 rounded-3xl border border-slate-200/90 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <a href="{% url 'project_list' %}" class="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center shrink-0 transition" title="Volver al Tablero de Proyectos">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-black text-slate-900 text-lg sm:text-xl leading-tight">Tipos de Proyecto</h3>
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-900 border border-rose-200 uppercase tracking-wider">
+                            Personalización
+                        </span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Configura las categorías y especialidades de tus proyectos para organizar el tablero, métricas y filtros.</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'project_list' %}" class="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="trello" class="w-4 h-4 text-rose-800"></i>
+                    <span>Ver Tablero</span>
+                </a>
+                <button type="button" 
+                        onclick="openCreateTypeModal()" 
+                        class="h-10 px-4 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-rose-300"></i>
+                    <span>Nuevo Tipo de Proyecto</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Tipos</p>
+                    <p class="text-xl font-black text-slate-900 mt-0.5">{{ total_types }}</p>
+                </div>
+                <div class="w-9 h-9 rounded-xl bg-slate-200/70 text-slate-700 flex items-center justify-center">
+                    <i data-lucide="tags" class="w-4 h-4"></i>
+                </div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/70 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Tipos Activos</p>
+                    <p class="text-xl font-black text-emerald-900 mt-0.5">{{ active_types }}</p>
+                </div>
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                </div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-200/70 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Proyectos Vinculados</p>
+                    <p class="text-xl font-black text-rose-950 mt-0.5">{{ total_linked_projects }}</p>
+                </div>
+                <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-900 flex items-center justify-center">
+                    <i data-lucide="folder-kanban" class="w-4 h-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Types Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for t in types %}
+        <div class="glass-card bg-white rounded-3xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition flex flex-col justify-between group relative overflow-hidden">
+            <!-- Decorative Color Bar -->
+            <div class="absolute top-0 left-0 right-0 h-1.5 {{ t.dot_color }}"></div>
+
+            <div class="space-y-3.5 pt-1">
+                <!-- Header Badge & Status -->
+                <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border {{ t.badge_class }}">
+                        <i data-lucide="{{ t.icon|default:'folder-kanban' }}" class="w-3.5 h-3.5"></i>
+                        <span>{{ t.name }}</span>
+                    </span>
+
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider {% if t.is_active %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-slate-100 text-slate-500 border border-slate-200{% endif %}">
+                        {% if t.is_active %}Activo{% else %}Inactivo{% endif %}
+                    </span>
+                </div>
+
+                <!-- Description -->
+                <p class="text-xs text-slate-500 leading-relaxed min-h-[38px]">
+                    {{ t.description|default:"Sin descripción específica." }}
+                </p>
+
+                <!-- Project Count Pill -->
+                <div class="p-2.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2 text-slate-600 font-semibold">
+                        <i data-lucide="layers" class="w-4 h-4 text-slate-400"></i>
+                        <span><strong class="text-slate-900 font-black">{{ t.projects_count }}</strong> proyectos</span>
+                    </div>
+
+                    {% if t.projects_count > 0 %}
+                    <a href="{% url 'project_list' %}?type={{ t.id }}" class="text-[11px] font-bold text-rose-800 hover:text-rose-950 hover:underline flex items-center gap-1">
+                        <span>Ver en Tablero</span>
+                        <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Actions Row -->
+            <div class="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full {{ t.dot_color }}"></span>
+                    <span class="text-[11px] font-mono text-slate-400">Color: {{ t.get_color_display }}</span>
+                </div>
+
+                <div class="flex items-center gap-1">
+                    <button type="button" 
+                            onclick="openEditTypeModal('{{ t.id }}', '{{ t.name|escapejs }}', '{{ t.description|default:''|escapejs }}', '{{ t.color }}', '{{ t.icon|default:'folder-kanban' }}', {{ t.is_active|yesno:'true,false' }})"
+                            class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs inline-flex items-center gap-1 transition cursor-pointer"
+                            title="Editar Tipo de Proyecto">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        <span>Editar</span>
+                    </button>
+
+                    <form method="POST" action="{% url 'project_type_delete' t.id %}" onsubmit="return confirm('¿Estás seguro de eliminar el tipo de proyecto \'{{ t.name|escapejs }}\'?');" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="p-1.5 rounded-xl text-slate-400 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
+                                title="Eliminar tipo">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full p-12 text-center text-slate-400 glass-card bg-white rounded-3xl border border-slate-200">
+            <i data-lucide="tags" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
+            <h4 class="font-bold text-slate-700 text-sm">No hay tipos de proyectos configurados</h4>
+            <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Crea tu primer tipo de proyecto para comenzar a categorizar los entregables de tus clientes.</p>
+            <button type="button" onclick="openCreateTypeModal()" class="mt-4 px-4 py-2 rounded-xl bg-rose-900 text-white font-bold text-xs hover:bg-rose-950 transition cursor-pointer">
+                + Crear Primer Tipo
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL: CREAR TIPO DE PROYECTO                                   -->
+<!-- ============================================================== -->
+<div id="createTypeModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeCreateTypeModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-7 space-y-5 relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold shrink-0">
+                    <i data-lucide="plus-circle" class="w-5 h-5 text-rose-900"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-base leading-tight">Nuevo Tipo de Proyecto</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Define una especialidad o entregable recurrente.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCreateTypeModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{% url 'project_type_create' %}" class="space-y-4 text-xs">
+            {% csrf_token %}
+
+            <!-- Nombre -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Nombre del Tipo de Proyecto *</label>
+                <input type="text" 
+                       name="name" 
+                       required 
+                       id="create_type_name"
+                       placeholder="Ej: Desarrollo de Apps Móviles / Auditoría SEO" 
+                       class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"
+                       oninput="updateCreatePreview()">
+            </div>
+
+            <!-- Descripción -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Descripción / Alcance</label>
+                <textarea name="description" 
+                          rows="2" 
+                          placeholder="Breve detalle de lo que incluye este tipo de proyecto..." 
+                          class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"></textarea>
+            </div>
+
+            <!-- Selector Visual de Color -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Color de Etiqueta</label>
+                <input type="hidden" name="color" id="create_type_color" value="rose">
+                
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button" onclick="selectCreateColor('rose')" class="color-pill w-8 h-8 rounded-xl bg-rose-500 ring-2 ring-offset-2 ring-rose-600 transition" data-color="rose" title="Vinotinto / Rose"></button>
+                    <button type="button" onclick="selectCreateColor('blue')" class="color-pill w-8 h-8 rounded-xl bg-blue-500 hover:opacity-90 transition" data-color="blue" title="Azul"></button>
+                    <button type="button" onclick="selectCreateColor('emerald')" class="color-pill w-8 h-8 rounded-xl bg-emerald-500 hover:opacity-90 transition" data-color="emerald" title="Verde Esmeralda"></button>
+                    <button type="button" onclick="selectCreateColor('purple')" class="color-pill w-8 h-8 rounded-xl bg-purple-500 hover:opacity-90 transition" data-color="purple" title="Púrpura"></button>
+                    <button type="button" onclick="selectCreateColor('pink')" class="color-pill w-8 h-8 rounded-xl bg-pink-500 hover:opacity-90 transition" data-color="pink" title="Rosa Fucsia"></button>
+                    <button type="button" onclick="selectCreateColor('amber')" class="color-pill w-8 h-8 rounded-xl bg-amber-500 hover:opacity-90 transition" data-color="amber" title="Ámbar / Naranja"></button>
+                    <button type="button" onclick="selectCreateColor('indigo')" class="color-pill w-8 h-8 rounded-xl bg-indigo-500 hover:opacity-90 transition" data-color="indigo" title="Índigo"></button>
+                    <button type="button" onclick="selectCreateColor('slate')" class="color-pill w-8 h-8 rounded-xl bg-slate-500 hover:opacity-90 transition" data-color="slate" title="Gris Pizarra"></button>
+                </div>
+            </div>
+
+            <!-- Selector Visual de Ícono -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Ícono Representativo</label>
+                <input type="hidden" name="icon" id="create_type_icon" value="folder-kanban">
+                
+                <div class="grid grid-cols-6 gap-2 pt-1" id="createIconGrid">
+                    {% for icon_name in "folder-kanban globe palette target video briefcase share-2 rocket code camera sparkles megaphone"|make_list|slice:":1" %}
+                    <!-- dynamically rendered by JS -->
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Vista Previa de la Etiqueta -->
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500">Vista Previa:</span>
+                <span id="create_badge_preview" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border bg-rose-50 text-rose-700 border-rose-200">
+                    <i data-lucide="folder-kanban" id="create_badge_icon" class="w-3.5 h-3.5"></i>
+                    <span id="create_badge_text">Nuevo Tipo</span>
+                </span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeCreateTypeModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold transition shadow-xs cursor-pointer">
+                    Guardar Tipo de Proyecto
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL: EDITAR TIPO DE PROYECTO                                  -->
+<!-- ============================================================== -->
+<div id="editTypeModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeEditTypeModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-7 space-y-5 relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center font-bold shrink-0">
+                    <i data-lucide="pencil" class="w-5 h-5 text-slate-800"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-base leading-tight">Editar Tipo de Proyecto</h3>
+                    <p class="text-xs text-slate-500 mt-0.5" id="editModalSub">Modifica los parámetros de la categoría.</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeEditTypeModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST" id="editTypeForm" action="" class="space-y-4 text-xs">
+            {% csrf_token %}
+
+            <!-- Nombre -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Nombre del Tipo *</label>
+                <input type="text" 
+                       name="name" 
+                       id="edit_type_name" 
+                       required 
+                       class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"
+                       oninput="updateEditPreview()">
+            </div>
+
+            <!-- Descripción -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Descripción / Alcance</label>
+                <textarea name="description" 
+                          id="edit_type_description" 
+                          rows="2" 
+                          class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800"></textarea>
+            </div>
+
+            <!-- Color Selector -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Color de Etiqueta</label>
+                <input type="hidden" name="color" id="edit_type_color" value="rose">
+                
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button" onclick="selectEditColor('rose')" class="edit-color-pill w-8 h-8 rounded-xl bg-rose-500 transition" data-color="rose" title="Rose"></button>
+                    <button type="button" onclick="selectEditColor('blue')" class="edit-color-pill w-8 h-8 rounded-xl bg-blue-500 transition" data-color="blue" title="Azul"></button>
+                    <button type="button" onclick="selectEditColor('emerald')" class="edit-color-pill w-8 h-8 rounded-xl bg-emerald-500 transition" data-color="emerald" title="Esmeralda"></button>
+                    <button type="button" onclick="selectEditColor('purple')" class="edit-color-pill w-8 h-8 rounded-xl bg-purple-500 transition" data-color="purple" title="Púrpura"></button>
+                    <button type="button" onclick="selectEditColor('pink')" class="edit-color-pill w-8 h-8 rounded-xl bg-pink-500 transition" data-color="pink" title="Rosa"></button>
+                    <button type="button" onclick="selectEditColor('amber')" class="edit-color-pill w-8 h-8 rounded-xl bg-amber-500 transition" data-color="amber" title="Ámbar"></button>
+                    <button type="button" onclick="selectEditColor('indigo')" class="edit-color-pill w-8 h-8 rounded-xl bg-indigo-500 transition" data-color="indigo" title="Índigo"></button>
+                    <button type="button" onclick="selectEditColor('slate')" class="edit-color-pill w-8 h-8 rounded-xl bg-slate-500 transition" data-color="slate" title="Gris"></button>
+                </div>
+            </div>
+
+            <!-- Ícono Selector -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-700">Ícono</label>
+                <input type="hidden" name="icon" id="edit_type_icon" value="folder-kanban">
+                <div class="grid grid-cols-6 gap-2 pt-1" id="editIconGrid">
+                </div>
+            </div>
+
+            <!-- Activo / Inactivo -->
+            <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                <div>
+                    <p class="font-bold text-slate-900">Estado Activo</p>
+                    <p class="text-[11px] text-slate-400">Si está inactivo, no aparecerá en el selector de nuevos proyectos.</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="is_active" id="edit_type_is_active" value="true" class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+            </div>
+
+            <!-- Preview -->
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500">Vista Previa:</span>
+                <span id="edit_badge_preview" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border">
+                    <i data-lucide="folder-kanban" id="edit_badge_icon" class="w-3.5 h-3.5"></i>
+                    <span id="edit_badge_text">Tipo</span>
+                </span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeEditTypeModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold transition shadow-xs cursor-pointer">
+                    Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const availableIcons = [
+        'folder-kanban', 'globe', 'palette', 'target', 'video', 'briefcase',
+        'share-2', 'rocket', 'code', 'camera', 'sparkles', 'megaphone'
+    ];
+
+    const colorBadgeMap = {
+        'rose': 'bg-rose-50 text-rose-700 border-rose-200',
+        'blue': 'bg-blue-50 text-blue-700 border-blue-200',
+        'emerald': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        'purple': 'bg-purple-50 text-purple-700 border-purple-200',
+        'pink': 'bg-pink-50 text-pink-700 border-pink-200',
+        'amber': 'bg-amber-50 text-amber-700 border-amber-200',
+        'indigo': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        'slate': 'bg-slate-100 text-slate-700 border-slate-200'
+    };
+
+    function renderIconGrids() {
+        const createGrid = document.getElementById('createIconGrid');
+        const editGrid = document.getElementById('editIconGrid');
+
+        if (createGrid) {
+            createGrid.innerHTML = availableIcons.map(icon => `
+                <button type="button" 
+                        onclick="selectCreateIcon('${icon}')" 
+                        class="create-icon-btn p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-700 transition" 
+                        data-icon="${icon}">
+                    <i data-lucide="${icon}" class="w-4 h-4"></i>
+                </button>
+            `).join('');
+        }
+
+        if (editGrid) {
+            editGrid.innerHTML = availableIcons.map(icon => `
+                <button type="button" 
+                        onclick="selectEditIcon('${icon}')" 
+                        class="edit-icon-btn p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-700 transition" 
+                        data-icon="${icon}">
+                    <i data-lucide="${icon}" class="w-4 h-4"></i>
+                </button>
+            `).join('');
+        }
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // CREATE MODAL CONTROLS
+    function openCreateTypeModal() {
+        const modal = document.getElementById('createTypeModal');
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        selectCreateColor('rose');
+        selectCreateIcon('folder-kanban');
+        setTimeout(() => document.getElementById('create_type_name')?.focus(), 100);
+    }
+
+    function closeCreateTypeModal() {
+        const modal = document.getElementById('createTypeModal');
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function selectCreateColor(color) {
+        document.getElementById('create_type_color').value = color;
+        document.querySelectorAll('.color-pill').forEach(btn => {
+            if (btn.getAttribute('data-color') === color) {
+                btn.classList.add('ring-2', 'ring-offset-2', 'ring-slate-900');
+            } else {
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-slate-900');
+            }
+        });
+        updateCreatePreview();
+    }
+
+    function selectCreateIcon(icon) {
+        document.getElementById('create_type_icon').value = icon;
+        document.querySelectorAll('.create-icon-btn').forEach(btn => {
+            if (btn.getAttribute('data-icon') === icon) {
+                btn.classList.add('border-rose-800', 'bg-rose-50', 'text-rose-900', 'font-bold');
+            } else {
+                btn.classList.remove('border-rose-800', 'bg-rose-50', 'text-rose-900', 'font-bold');
+            }
+        });
+        updateCreatePreview();
+    }
+
+    function updateCreatePreview() {
+        const name = document.getElementById('create_type_name').value.trim() || 'Nuevo Tipo';
+        const color = document.getElementById('create_type_color').value;
+        const icon = document.getElementById('create_type_icon').value;
+
+        const badge = document.getElementById('create_badge_preview');
+        badge.className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border ${colorBadgeMap[color] || colorBadgeMap['rose']}`;
+        
+        badge.innerHTML = `<i data-lucide="${icon}" class="w-3.5 h-3.5"></i><span>${name}</span>`;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // EDIT MODAL CONTROLS
+    function openEditTypeModal(id, name, description, color, icon, isActive) {
+        const modal = document.getElementById('editTypeModal');
+        const form = document.getElementById('editTypeForm');
+        form.action = `/proyectos/tipos/${id}/editar/`;
+
+        document.getElementById('edit_type_name').value = name;
+        document.getElementById('edit_type_description').value = description;
+        document.getElementById('edit_type_is_active').checked = isActive;
+
+        selectEditColor(color);
+        selectEditIcon(icon);
+
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeEditTypeModal() {
+        const modal = document.getElementById('editTypeModal');
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function selectEditColor(color) {
+        document.getElementById('edit_type_color').value = color;
+        document.querySelectorAll('.edit-color-pill').forEach(btn => {
+            if (btn.getAttribute('data-color') === color) {
+                btn.classList.add('ring-2', 'ring-offset-2', 'ring-slate-900');
+            } else {
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-slate-900');
+            }
+        });
+        updateEditPreview();
+    }
+
+    function selectEditIcon(icon) {
+        document.getElementById('edit_type_icon').value = icon;
+        document.querySelectorAll('.edit-icon-btn').forEach(btn => {
+            if (btn.getAttribute('data-icon') === icon) {
+                btn.classList.add('border-rose-800', 'bg-rose-50', 'text-rose-900', 'font-bold');
+            } else {
+                btn.classList.remove('border-rose-800', 'bg-rose-50', 'text-rose-900', 'font-bold');
+            }
+        });
+        updateEditPreview();
+    }
+
+    function updateEditPreview() {
+        const name = document.getElementById('edit_type_name').value.trim() || 'Tipo';
+        const color = document.getElementById('edit_type_color').value;
+        const icon = document.getElementById('edit_type_icon').value;
+
+        const badge = document.getElementById('edit_badge_preview');
+        badge.className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border ${colorBadgeMap[color] || colorBadgeMap['rose']}`;
+        badge.innerHTML = `<i data-lucide="${icon}" class="w-3.5 h-3.5"></i><span>${name}</span>`;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderIconGrids();
+        selectCreateColor('rose');
+        selectCreateIcon('folder-kanban');
+    });
+</script>
+{% endblock %}
