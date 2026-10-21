@@ -1,21 +1,24 @@
 {% extends 'base.html' %}
 
-{% block title %}Seguimiento de Proyectos - RauDie OS{% endblock %}
+{% block title %}Tablero de Proyectos - RauDie OS{% endblock %}
 {% block header_title %}Proyectos & Entregables de Clientes{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-5">
 
     <!-- Top Module Header Card -->
     <div class="glass-card bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-start gap-3.5">
                 <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center shrink-0">
-                    <i data-lucide="folder-kanban" class="w-6 h-6"></i>
+                    <i data-lucide="layout-grid" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <h3 class="font-extrabold text-slate-900 text-lg sm:text-xl leading-tight">Gestión & Seguimiento de Proyectos</h3>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Supervisa campañas, branding, desarrollos web y entregables por cliente con control de avance.</p>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-extrabold text-slate-900 text-lg sm:text-xl leading-tight">Gestión de Proyectos</h3>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-200 uppercase tracking-wider">Tablero Trello</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Supervisa avances, mueve proyectos entre etapas y gestiona entregables en tiempo real.</p>
                 </div>
             </div>
 
@@ -35,17 +38,17 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
                 <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Proyectos</p>
-                <p class="text-xl font-black text-slate-900 mt-0.5">{{ total_projects }}</p>
+                <p class="text-xl font-black text-slate-900 mt-0.5" id="metricTotalProjects">{{ total_projects }}</p>
             </div>
 
             <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/70">
                 <p class="text-[10px] font-bold text-blue-700 uppercase tracking-wider">En Curso</p>
-                <p class="text-xl font-black text-blue-900 mt-0.5">{{ active_projects }}</p>
+                <p class="text-xl font-black text-blue-900 mt-0.5" id="metricActiveProjects">{{ active_projects }}</p>
             </div>
 
             <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/70">
                 <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Completados</p>
-                <p class="text-xl font-black text-emerald-900 mt-0.5">{{ completed_projects }}</p>
+                <p class="text-xl font-black text-emerald-900 mt-0.5" id="metricCompletedProjects">{{ completed_projects }}</p>
             </div>
 
             <div class="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/70">
@@ -55,31 +58,44 @@
         </div>
     </div>
 
-    <!-- Filters & Search Bar -->
+    <!-- Filters, View Switcher & Search Bar -->
     <div class="glass-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-        <!-- Status Pills -->
-        <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
-            <a href="{% url 'project_list' %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if not status_filter %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                Todos
-            </a>
-            <a href="{% url 'project_list' %}?status=IN_PROGRESS" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'IN_PROGRESS' %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                En Progreso
-            </a>
-            <a href="{% url 'project_list' %}?status=PLANNING" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PLANNING' %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                Planificación
-            </a>
-            <a href="{% url 'project_list' %}?status=REVIEW" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'REVIEW' %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                En Revisión
-            </a>
-            <a href="{% url 'project_list' %}?status=COMPLETED" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'COMPLETED' %}bg-emerald-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                Completados
-            </a>
+        
+        <!-- View Mode Switcher & Quick Pills -->
+        <div class="flex items-center gap-2">
+            <!-- View Mode Switcher -->
+            <div class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/80 shrink-0">
+                <button type="button" onclick="switchView('kanban')" id="btnViewKanban" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-slate-900 shadow-2xs">
+                    <i data-lucide="trello" class="w-3.5 h-3.5 text-rose-900"></i>
+                    <span>Tablero Kanban</span>
+                </button>
+                <button type="button" onclick="switchView('grid')" id="btnViewGrid" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+                    <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>Cuadrícula</span>
+                </button>
+            </div>
+
+            <div id="gridStatusPills" class="hidden flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+                <a href="{% url 'project_list' %}?view=grid" class="px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap {% if not status_filter %}bg-rose-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Todos
+                </a>
+                <a href="{% url 'project_list' %}?view=grid&status=IN_PROGRESS" class="px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap {% if status_filter == 'IN_PROGRESS' %}bg-rose-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    En Progreso
+                </a>
+                <a href="{% url 'project_list' %}?view=grid&status=PLANNING" class="px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PLANNING' %}bg-rose-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Planificación
+                </a>
+                <a href="{% url 'project_list' %}?view=grid&status=COMPLETED" class="px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap {% if status_filter == 'COMPLETED' %}bg-emerald-700 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Completados
+                </a>
+            </div>
         </div>
 
         <!-- Search & Type Filter -->
-        <form method="GET" action="{% url 'project_list' %}" class="flex flex-wrap items-center gap-2">
+        <form method="GET" action="{% url 'project_list' %}" id="filterForm" class="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="view" id="inputViewMode" value="{{ view_mode|default:'kanban' }}">
             {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
-            
+
             <select name="type" onchange="this.form.submit()" class="px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white">
                 <option value="">Todos los Tipos</option>
                 {% for code, label in project_types %}
@@ -89,8 +105,9 @@
 
             <div class="relative flex-1 sm:w-56">
                 <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                <input type="text" name="q" value="{{ search_query }}" placeholder="Buscar proyecto o cliente..." class="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                <input type="text" id="kanbanSearchInput" name="q" value="{{ search_query }}" placeholder="Buscar en tablero..." class="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
             </div>
+
             <button type="submit" class="h-8 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
                 Filtrar
             </button>
@@ -102,151 +119,559 @@
         </form>
     </div>
 
-    <!-- Projects Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {% for p in projects %}
-        <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden group">
-            
-            <div class="p-5 space-y-4">
-                <!-- Header: Type & Priority Badges -->
-                <div class="flex items-center justify-between gap-2">
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-900 border border-rose-200">
-                        {{ p.get_project_type_display }}
-                    </span>
+    <!-- ============================================================== -->
+    <!-- TABLERO KANBAN / TRELLO -->
+    <!-- ============================================================== -->
+    <div id="kanbanViewContainer" class="space-y-2">
+        <div class="flex items-center justify-between text-xs text-slate-500 px-1">
+            <div class="flex items-center gap-1.5 font-medium">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-rose-800"></i>
+                <span>Arrastra y suelta las tarjetas para cambiar su estado en tiempo real</span>
+            </div>
+            <div class="text-[11px] text-slate-400 hidden sm:block">
+                <span>Shift + Scroll para mover horizontalmente</span>
+            </div>
+        </div>
 
-                    <div class="flex items-center gap-1.5">
-                        {% if p.priority == 'URGENT' %}
-                        <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200">Urgente</span>
-                        {% elif p.priority == 'HIGH' %}
-                        <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">Alta</span>
-                        {% endif %}
+        <div class="overflow-x-auto pb-6 custom-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0">
+            <div class="flex gap-4 min-w-[1350px]">
+                {% for col in columns %}
+                <div class="w-[270px] sm:w-[290px] lg:w-[310px] shrink-0 bg-slate-100/90 rounded-2xl p-3 border border-slate-200/90 flex flex-col shadow-2xs">
+                    
+                    <!-- Column Header -->
+                    <div class="p-2.5 rounded-xl {{ col.header_bg }} border border-slate-200/70 flex items-center justify-between mb-3 shadow-2xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full {{ col.dot_color }} shrink-0"></span>
+                            <span class="text-xs font-black text-slate-800 tracking-tight">{{ col.label }}</span>
+                            <span class="column-count px-2 py-0.5 rounded-full text-[10px] font-black {{ col.badge_bg }}" data-column-status="{{ col.code }}">
+                                {{ col.count }}
+                            </span>
+                        </div>
 
-                        {% if p.status == 'COMPLETED' %}
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Completado
-                        </span>
-                        {% elif p.status == 'IN_PROGRESS' %}
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> En Progreso
-                        </span>
-                        {% elif p.status == 'PLANNING' %}
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                            Planificación
-                        </span>
-                        {% elif p.status == 'REVIEW' %}
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                            En Revisión
-                        </span>
-                        {% elif p.status == 'ON_HOLD' %}
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            En Pausa
-                        </span>
-                        {% endif %}
+                        <div class="flex items-center gap-1">
+                            <a href="{% url 'project_create' %}?status={{ col.code }}" class="p-1 rounded-lg bg-white/70 hover:bg-white text-slate-600 hover:text-rose-900 transition shadow-2xs" title="Añadir proyecto en {{ col.label }}">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            </a>
+                        </div>
                     </div>
+
+                    <!-- Column Budget Summary -->
+                    <div class="px-2 pb-2 text-[10px] font-semibold text-slate-500 flex items-center justify-between border-b border-slate-200/70 mb-2.5">
+                        <span class="uppercase tracking-wider">Presupuesto</span>
+                        <span class="font-bold text-slate-700 column-budget" data-column-status="{{ col.code }}">{{ business.currency }}{{ col.total_budget|floatformat:2 }}</span>
+                    </div>
+
+                    <!-- Droppable Cards Area -->
+                    <div class="kanban-column-cards space-y-3 min-h-[160px] flex-1 overflow-y-auto max-h-[720px] custom-scrollbar p-1" data-status="{{ col.code }}">
+                        {% for p in col.projects %}
+                        <div class="kanban-project-card bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs hover:shadow-md transition-all duration-200 space-y-3 cursor-grab active:cursor-grabbing group relative"
+                             data-project-id="{{ p.id }}"
+                             data-project-name="{{ p.name|lower }}"
+                             data-client-name="{{ p.client.full_name|default:''|lower }}"
+                             data-project-budget="{{ p.budget }}">
+                            
+                            <!-- Card Header: Type Badge & Priority -->
+                            <div class="flex items-center justify-between gap-1.5">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider 
+                                    {% if p.project_type == 'SOCIAL_MEDIA' %}bg-pink-50 text-pink-700 border border-pink-200
+                                    {% elif p.project_type == 'BRANDING' %}bg-purple-50 text-purple-700 border border-purple-200
+                                    {% elif p.project_type == 'WEB_DEV' %}bg-blue-50 text-blue-700 border border-blue-200
+                                    {% elif p.project_type == 'MARKETING_ADS' %}bg-amber-50 text-amber-700 border border-amber-200
+                                    {% elif p.project_type == 'AUDIOVISUAL' %}bg-rose-50 text-rose-700 border border-rose-200
+                                    {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                    {{ p.get_project_type_display }}
+                                </span>
+
+                                <div class="flex items-center gap-1">
+                                    {% if p.priority == 'URGENT' %}
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-100 text-rose-800 border border-rose-200">Urgente</span>
+                                    {% elif p.priority == 'HIGH' %}
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-200">Alta</span>
+                                    {% endif %}
+
+                                    <!-- Quick Status Dropdown Menu Button -->
+                                    <div class="relative inline-block text-left" onclick="event.stopPropagation()">
+                                        <button type="button" onclick="toggleCardMenu('{{ p.id }}')" class="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition" title="Opciones">
+                                            <i data-lucide="more-vertical" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                        <div id="cardMenu-{{ p.id }}" class="hidden absolute right-0 mt-1 w-44 rounded-xl bg-white border border-slate-200 shadow-lg py-1 z-30 text-xs">
+                                            <a href="{% url 'project_detail' p.id %}" class="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 text-slate-700 font-medium">
+                                                <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-400"></i> Ver Detalle
+                                            </a>
+                                            <a href="{% url 'project_edit' p.id %}" class="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 text-slate-700 font-medium">
+                                                <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-400"></i> Editar
+                                            </a>
+                                            <div class="border-t border-slate-100 my-1"></div>
+                                            <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase">Mover a:</div>
+                                            {% for scode, slabel in status_choices %}
+                                            {% if scode != p.status %}
+                                            <button type="button" onclick="moveProjectStatus('{{ p.id }}', '{{ scode }}')" class="w-full text-left px-3 py-1 hover:bg-rose-50 text-slate-600 hover:text-rose-900 text-[11px] font-semibold flex items-center justify-between">
+                                                <span>{{ slabel }}</span>
+                                                <i data-lucide="arrow-right" class="w-3 h-3 text-slate-400"></i>
+                                            </button>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Title & Client -->
+                            <div>
+                                <a href="{% url 'project_detail' p.id %}" class="font-extrabold text-slate-900 text-sm hover:text-rose-900 transition line-clamp-2 leading-snug">
+                                    {{ p.name }}
+                                </a>
+                                <div class="flex items-center gap-1.5 text-[11px] text-slate-500 mt-1">
+                                    <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                                    <span class="truncate font-medium text-slate-700">{{ p.client.full_name|default:"Proyecto Interno RauDie" }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar & Tasks Counter -->
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-[11px] font-bold">
+                                    <span class="text-slate-400 font-medium">Avance</span>
+                                    <span class="text-slate-800 font-extrabold">{{ p.progress_percent }}%</span>
+                                </div>
+                                <div class="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                    <div class="h-full rounded-full transition-all duration-300 {% if p.progress_percent >= 100 %}bg-emerald-500{% elif p.progress_percent >= 50 %}bg-rose-900{% else %}bg-amber-500{% endif %}" style="width: {{ p.progress_percent }}%;"></div>
+                                </div>
+                                <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="check-square" class="w-3 h-3 text-slate-400"></i>
+                                        {{ p.completed_tasks_count }}/{{ p.total_tasks_count }} tareas
+                                    </span>
+                                    {% if p.due_date %}
+                                    <span class="flex items-center gap-1 font-semibold text-slate-500">
+                                        <i data-lucide="clock" class="w-3 h-3 text-slate-400"></i>
+                                        {{ p.due_date|date:"d/m" }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Card Footer: Responsible & Budget -->
+                            <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                                <div class="flex items-center gap-1.5">
+                                    {% if p.responsible %}
+                                    <div class="w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-[10px] flex items-center justify-center border border-white shadow-2xs" title="Responsable: {{ p.responsible.full_name }}">
+                                        {{ p.responsible.first_name|slice:":1" }}
+                                    </div>
+                                    <span class="text-[11px] text-slate-600 font-medium truncate max-w-[85px]">{{ p.responsible.first_name }}</span>
+                                    {% else %}
+                                    <span class="text-[10px] text-slate-400 italic">Sin asignar</span>
+                                    {% endif %}
+                                </div>
+
+                                <span class="text-xs font-black text-slate-900">
+                                    {{ business.currency }}{{ p.budget|floatformat:2 }}
+                                </span>
+                            </div>
+
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Column Footer: Quick Add Card -->
+                    <div class="pt-2.5 mt-auto border-t border-slate-200/70">
+                        <a href="{% url 'project_create' %}?status={{ col.code }}" class="w-full py-1.5 px-3 rounded-xl border border-dashed border-slate-300 hover:border-rose-900/60 bg-white/50 hover:bg-white text-slate-600 hover:text-rose-900 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs">
+                            <i data-lucide="plus" class="w-3.5 h-3.5 text-slate-400"></i>
+                            <span>Añadir Proyecto</span>
+                        </a>
+                    </div>
+
                 </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 
-                <!-- Title & Client -->
-                <div>
-                    <a href="{% url 'project_detail' p.id %}" class="font-extrabold text-slate-900 text-base group-hover:text-rose-900 transition line-clamp-1">
-                        {{ p.name }}
-                    </a>
-                    <div class="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
-                        <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
-                        <span class="font-medium text-slate-700">{{ p.client.full_name|default:"Proyecto Interno RauDie" }}</span>
-                    </div>
-                </div>
+    <!-- ============================================================== -->
+    <!-- VISTA CUADRÍCULA / LISTA ALTERNATIVA -->
+    <!-- ============================================================== -->
+    <div id="gridViewContainer" class="hidden space-y-5">
+        <!-- Projects Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {% for p in projects %}
+            <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden group">
+                <div class="p-5 space-y-4">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-900 border border-rose-200">
+                            {{ p.get_project_type_display }}
+                        </span>
 
-                <!-- Progress Bar -->
-                <div class="space-y-1.5 pt-1">
-                    <div class="flex items-center justify-between text-xs font-bold">
-                        <span class="text-slate-500">Avance General</span>
-                        <span class="text-slate-900">{{ p.progress_percent }}%</span>
-                    </div>
-                    <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                        <div class="h-full rounded-full transition-all duration-500 {% if p.progress_percent >= 100 %}bg-emerald-500{% elif p.progress_percent >= 50 %}bg-rose-900{% else %}bg-amber-500{% endif %}" style="width: {{ p.progress_percent }}%;"></div>
-                    </div>
-                </div>
+                        <div class="flex items-center gap-1.5">
+                            {% if p.priority == 'URGENT' %}
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200">Urgente</span>
+                            {% elif p.priority == 'HIGH' %}
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">Alta</span>
+                            {% endif %}
 
-                <!-- Deliverables & Date Meta -->
-                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                            {% if p.status == 'COMPLETED' %}
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Completado
+                            </span>
+                            {% elif p.status == 'IN_PROGRESS' %}
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> En Progreso
+                            </span>
+                            {% elif p.status == 'PLANNING' %}
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                Planificación
+                            </span>
+                            {% elif p.status == 'REVIEW' %}
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                En Revisión
+                            </span>
+                            {% elif p.status == 'ON_HOLD' %}
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                En Pausa
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Title & Client -->
                     <div>
-                        <span class="font-bold text-slate-700">Entregables:</span>
-                        <p class="text-slate-600 mt-0.5">{{ p.completed_tasks_count }} de {{ p.total_tasks_count }} listos</p>
+                        <a href="{% url 'project_detail' p.id %}" class="font-extrabold text-slate-900 text-base group-hover:text-rose-900 transition line-clamp-1">
+                            {{ p.name }}
+                        </a>
+                        <div class="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
+                            <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
+                            <span class="font-medium text-slate-700">{{ p.client.full_name|default:"Proyecto Interno RauDie" }}</span>
+                        </div>
                     </div>
-                    <div>
-                        <span class="font-bold text-slate-700">Entrega:</span>
-                        <p class="text-slate-600 mt-0.5">{{ p.due_date|date:"d/m/Y"|default:"Por definir" }}</p>
+
+                    <!-- Progress Bar -->
+                    <div class="space-y-1.5 pt-1">
+                        <div class="flex items-center justify-between text-xs font-bold">
+                            <span class="text-slate-500">Avance General</span>
+                            <span class="text-slate-900">{{ p.progress_percent }}%</span>
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500 {% if p.progress_percent >= 100 %}bg-emerald-500{% elif p.progress_percent >= 50 %}bg-rose-900{% else %}bg-amber-500{% endif %}" style="width: {{ p.progress_percent }}%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Deliverables & Date Meta -->
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                        <div>
+                            <span class="font-bold text-slate-700">Entregables:</span>
+                            <p class="text-slate-600 mt-0.5">{{ p.completed_tasks_count }} de {{ p.total_tasks_count }} listos</p>
+                        </div>
+                        <div>
+                            <span class="font-bold text-slate-700">Entrega:</span>
+                            <p class="text-slate-600 mt-0.5">{{ p.due_date|date:"d/m/Y"|default:"Por definir" }}</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- External Links (Drive / Figma) -->
-                {% if p.drive_url or p.figma_url %}
-                <div class="flex items-center gap-2 pt-1">
-                    {% if p.drive_url %}
-                    <a href="{{ p.drive_url }}" target="_blank" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 text-[11px] font-bold transition flex items-center gap-1">
-                        <i data-lucide="folder" class="w-3.5 h-3.5"></i> Drive
+                <!-- Footer -->
+                <div class="px-5 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        {% if p.responsible %}
+                        <div class="w-6 h-6 rounded-full bg-rose-900 text-white font-bold text-[10px] flex items-center justify-center">
+                            {{ p.responsible.first_name|slice:":1" }}
+                        </div>
+                        <span class="text-xs text-slate-600 font-medium">{{ p.responsible.first_name }}</span>
+                        {% else %}
+                        <span class="text-[11px] text-slate-400">Sin asignar</span>
+                        {% endif %}
+                    </div>
+
+                    <a href="{% url 'project_detail' p.id %}" class="text-xs font-bold text-rose-900 hover:text-rose-700 flex items-center gap-1 transition">
+                        Ver Tareas
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
                     </a>
-                    {% endif %}
-                    {% if p.figma_url %}
-                    <a href="{{ p.figma_url }}" target="_blank" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-600 text-[11px] font-bold transition flex items-center gap-1">
-                        <i data-lucide="layout" class="w-3.5 h-3.5"></i> Figma
-                    </a>
-                    {% endif %}
                 </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full p-12 text-center bg-white rounded-2xl border border-slate-200">
+                <div class="max-w-sm mx-auto space-y-3">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                        <i data-lucide="folder-plus" class="w-6 h-6"></i>
+                    </div>
+                    <h4 class="font-extrabold text-slate-800 text-base">Aún no hay proyectos registrados</h4>
+                    <p class="text-xs text-slate-500">Crea proyectos para gestionar campañas, branding, redes o desarrollos con sus entregables y tareas.</p>
+                    <a href="{% url 'project_create' %}" class="h-9 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Crear Proyecto</span>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj and page_obj.has_other_pages %}
+        <div class="glass-card bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between text-xs">
+            <span class="text-slate-500 font-medium">Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ page_obj.paginator.count }} proyectos</span>
+            <div class="flex items-center gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?view=grid&page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition">Anterior</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?view=grid&page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition">Siguiente</a>
                 {% endif %}
             </div>
-
-            <!-- Footer: Responsible & CTA -->
-            <div class="px-5 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    {% if p.responsible %}
-                    <div class="w-6 h-6 rounded-full bg-rose-900 text-white font-bold text-[10px] flex items-center justify-center">
-                        {{ p.responsible.first_name|slice:":1" }}
-                    </div>
-                    <span class="text-xs text-slate-600 font-medium">{{ p.responsible.first_name }}</span>
-                    {% else %}
-                    <span class="text-[11px] text-slate-400">Sin asignar</span>
-                    {% endif %}
-                </div>
-
-                <a href="{% url 'project_detail' p.id %}" class="text-xs font-bold text-rose-900 hover:text-rose-700 flex items-center gap-1 transition">
-                    Ver Tareas
-                    <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-                </a>
-            </div>
-
         </div>
-        {% empty %}
-        <div class="col-span-full p-12 text-center bg-white rounded-2xl border border-slate-200">
-            <div class="max-w-sm mx-auto space-y-3">
-                <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
-                    <i data-lucide="folder-plus" class="w-6 h-6"></i>
-                </div>
-                <h4 class="font-extrabold text-slate-800 text-base">Aún no hay proyectos registrados</h4>
-                <p class="text-xs text-slate-500">Crea proyectos para gestionar campañas, branding, redes o desarrollos con sus entregables y tareas.</p>
-                <a href="{% url 'project_create' %}" class="h-9 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    <span>Crear Proyecto</span>
-                </a>
-            </div>
-        </div>
-        {% endfor %}
+        {% endif %}
     </div>
-
-    <!-- Pagination -->
-    {% if page_obj and page_obj.has_other_pages %}
-    <div class="glass-card bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between text-xs">
-        <span class="text-slate-500 font-medium">Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ page_obj.paginator.count }} proyectos</span>
-        <div class="flex items-center gap-2">
-            {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition">Anterior</a>
-            {% endif %}
-            {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition">Siguiente</a>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
 
 </div>
+
+<!-- Floating Toast Notification -->
+<div id="kanbanToast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-bold border border-slate-700">
+        <span id="kanbanToastIcon" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="kanbanToastMessage">Proyecto actualizado</span>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- SortableJS CDN para drag & drop ágil tipo Trello -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<style>
+    /* Estilos Kanban Drag & Drop estilo Trello */
+    .sortable-ghost {
+        opacity: 0.35 !important;
+        background-color: #ffe4e6 !important;
+        border: 2px dashed #9f1239 !important;
+        transform: scale(0.98);
+    }
+    .sortable-drag {
+        cursor: grabbing !important;
+        transform: rotate(2deg) scale(1.03);
+        box-shadow: 0 14px 28px rgba(0,0,0,0.18), 0 10px 10px rgba(0,0,0,0.12) !important;
+        opacity: 0.95;
+    }
+</style>
+
+<script>
+    const csrfToken = '{{ csrf_token }}';
+
+    // Manejo de Vistas (Kanban vs Cuadrícula)
+    function switchView(mode) {
+        const kanbanContainer = document.getElementById('kanbanViewContainer');
+        const gridContainer = document.getElementById('gridViewContainer');
+        const btnKanban = document.getElementById('btnViewKanban');
+        const btnGrid = document.getElementById('btnViewGrid');
+        const gridPills = document.getElementById('gridStatusPills');
+        const inputView = document.getElementById('inputViewMode');
+
+        if (mode === 'grid') {
+            kanbanContainer.classList.add('hidden');
+            gridContainer.classList.remove('hidden');
+            gridPills.classList.remove('hidden');
+
+            btnGrid.classList.add('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnGrid.classList.remove('text-slate-600');
+            btnKanban.classList.remove('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnKanban.classList.add('text-slate-600');
+            if (inputView) inputView.value = 'grid';
+            localStorage.setItem('project_view_preference', 'grid');
+        } else {
+            gridContainer.classList.add('hidden');
+            kanbanContainer.classList.remove('hidden');
+            gridPills.classList.add('hidden');
+
+            btnKanban.classList.add('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnKanban.classList.remove('text-slate-600');
+            btnGrid.classList.remove('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnGrid.classList.add('text-slate-600');
+            if (inputView) inputView.value = 'kanban';
+            localStorage.setItem('project_view_preference', 'kanban');
+        }
+    }
+
+    // Inicializar vista recordada o por URL
+    (function initViewPreference() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlView = urlParams.get('view');
+        const savedView = localStorage.getItem('project_view_preference');
+        
+        if (urlView === 'grid' || (!urlView && savedView === 'grid')) {
+            switchView('grid');
+        } else {
+            switchView('kanban');
+        }
+    })();
+
+    // Menús contextuales de tarjeta
+    function toggleCardMenu(projectId) {
+        const menu = document.getElementById(`cardMenu-${projectId}`);
+        // Cerrar todos los demás
+        document.querySelectorAll('[id^="cardMenu-"]').forEach(m => {
+            if (m !== menu) m.classList.add('hidden');
+        });
+        if (menu) {
+            menu.classList.toggle('hidden');
+        }
+    }
+
+    // Cerrar menús al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('[onclick^="toggleCardMenu"]')) {
+            document.querySelectorAll('[id^="cardMenu-"]').forEach(m => m.classList.add('hidden'));
+        }
+    });
+
+    // Notificaciones Toast
+    function showToast(message, isSuccess = true) {
+        const toast = document.getElementById('kanbanToast');
+        const text = document.getElementById('kanbanToastMessage');
+        const dot = document.getElementById('kanbanToastIcon');
+        
+        if (!toast) return;
+        text.textContent = message;
+        dot.className = `w-2 h-2 rounded-full ${isSuccess ? 'bg-emerald-400' : 'bg-rose-500'}`;
+
+        toast.classList.remove('translate-y-20', 'opacity-0');
+        setTimeout(() => {
+            toast.classList.add('translate-y-20', 'opacity-0');
+        }, 3200);
+    }
+
+    // Mover proyecto vía API AJAX
+    async function updateProjectStatus(projectId, newStatus) {
+        try {
+            const resp = await fetch(`/proyectos/${projectId}/status/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            const data = await resp.json();
+            if (data.success) {
+                showToast(`Proyecto movido a: ${data.status_display}`);
+                updateColumnCounters();
+                return true;
+            } else {
+                showToast(data.error || 'Error al actualizar el estado', false);
+                return false;
+            }
+        } catch (err) {
+            showToast('Error de conexión al mover el proyecto', false);
+            return false;
+        }
+    }
+
+    // Mover desde el menú dropdown
+    async function moveProjectStatus(projectId, newStatus) {
+        const card = document.querySelector(`.kanban-project-card[data-project-id="${projectId}"]`);
+        const targetColumn = document.querySelector(`.kanban-column-cards[data-status="${newStatus}"]`);
+        
+        if (!card || !targetColumn) return;
+
+        const success = await updateProjectStatus(projectId, newStatus);
+        if (success) {
+            targetColumn.appendChild(card);
+            toggleCardMenu(projectId);
+            updateColumnCounters();
+        }
+    }
+
+    // Recalcular contadores y presupuestos de cada columna en vivo
+    function updateColumnCounters() {
+        let totalActive = 0;
+        let totalCompleted = 0;
+
+        document.querySelectorAll('.kanban-column-cards').forEach(col => {
+            const colStatus = col.dataset.status;
+            const cards = col.querySelectorAll('.kanban-project-card');
+            const count = cards.length;
+
+            // Actualizar badge de conteo
+            const badge = document.querySelector(`.column-count[data-column-status="${colStatus}"]`);
+            if (badge) badge.textContent = count;
+
+            // Actualizar presupuesto acumulado de columna
+            let colBudget = 0;
+            cards.forEach(c => {
+                const b = parseFloat(c.dataset.projectBudget || 0);
+                if (!isNaN(b)) colBudget += b;
+            });
+            const budgetEl = document.querySelector(`.column-budget[data-column-status="${colStatus}"]`);
+            if (budgetEl) {
+                const currency = '{{ business.currency }}';
+                budgetEl.textContent = `${currency}${colBudget.toFixed(2)}`;
+            }
+
+            if (['PLANNING', 'IN_PROGRESS', 'REVIEW'].includes(colStatus)) {
+                totalActive += count;
+            } else if (colStatus === 'COMPLETED') {
+                totalCompleted += count;
+            }
+        });
+
+        // Actualizar métricas superiores
+        const activeMetric = document.getElementById('metricActiveProjects');
+        if (activeMetric) activeMetric.textContent = totalActive;
+        const compMetric = document.getElementById('metricCompletedProjects');
+        if (compMetric) compMetric.textContent = totalCompleted;
+    }
+
+    // Inicializar SortableJS en cada columna de proyectos
+    document.addEventListener('DOMContentLoaded', () => {
+        const columns = document.querySelectorAll('.kanban-column-cards');
+
+        columns.forEach(col => {
+            new Sortable(col, {
+                group: 'projects-kanban',
+                animation: 180,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                delay: 0,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 3,
+                fallbackTolerance: 3,
+                onEnd: async function(evt) {
+                    const fromCol = evt.from;
+                    const toCol = evt.to;
+                    const card = evt.item;
+                    const projectId = card.dataset.projectId;
+                    const newStatus = toCol.dataset.status;
+
+                    if (fromCol === toCol) {
+                        return; // No cambió de estado
+                    }
+
+                    const ok = await updateProjectStatus(projectId, newStatus);
+                    if (!ok) {
+                        // Revertir a la columna original si hubo error
+                        fromCol.insertBefore(card, fromCol.children[evt.oldIndex]);
+                    }
+                    updateColumnCounters();
+                }
+            });
+        });
+
+        // Búsqueda en tiempo real en las tarjetas del tablero
+        const searchInput = document.getElementById('kanbanSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                const cards = document.querySelectorAll('.kanban-project-card');
+
+                cards.forEach(card => {
+                    const name = card.dataset.projectName || '';
+                    const client = card.dataset.clientName || '';
+                    if (!query || name.includes(query) || client.includes(query)) {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+</script>
 {% endblock %}

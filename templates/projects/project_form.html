@@ -100,7 +100,7 @@
                     <label class="text-xs font-bold text-slate-700">Estado del Proyecto *</label>
                     <select name="status" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
                         {% for code, label in status_choices %}
-                        <option value="{{ code }}" {% if project and project.status == code or not project and code == 'PLANNING' %}selected{% endif %}>{{ label }}</option>
+                        <option value="{{ code }}" {% if project and project.status == code or not project and preselected_status == code or not project and not preselected_status and code == 'PLANNING' %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>

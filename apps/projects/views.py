@@ -24,36 +24,98 @@ def project_list_view(request):
     status_filter = request.GET.get('status', '').strip()
     type_filter = request.GET.get('type', '').strip()
     search_query = request.GET.get('q', '').strip()
+    view_mode = request.GET.get('view', 'kanban').strip()
 
-    projects = Project.objects.filter(business=business).select_related('client', 'responsible')
+    projects_qs = Project.objects.filter(business=business).select_related('client', 'responsible').prefetch_related('tasks')
 
-    if status_filter:
-        projects = projects.filter(status=status_filter)
     if type_filter:
-        projects = projects.filter(project_type=type_filter)
+        projects_qs = projects_qs.filter(project_type=type_filter)
     if search_query:
-        projects = projects.filter(
+        projects_qs = projects_qs.filter(
             models.Q(name__icontains=search_query) |
             models.Q(client__first_name__icontains=search_query) |
-            models.Q(client__last_name__icontains=search_query)
+            models.Q(client__last_name__icontains=search_query) |
+            models.Q(description__icontains=search_query)
         )
 
-    projects = projects.order_by('-created_at')
+    # Lista completa para el tablero Kanban
+    kanban_projects = list(projects_qs.order_by('-priority', '-created_at'))
 
-    # Métricas de proyectos
+    # Métricas generales de proyectos
     all_projects = Project.objects.filter(business=business)
     total_projects = all_projects.count()
     active_projects = all_projects.filter(status__in=['PLANNING', 'IN_PROGRESS', 'REVIEW']).count()
     completed_projects = all_projects.filter(status='COMPLETED').count()
     total_budget = sum(p.budget for p in all_projects.filter(status__in=['IN_PROGRESS', 'COMPLETED']))
 
-    paginator = Paginator(projects, 9)
+    # Definición de Columnas Kanban Trello para Proyectos
+    columns = [
+        {
+            'code': 'PLANNING',
+            'label': 'En Planificación',
+            'icon': 'clipboard-list',
+            'header_bg': 'bg-slate-100/90 text-slate-800 border-slate-200',
+            'badge_bg': 'bg-slate-200/80 text-slate-700',
+            'dot_color': 'bg-slate-500',
+            'projects': [p for p in kanban_projects if p.status == 'PLANNING'],
+        },
+        {
+            'code': 'IN_PROGRESS',
+            'label': 'En Progreso',
+            'icon': 'play',
+            'header_bg': 'bg-blue-50/90 text-blue-900 border-blue-200',
+            'badge_bg': 'bg-blue-100 text-blue-800',
+            'dot_color': 'bg-blue-600',
+            'projects': [p for p in kanban_projects if p.status == 'IN_PROGRESS'],
+        },
+        {
+            'code': 'REVIEW',
+            'label': 'En Revisión / Entrega',
+            'icon': 'eye',
+            'header_bg': 'bg-purple-50/90 text-purple-900 border-purple-200',
+            'badge_bg': 'bg-purple-100 text-purple-800',
+            'dot_color': 'bg-purple-600',
+            'projects': [p for p in kanban_projects if p.status == 'REVIEW'],
+        },
+        {
+            'code': 'ON_HOLD',
+            'label': 'En Pausa',
+            'icon': 'pause',
+            'header_bg': 'bg-amber-50/90 text-amber-900 border-amber-200',
+            'badge_bg': 'bg-amber-100 text-amber-800',
+            'dot_color': 'bg-amber-600',
+            'projects': [p for p in kanban_projects if p.status == 'ON_HOLD'],
+        },
+        {
+            'code': 'COMPLETED',
+            'label': 'Completados',
+            'icon': 'check-circle-2',
+            'header_bg': 'bg-emerald-50/90 text-emerald-900 border-emerald-200',
+            'badge_bg': 'bg-emerald-100 text-emerald-800',
+            'dot_color': 'bg-emerald-600',
+            'projects': [p for p in kanban_projects if p.status == 'COMPLETED'],
+        },
+    ]
+
+    for col in columns:
+        col['count'] = len(col['projects'])
+        col['total_budget'] = sum(p.budget for p in col['projects'])
+
+    # Vista lista / cuadrícula
+    grid_projects = projects_qs
+    if status_filter:
+        grid_projects = grid_projects.filter(status=status_filter)
+    grid_projects = grid_projects.order_by('-created_at')
+
+    paginator = Paginator(grid_projects, 9)
     page_obj = paginator.get_page(request.GET.get('page', 1))
 
     return render(request, 'projects/project_list.html', {
         'business': business,
         'projects': page_obj,
         'page_obj': page_obj,
+        'columns': columns,
+        'view_mode': view_mode,
         'status_filter': status_filter,
         'type_filter': type_filter,
         'search_query': search_query,
@@ -119,6 +181,7 @@ def project_create_view(request):
         return redirect('project_detail', project_id=project.id)
 
     preselected_client_id = request.GET.get('client_id')
+    preselected_status = request.GET.get('status')
 
     return render(request, 'projects/project_form.html', {
         'business': business,
@@ -126,6 +189,7 @@ def project_create_view(request):
         'clients': clients,
         'staff_members': staff_members,
         'preselected_client_id': preselected_client_id,
+        'preselected_status': preselected_status,
         'project_types': Project.PROJECT_TYPE_CHOICES,
         'pricing_types': Project.PRICING_TYPE_CHOICES,
         'status_choices': Project.STATUS_CHOICES,
@@ -152,13 +216,59 @@ def project_detail_view(request, project_id):
     total_task_estimated_hours = sum(t.estimated_hours for t in tasks)
     total_task_logged_hours = sum(t.logged_hours for t in tasks)
 
+    # Columnas Kanban Trello para Tareas del Proyecto
+    task_columns = [
+        {
+            'code': 'TODO',
+            'label': 'Por Hacer',
+            'icon': 'circle',
+            'header_bg': 'bg-slate-100/90 text-slate-800 border-slate-200',
+            'badge_bg': 'bg-slate-200/80 text-slate-700',
+            'dot_color': 'bg-slate-400',
+            'tasks': [t for t in tasks if t.status == 'TODO'],
+        },
+        {
+            'code': 'IN_PROGRESS',
+            'label': 'En Progreso',
+            'icon': 'play',
+            'header_bg': 'bg-blue-50/90 text-blue-900 border-blue-200',
+            'badge_bg': 'bg-blue-100 text-blue-800',
+            'dot_color': 'bg-blue-600',
+            'tasks': [t for t in tasks if t.status == 'IN_PROGRESS'],
+        },
+        {
+            'code': 'REVIEW',
+            'label': 'En Revisión',
+            'icon': 'eye',
+            'header_bg': 'bg-purple-50/90 text-purple-900 border-purple-200',
+            'badge_bg': 'bg-purple-100 text-purple-800',
+            'dot_color': 'bg-purple-600',
+            'tasks': [t for t in tasks if t.status == 'REVIEW'],
+        },
+        {
+            'code': 'DONE',
+            'label': 'Completadas',
+            'icon': 'check-circle-2',
+            'header_bg': 'bg-emerald-50/90 text-emerald-900 border-emerald-200',
+            'badge_bg': 'bg-emerald-100 text-emerald-800',
+            'dot_color': 'bg-emerald-600',
+            'tasks': [t for t in tasks if t.status == 'DONE'],
+        },
+    ]
+
+    for col in task_columns:
+        col['count'] = len(col['tasks'])
+        col['total_hours'] = sum(t.estimated_hours for t in col['tasks'])
+
     return render(request, 'projects/project_detail.html', {
         'business': business,
         'project': project,
         'tasks': tasks,
+        'task_columns': task_columns,
         'social_posts': social_posts,
         'staff_members': staff_members,
         'priority_choices': ProjectTask.PRIORITY_CHOICES,
+        'task_status_choices': ProjectTask.STATUS_CHOICES,
         'total_task_estimated_hours': total_task_estimated_hours,
         'total_task_logged_hours': total_task_logged_hours,
     })
@@ -220,6 +330,43 @@ def project_edit_view(request, project_id):
 
 
 @login_required
+def project_status_update_view(request, project_id):
+    """Actualiza el estado de un proyecto vía AJAX (drag and drop del Kanban)"""
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'success': False, 'error': 'No autenticado'}, status=403)
+
+    project = get_object_or_404(Project, id=project_id, business=business)
+
+    if request.method == 'POST':
+        import json
+        new_status = None
+        if request.content_type == 'application/json':
+            try:
+                body = json.loads(request.body.decode('utf-8'))
+                new_status = body.get('status')
+            except Exception:
+                pass
+        if not new_status:
+            new_status = request.POST.get('status')
+
+        valid_statuses = [code for code, _ in Project.STATUS_CHOICES]
+        if new_status in valid_statuses:
+            project.status = new_status
+            project.save(update_fields=['status'])
+            return JsonResponse({
+                'success': True,
+                'project_id': str(project.id),
+                'new_status': project.status,
+                'status_display': project.get_status_display()
+            })
+
+        return JsonResponse({'success': False, 'error': f'Estado no válido: {new_status}'}, status=400)
+
+    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+
+@login_required
 def project_delete_view(request, project_id):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
@@ -245,27 +392,90 @@ def project_task_create_view(request, project_id):
         title = request.POST.get('title', '').strip()
         description = request.POST.get('description', '').strip()
         priority = request.POST.get('priority', 'MEDIUM')
+        status = request.POST.get('status', 'TODO')
+        valid_statuses = [code for code, _ in ProjectTask.STATUS_CHOICES]
+        if status not in valid_statuses:
+            status = 'TODO'
+
         due_date = request.POST.get('due_date') or None
         estimated_hours = parse_decimal(request.POST.get('estimated_hours'), '0.00')
         assigned_to_id = request.POST.get('assigned_to_id')
         assigned_to = StaffMember.objects.filter(id=assigned_to_id, business=business).first() if assigned_to_id else None
 
         if title:
-            ProjectTask.objects.create(
+            task = ProjectTask.objects.create(
                 project=project,
                 title=title,
                 description=description,
                 priority=priority,
+                status=status,
                 due_date=due_date,
                 assigned_to=assigned_to,
                 estimated_hours=estimated_hours,
-                status='TODO'
             )
             project.update_progress_auto()
 
-    return redirect('project_detail', project_id=project.id)
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+                return JsonResponse({
+                    'success': True,
+                    'task': {
+                        'id': str(task.id),
+                        'title': task.title,
+                        'status': task.status,
+                        'status_display': task.get_status_display(),
+                        'priority': task.priority,
+                        'priority_display': task.get_priority_display(),
+                        'estimated_hours': float(task.estimated_hours),
+                        'assigned_to': task.assigned_to.first_name if task.assigned_to else None,
+                        'due_date': task.due_date.strftime('%d/%m/%Y') if task.due_date else None,
+                    },
+                    'progress_percent': project.progress_percent,
+                    'completed_tasks': project.completed_tasks_count,
+                    'total_tasks': project.total_tasks_count
+                })
 
     return redirect('project_detail', project_id=project.id)
+
+
+@login_required
+def project_task_status_update_view(request, task_id):
+    """Actualiza el estado de una tarea vía AJAX (drag and drop del Kanban de tareas)"""
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'success': False, 'error': 'No autenticado'}, status=403)
+
+    task = get_object_or_404(ProjectTask, id=task_id, project__business=business)
+
+    if request.method == 'POST':
+        import json
+        new_status = None
+        if request.content_type == 'application/json':
+            try:
+                body = json.loads(request.body.decode('utf-8'))
+                new_status = body.get('status')
+            except Exception:
+                pass
+        if not new_status:
+            new_status = request.POST.get('status')
+
+        valid_statuses = [code for code, _ in ProjectTask.STATUS_CHOICES]
+        if new_status in valid_statuses:
+            task.status = new_status
+            task.save(update_fields=['status'])
+            task.project.update_progress_auto()
+            return JsonResponse({
+                'success': True,
+                'task_id': str(task.id),
+                'new_status': task.status,
+                'status_display': task.get_status_display(),
+                'progress_percent': task.project.progress_percent,
+                'completed_tasks': task.project.completed_tasks_count,
+                'total_tasks': task.project.total_tasks_count
+            })
+
+        return JsonResponse({'success': False, 'error': f'Estado no válido: {new_status}'}, status=400)
+
+    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
 
 
 @login_required

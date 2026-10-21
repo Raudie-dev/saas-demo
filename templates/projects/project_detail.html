@@ -159,68 +159,231 @@
         {% endif %}
     </div>
 
-    <!-- Tasks & Deliverables Section -->
-    <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+    <!-- Tasks & Deliverables Section (Trello Kanban & List View) -->
+    <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div>
-                <h3 class="font-extrabold text-slate-900 text-lg leading-tight">Entregables & Tareas</h3>
-                <p class="text-xs text-slate-500">Marca los avances para que el porcentaje del proyecto se calcule en tiempo real.</p>
+                <div class="flex items-center gap-2">
+                    <h3 class="font-extrabold text-slate-900 text-lg leading-tight">Entregables & Tareas</h3>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-900 border border-purple-200 uppercase tracking-wider">Tablero Trello</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">Arrastra tareas entre etapas para que el avance del proyecto se actualice al instante.</p>
             </div>
 
-            <button type="button" onclick="document.getElementById('taskFormModal').classList.toggle('hidden')" class="h-9 px-3.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs">
-                <i data-lucide="plus" class="w-4 h-4 text-rose-400"></i>
-                <span>Añadir Tarea</span>
-            </button>
+            <div class="flex items-center gap-2 shrink-0">
+                <!-- View Mode Toggle -->
+                <div class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/80">
+                    <button type="button" onclick="switchTaskView('kanban')" id="btnTaskViewKanban" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-slate-900 shadow-2xs">
+                        <i data-lucide="trello" class="w-3.5 h-3.5 text-rose-900"></i>
+                        <span>Tablero</span>
+                    </button>
+                    <button type="button" onclick="switchTaskView('list')" id="btnTaskViewList" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+                        <i data-lucide="list-todo" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span>Lista</span>
+                    </button>
+                </div>
+
+                <button type="button" onclick="openAddTaskModal('TODO')" class="h-9 px-3.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs">
+                    <i data-lucide="plus" class="w-4 h-4 text-rose-400"></i>
+                    <span>Añadir Tarea</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Add Task Form Inline/Collapsible -->
-        <div id="taskFormModal" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-            <form method="POST" action="{% url 'project_task_create' project.id %}" class="space-y-3">
-                {% csrf_token %}
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div class="md:col-span-2 space-y-1">
-                        <label class="text-[11px] font-bold text-slate-700">Título de la Tarea / Entregable *</label>
-                        <input type="text" name="title" required placeholder="Ej: Diseño de feed inicial / Wireframes web / Guión de Reels" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+        <!-- Floating Modal: Add Task / Deliverable -->
+        <div id="taskFormModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeAddTaskModal()">
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 sm:p-7 space-y-5 relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+                
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center font-bold shrink-0">
+                            <i data-lucide="check-square" class="w-5 h-5 text-rose-900"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-extrabold text-slate-900 text-base leading-tight">Nuevo Entregable o Tarea</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Define los detalles y etapa inicial para este proyecto.</p>
+                        </div>
                     </div>
-                    <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-slate-700">Responsable Asignado</label>
-                        <select name="assigned_to_id" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white">
-                            <option value="">-- Sin asignar --</option>
-                            {% for s in staff_members %}
-                            <option value="{{ s.id }}">{{ s.full_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                    <button type="button" onclick="closeAddTaskModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-slate-700">Prioridad</label>
-                        <select name="priority" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white">
-                            {% for code, label in priority_choices %}
-                            <option value="{{ code }}" {% if code == 'MEDIUM' %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-slate-700">Horas Estimadas</label>
-                        <input type="number" step="0.25" min="0" name="estimated_hours" placeholder="Ej: 2.5" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-slate-700">Fecha Límite</label>
-                        <input type="date" name="due_date" value="{{ project.due_date|date:'Y-m-d'|default:'' }}" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
-                    </div>
-                </div>
+                <!-- Form -->
+                <form method="POST" action="{% url 'project_task_create' project.id %}" id="addTaskForm" class="space-y-4">
+                    {% csrf_token %}
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="document.getElementById('taskFormModal').classList.add('hidden')" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
-                    <button type="submit" class="px-4 py-1.5 rounded-lg bg-rose-900 hover:bg-rose-800 text-white text-xs font-bold">Guardar Tarea</button>
-                </div>
-            </form>
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-slate-700">Título de la Tarea / Entregable *</label>
+                        <input type="text" name="title" id="taskTitleInput" required placeholder="Ej: Diseño de feed inicial / Wireframes web / Guión de Reels" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-slate-700">Detalle / Notas de la tarea (opcional)</label>
+                        <textarea name="description" rows="2" placeholder="Especificaciones, enlaces o notas breves..." class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800 resize-none"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold text-slate-700">Etapa Inicial</label>
+                            <select name="status" id="taskInitialStatus" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                                {% for scode, slabel in task_status_choices %}
+                                <option value="{{ scode }}">{{ slabel }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold text-slate-700">Responsable Asignado</label>
+                            <select name="assigned_to_id" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                                <option value="">-- Sin asignar --</option>
+                                {% for s in staff_members %}
+                                <option value="{{ s.id }}">{{ s.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold text-slate-700">Prioridad</label>
+                            <select name="priority" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                                {% for code, label in priority_choices %}
+                                <option value="{{ code }}" {% if code == 'MEDIUM' %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold text-slate-700">Horas Estimadas</label>
+                            <input type="number" step="0.25" min="0" name="estimated_hours" placeholder="Ej: 2.5" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold text-slate-700">Fecha Límite</label>
+                            <input type="date" name="due_date" value="{{ project.due_date|date:'Y-m-d'|default:'' }}" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                        <button type="button" onclick="closeAddTaskModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-5 py-2 rounded-xl bg-slate-950 hover:bg-rose-900 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                            <i data-lucide="plus" class="w-3.5 h-3.5 text-rose-400"></i>
+                            <span>Guardar Tarea</span>
+                        </button>
+                    </div>
+                </form>
+
+            </div>
         </div>
 
-        <!-- Task List Table -->
-        <div class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+        <!-- ========================================== -->
+        <!-- KANBAN BOARD DE TAREAS -->
+        <!-- ========================================== -->
+        <div id="tasksKanbanView" class="overflow-x-auto pb-4 custom-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0">
+            <div class="flex gap-4 min-w-[1000px]">
+                {% for col in task_columns %}
+                <div class="flex-1 bg-slate-100/90 rounded-2xl p-3 border border-slate-200/90 flex flex-col shadow-2xs">
+                    
+                    <!-- Column Header -->
+                    <div class="p-2.5 rounded-xl {{ col.header_bg }} border border-slate-200/70 flex items-center justify-between mb-3 shadow-2xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full {{ col.dot_color }} shrink-0"></span>
+                            <span class="text-xs font-black text-slate-800 tracking-tight">{{ col.label }}</span>
+                            <span class="task-column-count px-2 py-0.5 rounded-full text-[10px] font-black {{ col.badge_bg }}" data-task-status="{{ col.code }}">
+                                {{ col.count }}
+                            </span>
+                        </div>
+
+                        <button type="button" onclick="openAddTaskModal('{{ col.code }}')" class="p-1 rounded-lg bg-white/70 hover:bg-white text-slate-600 hover:text-rose-900 transition shadow-2xs" title="Añadir tarea en {{ col.label }}">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Column Hours Meta -->
+                    <div class="px-2 pb-2 text-[10px] font-semibold text-slate-500 flex items-center justify-between border-b border-slate-200/70 mb-2.5">
+                        <span class="uppercase tracking-wider">Horas Estimadas</span>
+                        <span class="font-bold text-slate-700 task-column-hours" data-task-status="{{ col.code }}">{{ col.total_hours }}h</span>
+                    </div>
+
+                    <!-- Droppable Cards Area -->
+                    <div class="kanban-task-cards space-y-2.5 min-h-[140px] flex-1 overflow-y-auto max-h-[600px] custom-scrollbar p-1" data-status="{{ col.code }}">
+                        {% for t in col.tasks %}
+                        <div class="kanban-task-card bg-white rounded-xl border border-slate-200/90 p-3 shadow-2xs hover:shadow-md transition-all duration-200 space-y-2 cursor-grab active:cursor-grabbing group relative"
+                             data-task-id="{{ t.id }}"
+                             data-task-hours="{{ t.estimated_hours }}">
+                            
+                            <!-- Header: Priority & Delete Button -->
+                            <div class="flex items-center justify-between gap-1">
+                                {% if t.priority == 'URGENT' %}
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-100 text-rose-800 border border-rose-200">Urgente</span>
+                                {% elif t.priority == 'HIGH' %}
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-200">Alta</span>
+                                {% else %}
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-600">Media</span>
+                                {% endif %}
+
+                                <form method="POST" action="{% url 'project_task_delete' t.id %}" onsubmit="return confirm('¿Eliminar esta tarea?');" class="inline" onclick="event.stopPropagation()">
+                                    {% csrf_token %}
+                                    <button type="submit" class="p-1 text-slate-300 hover:text-rose-600 transition" title="Eliminar tarea">
+                                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Title -->
+                            <p class="text-xs font-bold text-slate-800 leading-snug {% if t.status == 'DONE' %}line-through text-slate-400{% endif %}">
+                                {{ t.title }}
+                            </p>
+
+                            <!-- Meta: Assigned To & Hours -->
+                            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+                                <div class="flex items-center gap-1">
+                                    {% if t.assigned_to %}
+                                    <i data-lucide="user" class="w-3 h-3 text-slate-400"></i>
+                                    <span class="font-medium text-slate-600">{{ t.assigned_to.first_name }}</span>
+                                    {% else %}
+                                    <span class="italic text-slate-300">Sin asignar</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="flex items-center gap-1.5">
+                                    {% if t.estimated_hours > 0 %}
+                                    <span class="font-bold text-slate-600 flex items-center gap-0.5">
+                                        <i data-lucide="clock" class="w-2.5 h-2.5 text-slate-400"></i>
+                                        {{ t.estimated_hours }}h
+                                    </span>
+                                    {% endif %}
+                                    {% if t.due_date %}
+                                    <span class="text-slate-500 font-medium">· {{ t.due_date|date:"d/m" }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Column Footer: Add Task Button -->
+                    <div class="pt-2 mt-auto border-t border-slate-200/70">
+                        <button type="button" onclick="openAddTaskModal('{{ col.code }}')" class="w-full py-1.5 px-3 rounded-xl border border-dashed border-slate-300 hover:border-rose-900/60 bg-white/50 hover:bg-white text-slate-600 hover:text-rose-900 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs">
+                            <i data-lucide="plus" class="w-3.5 h-3.5 text-slate-400"></i>
+                            <span>Añadir Tarea</span>
+                        </button>
+                    </div>
+
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- LISTA CLÁSICA DE TAREAS (ALTERNATIVA) -->
+        <!-- ========================================== -->
+        <div id="tasksListView" class="hidden divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
             {% for t in tasks %}
             <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/70 transition {% if t.status == 'DONE' %}bg-slate-50/40 opacity-75{% endif %}">
                 <div class="flex items-center gap-3">
@@ -236,6 +399,7 @@
                             {{ t.title }}
                         </p>
                         <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                            <span class="font-bold uppercase tracking-wider text-[10px] px-1.5 py-0.2 rounded {% if t.status == 'DONE' %}bg-emerald-100 text-emerald-800{% elif t.status == 'IN_PROGRESS' %}bg-blue-100 text-blue-800{% else %}bg-slate-100 text-slate-700{% endif %}">{{ t.get_status_display }}</span>
                             {% if t.assigned_to %}
                             <span>Asignado: <strong class="text-slate-600">{{ t.assigned_to.first_name }}</strong></span>
                             {% endif %}
@@ -321,13 +485,141 @@
 
 </div>
 
+<!-- Floating Toast Notification -->
+<div id="taskKanbanToast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-bold border border-slate-700">
+        <span id="taskToastDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="taskToastMessage">Tarea actualizada</span>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- SortableJS para Drag & Drop tipo Trello en Tareas -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<style>
+    .sortable-ghost {
+        opacity: 0.35 !important;
+        background-color: #fdf2f4 !important;
+        border: 2px dashed #9f1239 !important;
+        transform: scale(0.98);
+    }
+    .sortable-drag {
+        cursor: grabbing !important;
+        transform: rotate(1.5deg) scale(1.02);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
+        opacity: 0.95;
+    }
+</style>
+
 <script>
+    const csrfToken = '{{ csrf_token }}';
+
+    // Abrir modal con estado preseleccionado
+    function openAddTaskModal(status = 'TODO') {
+        const modal = document.getElementById('taskFormModal');
+        const statusSelect = document.getElementById('taskInitialStatus');
+        if (statusSelect) {
+            statusSelect.value = status;
+        }
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            setTimeout(() => {
+                document.getElementById('taskTitleInput')?.focus();
+            }, 100);
+        }
+    }
+
+    // Cerrar modal
+    function closeAddTaskModal() {
+        const modal = document.getElementById('taskFormModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            document.getElementById('addTaskForm')?.reset();
+        }
+    }
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeAddTaskModal();
+        }
+    });
+
+    // Cambiar entre vista Kanban y Lista de tareas
+    function switchTaskView(mode) {
+        const kanban = document.getElementById('tasksKanbanView');
+        const list = document.getElementById('tasksListView');
+        const btnKanban = document.getElementById('btnTaskViewKanban');
+        const btnList = document.getElementById('btnTaskViewList');
+
+        if (mode === 'list') {
+            kanban.classList.add('hidden');
+            list.classList.remove('hidden');
+            btnList.classList.add('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnList.classList.remove('text-slate-600');
+            btnKanban.classList.remove('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnKanban.classList.add('text-slate-600');
+            localStorage.setItem('task_view_mode', 'list');
+        } else {
+            list.classList.add('hidden');
+            kanban.classList.remove('hidden');
+            btnKanban.classList.add('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnKanban.classList.remove('text-slate-600');
+            btnList.classList.remove('bg-white', 'text-slate-900', 'shadow-2xs');
+            btnList.classList.add('text-slate-600');
+            localStorage.setItem('task_view_mode', 'kanban');
+        }
+    }
+
+    // Inicializar preferencia de vista
+    (function initTaskView() {
+        const saved = localStorage.getItem('task_view_mode');
+        if (saved === 'list') {
+            switchTaskView('list');
+        }
+    })();
+
+    // Toast flotante
+    function showTaskToast(msg, isSuccess = true) {
+        const toast = document.getElementById('taskKanbanToast');
+        const text = document.getElementById('taskToastMessage');
+        const dot = document.getElementById('taskToastDot');
+        if (!toast) return;
+
+        text.textContent = msg;
+        dot.className = `w-2 h-2 rounded-full ${isSuccess ? 'bg-emerald-400' : 'bg-rose-500'}`;
+        toast.classList.remove('translate-y-20', 'opacity-0');
+        setTimeout(() => {
+            toast.classList.add('translate-y-20', 'opacity-0');
+        }, 3000);
+    }
+
+    // Actualizar barra de progreso del proyecto en tiempo real
+    function updateProjectProgressUI(percent, completed, total) {
+        const numEl = document.getElementById('progressNumber');
+        const barEl = document.getElementById('progressBar');
+        const textEl = document.getElementById('taskCounterText');
+
+        if (numEl) numEl.textContent = `${percent}%`;
+        if (barEl) {
+            barEl.style.width = `${percent}%`;
+            barEl.className = `h-full rounded-full transition-all duration-500 ${
+                percent >= 100 ? 'bg-emerald-500' : percent >= 50 ? 'bg-rose-900' : 'bg-amber-500'
+            }`;
+        }
+        if (textEl) textEl.textContent = `${completed} de ${total} tareas completadas`;
+    }
+
+    // Toggle clásico de tarea (lista)
     async function toggleTaskStatus(taskId) {
         try {
             const resp = await fetch(`/proyectos/tareas/${taskId}/toggle/?format=json`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
             if (resp.ok) {
                 window.location.reload();
@@ -336,5 +628,94 @@
             window.location.reload();
         }
     }
+
+    // Actualizar estado de tarea vía AJAX (drag and drop)
+    async function updateTaskStatus(taskId, newStatus) {
+        try {
+            const resp = await fetch(`/proyectos/tareas/${taskId}/status/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            const data = await resp.json();
+            if (data.success) {
+                showTaskToast(`Tarea movida a: ${data.status_display}`);
+                updateProjectProgressUI(data.progress_percent, data.completed_tasks, data.total_tasks);
+                updateTaskColumnCounters();
+                return true;
+            } else {
+                showTaskToast(data.error || 'Error al actualizar', false);
+                return false;
+            }
+        } catch (err) {
+            showTaskToast('Error al conectar con el servidor', false);
+            return false;
+        }
+    }
+
+    // Recalcular contadores y horas por columna de tareas
+    function updateTaskColumnCounters() {
+        document.querySelectorAll('.kanban-task-cards').forEach(col => {
+            const status = col.dataset.status;
+            const cards = col.querySelectorAll('.kanban-task-card');
+            const count = cards.length;
+
+            const countBadge = document.querySelector(`.task-column-count[data-task-status="${status}"]`);
+            if (countBadge) countBadge.textContent = count;
+
+            let totalHours = 0;
+            cards.forEach(c => {
+                const h = parseFloat(c.dataset.taskHours || 0);
+                if (!isNaN(h)) totalHours += h;
+            });
+            const hoursEl = document.querySelector(`.task-column-hours[data-task-status="${status}"]`);
+            if (hoursEl) hoursEl.textContent = `${totalHours}h`;
+        });
+    }
+
+    // Inicializar SortableJS para tareas
+    document.addEventListener('DOMContentLoaded', () => {
+        const taskColumns = document.querySelectorAll('.kanban-task-cards');
+
+        taskColumns.forEach(col => {
+            new Sortable(col, {
+                group: 'tasks-kanban',
+                animation: 180,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                delay: 0,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 3,
+                fallbackTolerance: 3,
+                onEnd: async function(evt) {
+                    const fromCol = evt.from;
+                    const toCol = evt.to;
+                    const card = evt.item;
+                    const taskId = card.dataset.taskId;
+                    const newStatus = toCol.dataset.status;
+
+                    if (fromCol === toCol) return;
+
+                    const titleEl = card.querySelector('p');
+                    if (newStatus === 'DONE') {
+                        titleEl?.classList.add('line-through', 'text-slate-400');
+                    } else {
+                        titleEl?.classList.remove('line-through', 'text-slate-400');
+                    }
+
+                    const ok = await updateTaskStatus(taskId, newStatus);
+                    if (!ok) {
+                        fromCol.insertBefore(card, fromCol.children[evt.oldIndex]);
+                    }
+                    updateTaskColumnCounters();
+                }
+            });
+        });
+    });
 </script>
 {% endblock %}
