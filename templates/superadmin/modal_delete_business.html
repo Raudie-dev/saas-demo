@@ -1,0 +1,129 @@
+<!-- Modal Confirmación Eliminar Cuenta y Registros -->
+<div id="delete-business-modal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden" onclick="if(event.target === this) closeDeleteBusinessModal()">
+    <div class="bg-white rounded-3xl border border-rose-200 shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-rose-100 flex items-center justify-between bg-rose-50/70 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-rose-100 border border-rose-200 text-rose-700 flex items-center justify-center font-bold shrink-0">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-base sm:text-lg text-rose-950">Eliminar Cuenta de Negocio</h3>
+                    <p class="text-xs text-rose-700">Acción permanente e irreversible</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeDeleteBusinessModal()" class="p-2 rounded-xl bg-white hover:bg-rose-100 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Form Body -->
+        <form id="deleteBusinessForm" method="POST" action="" class="p-6 space-y-4 text-xs overflow-y-auto">
+            {% csrf_token %}
+
+            <!-- Business Info Banner -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                <span class="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 block">Cuenta a Eliminar</span>
+                <div id="deleteModalBizName" class="font-display font-extrabold text-base text-slate-900 break-words"></div>
+                <div id="deleteModalBizEmail" class="font-mono text-slate-500 text-[11px] break-all"></div>
+            </div>
+
+            <!-- Warning Alert -->
+            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 space-y-2">
+                <div class="flex items-center gap-2 font-bold text-rose-950 text-xs">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600 shrink-0"></i>
+                    <span>¿Qué sucederá al eliminar esta cuenta?</span>
+                </div>
+                <ul class="space-y-1 text-[11px] text-rose-800 list-disc list-inside">
+                    <li>Se eliminarán todos los <strong>usuarios y credenciales de acceso</strong> vinculados a este negocio.</li>
+                    <li>Se borrarán todas sus <strong>sucursales y equipo profesional</strong>.</li>
+                    <li>Se eliminarán todos los <strong>clientes CRM, notas, historial y documentos</strong>.</li>
+                    <li>Se eliminarán todas las <strong>citas, reservas y agenda</strong>.</li>
+                    <li>Se eliminarán las <strong>ventas POS, facturas, cobros y gastos</strong>.</li>
+                    <li>Se cancelará y borrará la <strong>suscripción y licencia</strong> asociada.</li>
+                </ul>
+            </div>
+
+            <!-- Safety Confirmation Input -->
+            <div class="space-y-1.5">
+                <label for="deleteConfirmationInput" class="block font-bold text-slate-800 text-xs">
+                    Escribe la palabra <span class="text-rose-600 font-mono font-extrabold">ELIMINAR</span> para confirmar:
+                </label>
+                <input type="text"
+                       id="deleteConfirmationInput"
+                       name="confirmation"
+                       autocomplete="off"
+                       oninput="validateDeleteConfirmation(this.value)"
+                       placeholder="Escribe ELIMINAR"
+                       class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 font-bold focus:outline-none focus:border-rose-600 tracking-wider">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+                <button type="button"
+                        onclick="closeDeleteBusinessModal()"
+                        class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition text-xs cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        id="confirmDeleteSubmitBtn"
+                        disabled
+                        class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition text-xs shadow-md shadow-rose-600/20 opacity-50 cursor-not-allowed flex items-center gap-2 cursor-pointer">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Eliminar Cuenta Permanentemente</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+function openDeleteBusinessModal(bizId, bizName, bizEmail) {
+    const modal = document.getElementById('delete-business-modal');
+    const form = document.getElementById('deleteBusinessForm');
+    const nameEl = document.getElementById('deleteModalBizName');
+    const emailEl = document.getElementById('deleteModalBizEmail');
+    const input = document.getElementById('deleteConfirmationInput');
+    const submitBtn = document.getElementById('confirmDeleteSubmitBtn');
+
+    form.action = '/superadmin/usuarios/' + bizId + '/eliminar/';
+    nameEl.textContent = bizName;
+    emailEl.textContent = bizEmail || 'Sin email registrado';
+    input.value = '';
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    modal.classList.remove('hidden');
+    setTimeout(() => input.focus(), 120);
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+function closeDeleteBusinessModal() {
+    const modal = document.getElementById('delete-business-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function validateDeleteConfirmation(val) {
+    const submitBtn = document.getElementById('confirmDeleteSubmitBtn');
+    if (val.trim().toUpperCase() === 'ELIMINAR') {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeDeleteBusinessModal();
+    }
+});
+</script>

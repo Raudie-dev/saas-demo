@@ -108,9 +108,18 @@
                         </td>
 
                         <td class="p-4 text-right">
-                            <a href="{% url 'superadmin_user_detail' biz.id %}" class="px-3.5 py-2 rounded-xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5">
-                                <i data-lucide="user-cog" class="w-3.5 h-3.5"></i> Ver Ficha
-                            </a>
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{% url 'superadmin_user_detail' biz.id %}" class="px-3.5 py-2 rounded-xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5">
+                                    <i data-lucide="user-cog" class="w-3.5 h-3.5"></i> <span>Ver Ficha</span>
+                                </a>
+                                <button type="button"
+                                        onclick="openDeleteBusinessModal('{{ biz.id }}', '{{ biz.name|escapejs }}', '{{ biz.email|escapejs }}')"
+                                        class="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-200 transition font-bold text-xs inline-flex items-center gap-1 cursor-pointer"
+                                        title="Eliminar Cuenta y Registros">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i>
+                                    <span class="sr-only sm:not-sr-only text-[11px]">Borrar</span>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -171,4 +180,8 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block modals %}
+{% include 'superadmin/modal_delete_business.html' %}
 {% endblock %}
