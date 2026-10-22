@@ -34,6 +34,9 @@ class Client(TimeStampedModel):
 
     @property
     def real_estate_role(self):
+        return {'badge': 'Cliente', 'color': 'slate', 'type': 'PROSPECT'}
+
+    def _unused_real_estate_role(self):
         """Returns a human-readable role summary for real estate agencies."""
         try:
             has_owned = self.owned_properties.exists() if hasattr(self, 'owned_properties') else False

@@ -64,26 +64,14 @@ def send_booking_notification_to_client(business, appointment, event_type='PENDI
         cancel_url = f"{base_host}/reservas/{business.slug}/cita/{appointment.id}/cancelar/"
 
     if event_type == 'PENDING':
-        if appointment.related_property:
-            prop = appointment.related_property
-            msg = (
-                f"⏳ *¡Hola {client.first_name}! Tu solicitud de visita en {business.name} está PENDIENTE DE CONFIRMACIÓN*\n\n"
-                f"📅 *Fecha:* {date_str} a las {time_str} hs.\n"
-                f"👤 *Asesor:* {staff_name}\n"
-                f"🏠 *Propiedad:* {prop.title}\n"
-                f"📍 *Ubicación:* {prop.address} ({prop.zone})\n\n"
-                f"⚠️ *Importante:* Tu cupo ha sido reservado temporalmente por *{expiry_hours} horas*. "
-                f"Por favor confirma tu asistencia dentro de este plazo para asegurar tu turno, de lo contrario el cupo se liberará automáticamente."
+        deposit_line = ""
+        if appointment.deposit_amount and appointment.deposit_amount > 0:
+            deposit_line = (
+                f"💳 *Total:* {business.currency}{appointment.total_price} "
+                f"(Seña / Anticipo {appointment.deposit_percentage:.0f}%: *{business.currency}{appointment.deposit_amount}* · "
+                f"Saldo restante: {business.currency}{appointment.balance_due})\n"
             )
-        else:
-            deposit_line = ""
-            if appointment.deposit_amount and appointment.deposit_amount > 0:
-                deposit_line = (
-                    f"💳 *Total:* {business.currency}{appointment.total_price} "
-                    f"(Seña / Anticipo {appointment.deposit_percentage:.0f}%: *{business.currency}{appointment.deposit_amount}* · "
-                    f"Saldo restante: {business.currency}{appointment.balance_due})\n"
-                )
-            msg = (
+        msg = (
                 f"⏳ *¡Hola {client.first_name}! Tu reserva en {business.name} está PENDIENTE DE CONFIRMACIÓN*\n\n"
                 f"📅 *Fecha:* {date_str} a las {time_str} hs.\n"
                 f"💇‍♂️ *Especialista:* {staff_name}\n"

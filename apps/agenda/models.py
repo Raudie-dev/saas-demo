@@ -66,7 +66,6 @@ class Appointment(TimeStampedModel):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="appointments")
     staff = models.ForeignKey(StaffMember, on_delete=models.CASCADE, related_name="appointments")
     service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name="appointments")
-    related_property = models.ForeignKey('properties.Property', on_delete=models.SET_NULL, null=True, blank=True, related_name="appointments", verbose_name="Inmueble / Propiedad")
     date = models.DateField(verbose_name="Fecha de Cita")
     start_time = models.TimeField(verbose_name="Hora Inicio")
     end_time = models.TimeField(verbose_name="Hora Fin")

@@ -4,85 +4,471 @@
 {% block header_title %}Marketing, Fidelización & Promociones{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 max-w-7xl mx-auto pb-10">
 
-    <!-- Top Action Buttons -->
-    <div class="glass-card bg-white p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-200 shadow-sm">
-        <div>
-            <h3 class="font-bold text-slate-900 text-lg font-display">Promociones & Fidelización</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Gestión de cupones con descuento, gift cards y campañas automáticas</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-            <a href="{% url 'email_marketing_list' %}" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition">
-                <i data-lucide="mail" class="w-4 h-4"></i> Email Marketing
-            </a>
-            <a href="{% url 'loyalty_program_view' %}" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition">
-                <i data-lucide="star" class="w-4 h-4"></i> Tarjeta de Fidelización
-            </a>
-            <a href="{% url 'coupon_create' %}" class="px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition">
-                <i data-lucide="tag" class="w-4 h-4"></i> Crear Cupón
-            </a>
-            <a href="{% url 'giftcard_create' %}" class="px-4 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition">
-                <i data-lucide="gift" class="w-4 h-4"></i> Emitir Gift Card
-            </a>
+    <!-- Top Hero Header & Control Bar -->
+    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            
+            <!-- Title & Concept -->
+            <div class="space-y-1.5">
+                <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-200/80">
+                    <i data-lucide="sparkles" class="w-3 h-3"></i>
+                    <span>Crecimiento & Retención</span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900 font-display tracking-tight">
+                    Promociones & Fidelización
+                </h1>
+                <p class="text-xs text-slate-500 max-w-2xl">
+                    Gestiona cupones de descuento, tarjetas de regalo y programas de puntos para fidelizar clientes y pacientes.
+                </p>
+            </div>
+
+            <!-- Cohesive Action Buttons Bar -->
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto shrink-0">
+                
+                <!-- Email Marketing Link -->
+                <a href="{% url 'email_marketing_list' %}" 
+                   class="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-bold text-xs inline-flex items-center justify-center gap-2 transition shadow-2xs">
+                    <i data-lucide="mail" class="w-4 h-4 text-slate-500"></i>
+                    <span>Email Marketing</span>
+                    {% if campaigns %}
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">{{ campaigns|length }}</span>
+                    {% endif %}
+                </a>
+
+                <!-- Loyalty Program Link -->
+                <a href="{% url 'loyalty_program_view' %}" 
+                   class="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-bold text-xs inline-flex items-center justify-center gap-2 transition shadow-2xs">
+                    <i data-lucide="star" class="w-4 h-4 text-amber-500"></i>
+                    <span>Programa de Puntos</span>
+                </a>
+
+                <!-- Unified Dropdown: Nueva Promoción -->
+                <div class="relative inline-block" id="promo-dropdown-container">
+                    <button type="button" 
+                            onclick="togglePromoDropdown(event)" 
+                            id="btn-promo-dropdown"
+                            class="h-10 px-4 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition">
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-rose-300"></i>
+                        <span>Nueva Promoción</span>
+                        <i data-lucide="chevron-down" id="chevron-promo" class="w-3.5 h-3.5 text-rose-300 transition-transform duration-200"></i>
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div id="promo-dropdown-menu" 
+                         class="hidden absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl py-2 z-30 transition-all">
+                        <a href="{% url 'coupon_create' %}" class="flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 hover:text-rose-900 hover:bg-rose-50/60 transition group">
+                            <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-800 flex items-center justify-center shrink-0 border border-rose-100 group-hover:scale-105 transition">
+                                <i data-lucide="tag" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <strong class="block text-slate-900 font-bold">Cupón de Descuento</strong>
+                                <span class="text-[11px] text-slate-400">Porcentaje OFF y límite de usos</span>
+                            </div>
+                        </a>
+                        <div class="border-t border-slate-100 my-1"></div>
+                        <a href="{% url 'giftcard_create' %}" class="flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition group">
+                            <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center shrink-0 border border-slate-200 group-hover:scale-105 transition">
+                                <i data-lucide="gift" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <strong class="block text-slate-900 font-bold">Tarjeta de Regalo (Gift Card)</strong>
+                                <span class="text-[11px] text-slate-400">Saldo digital prepagado</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+
         </div>
     </div>
 
-    <!-- Active Coupons & Giftcards Lists -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        <!-- Active Coupons Table -->
-        <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-            <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <h4 class="font-bold text-slate-900 text-base font-display">Cupones Promocionales</h4>
-                <a href="{% url 'coupon_create' %}" class="text-xs text-rose-900 font-semibold hover:underline">+ Nuevo Cupón</a>
+    <!-- Quick Stats Cards (KPIs) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Stat 1: Cupones -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div class="space-y-1">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Cupones Activos</p>
+                <h3 class="text-2xl font-black text-slate-900 font-display">{{ active_coupons|length }}</h3>
+                <p class="text-[11px] text-slate-500 flex items-center gap-1">
+                    <i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i>
+                    <span>{{ total_coupon_uses }} canjes registrados</span>
+                </p>
             </div>
-            <div class="p-4 space-y-3">
-                {% for coup in coupons %}
-                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div class="w-11 h-11 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center border border-rose-100 shrink-0">
+                <i data-lucide="tag" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Stat 2: Gift Cards -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div class="space-y-1">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Saldo Gift Cards</p>
+                <h3 class="text-2xl font-black text-slate-900 font-display">
+                    {{ business.currency }}{{ total_giftcards_balance|floatformat:2 }}
+                </h3>
+                <p class="text-[11px] text-slate-500 flex items-center gap-1">
+                    <i data-lucide="credit-card" class="w-3 h-3 text-indigo-500"></i>
+                    <span>{{ active_giftcards|length }} tarjetas habilitadas</span>
+                </p>
+            </div>
+            <div class="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100 shrink-0">
+                <i data-lucide="gift" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Stat 3: Programa de Fidelización -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div class="space-y-1">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Club de Puntos</p>
+                <h3 class="text-2xl font-black text-slate-900 font-display">
+                    {% if program %}{{ total_loyalty_members }}{% else %}0{% endif %} <span class="text-xs font-semibold text-slate-500">miembros</span>
+                </h3>
+                <p class="text-[11px] text-slate-500 flex items-center gap-1">
+                    {% if program and program.is_active %}
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                    <span class="text-emerald-700 font-medium">{{ total_loyalty_points }} pts acumulados</span>
+                    {% else %}
+                    <span class="w-2 h-2 rounded-full bg-slate-300 inline-block"></span>
+                    <span>Sin programa activo</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100 shrink-0">
+                <i data-lucide="award" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Stat 4: Campañas Enviadas -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div class="space-y-1">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Marketing</p>
+                <h3 class="text-2xl font-black text-slate-900 font-display">{{ sent_campaigns_count }} <span class="text-xs font-semibold text-slate-500">enviadas</span></h3>
+                <p class="text-[11px] text-slate-500 flex items-center gap-1">
+                    <i data-lucide="send" class="w-3 h-3 text-sky-500"></i>
+                    <span>{{ campaigns|length }} campañas creadas</span>
+                </p>
+            </div>
+            <div class="w-11 h-11 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100 shrink-0">
+                <i data-lucide="mail-check" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Loyalty Banner / Callout -->
+    {% if program %}
+    <div class="bg-gradient-to-r from-amber-500/10 via-amber-50/50 to-white rounded-2xl p-5 border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+                <i data-lucide="award" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h4 class="font-extrabold text-slate-900 text-sm sm:text-base font-display">
+                    Programa Activo: {{ program.name }}
+                </h4>
+                <p class="text-xs text-slate-600 mt-0.5">
+                    Tus clientes acumulan <strong>{{ program.points_per_currency }} pts</strong> por cada {{ business.currency }}1 gastado. Canje mínimo: <strong>{{ program.minimum_points_to_redeem }} pts</strong>.
+                </p>
+            </div>
+        </div>
+        <a href="{% url 'loyalty_program_view' %}" class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white transition flex items-center justify-center gap-1.5 shrink-0 shadow-xs">
+            <span>Administrar Puntos</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </a>
+    </div>
+    {% else %}
+    <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-white text-slate-700 flex items-center justify-center border border-slate-200 shadow-xs shrink-0">
+                <i data-lucide="award" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h4 class="font-bold text-slate-900 text-sm sm:text-base">¿Aún no tienes un Programa de Puntos?</h4>
+                <p class="text-xs text-slate-500 mt-0.5">Premia la lealtad de tus clientes acumulando puntos canjeables por servicios o descuentos.</p>
+            </div>
+        </div>
+        <a href="{% url 'loyalty_program_view' %}" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white transition flex items-center justify-center gap-1.5 shrink-0">
+            <span>Activar Programa</span>
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Main Two Panels: Coupons & Gift Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+
+        <!-- Panel 1: Cupones Promocionales -->
+        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
+            
+            <!-- Panel Header -->
+            <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-800 flex items-center justify-center border border-rose-100 shrink-0">
+                        <i data-lucide="tag" class="w-5 h-5"></i>
+                    </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <span class="font-mono font-bold text-rose-900 text-base">{{ coup.code }}</span>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-900 border border-rose-200">
-                                {{ coup.discount_percentage }}% OFF
+                            <h3 class="font-extrabold text-slate-900 text-base font-display">Cupones Promocionales</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                {{ coupons|length }}
                             </span>
                         </div>
-                        <p class="text-xs text-slate-500 mt-1">Vence: {{ coup.valid_until|date:"Y-m-d" }} • Usos: {{ coup.uses_count }}/{{ coup.max_uses }}</p>
+                        <p class="text-[11px] text-slate-500">Descuentos porcentuales con límite de uso y fecha de caducidad</p>
                     </div>
-                    <a href="{% url 'coupon_edit' coup.id %}" class="px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold transition">
-                        Editar
-                    </a>
                 </div>
-                {% empty %}
-                <p class="text-sm text-slate-500 text-center py-4">No hay cupones activos.</p>
-                {% endfor %}
+
+                <a href="{% url 'coupon_create' %}" 
+                   class="px-3.5 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs shrink-0">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Nuevo Cupón</span>
+                </a>
             </div>
+
+            <!-- Panel Body -->
+            <div class="p-5 sm:p-6">
+                {% if coupons %}
+                <div class="space-y-3.5">
+                    {% for coup in coupons %}
+                    <div class="p-4 rounded-2xl bg-slate-50/80 hover:bg-slate-50 border border-slate-200/80 transition space-y-3">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <div class="flex items-center gap-2.5">
+                                    <span class="font-mono font-black text-slate-900 text-base sm:text-lg tracking-wider px-2.5 py-1 rounded-xl bg-white border border-slate-200 shadow-2xs">
+                                        {{ coup.code }}
+                                    </span>
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-200">
+                                        {{ coup.discount_percentage }}% OFF
+                                    </span>
+                                    {% if coup.is_active %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activo
+                                    </span>
+                                    {% else %}
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                                        Inactivo
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-2">
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        Válido hasta: <strong class="text-slate-700">{{ coup.valid_until|date:"d/m/Y" }}</strong>
+                                    </span>
+                                    <span>•</span>
+                                    <span class="flex items-center gap-1">
+                                        <i data-lucide="users" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        Usos: <strong class="text-slate-700">{{ coup.uses_count }} de {{ coup.max_uses }}</strong>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button type="button" 
+                                        onclick="copyCode('{{ coup.code }}', this)" 
+                                        title="Copiar código"
+                                        class="p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 transition shadow-2xs text-xs font-medium flex items-center gap-1">
+                                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <a href="{% url 'coupon_edit' coup.id %}" 
+                                   class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200 transition shadow-2xs">
+                                    Editar
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar for uses -->
+                        <div class="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
+                            {% widthratio coup.uses_count coup.max_uses 100 as use_pct %}
+                            <div class="bg-rose-800 h-1.5 rounded-full transition-all duration-300" style="width: {% if use_pct %}{{ use_pct }}{% else %}0{% endif %}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <!-- Empty State Cupones -->
+                <div class="py-12 px-4 text-center space-y-4">
+                    <div class="w-16 h-16 rounded-3xl bg-rose-50 text-rose-700 flex items-center justify-center mx-auto border border-rose-100 shadow-xs">
+                        <i data-lucide="ticket" class="w-8 h-8"></i>
+                    </div>
+                    <div class="max-w-xs mx-auto space-y-1.5">
+                        <h4 class="font-bold text-slate-900 text-base font-display">No hay cupones activos</h4>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            Crea códigos con descuentos especiales (ej: <code>BIENVENIDA20</code> o <code>PRIMAVERA15</code>) para que tus clientes agenden o compren con incentivo.
+                        </p>
+                    </div>
+                    <div class="pt-2">
+                        <a href="{% url 'coupon_create' %}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-900 hover:bg-rose-950 transition shadow-sm">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>Crear Mi Primer Cupón</span>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
         </div>
 
-        <!-- Active Giftcards Table -->
-        <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-            <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <h4 class="font-bold text-slate-900 text-base font-display">Gift Cards Habilitadas</h4>
-                <a href="{% url 'giftcard_create' %}" class="text-xs text-slate-950 font-semibold hover:underline">+ Emitir Gift Card</a>
-            </div>
-            <div class="p-4 space-y-3">
-                {% for gift in giftcards %}
-                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <div>
-                        <span class="font-mono font-bold text-slate-950 text-base">#{{ gift.code }}</span>
-                        <p class="text-xs text-slate-500">Titular: {% if gift.client %}{{ gift.client.full_name }}{% else %}Al Portador{% endif %}</p>
+        <!-- Panel 2: Gift Cards Habilitadas -->
+        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
+            
+            <!-- Panel Header -->
+            <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100 shrink-0">
+                        <i data-lucide="gift" class="w-5 h-5"></i>
                     </div>
-                    <span class="font-extrabold text-slate-900 text-base">
-                        {{ business.currency }}{{ gift.current_balance }}
-                    </span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-extrabold text-slate-900 text-base font-display">Gift Cards Habilitadas</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                {{ giftcards|length }}
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">Tarjetas de regalo digitales con saldo prepagado y titular asignable</p>
+                    </div>
                 </div>
-                {% empty %}
-                <p class="text-sm text-slate-500 text-center py-4">No hay gift cards emitidas.</p>
-                {% endfor %}
+
+                <a href="{% url 'giftcard_create' %}" 
+                   class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs shrink-0">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Emitir Gift Card</span>
+                </a>
             </div>
+
+            <!-- Panel Body -->
+            <div class="p-5 sm:p-6">
+                {% if giftcards %}
+                <div class="space-y-3.5">
+                    {% for gift in giftcards %}
+                    <div class="p-4 rounded-2xl bg-slate-50/80 hover:bg-slate-50 border border-slate-200/80 transition flex items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono font-black text-slate-900 text-base px-2.5 py-1 rounded-xl bg-white border border-slate-200 shadow-2xs">
+                                    #{{ gift.code }}
+                                </span>
+                                {% if gift.is_active and gift.current_balance > 0 %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    Disponible
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                                    Agotada
+                                </span>
+                                {% endif %}
+                            </div>
+                            <p class="text-xs text-slate-500 flex items-center gap-1.5 pt-0.5">
+                                <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
+                                Titular: <strong class="text-slate-800">{% if gift.client %}{{ gift.client.full_name }}{% else %}Al Portador{% endif %}</strong>
+                            </p>
+                        </div>
+
+                        <div class="text-right space-y-1 shrink-0">
+                            <span class="text-xs text-slate-400 block font-medium">Saldo Actual</span>
+                            <span class="font-extrabold text-slate-900 text-lg sm:text-xl font-display">
+                                {{ business.currency }}{{ gift.current_balance }}
+                            </span>
+                            <span class="text-[10px] text-slate-400 block">
+                                Inicial: {{ business.currency }}{{ gift.initial_balance }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <!-- Empty State Gift Cards -->
+                <div class="py-12 px-4 text-center space-y-4">
+                    <div class="w-16 h-16 rounded-3xl bg-indigo-50 text-indigo-700 flex items-center justify-center mx-auto border border-indigo-100 shadow-xs">
+                        <i data-lucide="gift" class="w-8 h-8"></i>
+                    </div>
+                    <div class="max-w-xs mx-auto space-y-1.5">
+                        <h4 class="font-bold text-slate-900 text-base font-display">No hay gift cards emitidas</h4>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            Emite certificados de regalo precargados para que tus clientes puedan obsequiar servicios a familiares o amigos.
+                        </p>
+                    </div>
+                    <div class="pt-2">
+                        <a href="{% url 'giftcard_create' %}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-950 transition shadow-sm">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>Emitir Primera Gift Card</span>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
         </div>
 
     </div>
-</div>
-{% endblock %}
 
+</div>
+
+<!-- Copy to Clipboard Toast & Script -->
+<div id="copy-toast" class="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-xl border border-slate-700 flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+    <span>Código copiado al portapapeles</span>
+</div>
+
+<script>
+    function togglePromoDropdown(event) {
+        event.stopPropagation();
+        const menu = document.getElementById('promo-dropdown-menu');
+        const chevron = document.getElementById('chevron-promo');
+        const isOpen = !menu.classList.contains('hidden');
+        
+        if (isOpen) {
+            menu.classList.add('hidden');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+        } else {
+            menu.classList.remove('hidden');
+            if (chevron) chevron.style.transform = 'rotate(180deg)';
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const container = document.getElementById('promo-dropdown-container');
+        const menu = document.getElementById('promo-dropdown-menu');
+        const chevron = document.getElementById('chevron-promo');
+        if (container && !container.contains(e.target)) {
+            if (menu) menu.classList.add('hidden');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+        }
+    });
+
+    function copyCode(text, btn) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast();
+            }).catch(() => {
+                fallbackCopy(text);
+            });
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    function fallbackCopy(text) {
+        const input = document.createElement('input');
+        input.value = text;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast();
+    }
+
+    function showToast() {
+        const toast = document.getElementById('copy-toast');
+        if (toast) {
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2000);
+        }
+    }
+</script>
+{% endblock %}

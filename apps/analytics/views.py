@@ -89,7 +89,7 @@ def dashboard_view(request):
     # Propiedades activas si es inmobiliaria
     active_properties = []
     active_properties_count = 0
-    if business.is_module_enabled('properties'):
+    if False:
         try:
             from apps.properties.models import Property
             active_props_qs = Property.objects.filter(business=business, status='AVAILABLE')

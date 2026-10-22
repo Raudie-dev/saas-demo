@@ -159,7 +159,7 @@ def register_view(request):
             phone=phone,
             currency="$",
             branding_color="#881337",
-            business_type='MARKETING',
+            business_type='HEALTH_BEAUTY',
             primary_goal='Captar clientes y automatizar ventas',
             enabled_modules=['crm', 'agenda', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing'],
             onboarding_completed=False
@@ -229,7 +229,7 @@ def onboarding_view(request):
 
     if request.method == 'POST':
         agency_name = request.POST.get('agency_name', '').strip()
-        business_type = request.POST.get('business_type', 'MARKETING')
+        business_type = request.POST.get('business_type', 'HEALTH_BEAUTY')
         primary_goal = request.POST.get('primary_goal', '').strip()
         selected_modules = request.POST.getlist('enabled_modules')
         currency = request.POST.get('currency', '$')
@@ -298,46 +298,25 @@ def onboarding_view(request):
     # Available business profiles & recommended modules
     agency_profiles = [
         {
-            'code': 'MARKETING',
-            'title': 'Agencia Digital & Marketing',
-            'icon': 'sparkles',
-            'desc': 'Especializada en captación de leads, servicios recurrentes, campañas, facturación y automatización con IA.',
-            'modules': ['crm', 'invoicing', 'marketing', 'ai_engine', 'commissions', 'agenda']
-        },
-        {
-            'code': 'REAL_ESTATE',
-            'title': 'Agencia Inmobiliaria / Bienes Raíces',
-            'icon': 'home',
-            'desc': 'Gestión de clientes interesados, agenda de visitas, contratos, comisión de agentes e inventario de propiedades.',
-            'modules': ['crm', 'agenda', 'commissions', 'invoicing', 'ai_engine']
-        },
-        {
-            'code': 'TRAVEL',
-            'title': 'Agencia de Viajes & Turismo',
-            'icon': 'plane',
-            'desc': 'Reservas de paquetes, agenda de itinerarios, venta POS, facturación y comisión de asesores de viaje.',
-            'modules': ['crm', 'booking', 'agenda', 'pos', 'invoicing', 'commissions']
+            'code': 'HEALTH_BEAUTY',
+            'title': 'Salud, Estética, Spa & Clínicas',
+            'icon': 'heart-pulse',
+            'desc': 'Citas de pacientes/clientes, portal de reservas online 24/7, caja POS, inventario de insumos/productos y comisiones.',
+            'modules': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'marketing', 'invoicing']
         },
         {
             'code': 'CONSULTING',
-            'title': 'Agencia de Consultoría & Servicios',
+            'title': 'Consultoría & Servicios Profesionales',
             'icon': 'briefcase',
-            'desc': 'Agenda de reuniones, reservas en línea, propuestas, seguimiento de clientes y facturación rápida.',
-            'modules': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine']
+            'desc': 'Agenda de citas y asesorías, propuestas, seguimiento de proyectos, CRM de clientes y facturación de servicios.',
+            'modules': ['projects', 'crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine', 'marketing']
         },
         {
-            'code': 'HEALTH_BEAUTY',
-            'title': 'Salud, Estética & Spa',
-            'icon': 'heart-pulse',
-            'desc': 'Citas de pacientes/clientes, portal de reservas 24/7, productos en stock, comisiones y caja registradora POS.',
-            'modules': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm']
-        },
-        {
-            'code': 'RETAIL_OTHER',
-            'title': 'Comercio, Retail & Servicios Generales',
-            'icon': 'shopping-bag',
-            'desc': 'Punto de venta directo, control de inventario de productos, facturación, clientes y reportes financieros.',
-            'modules': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'analytics']
+            'code': 'MARKETING',
+            'title': 'Agencia Digital, Diseño & Marketing',
+            'icon': 'sparkles',
+            'desc': 'Tableros Kanban de proyectos y entregables, clientes, propuestas, campañas de marketing y automatización con IA.',
+            'modules': ['projects', 'crm', 'invoicing', 'marketing', 'ai_engine', 'commissions', 'booking', 'agenda']
         }
     ]
 
@@ -350,8 +329,6 @@ def onboarding_view(request):
         {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'desc': 'Seguimiento de prospectos, clientes VIP e historial completo'},
         {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar', 'desc': 'Programación de citas y control de horarios de colaboradores'},
         {'code': 'booking', 'name': 'Reservas Públicas 24/7', 'icon': 'globe', 'desc': 'Portal web para que tus clientes agenden solos'},
-        {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane', 'desc': 'Vuelos, paquetes turísticos, expedientes de pasajeros y vouchers'},
-        {'code': 'properties', 'name': 'Inmuebles & Propiedades', 'icon': 'building-2', 'desc': 'Catálogo de propiedades, ventas y alquileres inmobiliarios'},
         {'code': 'projects', 'name': 'Proyectos & Tareas', 'icon': 'folder-kanban', 'desc': 'Gestión de proyectos, tareas por fases y entregables'},
         {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'desc': 'Emisión de comprobantes, cuentas por cobrar y control de gastos'},
         {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'desc': 'Cobros rápidos en mostrador y apertura/cierre de caja'},
@@ -662,8 +639,6 @@ def business_config_view(request):
 
     allowed_modules = business.get_allowed_modules() if business else []
     all_modules_catalog = [
-        {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane'},
-        {'code': 'properties', 'name': 'Cartera de Inmuebles & Propiedades', 'icon': 'building-2'},
         {'code': 'projects', 'name': 'Proyectos & Contenido Redes', 'icon': 'folder-kanban'},
         {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users'},
         {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar'},
@@ -1707,8 +1682,6 @@ def booking_portal_toggle_api(request):
 ALL_SYSTEM_MODULES = [
     {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar', 'desc': 'Calendario interactivo, turnos y citas de clientes.'},
     {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'desc': 'Fichas de clientes, historial de visitas y datos de contacto.'},
-    {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane', 'desc': 'Gestión de paquetes turísticos, pasajes, expedientes y vouchers.'},
-    {'code': 'properties', 'name': 'Cartera de Inmuebles & Propiedades', 'icon': 'building-2', 'desc': 'Gestión de catálogo inmobiliario, inmuebles y portales.'},
     {'code': 'projects', 'name': 'Proyectos & Tareas', 'icon': 'folder-kanban', 'desc': 'Seguimiento de proyectos, entregables y plan de contenidos.'},
     {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'desc': 'Cobro rápido, apertura/cierre de caja y emisión de comprobantes.'},
     {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'desc': 'Gestión de comprobantes, egresos y cuentas.'},

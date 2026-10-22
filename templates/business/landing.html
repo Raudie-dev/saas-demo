@@ -603,35 +603,20 @@
                 </div>
 
                 <!-- Interactive Profile Navigation Tabs (Responsive Mobile Touch Carousel & Grid) -->
-                <div class="flex overflow-x-auto no-scrollbar gap-2.5 sm:grid sm:grid-cols-2 md:grid-cols-3 max-w-5xl mx-auto pt-2 pb-2 px-1">
-                    <button onclick="switchTab('marketing')" id="tab-marketing" class="tab-btn active shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="cpu" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Agencia Digital & Marketing</span>
-                    </button>
-
-                    <button onclick="switchTab('realestate')" id="tab-realestate" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="home" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Inmobiliaria & Bienes Raíces</span>
-                    </button>
-
-                    <button onclick="switchTab('travel')" id="tab-travel" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="plane" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Agencia de Viajes & Turismo</span>
-                    </button>
-
-                    <button onclick="switchTab('consulting')" id="tab-consulting" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="briefcase" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Consultoría & Servicios</span>
-                    </button>
-
-                    <button onclick="switchTab('health')" id="tab-health" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="heart-pulse" class="w-4 h-4 tab-icon shrink-0"></i>
+                <div class="grid grid-cols-1 sm:grid-cols-3 max-w-4xl mx-auto gap-3 pt-2 pb-2 px-1">
+                    <button onclick="switchTab('health')" id="tab-health" class="tab-btn active w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs">
+                        <i data-lucide="heart-pulse" class="w-4 h-4 tab-icon shrink-0 text-rose-600"></i>
                         <span>Salud, Estética & Spa</span>
                     </button>
 
-                    <button onclick="switchTab('retail')" id="tab-retail" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="shopping-bag" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Comercio & Retail</span>
+                    <button onclick="switchTab('consulting')" id="tab-consulting" class="tab-btn w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs">
+                        <i data-lucide="briefcase" class="w-4 h-4 tab-icon shrink-0 text-amber-600"></i>
+                        <span>Consultoría & Servicios</span>
+                    </button>
+
+                    <button onclick="switchTab('marketing')" id="tab-marketing" class="tab-btn w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs">
+                        <i data-lucide="sparkles" class="w-4 h-4 tab-icon shrink-0 text-indigo-600"></i>
+                        <span>Agencia Digital & Marketing</span>
                     </button>
                 </div>
 
@@ -639,7 +624,7 @@
                 <div class="light-card p-6 sm:p-10 rounded-3xl border border-slate-200 relative min-h-[380px] flex items-center bg-white shadow-xl shadow-slate-200/50">
                     
                     <!-- Content: Marketing -->
-                    <div id="content-marketing" class="tab-content grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                    <div id="content-marketing" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
                         <div class="space-y-5">
                             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-rose-50 text-brand-700 border border-rose-200 text-xs font-bold">
                                 <i data-lucide="bot" class="w-4 h-4"></i>
@@ -695,124 +680,6 @@
                                 </div>
                                 <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
                                     <i data-lucide="tag" class="w-4 h-4 text-brand-700"></i> Marketing
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Content: Real Estate -->
-                    <div id="content-realestate" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
-                        <div class="space-y-5">
-                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
-                                <i data-lucide="home" class="w-4 h-4"></i>
-                                <span>Solución Inmobiliaria</span>
-                            </div>
-                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
-                                Organiza Propiedades, Visitas de Campo y Comisiones de Agentes
-                            </h3>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Coordina la agenda de tu equipo de asesores inmobiliarios, lleva el registro de prospectos compradores y vendedores, y calcula comisiones de forma transparente.
-                            </p>
-                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
-                                    <span>Agenda de visitas guiadas y asignación por corredor</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
-                                    <span>Inventario centralizado de inmuebles y estado comercial</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
-                                    <span>Cálculo automático de comisiones por venta/alquiler</span>
-                                </li>
-                            </ul>
-                            <div class="pt-2">
-                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-blue-700 hover:bg-blue-600 transition shadow-md">
-                                    <span>Configurar como Inmobiliaria</span>
-                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
-                                <span>Módulos Activos Recomendados</span>
-                                <span class="text-blue-700 font-bold">5 Módulos</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="users" class="w-4 h-4 text-blue-600"></i> CRM Clientes
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i> Agenda Citas
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="dollar-sign" class="w-4 h-4 text-blue-600"></i> Comisiones
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i> Contratos
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
-                                    <i data-lucide="home" class="w-4 h-4 text-blue-600"></i> Fichas Inmobiliarias & Visitas
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Content: Travel -->
-                    <div id="content-travel" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
-                        <div class="space-y-5">
-                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
-                                <i data-lucide="plane" class="w-4 h-4"></i>
-                                <span>Solución Turismo & Viajes</span>
-                            </div>
-                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
-                                Controla Paquetes, Reservas de Clientes y Caja Registradora
-                            </h3>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Administra itinerarios turísticos, venta directa en ventanilla o en línea, liquidación de operadores y reporte de cobros al instante.
-                            </p>
-                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-amber-600"></i>
-                                    <span>Gestión de itinerarios de viajes y documentos</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-amber-600"></i>
-                                    <span>Cobro en punto de venta (POS) y facturación rápida</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-amber-600"></i>
-                                    <span>Comisiones automáticas para asesores de viajes</span>
-                                </li>
-                            </ul>
-                            <div class="pt-2">
-                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-500 transition shadow-md">
-                                    <span>Configurar Agencia de Viajes</span>
-                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
-                                <span>Módulos Activos Recomendados</span>
-                                <span class="text-amber-700 font-bold">6 Módulos</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="globe" class="w-4 h-4 text-amber-600"></i> Reservas 24/7
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-600"></i> Ventas POS
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="users" class="w-4 h-4 text-amber-600"></i> CRM Clientes
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="dollar-sign" class="w-4 h-4 text-amber-600"></i> Comisiones
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
-                                    <i data-lucide="file-text" class="w-4 h-4 text-amber-600"></i> Facturación & Vouchers
                                 </div>
                             </div>
                         </div>
@@ -878,7 +745,7 @@
                     </div>
 
                     <!-- Content: Health & Beauty -->
-                    <div id="content-health" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
+                    <div id="content-health" class="tab-content grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
                         <div class="space-y-5">
                             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
                                 <i data-lucide="heart-pulse" class="w-4 h-4"></i>
@@ -936,60 +803,7 @@
                         </div>
                     </div>
 
-                    <!-- Content: Retail -->
-                    <div id="content-retail" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
-                        <div class="space-y-5">
-                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold">
-                                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-                                <span>Solución Comercio & Retail</span>
-                            </div>
-                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
-                                Punto de Venta Ultra Rápido, Stock Real y Arqueo de Caja
-                            </h3>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Realiza cobros ágiles en mostrador, emite comprobantes fiscales o digitales, gestiona variantes de productos y abre/cierra caja diariamente.
-                            </p>
-                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
-                                    <span>Punto de venta táctil con lector de código de barras</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
-                                    <span>Inventario multisede con control de faltantes</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
-                                    <span>Fidelización de clientes y promociones de marketing</span>
-                                </li>
-                            </ul>
-                            <div class="pt-2">
-                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-600 transition shadow-md">
-                                    <span>Configurar Comercio</span>
-                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
-                                <span>Módulos Activos Recomendados</span>
-                                <span class="text-indigo-700 font-bold">3 Módulos</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="package" class="w-4 h-4 text-indigo-600"></i> Inventario Stock
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="tag" class="w-4 h-4 text-indigo-600"></i> Promociones
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
-                                    <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i> Historial de Clientes VIP
-                                </div>
-                            </div>
-                        </div>
                     </div>
-
-                </div>
 
             </div>
         </section>
@@ -1255,7 +1069,7 @@
                             <i id="faq-icon-1" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
                         </button>
                         <div id="faq-ans-1" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                            Durante el registro o en cualquier momento desde tu panel de configuración, puedes seleccionar el perfil de tu empresa (Marketing, Inmobiliaria, Viajes, Estética, Consultoría o Retail). El sistema activará automáticamente los módulos, nomenclaturas y flujos recomendados para tu negocio.
+                            Durante el registro o en cualquier momento desde tu panel de configuración, puedes seleccionar el perfil de tu empresa (Salud, Estética & Spa, Consultoría o Agencia Digital). El sistema activará automáticamente los módulos, nomenclaturas y flujos recomendados para tu negocio.
                         </div>
                     </div>
 
@@ -1361,8 +1175,6 @@
                 <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Perfiles de Agencia</h4>
                 <ul class="space-y-1.5 text-slate-600">
                     <li><a href="#soluciones" onclick="switchTab('marketing')" class="hover:text-brand-700 transition">Agencia Digital & Marketing</a></li>
-                    <li><a href="#soluciones" onclick="switchTab('realestate')" class="hover:text-brand-700 transition">Inmobiliaria & Bienes Raíces</a></li>
-                    <li><a href="#soluciones" onclick="switchTab('travel')" class="hover:text-brand-700 transition">Agencia de Viajes</a></li>
                     <li><a href="#soluciones" onclick="switchTab('consulting')" class="hover:text-brand-700 transition">Consultoría & Asesorías</a></li>
                     <li><a href="#soluciones" onclick="switchTab('health')" class="hover:text-brand-700 transition">Salud & Estética</a></li>
                 </ul>

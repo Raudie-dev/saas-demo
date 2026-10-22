@@ -55,14 +55,15 @@ class LoyaltyCard(TimeStampedModel):
 
 class EmailCampaign(TimeStampedModel):
     AUDIENCE_CHOICES = [
-        ('ALL', 'Todos los Clientes'),
+        ('ALL', 'Todos los Clientes con Email'),
         ('VIP', 'Clientes VIP / Frecuentes'),
-        ('INACTIVE', 'Clientes Inactivos'),
-        ('CUSTOM', 'Personalizado')
+        ('INACTIVE', 'Clientes Inactivos (+60 días)'),
+        ('PROSPECT', 'Prospectos Registrados'),
     ]
     STATUS_CHOICES = [
         ('DRAFT', 'Borrador'),
-        ('SENT', 'Enviado')
+        ('SENT', 'Enviado'),
+        ('FAILED', 'Error de Envío')
     ]
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="email_campaigns")
     name = models.CharField(max_length=150, verbose_name="Nombre de la Campaña")
@@ -71,6 +72,13 @@ class EmailCampaign(TimeStampedModel):
     audience = models.CharField(max_length=20, choices=AUDIENCE_CHOICES, default='ALL', verbose_name="Audiencia Objetivo")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT', verbose_name="Estado")
     sent_at = models.DateTimeField(null=True, blank=True)
+    recipients_count = models.PositiveIntegerField(default=0, verbose_name="Destinatarios Enviados")
+    last_error = models.TextField(blank=True, null=True, verbose_name="Detalle de Error")
+
+    class Meta:
+        verbose_name = "Campaña de Email"
+        verbose_name_plural = "Campañas de Email"
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"Campaña: {self.name} ({self.get_status_display()})"

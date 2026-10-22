@@ -1,43 +1,380 @@
 {% extends 'base.html' %}
 
-{% block title %}Email Marketing - BusinessOS{% endblock %}
+{% block title %}Campañas de Email Marketing - BusinessOS{% endblock %}
 {% block header_title %}Email Marketing{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    <div class="glass-card bg-white p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-200 shadow-sm">
-        <div>
-            <h3 class="font-bold text-slate-900 text-lg font-display">Campañas de Email</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Envía promociones y comunicaciones a tus clientes.</p>
-        </div>
-        <div>
-            <a href="{% url 'email_campaign_create' %}" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm flex items-center gap-2 shadow-md transition">
-                <i data-lucide="plus" class="w-4 h-4"></i> Crear Campaña
+<div class="space-y-6 max-w-7xl mx-auto pb-10">
+
+    <!-- Top Navigation & Header -->
+    <div class="flex items-center gap-2 text-xs font-semibold text-slate-500">
+        <a href="{% url 'marketing_dashboard' %}" class="hover:text-rose-900 transition flex items-center gap-1">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+            <span>Volver a Promociones & Fidelización</span>
+        </a>
+    </div>
+
+    <!-- Header Card -->
+    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="space-y-1.5">
+                <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                    <i data-lucide="mail" class="w-3 h-3"></i>
+                    <span>Automatización de Correos</span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900 font-display tracking-tight">
+                    Campañas de Email Marketing
+                </h1>
+                <p class="text-xs text-slate-500 max-w-2xl">
+                    Envía novedades, promociones y mensajes personalizados a tus pacientes y clientes por correo electrónico.
+                </p>
+            </div>
+
+            <a href="{% url 'email_campaign_create' %}" 
+               class="h-10 px-4 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition shrink-0">
+                <i data-lucide="plus-circle" class="w-4 h-4 text-rose-300"></i>
+                <span>Nueva Campaña</span>
             </a>
         </div>
     </div>
 
-    <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-        <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-            <h4 class="font-bold text-slate-900 text-base font-display">Historial de Campañas</h4>
+    <!-- Metrics Row -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div class="space-y-1">
+                <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Total Campañas</p>
+                <h3 class="text-xl sm:text-2xl font-black text-slate-900 font-display">{{ total_campaigns }}</h3>
+                <p class="text-[10px] sm:text-[11px] text-slate-400">En borrador e historial</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                <i data-lucide="folder" class="w-5 h-5"></i>
+            </div>
         </div>
-        <div class="p-4 space-y-3">
-            {% for campaign in campaigns %}
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                <div>
-                    <h5 class="font-bold text-slate-900">{{ campaign.name }}</h5>
-                    <p class="text-xs text-slate-500 mt-1">Asunto: {{ campaign.subject }} | Audiencia: {{ campaign.get_audience_display }}</p>
+
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div class="space-y-1">
+                <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Enviadas</p>
+                <h3 class="text-xl sm:text-2xl font-black text-emerald-700 font-display">{{ sent_campaigns }}</h3>
+                <p class="text-[10px] sm:text-[11px] text-emerald-600 font-medium">Disparadas con éxito</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div class="space-y-1">
+                <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Correos Enviados</p>
+                <h3 class="text-xl sm:text-2xl font-black text-indigo-700 font-display">{{ total_sent_emails }}</h3>
+                <p class="text-[10px] sm:text-[11px] text-indigo-500">Destinatarios totales</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
+                <i data-lucide="send" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div class="space-y-1">
+                <p class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Base con Email</p>
+                <h3 class="text-xl sm:text-2xl font-black text-slate-900 font-display">{{ clients_with_email }}</h3>
+                <p class="text-[10px] sm:text-[11px] text-slate-400">Clientes listos en CRM</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0 border border-rose-100">
+                <i data-lucide="users" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <!-- Search -->
+        <form method="GET" class="w-full sm:w-80 relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nombre o asunto..." 
+                   class="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-rose-900 transition">
+            {% if status_filter and status_filter != 'all' %}
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            {% endif %}
+        </form>
+
+        <!-- Status Filter Pills -->
+        <div class="flex items-center gap-1.5 self-start sm:self-auto overflow-x-auto w-full sm:w-auto">
+            <a href="?status=all{% if q %}&q={{ q }}{% endif %}" 
+               class="px-3 py-1.5 rounded-xl text-xs font-bold transition {% if status_filter == 'all' or not status_filter %}bg-slate-900 text-white shadow-xs{% else %}bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
+                Todas
+            </a>
+            <a href="?status=DRAFT{% if q %}&q={{ q }}{% endif %}" 
+               class="px-3 py-1.5 rounded-xl text-xs font-bold transition {% if status_filter == 'DRAFT' %}bg-slate-900 text-white shadow-xs{% else %}bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
+                Borradores
+            </a>
+            <a href="?status=SENT{% if q %}&q={{ q }}{% endif %}" 
+               class="px-3 py-1.5 rounded-xl text-xs font-bold transition {% if status_filter == 'SENT' %}bg-slate-900 text-white shadow-xs{% else %}bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
+                Enviadas
+            </a>
+        </div>
+    </div>
+
+    <!-- Campaigns List -->
+    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+        
+        <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
                 </div>
-                <div class="flex items-center gap-3">
-                    <span class="px-3 py-1 rounded-full text-xs font-bold {% if campaign.status == 'SENT' %}bg-emerald-100 text-emerald-800{% else %}bg-amber-100 text-amber-800{% endif %}">
-                        {{ campaign.get_status_display }}
-                    </span>
+                <h3 class="font-extrabold text-slate-900 text-base font-display">Historial de Campañas</h3>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                    {{ campaigns|length }}
+                </span>
+            </div>
+        </div>
+
+        <div class="p-5 sm:p-6">
+            {% if campaigns %}
+            <div class="space-y-3.5">
+                {% for c in campaigns %}
+                <div class="p-4 sm:p-5 rounded-2xl bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 transition space-y-3">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        
+                        <!-- Left: Info -->
+                        <div class="space-y-1.5 max-w-2xl">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h4 class="font-bold text-slate-900 text-base font-display">{{ c.name }}</h4>
+                                
+                                <!-- Status Badge -->
+                                {% if c.status == 'SENT' %}
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i data-lucide="check" class="w-3 h-3"></i> Enviada ({{ c.recipients_count }} destinatarios)
+                                </span>
+                                {% elif c.status == 'DRAFT' %}
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Borrador
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                    Error de Envío
+                                </span>
+                                {% endif %}
+
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white text-slate-600 border border-slate-200">
+                                    {{ c.get_audience_display }}
+                                </span>
+                            </div>
+
+                            <p class="text-xs font-medium text-slate-700">
+                                Asunto: <span class="font-bold text-slate-900">"{{ c.subject }}"</span>
+                            </p>
+
+                            <p class="text-[11px] text-slate-500 flex flex-wrap items-center gap-2 pt-0.5">
+                                <span>Creado: {{ c.created_at|date:"d/m/Y H:i" }}</span>
+                                {% if c.sent_at %}
+                                <span>•</span>
+                                <span>Enviado el: <strong class="text-slate-700">{{ c.sent_at|date:"d/m/Y H:i" }}</strong></span>
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <!-- Right: Actions Buttons -->
+                        <div class="flex flex-wrap items-center gap-2 shrink-0">
+                            <!-- Preview button -->
+                            <button type="button" 
+                                    onclick="openPreviewModal('{% url 'email_campaign_preview' c.id %}', '{{ c.name|escapejs }}')"
+                                    class="h-9 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs inline-flex items-center gap-1.5 transition shadow-2xs">
+                                <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-500"></i>
+                                <span>Vista Previa</span>
+                            </button>
+
+                            <!-- Test send button -->
+                            <button type="button" 
+                                    onclick="openTestModal('{% url 'email_campaign_send' c.id %}', '{{ c.name|escapejs }}')"
+                                    class="h-9 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs inline-flex items-center gap-1.5 transition shadow-2xs">
+                                <i data-lucide="send" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                <span>Enviar Prueba</span>
+                            </button>
+
+                            <!-- Send full campaign button -->
+                            <button type="button" 
+                                    onclick="openSendConfirmModal('{% url 'email_campaign_send' c.id %}', '{{ c.name|escapejs }}', '{{ c.get_audience_display|escapejs }}')"
+                                    class="h-9 px-3.5 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs transition">
+                                <i data-lucide="rocket" class="w-3.5 h-3.5 text-rose-300"></i>
+                                <span>{% if c.status == 'SENT' %}Reenviar{% else %}Enviar Campaña{% endif %}</span>
+                            </button>
+
+                            <!-- Edit button -->
+                            <a href="{% url 'email_campaign_edit' c.id %}" 
+                               class="h-9 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs inline-flex items-center gap-1.5 transition shadow-2xs">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-400"></i>
+                            </a>
+
+                            <!-- Delete button -->
+                            <form method="POST" action="{% url 'email_campaign_delete' c.id %}" 
+                                  onsubmit="return confirm('¿Estás seguro de eliminar la campaña {{ c.name }}?')" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="h-9 px-2.5 rounded-xl bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-700 border border-slate-200 transition shadow-2xs">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- Empty state -->
+            <div class="py-14 px-4 text-center space-y-4">
+                <div class="w-16 h-16 rounded-3xl bg-indigo-50 text-indigo-700 flex items-center justify-center mx-auto border border-indigo-100 shadow-xs">
+                    <i data-lucide="mail" class="w-8 h-8"></i>
+                </div>
+                <div class="max-w-xs mx-auto space-y-1.5">
+                    <h4 class="font-bold text-slate-900 text-base font-display">No hay campañas registradas</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Crea tu primera campaña para comunicar promociones, avisos o novedades por email a tus clientes.
+                    </p>
+                </div>
+                <div class="pt-2">
+                    <a href="{% url 'email_campaign_create' %}" 
+                       class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-900 hover:bg-rose-800 transition shadow-sm">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Crear Primera Campaña</span>
+                    </a>
                 </div>
             </div>
-            {% empty %}
-            <p class="text-sm text-slate-500 text-center py-4">No has creado ninguna campaña de email aún.</p>
-            {% endfor %}
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Modal 1: Vista Previa de Correo -->
+<div id="preview-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs hidden">
+    <div class="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div>
+                <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
+                    <i data-lucide="eye" class="w-4 h-4 text-indigo-600"></i>
+                    <span>Vista Previa del Email</span>
+                </h4>
+                <p id="preview-modal-subtitle" class="text-[11px] text-slate-500 mt-0.5"></p>
+            </div>
+            <button type="button" onclick="closePreviewModal()" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 transition">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div class="p-4 flex-1 overflow-auto bg-slate-100/50">
+            <iframe id="preview-iframe" class="w-full h-[500px] rounded-xl border border-slate-200 bg-white"></iframe>
         </div>
     </div>
 </div>
+
+<!-- Modal 2: Enviar Correo de Prueba -->
+<div id="test-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h4 class="font-extrabold text-slate-900 text-sm font-display">Enviar Correo de Prueba</h4>
+                    <p id="test-modal-campaign-name" class="text-xs text-slate-500"></p>
+                </div>
+            </div>
+            <button type="button" onclick="closeTestModal()" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <p class="text-xs text-slate-600 leading-relaxed">
+            Ingresa tu correo para recibir una muestra exacta de cómo lo verán tus clientes antes de hacer el envío masivo:
+        </p>
+
+        <form id="test-form" method="POST" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="is_test" value="true">
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tu Correo Electrónico *</label>
+                <input type="email" name="test_email" required value="{{ request.user.email|default:'' }}" 
+                       placeholder="tu-correo@ejemplo.com"
+                       class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-indigo-600 transition">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeTestModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+                    <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                    <span>Enviar Prueba</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 3: Confirmación de Envío Masivo -->
+<div id="send-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center border border-rose-100 shrink-0">
+                <i data-lucide="rocket" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h4 class="font-extrabold text-slate-900 text-base font-display">¿Confirmar Envío Masivo?</h4>
+                <p id="send-modal-campaign-name" class="text-xs text-slate-500"></p>
+            </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-1">
+            <p><strong>Audiencia Destino:</strong> <span id="send-modal-audience" class="text-slate-900 font-bold"></span></p>
+            <p class="text-[11px] text-slate-500">Se personalizará cada correo con el nombre del cliente y los datos de tu empresa.</p>
+        </div>
+
+        <form id="send-form" method="POST" class="pt-2 flex items-center justify-end gap-2">
+            {% csrf_token %}
+            <button type="button" onclick="closeSendModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+                Cancelar
+            </button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-bold text-xs shadow-sm transition flex items-center gap-2">
+                <i data-lucide="rocket" class="w-4 h-4 text-rose-300"></i>
+                <span>¡Sí, Enviar Ahora!</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openPreviewModal(url, name) {
+        document.getElementById('preview-modal-subtitle').textContent = name;
+        document.getElementById('preview-iframe').src = url;
+        document.getElementById('preview-modal').classList.remove('hidden');
+    }
+    function closePreviewModal() {
+        document.getElementById('preview-modal').classList.add('hidden');
+        document.getElementById('preview-iframe').src = 'about:blank';
+    }
+
+    function openTestModal(actionUrl, name) {
+        document.getElementById('test-form').action = actionUrl;
+        document.getElementById('test-modal-campaign-name').textContent = name;
+        document.getElementById('test-modal').classList.remove('hidden');
+    }
+    function closeTestModal() {
+        document.getElementById('test-modal').classList.add('hidden');
+    }
+
+    function openSendConfirmModal(actionUrl, name, audience) {
+        document.getElementById('send-form').action = actionUrl;
+        document.getElementById('send-modal-campaign-name').textContent = name;
+        document.getElementById('send-modal-audience').textContent = audience;
+        document.getElementById('send-modal').classList.remove('hidden');
+    }
+    function closeSendModal() {
+        document.getElementById('send-modal').classList.add('hidden');
+    }
+</script>
 {% endblock %}

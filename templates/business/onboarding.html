@@ -77,7 +77,7 @@
                     </div>
                 </div>
 
-                <input type="hidden" name="business_type" id="selected_business_type" value="{{ business.business_type|default:'MARKETING' }}">
+                <input type="hidden" name="business_type" id="selected_business_type" value="{{ business.business_type|default:'HEALTH_BEAUTY' }}">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {% for profile in agency_profiles %}
@@ -286,18 +286,12 @@
 
             // Update primary goal placeholder / text
             const goalInput = document.getElementById('primary_goal_input');
-            if (code === 'MARKETING') {
-                goalInput.value = 'Captar clientes, gestionar propuestas y automatizar marketing';
-            } else if (code === 'REAL_ESTATE') {
-                goalInput.value = 'Gestión de prospectos inmobiliarios, visitas y comisiones';
-            } else if (code === 'TRAVEL') {
-                goalInput.value = 'Reservas de paquetes de viaje, itinerarios y facturación';
+            if (code === 'HEALTH_BEAUTY') {
+                goalInput.value = 'Control de citas de pacientes/clientes 24/7, caja registradora POS y comisiones de equipo';
             } else if (code === 'CONSULTING') {
-                goalInput.value = 'Agenda de citas de consultoría, propuestas y facturación';
-            } else if (code === 'HEALTH_BEAUTY') {
-                goalInput.value = 'Control de citas 24/7, caja registradora POS y comisiones';
-            } else if (code === 'RETAIL_OTHER') {
-                goalInput.value = 'Ventas en punto de venta, inventario y facturación';
+                goalInput.value = 'Agenda de citas de consultoría, proyectos de clientes, propuestas y facturación';
+            } else if (code === 'MARKETING') {
+                goalInput.value = 'Tablero de proyectos y entregables, captación de clientes y automatización con IA';
             }
         }
         
@@ -315,16 +309,13 @@
 
         // Initialize default selection on page load
         window.addEventListener('DOMContentLoaded', () => {
-            const currentType = document.getElementById('selected_business_type').value || 'MARKETING';
+            const currentType = document.getElementById('selected_business_type').value || 'HEALTH_BEAUTY';
             
             // Map default modules per type
             const defaultModulesMap = {
-                'MARKETING': ['crm', 'invoicing', 'marketing', 'ai_engine', 'commissions', 'agenda'],
-                'REAL_ESTATE': ['crm', 'agenda', 'commissions', 'invoicing', 'ai_engine'],
-                'TRAVEL': ['crm', 'booking', 'agenda', 'pos', 'invoicing', 'commissions'],
-                'CONSULTING': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine'],
-                'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm'],
-                'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'analytics']
+                'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'marketing', 'invoicing'],
+                'CONSULTING': ['projects', 'crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine', 'marketing'],
+                'MARKETING': ['projects', 'crm', 'invoicing', 'marketing', 'ai_engine', 'commissions', 'booking', 'agenda']
             };
 
             const modules = defaultModulesMap[currentType] || ['crm', 'agenda', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing'];

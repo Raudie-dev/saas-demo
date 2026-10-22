@@ -191,8 +191,8 @@ def public_booking_view(request, business_slug):
         staff_members = StaffMember.objects.filter(business=business, is_active=True)
     
     # Check if business is real estate or has properties module enabled
-    from apps.properties.models import Property
-    is_real_estate = business.is_real_estate and business.is_module_enabled('properties')
+    # from apps.properties.models import Property
+    is_real_estate = False
     
     properties_qs = Property.objects.none()
     properties_catalog_json = "[]"
@@ -405,7 +405,7 @@ def public_booking_view(request, business_slug):
             )
 
             if selected_property:
-                from apps.properties.models import PropertyInquiry
+                # # from apps.properties.models import PropertyInquiry
                 PropertyInquiry.objects.create(
                     business=business,
                     client=client,
@@ -542,7 +542,7 @@ def api_seller_register_view(request, business_slug):
     client.save(update_fields=['notes'])
 
     # Create structured PropertyInquiry
-    from apps.properties.models import PropertyInquiry
+    # # from apps.properties.models import PropertyInquiry
     PropertyInquiry.objects.create(
         business=business,
         client=client,

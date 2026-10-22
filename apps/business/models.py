@@ -5,12 +5,9 @@ from apps.core.models import TimeStampedModel
 
 class Business(TimeStampedModel):
     BUSINESS_TYPE_CHOICES = [
-        ('MARKETING', 'Agencia Digital & Marketing'),
-        ('REAL_ESTATE', 'Agencia Inmobiliaria / Bienes Raíces'),
-        ('TRAVEL', 'Agencia de Viajes & Turismo'),
-        ('CONSULTING', 'Agencia de Consultoría & Servicios'),
         ('HEALTH_BEAUTY', 'Salud, Estética & Spa'),
-        ('RETAIL_OTHER', 'Comercio & Servicios Generales'),
+        ('CONSULTING', 'Agencia de Consultoría & Servicios'),
+        ('MARKETING', 'Agencia Digital & Marketing'),
     ]
 
     name = models.CharField(max_length=200, verbose_name="Nombre del Negocio")
@@ -25,7 +22,7 @@ class Business(TimeStampedModel):
     whatsapp_number = models.CharField(max_length=50, blank=True, null=True, verbose_name="Número de WhatsApp (Opcional)")
     currency = models.CharField(max_length=10, default="$", verbose_name="Símbolo de Moneda")
     branding_color = models.CharField(max_length=20, default="#881337", verbose_name="Color de Marca (Hex)")
-    business_type = models.CharField(max_length=30, choices=BUSINESS_TYPE_CHOICES, default='MARKETING', verbose_name="Tipo de Agencia / Negocio")
+    business_type = models.CharField(max_length=30, choices=BUSINESS_TYPE_CHOICES, default='HEALTH_BEAUTY', verbose_name="Tipo de Agencia / Negocio")
     primary_goal = models.CharField(max_length=255, default="Captar clientes y automatizar ventas", verbose_name="Objetivo Principal")
     appointment_reminder_message = models.TextField(
         default="Hola {client_name}, te recordamos tu cita de *{service}* en *{business}* para el día *{date}* a las *{time}* con *{staff}*. ¡Te esperamos!",
@@ -53,17 +50,14 @@ class Business(TimeStampedModel):
         return self.name
 
     BUSINESS_TYPE_MODULES = {
-        'MARKETING': ['projects', 'crm', 'invoicing', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions'],
-        'REAL_ESTATE': ['properties', 'crm', 'invoicing', 'commissions', 'booking', 'agenda', 'ai_engine', 'marketing'],
         'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'marketing', 'invoicing'],
         'CONSULTING': ['projects', 'crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine', 'marketing'],
-        'TRAVEL': ['travel', 'crm', 'agenda', 'booking', 'invoicing', 'commissions', 'marketing', 'ai_engine', 'pos'],
-        'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'marketing', 'agenda', 'booking'],
+        'MARKETING': ['projects', 'crm', 'invoicing', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions'],
     }
 
     @property
     def is_real_estate(self):
-        return self.business_type == 'REAL_ESTATE'
+        return False
 
     @property
     def is_marketing_agency(self):
@@ -79,21 +73,18 @@ class Business(TimeStampedModel):
 
     @property
     def is_travel(self):
-        return self.business_type == 'TRAVEL'
+        return False
 
     @property
     def is_retail(self):
-        return self.business_type == 'RETAIL_OTHER'
+        return False
 
     @property
     def business_entity_label(self):
         labels = {
-            'MARKETING': 'la Agencia',
-            'REAL_ESTATE': 'la Inmobiliaria',
             'HEALTH_BEAUTY': 'la Clínica / Spa',
             'CONSULTING': 'la Consultora',
-            'TRAVEL': 'la Agencia de Viajes',
-            'RETAIL_OTHER': 'la Empresa',
+            'MARKETING': 'la Agencia',
         }
         return labels.get(self.business_type, 'la Empresa')
 

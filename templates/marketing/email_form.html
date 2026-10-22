@@ -1,43 +1,171 @@
 {% extends 'base.html' %}
 
-{% block title %}Crear Campaña de Email - BusinessOS{% endblock %}
-{% block header_title %}Nueva Campaña de Email{% endblock %}
+{% block title %}{% if campaign %}Editar Campaña{% else %}Crear Campaña de Email{% endif %} - BusinessOS{% endblock %}
+{% block header_title %}Email Marketing{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-    <div class="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-        <h3 class="font-bold text-slate-900 text-lg font-display">Detalles de la Campaña</h3>
-        <a href="{% url 'email_marketing_list' %}" class="text-xs font-semibold text-slate-500 hover:text-slate-900">Volver</a>
+<div class="max-w-4xl mx-auto space-y-6 pb-12">
+
+    <!-- Back Button -->
+    <div class="flex items-center justify-between">
+        <a href="{% url 'email_marketing_list' %}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Volver a Campañas</span>
+        </a>
+
+        {% if campaign %}
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold {% if campaign.status == 'SENT' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
+            Estado: {{ campaign.get_status_display }}
+        </span>
+        {% endif %}
     </div>
-    <form method="POST" class="p-6 space-y-5">
-        {% csrf_token %}
-        <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre de Referencia *</label>
-            <input type="text" name="name" required placeholder="Ej: Promo Verano 2026" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-600 focus:bg-white transition">
-        </div>
-        <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Audiencia / Destinatarios</label>
-            <select name="audience" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-600 focus:bg-white transition">
-                {% for code, label in audiences %}
-                <option value="{{ code }}">{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Asunto del Email *</label>
-            <input type="text" name="subject" required placeholder="Ej: ¡Aprovecha nuestros descuentos!" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-600 focus:bg-white transition">
-        </div>
-        <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Cuerpo del Mensaje *</label>
-            <textarea name="body" rows="6" required placeholder="Escribe el contenido de tu correo aquí..." class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-600 focus:bg-white transition"></textarea>
-            <p class="text-[11px] text-slate-500 mt-1">Soporta texto y variables básicas como {client_name}.</p>
-        </div>
+
+    <!-- Main Form Card -->
+    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
         
-        <div class="pt-4 border-t border-slate-100 flex justify-end">
-            <button type="submit" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md transition flex items-center gap-2">
-                <i data-lucide="save" class="w-4 h-4"></i> Guardar Borrador
-            </button>
+        <!-- Card Header -->
+        <div class="p-6 sm:p-7 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100 shrink-0">
+                    <i data-lucide="mail-plus" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h2 class="font-extrabold text-slate-900 text-lg font-display">
+                        {% if campaign %}Editar Campaña de Email{% else %}Redactar Nueva Campaña{% endif %}
+                    </h2>
+                    <p class="text-xs text-slate-500">Completa los campos para preparar o enviar tu comunicado masivo.</p>
+                </div>
+            </div>
         </div>
-    </form>
+
+        <!-- Form -->
+        <form method="POST" id="campaign-form" class="p-6 sm:p-8 space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                
+                <!-- Nombre de Referencia -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Nombre Interno de la Campaña *</label>
+                    <input type="text" name="name" required 
+                           value="{% if campaign %}{{ campaign.name }}{% elif form_data %}{{ form_data.name|default:'' }}{% endif %}"
+                           placeholder="Ej: Promo Tratamientos de Primavera, Recordatorio de Chequeo..." 
+                           class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:border-rose-900 focus:bg-white transition">
+                    <p class="text-[11px] text-slate-400 mt-1">Solo visible para tu equipo de administración.</p>
+                </div>
+
+                <!-- Audiencia Objetivo -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Segmento de Clientes / Audiencia *</label>
+                    <select name="audience" id="audience-select" 
+                            class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:border-rose-900 focus:bg-white transition">
+                        <option value="ALL" {% if campaign.audience == 'ALL' or form_data.audience == 'ALL' %}selected{% endif %}>
+                            👥 Todos los Clientes ({{ audience_counts.ALL }} con email)
+                        </option>
+                        <option value="VIP" {% if campaign.audience == 'VIP' or form_data.audience == 'VIP' %}selected{% endif %}>
+                            ⭐ Clientes VIP / Frecuentes ({{ audience_counts.VIP }} con email)
+                        </option>
+                        <option value="INACTIVE" {% if campaign.audience == 'INACTIVE' or form_data.audience == 'INACTIVE' %}selected{% endif %}>
+                            ⏳ Clientes Inactivos +60 días ({{ audience_counts.INACTIVE }} con email)
+                        </option>
+                        <option value="PROSPECT" {% if campaign.audience == 'PROSPECT' or form_data.audience == 'PROSPECT' %}selected{% endif %}>
+                            🎯 Prospectos Registrados ({{ audience_counts.PROSPECT }} con email)
+                        </option>
+                    </select>
+                    <p class="text-[11px] text-slate-400 mt-1">Filtra automáticamente a los clientes del CRM que tienen correo válido.</p>
+                </div>
+
+            </div>
+
+            <!-- Asunto del Email -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">Asunto del Correo (Subject) *</label>
+                <div class="relative">
+                    <input type="text" name="subject" id="campaign-subject" required 
+                           value="{% if campaign %}{{ campaign.subject }}{% elif form_data %}{{ form_data.subject|default:'' }}{% endif %}"
+                           placeholder="Ej: ¡Hola {client_name}! Tenemos una sorpresa especial para ti en {business}" 
+                           class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:border-rose-900 focus:bg-white transition">
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Es lo primero que leerán en su bandeja de entrada. Puedes incluir <code>{client_name}</code>.</p>
+            </div>
+
+            <!-- Variables Dinámicas Helper Chips -->
+            <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 space-y-2">
+                <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+                    <span>Variables Dinámicas Personalizadas:</span>
+                </div>
+                <p class="text-[11px] text-slate-500">Haz clic en cualquier etiqueta para insertarla en el mensaje donde esté el cursor:</p>
+                <div class="flex flex-wrap items-center gap-2 pt-1">
+                    <button type="button" onclick="insertVariable('{client_name}')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-900 border border-slate-200 text-xs font-mono font-bold transition shadow-2xs">
+                        {client_name} <span class="text-[10px] text-slate-400 font-sans font-normal">(Nombre)</span>
+                    </button>
+                    <button type="button" onclick="insertVariable('{client_fullname}')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-900 border border-slate-200 text-xs font-mono font-bold transition shadow-2xs">
+                        {client_fullname} <span class="text-[10px] text-slate-400 font-sans font-normal">(Nombre Completo)</span>
+                    </button>
+                    <button type="button" onclick="insertVariable('{business}')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-mono font-bold transition shadow-2xs">
+                        {business} <span class="text-[10px] text-slate-400 font-sans font-normal">({{ business.name }})</span>
+                    </button>
+                    <button type="button" onclick="insertVariable('{phone}')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-mono font-bold transition shadow-2xs">
+                        {phone} <span class="text-[10px] text-slate-400 font-sans font-normal">(Teléfono)</span>
+                    </button>
+                    <button type="button" onclick="insertVariable('{date}')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-mono font-bold transition shadow-2xs">
+                        {date} <span class="text-[10px] text-slate-400 font-sans font-normal">(Fecha)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cuerpo del Mensaje -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">Contenido del Mensaje *</label>
+                <textarea name="body" id="campaign-body" rows="9" required 
+                          placeholder="Hola {client_name},&#10;&#10;Queremos agradecerte por confiar en {business}. Esta semana tenemos promociones exclusivas para ti...&#10;&#10;¡Te esperamos pronto!"
+                          class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-4 text-xs sm:text-sm focus:outline-none focus:border-rose-900 focus:bg-white transition leading-relaxed">{% if campaign %}{{ campaign.body }}{% elif form_data %}{{ form_data.body|default:'' }}{% endif %}</textarea>
+                <p class="text-[11px] text-slate-400 mt-1">Los saltos de línea se formatearán automáticamente como párrafos legibles en el correo final.</p>
+            </div>
+
+            <!-- Action Buttons Footer -->
+            <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <a href="{% url 'email_marketing_list' %}" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 text-center transition">
+                    Cancelar
+                </a>
+
+                <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                    <!-- Guardar Borrador -->
+                    <button type="submit" name="action" value="save_draft" 
+                            class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs inline-flex items-center justify-center gap-2 transition shadow-xs">
+                        <i data-lucide="save" class="w-4 h-4 text-slate-500"></i>
+                        <span>Guardar Borrador</span>
+                    </button>
+
+                    <!-- Guardar y Enviar -->
+                    <button type="submit" name="action" value="send_now" 
+                            onclick="return confirm('¿Deseas enviar esta campaña ahora mismo a la audiencia seleccionada?')"
+                            class="flex-1 sm:flex-initial px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-800 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition">
+                        <i data-lucide="rocket" class="w-4 h-4 text-rose-300"></i>
+                        <span>Guardar & Enviar Ahora</span>
+                    </button>
+                </div>
+            </div>
+
+        </form>
+
+    </div>
+
 </div>
+
+<script>
+    function insertVariable(variableText) {
+        const textarea = document.getElementById('campaign-body');
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+
+        textarea.value = text.substring(0, start) + variableText + text.substring(end);
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = start + variableText.length;
+    }
+</script>
 {% endblock %}

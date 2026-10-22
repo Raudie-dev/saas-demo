@@ -22,7 +22,7 @@ def client_list_view(request):
     query = request.GET.get('q', '')
     real_estate_filter = request.GET.get('re_filter', 'all')
     
-    is_real_estate = business.is_real_estate and business.is_module_enabled('properties')
+    is_real_estate = False
     
     clients = Client.objects.filter(business=business).order_by('-created_at') if business else []
     if is_real_estate:
@@ -205,7 +205,7 @@ def client_detail_view(request, client_id):
     allow_editing_history = getattr(business, 'allow_editing_client_history', True)
     
     # Real estate intelligence
-    is_real_estate = business.is_real_estate and business.is_module_enabled('properties')
+    is_real_estate = False
     
     seller_inquiries = []
     buyer_inquiries = []
@@ -217,7 +217,7 @@ def client_detail_view(request, client_id):
     legacy_seller_requests = []
     
     if is_real_estate:
-        from apps.properties.models import Property, PropertyInquiry
+        # from apps.properties.models import Property, PropertyInquiry
         owned_properties = client.owned_properties.select_related('agent').order_by('-created_at')
         seller_inquiries = client.property_inquiries.filter(inquiry_type='SELLER').select_related('agent').order_by('-created_at')
         buyer_inquiries = client.property_inquiries.filter(inquiry_type='BUYER').select_related('property', 'agent').order_by('-created_at')
@@ -255,7 +255,7 @@ def add_client_property_inquiry_view(request, client_id):
     client = get_object_or_404(Client, id=client_id, business=business)
     
     if request.method == 'POST':
-        from apps.properties.models import Property, PropertyInquiry
+        # from apps.properties.models import Property, PropertyInquiry
         inquiry_type = request.POST.get('inquiry_type', 'BUYER').strip()
         operation_type = request.POST.get('operation_type', 'Venta').strip()
         property_type = request.POST.get('property_type', 'Departamento').strip()
@@ -324,7 +324,7 @@ def update_property_inquiry_status_view(request, inquiry_id):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    from apps.properties.models import PropertyInquiry
+    # from apps.properties.models import PropertyInquiry
     inquiry = get_object_or_404(PropertyInquiry, id=inquiry_id, business=business)
     
     if request.method == 'POST':
@@ -347,7 +347,7 @@ def delete_property_inquiry_view(request, inquiry_id):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    from apps.properties.models import PropertyInquiry
+    # from apps.properties.models import PropertyInquiry
     inquiry = get_object_or_404(PropertyInquiry, id=inquiry_id, business=business)
     client_id = inquiry.client.id
     
