@@ -26,7 +26,8 @@ class UserRolesAndPermissionsTestCase(TestCase):
         self.business = Business.objects.create(
             name="Clínica Estética Demo",
             slug="clinica-estetica-demo",
-            currency="USD"
+            currency="USD",
+            business_type="HEALTH_BEAUTY"
         )
 
         # Plan with starter modules (agenda, pos, commissions) and max_users=2
@@ -75,9 +76,9 @@ class UserRolesAndPermissionsTestCase(TestCase):
 
         # Ensure default roles
         self.roles = ensure_default_profiles(self.business)
-        self.role_admin = UserProfileRole.objects.get(business=self.business, name="Administrador de Clínica")
-        self.role_professional = UserProfileRole.objects.get(business=self.business, name="Profesional / Especialista")
-        self.role_reception = UserProfileRole.objects.get(business=self.business, name="Recepción & Caja")
+        self.role_admin = UserProfileRole.objects.get(business=self.business, name="Administrador")
+        self.role_professional = UserProfileRole.objects.get(business=self.business, name="Profesional")
+        self.role_reception = UserProfileRole.objects.get(business=self.business, name="Recepción")
 
         # Professional User (linked to staff_a)
         self.prof_user = User.objects.create_user(
@@ -508,4 +509,48 @@ class UserRolesAndPermissionsTestCase(TestCase):
 
         self.assertEqual(payment.status, 'APPROVED')
         self.assertEqual(self.subscription.status, 'ACTIVE')
+
+    def test_user_delete_removes_or_deactivates_staff_from_selects(self):
+        """Verify that when a user is deleted, their staff profile is deleted/deactivated and does not appear in active selects."""
+        self.client.login(username="owner@demo.com", password="password123")
+        new_user = User.objects.create_user(
+            username="doctor_test@demo.com",
+            email="doctor_test@demo.com",
+            password="password123",
+            business=self.business,
+            role="PROFESSIONAL"
+        )
+        staff = StaffMember.objects.create(
+            business=self.business,
+            user=new_user,
+            first_name="Dr. Test",
+            last_name="Especialista",
+            is_active=True
+        )
+
+        # Deleting user with delete_staff_completely=1
+        res = self.client.post(reverse('user_delete', args=[new_user.id]), {'delete_staff_completely': '1'})
+        self.assertEqual(res.status_code, 302)
+
+        # User must be completely deleted
+        self.assertFalse(User.objects.filter(id=new_user.id).exists())
+
+        # Staff must either be deleted or deactivated
+        active_staff = StaffMember.objects.filter(business=self.business, is_active=True)
+        self.assertNotIn(staff, active_staff)
+        self.assertFalse(StaffMember.objects.filter(id=staff.id).exists())
+
+    def test_staff_delete_view(self):
+        """Verify that an administrator can delete a staff member from /business/equipo/."""
+        self.client.login(username="owner@demo.com", password="password123")
+        staff = StaffMember.objects.create(
+            business=self.business,
+            first_name="Staff",
+            last_name="AEliminar",
+            is_active=True
+        )
+        res = self.client.post(reverse('staff_delete', args=[staff.id]), {'force_delete': '1'})
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(StaffMember.objects.filter(id=staff.id).exists())
+
         self.assertGreaterEqual(self.subscription.expiration_date, timezone.now().date() + datetime.timedelta(days=30))

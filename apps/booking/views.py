@@ -192,11 +192,11 @@ def public_booking_view(request, business_slug):
     
     # Check if business is real estate or has properties module enabled
     from apps.properties.models import Property
-    is_real_estate = (business.business_type == 'REAL_ESTATE') or business.is_module_enabled('properties') or Property.objects.filter(business=business).exists()
+    is_real_estate = business.is_real_estate and business.is_module_enabled('properties')
     
     properties_qs = Property.objects.none()
     properties_catalog_json = "[]"
-    if is_real_estate or business.is_module_enabled('properties'):
+    if is_real_estate:
         properties_qs = Property.objects.filter(business=business, status='AVAILABLE').order_by('-is_featured', '-created_at')
         properties_catalog_json = json.dumps([
             {

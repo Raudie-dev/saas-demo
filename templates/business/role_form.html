@@ -91,7 +91,7 @@
                                 🔒 Solo sus propias citas asignadas (Recomendado para Profesionales)
                             </option>
                             <option value="ALL" {% if not role or role.scope_appointments == 'ALL' %}selected{% endif %}>
-                                🌐 Todas las citas de la clínica (Recomendado para Recepción y Admin)
+                                🌐 Todas las citas de {{ business_entity_label|default:'la empresa' }} (Recomendado para Recepción y Admin)
                             </option>
                         </select>
                         <p class="text-[11px] text-slate-500 mt-1">Con "Solo sus citas", el usuario únicamente verá los turnos asignados a su especialista.</p>
@@ -142,7 +142,7 @@
                                class="w-4 h-4 text-rose-900 rounded border-slate-300 focus:ring-rose-900">
                         <div>
                             <span class="text-xs font-bold text-slate-900 block">Permitir Configurar Empresa y Gestionar Usuarios</span>
-                            <span class="text-[11px] text-slate-500 block">Control de sucursales, métodos de pago, usuarios, roles y datos de la clínica.</span>
+                            <span class="text-[11px] text-slate-500 block">Control de sucursales, métodos de pago, usuarios, roles y datos de {{ business_entity_label|default:'la empresa' }}.</span>
                         </div>
                     </label>
 

@@ -6,7 +6,7 @@ def business_context(request):
     if not business and hasattr(request, 'user') and request.user.is_authenticated and getattr(request.user, 'business', None):
         business = request.user.business
 
-    all_module_keys = ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties', 'projects']
+    all_module_keys = ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties', 'projects', 'travel']
     modules_enabled = {}
     
     user = getattr(request, 'user', None)
@@ -38,6 +38,13 @@ def business_context(request):
         'business_type_display': business.get_business_type_display() if business else 'Agencia',
         'is_real_estate': business.is_real_estate if business else False,
         'is_marketing_agency': business.is_marketing_agency if business else False,
+        'is_health_beauty': business.is_health_beauty if business else False,
+        'is_consulting': business.is_consulting if business else False,
+        'is_travel': business.is_travel if business else False,
+        'is_retail': business.is_retail if business else False,
+        'business_entity_label': business.business_entity_label if business else 'la Empresa',
+        'client_label_singular': business.client_label_singular if business else 'Cliente',
+        'client_label_plural': business.client_label_plural if business else 'Clientes',
         'user_can_charge_pos': can_charge_pos,
         'user_can_view_financial_reports': can_view_financial_reports,
         'user_can_manage_settings': can_manage_settings,

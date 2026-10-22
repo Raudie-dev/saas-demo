@@ -61,9 +61,21 @@
                         </div>
                         <div class="min-w-0 flex-1">
                             <h3 class="font-bold text-slate-900 text-base font-display leading-tight truncate">{{ staff.full_name }}</h3>
-                            <span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-900 border border-rose-200 mt-1 mb-1.5 truncate max-w-full">
-                                {{ staff.role_title }}
-                            </span>
+                            <div class="flex items-center gap-1.5 mt-1 mb-1.5 flex-wrap">
+                                <span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-900 border border-rose-200 truncate max-w-full">
+                                    {{ staff.role_title }}
+                                </span>
+                                {% if not staff.is_active %}
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                                    Inactivo
+                                </span>
+                                {% endif %}
+                                {% if not staff.user %}
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                                    Sin usuario
+                                </span>
+                                {% endif %}
+                            </div>
                             <div class="text-xs text-slate-500 space-y-1">
                                 <div class="flex items-center gap-1.5 truncate">
                                     <span class="w-3 text-center shrink-0">📧</span>
@@ -79,12 +91,27 @@
                         </div>
                     </div>
                     
-                    <!-- Quick Edit Button (Top Right) -->
-                    <a href="{% url 'staff_edit' staff.id %}" title="Editar profesional"
-                       class="h-9 w-9 sm:h-9 sm:w-auto sm:px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs inline-flex items-center justify-center gap-1.5 shrink-0 shadow-2xs transition">
-                        <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-600"></i>
-                        <span class="hidden sm:inline">Editar</span>
-                    </a>
+                    <!-- Quick Actions (Top Right) -->
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <a href="{% url 'staff_edit' staff.id %}" title="Editar profesional"
+                           class="h-9 w-9 sm:h-9 sm:w-auto sm:px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs inline-flex items-center justify-center gap-1.5 shrink-0 shadow-2xs transition cursor-pointer">
+                            <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-600"></i>
+                            <span class="hidden sm:inline">Editar</span>
+                        </a>
+                        {% if not staff.user or staff.user.role != 'OWNER' %}
+                        <form method="POST" action="{% url 'staff_delete' staff.id %}"
+                              data-confirm="¿Estás seguro de que deseas eliminar al profesional '{{ staff.full_name }}'? Ya no aparecerá en ningún selector ni en la agenda."
+                              data-confirm-title="Eliminar Profesional"
+                              data-confirm-btn="Sí, Eliminar">
+                            {% csrf_token %}
+                            <input type="hidden" name="force_delete" value="1">
+                            <button type="submit" title="Eliminar profesional"
+                                    class="h-9 w-9 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 inline-flex items-center justify-center transition cursor-pointer">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <!-- Salary & Commissions Summary Grid -->

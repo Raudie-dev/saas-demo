@@ -72,8 +72,32 @@ def dashboard_view(request):
     
     # Clientes totales y Alertas de Stock
     total_clients = Client.objects.filter(business=business).count()
-    low_stock_products = Product.objects.filter(business=business, stock__lte=5)
+    low_stock_products = Product.objects.filter(business=business, stock__lte=5) if business.is_module_enabled('inventory') else Product.objects.none()
     
+    # Proyectos activos si el módulo está habilitado
+    active_projects = []
+    active_projects_count = 0
+    if business.is_module_enabled('projects'):
+        try:
+            from apps.projects.models import Project
+            active_projects_qs = Project.objects.filter(business=business).exclude(status__in=['COMPLETED', 'CANCELLED'])
+            active_projects_count = active_projects_qs.count()
+            active_projects = list(active_projects_qs.select_related('client').order_by('-updated_at')[:5])
+        except Exception:
+            pass
+
+    # Propiedades activas si es inmobiliaria
+    active_properties = []
+    active_properties_count = 0
+    if business.is_module_enabled('properties'):
+        try:
+            from apps.properties.models import Property
+            active_props_qs = Property.objects.filter(business=business, status='AVAILABLE')
+            active_properties_count = active_props_qs.count()
+            active_properties = list(active_props_qs.order_by('-is_featured', '-created_at')[:5])
+        except Exception:
+            pass
+
     # Ocupación de Agenda %
     total_staff_count = StaffMember.objects.filter(business=business, is_active=True).count()
     max_daily_capacity = (total_staff_count * 8) if total_staff_count > 0 else 1
@@ -90,6 +114,10 @@ def dashboard_view(request):
         'total_clients': total_clients,
         'low_stock_count': low_stock_products.count(),
         'low_stock_products': low_stock_products,
+        'active_projects': active_projects,
+        'active_projects_count': active_projects_count,
+        'active_properties': active_properties,
+        'active_properties_count': active_properties_count,
         'agenda_occupancy_pct': agenda_occupancy_pct,
     }
     
@@ -223,7 +251,7 @@ def get_filtered_analytics_data(business, request):
     payment_methods_chart_colors = [palette[i % len(palette)] for i in range(len(pm_labels))]
 
     # Staff Performance
-    staff_reports = StaffMember.objects.filter(business=business)
+    staff_reports = StaffMember.objects.filter(business=business, is_active=True)
     if staff_id:
         staff_reports = staff_reports.filter(id=staff_id)
     

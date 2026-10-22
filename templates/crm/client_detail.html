@@ -571,9 +571,9 @@
             <div>
                 <h3 class="font-bold text-slate-900 text-lg font-display flex items-center gap-2">
                     <i data-lucide="file-text" class="w-5 h-5 text-brand-700 shrink-0"></i>
-                    <span>{% if is_real_estate %}Anotaciones & Seguimiento Inmobiliario{% else %}Anotaciones por Servicio / Tratamiento{% endif %}</span>
+                    <span>{% if is_real_estate %}Anotaciones & Seguimiento Inmobiliario{% elif is_health_beauty %}Anotaciones por Servicio / Tratamiento{% else %}Anotaciones & Historial de Servicios{% endif %}</span>
                 </h3>
-                <p class="text-xs text-slate-500">{% if is_real_estate %}Registro de negociaciones, acuerdos, contraofertas y observaciones de visitas con el cliente{% else %}Fórmulas técnicas, observaciones de atención y detalles registrados por sesión{% endif %}</p>
+                <p class="text-xs text-slate-500">{% if is_real_estate %}Registro de negociaciones, acuerdos, contraofertas y observaciones de visitas con el cliente{% elif is_health_beauty %}Fórmulas técnicas, observaciones de atención y detalles registrados por sesión{% else %}Registro de avances, especificaciones técnicas y acuerdos de entrega con el cliente{% endif %}</p>
             </div>
             {% if allow_editing_history %}
             <button onclick="document.getElementById('service-note-form-modal').classList.toggle('hidden')" class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-brand-900 border border-rose-200 text-xs font-bold flex items-center gap-2 transition">
@@ -588,8 +588,8 @@
             {% csrf_token %}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1">
-                    <label class="text-[11px] font-bold text-slate-700 uppercase">{% if is_real_estate %}Tema / Operación de Seguimiento{% else %}Servicio / Tratamiento Realizado{% endif %}</label>
-                    <input type="text" name="service_name" placeholder="{% if is_real_estate %}Ej: Negociación de Oferta / Visita a Departamento / Tasación{% else %}Ej: Consultoría Digital / Corte & Peinado / Tratamiento Facial{% endif %}" required class="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
+                    <label class="text-[11px] font-bold text-slate-700 uppercase">{% if is_real_estate %}Tema / Operación de Seguimiento{% elif is_health_beauty %}Servicio / Tratamiento Realizado{% else %}Servicio / Proyecto / Entregable{% endif %}</label>
+                    <input type="text" name="service_name" placeholder="{% if is_real_estate %}Ej: Negociación de Oferta / Visita a Departamento / Tasación{% elif is_marketing_agency %}Ej: Campaña Publicitaria / Estrategia Redes / Diseño Web{% elif is_health_beauty %}Ej: Limpieza Facial / Masaje / Tratamiento Capilar{% else %}Ej: Consultoría / Asesoría / Servicio Especializado{% endif %}" required class="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
                 </div>
                 <div class="space-y-1">
                     <label class="text-[11px] font-bold text-slate-700 uppercase">Vincular a Cita / Visita (Opcional)</label>
@@ -603,7 +603,7 @@
             </div>
             <div class="space-y-1">
                 <label class="text-[11px] font-bold text-slate-700 uppercase">Detalle y Anotaciones</label>
-                <textarea name="content" rows="4" placeholder="{% if is_real_estate %}Registra acuerdos de visita, contraofertas del comprador, condiciones del propietario o requerimientos acordados...{% else %}Registra fórmulas técnicas, avances del proyecto, observaciones de la sesión o recomendaciones para el cliente...{% endif %}" required class="w-full text-xs p-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"></textarea>
+                <textarea name="content" rows="4" placeholder="{% if is_real_estate %}Registra acuerdos de visita, contraofertas del comprador, condiciones del propietario o requerimientos acordados...{% elif is_health_beauty %}Registra fórmulas técnicas, productos aplicados, observaciones de la sesión o recomendaciones para el paciente...{% else %}Registra avances del trabajo, especificaciones técnicas, acuerdos de la reunión o entregables completados...{% endif %}" required class="w-full text-xs p-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"></textarea>
             </div>
             <div class="flex justify-end gap-3 pt-1">
                 <button type="button" onclick="document.getElementById('service-note-form-modal').classList.add('hidden')" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">
@@ -633,7 +633,7 @@
                 <div class="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200/50">
                     <span>Registrado por: <strong class="text-slate-700">{{ note.author }}</strong></span>
                     {% if allow_editing_history %}
-                    <a href="{% url 'delete_client_service_note' note.id %}" onclick="return confirm('¿Eliminar esta anotación?')" class="text-rose-700 hover:text-rose-900 font-bold opacity-0 group-hover:opacity-100 transition">
+                    <a href="{% url 'delete_client_service_note' note.id %}" data-confirm="¿Estás seguro de que deseas eliminar esta anotación del historial?" data-confirm-title="Eliminar Anotación" data-confirm-btn="Sí, Eliminar" class="text-rose-700 hover:text-rose-900 font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer">
                         Eliminar
                     </a>
                     {% endif %}
@@ -763,7 +763,7 @@
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2 leading-snug">
                 <i data-lucide="bookmark" class="w-5 h-5 text-amber-600 shrink-0"></i>
-                <span>Notas & Observaciones Generales del Paciente / Cliente</span>
+                <span>Notas & Observaciones Generales del {% if is_health_beauty %}Paciente / Cliente{% else %}Cliente{% endif %}</span>
             </h3>
             <button type="button" onclick="document.getElementById('edit-general-notes-form').classList.toggle('hidden')" class="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0">
                 <i data-lucide="edit-3" class="w-3.5 h-3.5 shrink-0"></i> Editar / Agregar Observaciones
@@ -774,7 +774,7 @@
         <form id="edit-general-notes-form" method="POST" action="{% url 'update_client_general_notes' client.id %}" class="hidden p-5 rounded-2xl bg-amber-50/70 border border-amber-200/90 space-y-3">
             {% csrf_token %}
             <label class="text-[11px] font-bold text-amber-900 uppercase">Observaciones Generales, Preferencias o Historial Base</label>
-            <textarea name="notes" rows="4" placeholder="Ej: Antecedentes médicos relevantes, alergias, preferencias de horario o café, indicaciones clínicas fijas..." class="w-full text-xs p-3.5 rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-normal leading-relaxed">{{ client.notes|default:'' }}</textarea>
+            <textarea name="notes" rows="4" placeholder="{% if is_health_beauty %}Ej: Antecedentes médicos relevantes, alergias, preferencias de horario, indicaciones clínicas fijas...{% elif is_real_estate %}Ej: Preferencias de zonas, presupuesto estimado de inversión, condiciones de compra/alquiler...{% elif is_marketing_agency %}Ej: Objetivos de negocio del cliente, accesos compartidos, referencias gráficas, preferencias de reporte...{% else %}Ej: Preferencias del cliente, notas de seguimiento comercial, especificaciones o acuerdos especiales...{% endif %}" class="w-full text-xs p-3.5 rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-normal leading-relaxed">{{ client.notes|default:'' }}</textarea>
             <div class="flex justify-end gap-2 pt-1">
                 <button type="button" onclick="document.getElementById('edit-general-notes-form').classList.add('hidden')" class="px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-800 cursor-pointer">
                     Cancelar

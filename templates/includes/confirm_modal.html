@@ -1,0 +1,236 @@
+<!-- Global Branded Confirmation Modal -->
+<div id="global-confirm-modal" class="fixed inset-0 z-[99999] hidden items-center justify-center p-4">
+    <!-- Backdrop with blur -->
+    <div id="global-confirm-backdrop" class="fixed inset-0 bg-slate-950/65 backdrop-blur-xs transition-opacity duration-200 opacity-0" onclick="window.closeConfirmModal(false)"></div>
+    
+    <!-- Modal Card -->
+    <div id="global-confirm-card" class="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200/90 transform scale-95 opacity-0 transition-all duration-200 space-y-5 text-center sm:text-left z-10">
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            <div id="global-confirm-icon-box" class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/80 flex items-center justify-center shrink-0 shadow-2xs">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <div class="space-y-1.5 flex-1 min-w-0">
+                <h3 id="global-confirm-title" class="text-base sm:text-lg font-bold text-slate-900 font-display">¿Confirmar acción?</h3>
+                <p id="global-confirm-message" class="text-xs sm:text-sm text-slate-500 leading-relaxed break-words">¿Estás seguro de que deseas continuar?</p>
+            </div>
+        </div>
+        
+        <div class="flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <button type="button" id="global-confirm-cancel-btn" onclick="window.closeConfirmModal(false)" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold transition cursor-pointer">
+                Cancelar
+            </button>
+            <button type="button" id="global-confirm-submit-btn" onclick="window.closeConfirmModal(true)" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5">
+                <span id="global-confirm-btn-text">Confirmar</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    window.__confirmResolver = null;
+
+    window.showConfirmModal = function(options = {}) {
+        const {
+            title = '¿Confirmar acción?',
+            message = '¿Estás seguro de continuar?',
+            confirmText = 'Sí, continuar',
+            cancelText = 'Cancelar',
+            isDanger = true,
+            icon = isDanger ? 'trash-2' : 'check'
+        } = options;
+
+        return new Promise((resolve) => {
+            window.__confirmResolver = resolve;
+            const modal = document.getElementById('global-confirm-modal');
+            const backdrop = document.getElementById('global-confirm-backdrop');
+            const card = document.getElementById('global-confirm-card');
+            const titleEl = document.getElementById('global-confirm-title');
+            const msgEl = document.getElementById('global-confirm-message');
+            const submitBtn = document.getElementById('global-confirm-submit-btn');
+            const btnText = document.getElementById('global-confirm-btn-text');
+            const btnIcon = document.getElementById('global-confirm-btn-icon');
+            const cancelBtn = document.getElementById('global-confirm-cancel-btn');
+            const iconBox = document.getElementById('global-confirm-icon-box');
+
+            if (!modal) {
+                resolve(true);
+                return;
+            }
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            btnText.textContent = confirmText;
+            cancelBtn.textContent = cancelText;
+
+            if (isDanger) {
+                iconBox.className = "w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/80 flex items-center justify-center shrink-0 shadow-2xs";
+                iconBox.innerHTML = '<i data-lucide="alert-triangle" class="w-6 h-6"></i>';
+                submitBtn.className = "w-full sm:w-auto px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5";
+                if (btnIcon) btnIcon.setAttribute('data-lucide', 'trash-2');
+            } else {
+                iconBox.className = "w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200/80 flex items-center justify-center shrink-0 shadow-2xs";
+                iconBox.innerHTML = '<i data-lucide="help-circle" class="w-6 h-6"></i>';
+                submitBtn.className = "w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5";
+                if (btnIcon) btnIcon.setAttribute('data-lucide', 'check');
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                backdrop.classList.add('opacity-100');
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            });
+
+            if (window.lucide) {
+                try { lucide.createIcons(); } catch(e) {}
+            }
+        });
+    };
+
+    window.closeConfirmModal = function(confirmed) {
+        const modal = document.getElementById('global-confirm-modal');
+        const backdrop = document.getElementById('global-confirm-backdrop');
+        const card = document.getElementById('global-confirm-card');
+
+        if (!modal) return;
+
+        backdrop.classList.remove('opacity-100');
+        backdrop.classList.add('opacity-0');
+        card.classList.remove('scale-100', 'opacity-100');
+        card.classList.add('scale-95', 'opacity-0');
+
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if (window.__confirmResolver) {
+                window.__confirmResolver(confirmed);
+                window.__confirmResolver = null;
+            }
+        }, 180);
+    };
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('global-confirm-modal');
+            if (modal && !modal.classList.contains('hidden')) {
+                window.closeConfirmModal(false);
+            }
+        }
+    });
+
+    // --- GLOBAL INTERCEPTOR FOR FORMS ---
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (!form) return;
+
+        if (form.__skipConfirm) {
+            delete form.__skipConfirm;
+            return;
+        }
+
+        let confirmMsg = form.getAttribute('data-confirm');
+        let confirmTitle = form.getAttribute('data-confirm-title');
+        let confirmBtn = form.getAttribute('data-confirm-btn') || 'Sí, eliminar';
+
+        // Check if there is an onsubmit containing confirm('...')
+        const onsubmitAttr = form.getAttribute('onsubmit') || '';
+        if (!confirmMsg && onsubmitAttr.includes('confirm(')) {
+            const match = onsubmitAttr.match(/confirm\s*\(\s*(['"`])(.*?)\1\s*\)/);
+            if (match) {
+                confirmMsg = match[2];
+            }
+        }
+
+        if (confirmMsg) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
+            const isDelete = confirmMsg.toLowerCase().includes('eliminar') || confirmMsg.toLowerCase().includes('borrar') || confirmMsg.toLowerCase().includes('cancelar');
+            if (!confirmTitle) {
+                confirmTitle = isDelete ? '¿Eliminar elemento?' : '¿Confirmar acción?';
+            }
+
+            window.showConfirmModal({
+                title: confirmTitle,
+                message: confirmMsg,
+                confirmText: confirmBtn,
+                isDanger: isDelete
+            }).then(confirmed => {
+                if (confirmed) {
+                    form.__skipConfirm = true;
+                    // Remove inline onsubmit so it doesn't trigger native confirm
+                    form.removeAttribute('onsubmit');
+                    try {
+                        HTMLFormElement.prototype.submit.call(form);
+                    } catch (err) {
+                        form.submit();
+                    }
+                }
+            });
+        }
+    }, true);
+
+    // --- GLOBAL INTERCEPTOR FOR LINKS & BUTTONS ---
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('a[data-confirm], a[onclick*="confirm("], button[data-confirm], button[onclick*="confirm("]');
+        if (!target) return;
+
+        if (target.__skipConfirm) {
+            delete target.__skipConfirm;
+            return;
+        }
+
+        let confirmMsg = target.getAttribute('data-confirm');
+        let confirmTitle = target.getAttribute('data-confirm-title');
+        let confirmBtn = target.getAttribute('data-confirm-btn') || 'Confirmar';
+
+        const onclickAttr = target.getAttribute('onclick') || '';
+        if (!confirmMsg && onclickAttr.includes('confirm(')) {
+            const match = onclickAttr.match(/confirm\s*\(\s*(['"`])(.*?)\1\s*\)/);
+            if (match) {
+                confirmMsg = match[2];
+            }
+        }
+
+        if (confirmMsg) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
+            const isDelete = confirmMsg.toLowerCase().includes('eliminar') || confirmMsg.toLowerCase().includes('borrar') || confirmMsg.toLowerCase().includes('cancelar');
+            if (!confirmTitle) {
+                confirmTitle = isDelete ? '¿Eliminar elemento?' : '¿Confirmar acción?';
+            }
+
+            window.showConfirmModal({
+                title: confirmTitle,
+                message: confirmMsg,
+                confirmText: confirmBtn,
+                isDanger: isDelete
+            }).then(confirmed => {
+                if (confirmed) {
+                    target.__skipConfirm = true;
+                    target.removeAttribute('onclick');
+                    if (target.tagName === 'A' && target.href) {
+                        window.location.href = target.href;
+                    } else if (target.form) {
+                        target.form.__skipConfirm = true;
+                        try {
+                            HTMLFormElement.prototype.submit.call(target.form);
+                        } catch (err) {
+                            target.form.submit();
+                        }
+                    } else {
+                        target.click();
+                    }
+                }
+            });
+        }
+    }, true);
+})();
+</script>

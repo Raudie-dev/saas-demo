@@ -9,31 +9,28 @@
 
     <!-- Top Module Header Card -->
     <div class="glass-card bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-start gap-3.5">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5 min-w-0">
                 <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center shrink-0 font-bold">
                     <i data-lucide="hand-coins" class="w-6 h-6"></i>
                 </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h3 class="font-extrabold text-slate-900 text-lg sm:text-xl leading-tight">Módulo de Cobranzas & Cuotas</h3>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase tracking-wider">Finanzas Sin Lotes POS</span>
-                    </div>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Planifica y gestiona cobros futuros, cuotas por hito o pautas de entrega vinculados a proyectos y servicios.</p>
+                <div class="min-w-0">
+                    <h3 class="font-extrabold text-slate-900 text-lg sm:text-2xl font-display tracking-tight">Cobranzas & Cuotas</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">Planifica y gestiona cobros futuros, cuotas por hito o entregas vinculadas a proyectos y servicios.</p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0 flex-wrap">
-                <button type="button" onclick="openDirectChargeModal()" class="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
-                    <i data-lucide="zap" class="w-4 h-4"></i>
-                    <span>+ Cobro Directo al Instante</span>
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap">
+                <button type="button" onclick="openDirectChargeModal()" class="h-8.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer">
+                    <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                    <span>+ Cobro Directo</span>
                 </button>
-                <button type="button" onclick="openNewPlanModal()" class="h-10 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
-                    <i data-lucide="calendar-plus" class="w-4 h-4 text-rose-400"></i>
-                    <span>Planificar Cuotas / Hitos</span>
+                <button type="button" onclick="openNewPlanModal()" class="h-8.5 px-3 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer">
+                    <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-rose-400"></i>
+                    <span>Planificar Cuotas</span>
                 </button>
-                <a href="{% url 'quote_list' %}" class="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
-                    <i data-lucide="calculator" class="w-4 h-4 text-slate-500"></i>
+                <a href="{% url 'quote_list' %}" class="h-8.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs inline-flex items-center justify-center gap-1.5 transition shadow-2xs">
+                    <i data-lucide="calculator" class="w-3.5 h-3.5 text-slate-500"></i>
                     <span>Cotizaciones</span>
                 </a>
             </div>
@@ -42,17 +39,17 @@
         <!-- Metrics Row -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
             <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/70">
-                <p class="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Total por Cobrar</p>
+                <p class="text-xs font-bold text-blue-700">Total por Cobrar</p>
                 <p class="text-xl font-black text-blue-900 mt-0.5">{{ business.currency }}{{ total_receivable|floatformat:2 }}</p>
             </div>
 
             <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/70">
-                <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Cobrado este Mes</p>
+                <p class="text-xs font-bold text-emerald-700">Cobrado este Mes</p>
                 <p class="text-xl font-black text-emerald-900 mt-0.5">{{ business.currency }}{{ collected_month|floatformat:2 }}</p>
             </div>
 
             <div class="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/70">
-                <p class="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Cuotas Vencidas</p>
+                <p class="text-xs font-bold text-rose-700">Cuotas Vencidas</p>
                 <div class="flex items-baseline gap-1 mt-0.5">
                     <span class="text-xl font-black text-rose-900">{{ business.currency }}{{ overdue_amount|floatformat:2 }}</span>
                     {% if overdue_count > 0 %}
@@ -62,40 +59,54 @@
             </div>
 
             <div class="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200/70">
-                <p class="text-[10px] font-bold text-purple-700 uppercase tracking-wider">Planificado Próx. 30 Días</p>
+                <p class="text-xs font-bold text-purple-700">Próximos 30 Días</p>
                 <p class="text-xl font-black text-purple-900 mt-0.5">{{ business.currency }}{{ upcoming_30_days|floatformat:2 }}</p>
             </div>
         </div>
     </div>
 
     <!-- Filters & Switcher Bar -->
-    <div class="glass-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+    <div class="glass-card bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
         
-        <!-- Status Tabs -->
-        <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
-            <a href="{% url 'payment_plan_list' %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'ALL' or not status_filter %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                Todas las Cuotas
+        <!-- Status Tabs Row -->
+        <div class="flex items-center justify-between gap-3 overflow-x-auto no-scrollbar pb-0.5">
+            <div class="flex items-center gap-1.5 shrink-0">
+                <a href="{% url 'payment_plan_list' %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'ALL' or not status_filter %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Todas las Cuotas
+                </a>
+                <a href="{% url 'payment_plan_list' %}?status=PENDING" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PENDING' %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Próximas por Cobrar
+                </a>
+                <a href="{% url 'payment_plan_list' %}?status=OVERDUE" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'OVERDUE' %}bg-rose-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Vencidas
+                </a>
+                <a href="{% url 'payment_plan_list' %}?status=PARTIAL" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PARTIAL' %}bg-purple-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Parciales
+                </a>
+                <a href="{% url 'payment_plan_list' %}?status=PAID" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PAID' %}bg-emerald-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Cobros Realizados
+                </a>
+            </div>
+
+            {% if search_query or client_id or project_id or status_filter != 'ALL' %}
+            <a href="{% url 'payment_plan_list' %}" class="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 hover:text-rose-950 transition shrink-0 whitespace-nowrap" title="Restablecer todos los filtros">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Restablecer filtros
             </a>
-            <a href="{% url 'payment_plan_list' %}?status=PENDING" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PENDING' %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                Próximas por Cobrar
-            </a>
-            <a href="{% url 'payment_plan_list' %}?status=OVERDUE" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'OVERDUE' %}bg-rose-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                Vencidas
-            </a>
-            <a href="{% url 'payment_plan_list' %}?status=PARTIAL" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PARTIAL' %}bg-purple-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                Parciales
-            </a>
-            <a href="{% url 'payment_plan_list' %}?status=PAID" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'PAID' %}bg-emerald-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                Cobros Realizados
-            </a>
+            {% endif %}
         </div>
 
-        <!-- Filter Form -->
-        <form method="GET" action="{% url 'payment_plan_list' %}" class="flex flex-wrap items-center gap-2">
+        <!-- Filter Form Row (Organized 12-Column Responsive Grid) -->
+        <form method="GET" action="{% url 'payment_plan_list' %}" id="paymentPlanFilterForm" class="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
             {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
 
-            <!-- 1. FILTRO DINÁMICO CLIENTE -->
-            <div class="relative min-w-[210px]" id="filter-client-combobox-wrapper">
+            <!-- 1. Búsqueda por texto (4 cols en lg) -->
+            <div class="relative lg:col-span-4">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Buscar por concepto o referencia..." class="w-full bg-slate-50/70 border border-slate-200 text-slate-900 rounded-xl pl-8 pr-3 py-2 text-xs font-medium focus:ring-2 focus:ring-rose-800/30 focus:border-rose-800 focus:bg-white transition shadow-2xs">
+            </div>
+
+            <!-- 2. Filtro Cliente Combobox (3 cols en lg) -->
+            <div class="relative lg:col-span-3" id="filter-client-combobox-wrapper">
                 <input type="hidden" name="client_id" id="filter_client_id" value="{{ client_id }}">
                 <div class="relative flex items-center">
                     <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none"></i>
@@ -104,7 +115,7 @@
                            autocomplete="off"
                            value="{% for c in clients %}{% if client_id == c.id|stringformat:'s' %}{{ c.full_name }}{% endif %}{% endfor %}"
                            placeholder="Todos los Clientes"
-                           class="w-full bg-white border border-slate-200 text-slate-900 rounded-xl pl-8 pr-7 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-rose-800 focus:border-rose-800 transition shadow-2xs placeholder:text-slate-500 placeholder:font-normal"
+                           class="w-full bg-slate-50/70 border border-slate-200 text-slate-900 rounded-xl pl-8 pr-7 py-2 text-xs font-medium focus:ring-2 focus:ring-rose-800/30 focus:border-rose-800 focus:bg-white transition shadow-2xs placeholder:text-slate-500"
                            onfocus="openFilterClientDropdown()"
                            oninput="filterFilterClients(this.value)">
                     <div class="absolute right-2 flex items-center">
@@ -126,8 +137,8 @@
                 </div>
             </div>
 
-            <!-- 2. FILTRO DINÁMICO PROYECTO -->
-            <div class="relative min-w-[210px]" id="filter-project-combobox-wrapper">
+            <!-- 3. Filtro Proyecto Combobox (3 cols en lg) -->
+            <div class="relative lg:col-span-3" id="filter-project-combobox-wrapper">
                 <input type="hidden" name="project_id" id="filter_project_id" value="{{ project_id }}">
                 <div class="relative flex items-center">
                     <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-rose-800 absolute left-3 pointer-events-none"></i>
@@ -136,7 +147,7 @@
                            autocomplete="off"
                            value="{% for pr in projects %}{% if project_id == pr.id|stringformat:'s' %}{{ pr.name }}{% endif %}{% endfor %}"
                            placeholder="Todos los Proyectos"
-                           class="w-full bg-white border border-slate-200 text-slate-900 rounded-xl pl-8 pr-7 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-rose-800 focus:border-rose-800 transition shadow-2xs placeholder:text-slate-500 placeholder:font-normal"
+                           class="w-full bg-slate-50/70 border border-slate-200 text-slate-900 rounded-xl pl-8 pr-7 py-2 text-xs font-medium focus:ring-2 focus:ring-rose-800/30 focus:border-rose-800 focus:bg-white transition shadow-2xs placeholder:text-slate-500"
                            onfocus="openFilterProjectDropdown()"
                            oninput="filterFilterProjects(this.value)">
                     <div class="absolute right-2 flex items-center">
@@ -158,19 +169,18 @@
                 </div>
             </div>
 
-            <div class="relative flex-1 sm:w-48">
-                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                <input type="text" name="q" value="{{ search_query }}" placeholder="Buscar concepto o ref..." class="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+            <!-- 4. Acciones Filtrar y Limpiar (2 cols en lg) -->
+            <div class="flex items-center gap-1.5 lg:col-span-2">
+                <button type="submit" class="w-full h-8.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                    <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+                    <span>Filtrar</span>
+                </button>
+                {% if search_query or client_id or project_id or status_filter != 'ALL' %}
+                <a href="{% url 'payment_plan_list' %}" class="h-8.5 px-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-700 transition flex items-center justify-center shrink-0 border border-slate-200 cursor-pointer" title="Limpiar todos los filtros">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </a>
+                {% endif %}
             </div>
-
-            <button type="submit" class="h-8 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
-                Filtrar
-            </button>
-            {% if search_query or client_id or project_id or status_filter != 'ALL' %}
-            <a href="{% url 'payment_plan_list' %}" class="p-2 text-slate-400 hover:text-rose-600 transition" title="Limpiar filtros">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </a>
-            {% endif %}
         </form>
     </div>
 
@@ -333,7 +343,7 @@
                                 </button>
                                 {% endif %}
 
-                                <form method="POST" action="{% url 'payment_installment_delete' inst.id %}" onsubmit="return confirm('¿Eliminar esta cuota planificada?');" class="inline">
+                                <form method="POST" action="{% url 'payment_installment_delete' inst.id %}" data-confirm="¿Estás seguro de que deseas eliminar esta cuota planificada?" data-confirm-title="Eliminar Cuota" data-confirm-btn="Sí, Eliminar" class="inline">
                                     {% csrf_token %}
                                     <button type="submit" class="p-1.5 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer" title="Eliminar cuota">
                                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -643,10 +653,7 @@
                     <i data-lucide="zap" class="w-5 h-5 text-emerald-600"></i>
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
-                        <h3 class="font-extrabold text-slate-900 text-base sm:text-lg leading-tight">Cobro Directo al Instante</h3>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase">Sin POS</span>
-                    </div>
+                    <h3 class="font-extrabold text-slate-900 text-base sm:text-lg leading-tight">Cobro Directo al Instante</h3>
                     <p class="text-xs text-slate-500 mt-0.5">Cobra un trabajo rápido o servicio sin abrir caja ni planificar cuotas. Afecta directamente a Finanzas.</p>
                 </div>
             </div>

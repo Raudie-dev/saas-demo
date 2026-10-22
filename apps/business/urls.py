@@ -30,6 +30,7 @@ urlpatterns = [
     path('equipo/', views.staff_list_view, name='staff_list'),
     path('equipo/crear/', views.staff_create_view, name='staff_create'),
     path('equipo/<uuid:staff_id>/editar/', views.staff_edit_view, name='staff_edit'),
+    path('equipo/<uuid:staff_id>/eliminar/', views.staff_delete_view, name='staff_delete'),
     path('usuarios/', views.user_list_view, name='user_list'),
     path('usuarios/crear/', views.user_create_view, name='user_create'),
     path('usuarios/<uuid:user_id>/editar/', views.user_edit_view, name='user_edit'),

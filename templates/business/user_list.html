@@ -15,7 +15,7 @@
                     <span>Control de Acceso & Permisos (RBAC)</span>
                 </div>
                 <h2 class="font-bold text-slate-900 text-xl font-display flex items-center gap-2">
-                    <span>Usuarios y Perfiles de la Clínica</span>
+                    <span>Usuarios y Perfiles de {{ business_entity_label|default:'la Empresa' }}</span>
                 </h2>
                 <p class="text-xs text-slate-500 mt-1">Crea usuarios para tu equipo (profesionales, recepción, administradores) y configura qué módulos y datos puede ver cada uno según tu plan contratado.</p>
             </div>
@@ -127,7 +127,7 @@
                                 📅 Solo sus citas
                             </span>
                             {% else %}
-                            <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 font-semibold" title="Puede ver citas de toda la clínica">
+                            <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 font-semibold" title="Puede ver citas de toda {{ business_entity_label|default:'la empresa' }}">
                                 📅 Todas las citas
                             </span>
                             {% endif %}
@@ -177,9 +177,10 @@
                             <i data-lucide="edit-2" class="w-3.5 h-3.5"></i> Editar
                         </a>
                         {% if u.id != request.user.id and u.role != 'OWNER' %}
-                        <form method="POST" action="{% url 'user_delete' u.id %}" onsubmit="return confirm('¿Seguro que deseas eliminar al usuario {{ u.email }}?');">
+                        <form method="POST" action="{% url 'user_delete' u.id %}" data-confirm="¿Estás seguro de que deseas eliminar al usuario {{ u.email }}? También se eliminará su perfil de profesional asociado para que no aparezca en ningún selector ni en la agenda." data-confirm-title="Eliminar Usuario" data-confirm-btn="Sí, Eliminar">
                             {% csrf_token %}
-                            <button type="submit" class="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition" title="Eliminar Usuario">
+                            <input type="hidden" name="delete_staff_completely" value="1">
+                            <button type="submit" class="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition cursor-pointer" title="Eliminar Usuario">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </form>
@@ -193,7 +194,7 @@
         <div class="glass-card bg-white p-12 text-center rounded-2xl border border-slate-200">
             <i data-lucide="users" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
             <h4 class="font-bold text-slate-800 text-base">No hay usuarios registrados</h4>
-            <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">Comienza creando accesos para los profesionales y el personal de recepción de tu clínica.</p>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">Comienza creando accesos para el equipo y el personal de {{ business_entity_label|default:'tu empresa' }}.</p>
             <a href="{% url 'user_create' %}" class="px-4 py-2 rounded-xl bg-rose-900 text-white text-xs font-bold">Crear Primer Usuario</a>
         </div>
         {% endif %}
@@ -269,9 +270,9 @@
                         <i data-lucide="edit-2" class="w-3.5 h-3.5"></i> Configurar
                     </a>
                     {% if r.users_count == 0 %}
-                    <form method="POST" action="{% url 'role_delete' r.id %}" onsubmit="return confirm('¿Seguro que deseas eliminar este perfil?');">
+                    <form method="POST" action="{% url 'role_delete' r.id %}" data-confirm="¿Estás seguro de que deseas eliminar el perfil '{{ r.name }}'? Esta acción no se puede deshacer." data-confirm-title="Eliminar Perfil" data-confirm-btn="Sí, Eliminar">
                         {% csrf_token %}
-                        <button type="submit" class="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition" title="Eliminar Perfil">
+                        <button type="submit" class="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition cursor-pointer" title="Eliminar Perfil">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </form>

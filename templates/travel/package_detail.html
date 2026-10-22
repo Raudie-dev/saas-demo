@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ package.title }} · {{ current_business.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-6xl mx-auto">
+
+    <!-- Top Action Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'travel_package_list' %}" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </a>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-800 text-white font-mono">{{ package.code }}</span>
+                    <span class="text-xs text-rose-800 font-bold flex items-center gap-1">
+                        <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                        {{ package.destination }}
+                    </span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{{ package.title }}</h1>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ whatsapp_url }}" target="_blank"
+               class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold transition flex items-center gap-2 shadow-sm">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                <span>Compartir WhatsApp</span>
+            </a>
+
+            <a href="{% url 'travel_booking_create' %}?package_id={{ package.id }}"
+               class="px-4 py-2.5 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white text-xs sm:text-sm font-bold transition flex items-center gap-2 shadow-sm">
+                <i data-lucide="ticket" class="w-4 h-4"></i>
+                <span>Crear Reserva</span>
+            </a>
+
+            <a href="{% url 'travel_package_edit' package.id %}"
+               class="p-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 transition" title="Editar Paquete">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+            </a>
+
+            <form method="post" action="{% url 'travel_package_delete' package.id %}" class="inline" onsubmit="return confirm('¿Seguro que deseas eliminar este paquete de viaje?');">
+                {% csrf_token %}
+                <button type="submit" class="p-2.5 rounded-xl border border-red-200 hover:bg-red-50 text-red-600 transition" title="Eliminar Paquete">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Overview Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left 2 Cols: Details -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Banner Image & Meta -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="relative h-64 sm:h-80 bg-slate-100">
+                    {% if package.image %}
+                    <img src="{{ package.image.url }}" alt="{{ package.title }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-rose-900 to-rose-950 text-white">
+                        <i data-lucide="plane-takeoff" class="w-16 h-16 opacity-30 mb-2"></i>
+                        <span class="text-sm font-semibold opacity-60 uppercase tracking-wider">{{ package.destination }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="absolute top-4 left-4 flex gap-2">
+                        <span class="px-3 py-1 text-xs font-bold rounded-xl backdrop-blur-md shadow
+                            {% if package.status == 'AVAILABLE' %}bg-emerald-500/90 text-white
+                            {% elif package.status == 'FULL' %}bg-rose-500/90 text-white
+                            {% elif package.status == 'PROMO' %}bg-amber-500/90 text-white
+                            {% else %}bg-slate-700/90 text-white{% endif %}">
+                            {{ package.get_status_display }}
+                        </span>
+                        {% if package.is_featured %}
+                        <span class="px-3 py-1 text-xs font-bold rounded-xl bg-rose-600/90 text-white backdrop-blur-md shadow flex items-center gap-1">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Destacado
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Fast Specs Row -->
+                <div class="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-100 bg-slate-50/50">
+                    <div>
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Duración</span>
+                        <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5 mt-0.5">
+                            <i data-lucide="calendar" class="w-4 h-4 text-rose-800"></i>
+                            {{ package.duration_display }}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Modalidad</span>
+                        <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5 mt-0.5">
+                            <i data-lucide="tag" class="w-4 h-4 text-rose-800"></i>
+                            {{ package.get_travel_type_display }}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Cupos Libres</span>
+                        <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5 mt-0.5">
+                            <i data-lucide="users" class="w-4 h-4 text-rose-800"></i>
+                            {{ package.available_slots }} personas
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Fechas</span>
+                        <span class="text-xs font-bold text-slate-900 mt-1 block">
+                            {% if package.start_date %}{{ package.start_date|date:'d/m/Y' }}{% else %}Abiertas{% endif %}
+                            {% if package.end_date %} - {{ package.end_date|date:'d/m/Y' }}{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inclusions & Exclusions -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                    <h2 class="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                        <span>Servicios Incluidos</span>
+                    </h2>
+                    {% if package.includes %}
+                    <div class="text-xs sm:text-sm text-slate-600 whitespace-pre-line leading-relaxed space-y-1">
+                        {{ package.includes }}
+                    </div>
+                    {% else %}
+                    <p class="text-xs text-slate-400 italic">No especificado.</p>
+                    {% endif %}
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                    <h2 class="text-xs font-bold text-rose-900 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="x-circle" class="w-4 h-4 text-rose-600"></i>
+                        <span>No Incluido</span>
+                    </h2>
+                    {% if package.excludes %}
+                    <div class="text-xs sm:text-sm text-slate-600 whitespace-pre-line leading-relaxed space-y-1">
+                        {{ package.excludes }}
+                    </div>
+                    {% else %}
+                    <p class="text-xs text-slate-400 italic">No especificado.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Itinerary -->
+            {% if package.itinerary %}
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <i data-lucide="milestone" class="w-4 h-4 text-purple-600"></i>
+                    <span>Itinerario del Viaje</span>
+                </h2>
+                <div class="text-xs sm:text-sm text-slate-700 whitespace-pre-line leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    {{ package.itinerary }}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Associated Bookings Table -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="ticket" class="w-4 h-4 text-rose-900"></i>
+                        <span>Reservas & Pasajeros con este Paquete</span>
+                    </h2>
+                    <span class="text-xs font-bold text-slate-500">{{ bookings.count }} reservas</span>
+                </div>
+
+                {% if bookings %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="text-slate-400 font-bold uppercase tracking-wider border-b border-slate-100 pb-2">
+                                <th class="pb-2">Expediente</th>
+                                <th class="pb-2">Pasajero / Titular</th>
+                                <th class="pb-2">Salida</th>
+                                <th class="pb-2">Pax</th>
+                                <th class="pb-2">Total</th>
+                                <th class="pb-2">Estado</th>
+                                <th class="pb-2 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for b in bookings %}
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 font-bold font-mono text-slate-900">
+                                    <a href="{% url 'travel_booking_detail' b.id %}" class="hover:underline text-rose-900">{{ b.booking_number }}</a>
+                                </td>
+                                <td class="py-3 text-slate-700 font-semibold">{{ b.client.full_name }}</td>
+                                <td class="py-3 text-slate-600">{{ b.departure_date|date:'d/m/Y' }}</td>
+                                <td class="py-3 text-slate-600">{{ b.total_passengers }} pax</td>
+                                <td class="py-3 font-bold text-slate-900">{{ b.currency }} {{ b.total_amount|floatformat:2 }}</td>
+                                <td class="py-3">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold
+                                        {% if b.status == 'CONFIRMED' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                        {% elif b.status == 'PENDING' %}bg-amber-50 text-amber-700 border border-amber-200
+                                        {% elif b.status == 'TRAVELING' %}bg-blue-50 text-blue-700 border border-blue-200
+                                        {% elif b.status == 'COMPLETED' %}bg-slate-100 text-slate-600
+                                        {% else %}bg-rose-50 text-rose-700{% endif %}">
+                                        {{ b.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="py-3 text-right">
+                                    <a href="{% url 'travel_booking_detail' b.id %}" class="text-rose-900 hover:text-rose-700 font-bold">Ver</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-xs text-slate-400 py-4 text-center italic">Aún no se han generado reservas para este paquete.</p>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- Right 1 Col: Pricing Box & Hotel / Transport Details -->
+        <div class="space-y-6">
+
+            <!-- Price Card -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Tarifa por pasajero</span>
+                <div class="flex items-baseline gap-1">
+                    <span class="text-3xl font-black text-slate-900">{{ package.currency }} {{ package.price_per_person|floatformat:2 }}</span>
+                </div>
+
+                <a href="{% url 'travel_booking_create' %}?package_id={{ package.id }}"
+                   class="w-full py-3 rounded-xl bg-[#881337] hover:bg-[#701a2b] text-white text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm">
+                    <i data-lucide="ticket" class="w-4 h-4"></i>
+                    <span>Reservar para un Cliente</span>
+                </a>
+            </div>
+
+            <!-- Logistics Card -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <i data-lucide="building" class="w-4 h-4 text-slate-700"></i>
+                    <span>Alojamiento & Vuelo</span>
+                </h3>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <span class="font-bold text-slate-400 block uppercase text-[10px]">Hotel Previsto</span>
+                        <p class="font-semibold text-slate-800 mt-0.5">{{ package.hotel_name|default:'Por confirmar según disponibilidad' }}</p>
+                    </div>
+
+                    <div>
+                        <span class="font-bold text-slate-400 block uppercase text-[10px]">Aerolínea / Transporte</span>
+                        <p class="font-semibold text-slate-800 mt-0.5">{{ package.airline|default:'Vuelos comerciales regulares' }}</p>
+                    </div>
+
+                    {% if package.notes %}
+                    <div>
+                        <span class="font-bold text-slate-400 block uppercase text-[10px]">Observaciones & Condiciones</span>
+                        <p class="text-slate-600 mt-0.5 whitespace-pre-line">{{ package.notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

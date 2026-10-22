@@ -170,8 +170,12 @@ class Property(TimeStampedModel):
         # Optimize photos to WebP format if uploaded
         for photo_field_name in ['photo_1', 'photo_2', 'photo_3']:
             field = getattr(self, photo_field_name)
-            if field and hasattr(field, 'file') and not str(field.name).lower().endswith('.webp'):
-                process_image_to_webp(field, max_size=(1600, 1200))
+            if field and not str(field.name).lower().endswith('.webp'):
+                try:
+                    if hasattr(field, 'file'):
+                        process_image_to_webp(field, max_size=(1600, 1200))
+                except (FileNotFoundError, OSError, Exception) as e:
+                    print(f"Skipping property photo webp conversion: {e}")
         super().save(*args, **kwargs)
 
 

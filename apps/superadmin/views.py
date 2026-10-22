@@ -600,6 +600,7 @@ def plans_management_view(request):
         {'code': 'marketing', 'name': 'Marketing & Promociones'},
         {'code': 'properties', 'name': 'Inmobiliaria & Propiedades'},
         {'code': 'projects', 'name': 'Proyectos & Contenido Redes'},
+        {'code': 'travel', 'name': 'Agencia de Viajes & Turismo'},
     ]
 
     regions = Region.objects.filter(is_active=True).order_by('name')
@@ -1172,7 +1173,7 @@ def _ensure_default_plans():
             'annual_price': Decimal('288.00'),
             'max_users': 10,
             'max_branches': 2,
-            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties', 'projects'],
+            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties', 'projects', 'travel'],
         },
         {
             'code': 'ENTERPRISE',
@@ -1181,7 +1182,7 @@ def _ensure_default_plans():
             'annual_price': Decimal('560.00'),
             'max_users': 0,
             'max_branches': 0,
-            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties', 'projects'],
+            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties', 'projects', 'travel'],
         },
     ]
 

@@ -36,7 +36,7 @@ def commission_report_view(request):
             records = CommissionRecord.objects.none()
             settlements = PayrollSettlement.objects.none()
     else:
-        staff_members = StaffMember.objects.filter(business=business) if business else []
+        staff_members = StaffMember.objects.filter(business=business, is_active=True) if business else []
         selected_staff_id = request.GET.get('staff_id', '')
         records = CommissionRecord.objects.filter(business=business).select_related('staff')
         if selected_staff_id:

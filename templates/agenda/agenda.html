@@ -210,7 +210,7 @@
                                 <div class="border-t border-slate-100 my-1"></div>
 
                                 <!-- Cancelar Cita -->
-                                <form method="POST" action="{% url 'appointment_quick_status' app.id %}" onsubmit="return confirm('¿Cancelar esta cita pendiente y liberar el horario?');">
+                                <form method="POST" action="{% url 'appointment_quick_status' app.id %}" data-confirm="¿Estás seguro de cancelar esta cita pendiente y liberar el horario?" data-confirm-title="Cancelar Cita" data-confirm-btn="Sí, Cancelar Cita">
                                     {% csrf_token %}
                                     <input type="hidden" name="status" value="CANCELLED">
                                     <input type="hidden" name="next_date" value="{{ selected_date|date:'Y-m-d' }}">
@@ -406,7 +406,7 @@
                                 <div class="border-t border-slate-100 my-1"></div>
 
                                 <!-- Cancelar Cita -->
-                                <form method="POST" action="{% url 'appointment_quick_status' app.id %}" onsubmit="return confirm('¿Cancelar esta cita y liberar el horario en la agenda?');">
+                                <form method="POST" action="{% url 'appointment_quick_status' app.id %}" data-confirm="¿Estás seguro de cancelar esta cita y liberar el horario en la agenda?" data-confirm-title="Cancelar Cita" data-confirm-btn="Sí, Cancelar Cita">
                                     {% csrf_token %}
                                     <input type="hidden" name="status" value="CANCELLED">
                                     <input type="hidden" name="next_date" value="{{ selected_date|date:'Y-m-d' }}">

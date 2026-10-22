@@ -342,14 +342,17 @@ def onboarding_view(request):
     ]
 
     # Obtain default plan modules allowed
-    allowed_codes = ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
-    if hasattr(business, 'subscription') and business.subscription.plan:
-        allowed_codes = business.subscription.plan.included_modules or allowed_codes
+    allowed_codes = business.get_allowed_modules() if business else ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
+    if hasattr(business, 'subscription') and business.subscription and business.subscription.plan:
+        allowed_codes = business.get_allowed_modules()
 
     raw_modules = [
         {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'desc': 'Seguimiento de prospectos, clientes VIP e historial completo'},
         {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar', 'desc': 'Programación de citas y control de horarios de colaboradores'},
         {'code': 'booking', 'name': 'Reservas Públicas 24/7', 'icon': 'globe', 'desc': 'Portal web para que tus clientes agenden solos'},
+        {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane', 'desc': 'Vuelos, paquetes turísticos, expedientes de pasajeros y vouchers'},
+        {'code': 'properties', 'name': 'Inmuebles & Propiedades', 'icon': 'building-2', 'desc': 'Catálogo de propiedades, ventas y alquileres inmobiliarios'},
+        {'code': 'projects', 'name': 'Proyectos & Tareas', 'icon': 'folder-kanban', 'desc': 'Gestión de proyectos, tareas por fases y entregables'},
         {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'desc': 'Emisión de comprobantes, cuentas por cobrar y control de gastos'},
         {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'desc': 'Cobros rápidos en mostrador y apertura/cierre de caja'},
         {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package', 'desc': 'Control de productos, servicios y alertas de stock bajo'},
@@ -527,7 +530,7 @@ def business_config_view(request):
         selected_modules = request.POST.getlist('enabled_modules')
         if selected_modules:
             allowed_modules = business.get_allowed_modules()
-            business.enabled_modules = [m for m in selected_modules if m in allowed_modules]
+            business.enabled_modules = [m for m in selected_modules if m in allowed_modules and business.is_module_allowed_by_business_type(m)]
 
         slug_input = request.POST.get('slug', '').strip()
         if slug_input and slug_input != business.slug:
@@ -658,17 +661,30 @@ def business_config_view(request):
             })
 
     allowed_modules = business.get_allowed_modules() if business else []
+    all_modules_catalog = [
+        {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane'},
+        {'code': 'properties', 'name': 'Cartera de Inmuebles & Propiedades', 'icon': 'building-2'},
+        {'code': 'projects', 'name': 'Proyectos & Contenido Redes', 'icon': 'folder-kanban'},
+        {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users'},
+        {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar'},
+        {'code': 'booking', 'name': 'Portal Reservas 24/7', 'icon': 'globe'},
+        {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text'},
+        {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag'},
+        {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package'},
+        {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign'},
+        {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles'},
+        {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag'},
+    ]
+    # Filtrar estrictamente según la matriz del tipo de negocio
     all_modules = [
-        {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'is_allowed': 'crm' in allowed_modules},
-        {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar', 'is_allowed': 'agenda' in allowed_modules},
-        {'code': 'booking', 'name': 'Portal Reservas 24/7', 'icon': 'globe', 'is_allowed': 'booking' in allowed_modules},
-        {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'is_allowed': 'invoicing' in allowed_modules},
-        {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'is_allowed': 'pos' in allowed_modules},
-        {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package', 'is_allowed': 'inventory' in allowed_modules},
-        {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign', 'is_allowed': 'commissions' in allowed_modules},
-        {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles', 'is_allowed': 'ai_engine' in allowed_modules},
-        {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag', 'is_allowed': 'marketing' in allowed_modules},
-        {'code': 'projects', 'name': 'Proyectos & Contenido Redes', 'icon': 'folder-kanban', 'is_allowed': 'projects' in allowed_modules},
+        {
+            'code': m['code'],
+            'name': m['name'],
+            'icon': m['icon'],
+            'is_allowed': m['code'] in allowed_modules
+        }
+        for m in all_modules_catalog
+        if (not business or business.is_module_allowed_by_business_type(m['code']))
     ]
 
     session_user = str(business.id) if business else "default"
@@ -1230,6 +1246,7 @@ def staff_create_view(request):
         service_ids = request.POST.getlist('service_ids')
         branch = Branch.objects.filter(id=branch_id, business=business).first() if branch_id else None
         
+        is_active_val = request.POST.get('is_active', '1') == '1'
         staff = StaffMember.objects.create(
             business=business,
             branch=branch,
@@ -1240,7 +1257,7 @@ def staff_create_view(request):
             role_title=role_title,
             commission_rate=commission_rate,
             base_salary=base_salary,
-            is_active=True
+            is_active=is_active_val
         )
         if 'profile_picture' in request.FILES:
             staff.profile_picture = request.FILES['profile_picture']
@@ -1308,6 +1325,8 @@ def staff_edit_view(request, staff_id):
         service_ids = request.POST.getlist('service_ids')
         staff.branch = Branch.objects.filter(id=branch_id, business=business).first() if branch_id else None
         
+        staff.is_active = (request.POST.get('is_active') == '1')
+
         if 'profile_picture' in request.FILES:
             staff.profile_picture = request.FILES['profile_picture']
             
@@ -1339,6 +1358,42 @@ def staff_edit_view(request, staff_id):
         'staff_phone_number': staff_num,
         'title': f'Editar Profesional: {staff.full_name}'
     })
+
+@login_required
+def staff_delete_view(request, staff_id):
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    if not business:
+        return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permiso para gestionar el equipo.")
+        return redirect('dashboard')
+
+    staff = get_object_or_404(StaffMember, id=staff_id, business=business)
+
+    if request.method == 'POST':
+        staff_name = staff.full_name
+        if staff.user and staff.user.role == 'OWNER':
+            messages.error(request, "No se puede eliminar el perfil asignado al propietario de la empresa.")
+            return redirect('staff_list')
+
+        force_delete = request.POST.get('force_delete') == '1'
+        has_history = staff.appointments.exists() or staff.sales.exists() or staff.payroll_settlements.exists()
+
+        if force_delete or not has_history:
+            if staff.user:
+                staff.user.staff_profile = None
+                staff.user.save()
+            staff.delete()
+            messages.success(request, f"Profesional '{staff_name}' eliminado completamente del sistema.")
+        else:
+            staff.is_active = False
+            if staff.user:
+                staff.user = None
+            staff.save()
+            messages.success(request, f"Profesional '{staff_name}' desactivado. Ya no aparecerá en selectores, agenda ni turnos.")
+
+    return redirect('staff_list')
 
 # ==============================================================================
 # WHATSAPP GATEWAY API PROXY VIEWS (Node.js microservice integration)
@@ -1652,6 +1707,9 @@ def booking_portal_toggle_api(request):
 ALL_SYSTEM_MODULES = [
     {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar', 'desc': 'Calendario interactivo, turnos y citas de clientes.'},
     {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'desc': 'Fichas de clientes, historial de visitas y datos de contacto.'},
+    {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane', 'desc': 'Gestión de paquetes turísticos, pasajes, expedientes y vouchers.'},
+    {'code': 'properties', 'name': 'Cartera de Inmuebles & Propiedades', 'icon': 'building-2', 'desc': 'Gestión de catálogo inmobiliario, inmuebles y portales.'},
+    {'code': 'projects', 'name': 'Proyectos & Tareas', 'icon': 'folder-kanban', 'desc': 'Seguimiento de proyectos, entregables y plan de contenidos.'},
     {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'desc': 'Cobro rápido, apertura/cierre de caja y emisión de comprobantes.'},
     {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'desc': 'Gestión de comprobantes, egresos y cuentas.'},
     {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package', 'desc': 'Control de productos, existencias y alertas de stock.'},
@@ -1660,6 +1718,33 @@ ALL_SYSTEM_MODULES = [
     {'code': 'booking', 'name': 'Portal de Reservas Online', 'icon': 'globe', 'desc': 'Enlace público 24/7 para que los clientes reserven.'},
     {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles', 'desc': 'Herramientas de inteligencia artificial.'},
 ]
+
+def get_system_modules_for_business(business):
+    """
+    Retorna la lista de módulos del sistema adaptada al tipo de negocio específico
+    (ej: etiquetas de Pacientes para Salud, Pasajeros para Viajes, etc.)
+    """
+    modules = []
+    for mod in ALL_SYSTEM_MODULES:
+        item = dict(mod)
+        if business:
+            if mod['code'] == 'crm':
+                if business.is_health_beauty:
+                    item['name'] = 'CRM & Pacientes'
+                    item['desc'] = 'Fichas de pacientes, historial clínico y datos de contacto.'
+                elif business.is_travel:
+                    item['name'] = 'CRM & Pasajeros'
+                    item['desc'] = 'Fichas de pasajeros, pasaportes y datos de contacto.'
+                elif business.is_real_estate:
+                    item['name'] = 'CRM & Clientes Inmobiliarios'
+                    item['desc'] = 'Fichas de clientes propietarios, compradores y búsquedas activas.'
+            elif mod['code'] == 'commissions':
+                if business.is_real_estate:
+                    item['desc'] = 'Cálculo de comisiones por operaciones de venta y alquiler.'
+                elif business.is_travel:
+                    item['desc'] = 'Comisiones por venta de paquetes turísticos y pasajes.'
+        modules.append(item)
+    return modules
 
 @login_required(login_url='login')
 def user_list_view(request):
@@ -1722,7 +1807,7 @@ def user_create_view(request):
         return redirect('user_list')
 
     roles = UserProfileRole.objects.filter(business=business).order_by('name')
-    available_staff = StaffMember.objects.filter(business=business, is_active=True).select_related('user').order_by('first_name')
+    available_staff = StaffMember.objects.filter(business=business, is_active=True, user__isnull=True).order_by('first_name')
 
     default_prefix, _ = split_phone_number(business.phone if business else '')
 
@@ -1818,7 +1903,10 @@ def user_edit_view(request, user_id):
 
     user_obj = get_object_or_404(User, id=user_id, business=business)
     roles = UserProfileRole.objects.filter(business=business).order_by('name')
-    available_staff = StaffMember.objects.filter(business=business).select_related('user').order_by('first_name')
+    from django.db.models import Q
+    available_staff = StaffMember.objects.filter(business=business, is_active=True).filter(
+        Q(user__isnull=True) | Q(user=user_obj)
+    ).order_by('first_name')
 
     is_editing_self = (request.user.id == user_obj.id)
     is_owner = (user_obj.role == 'OWNER')
@@ -1919,11 +2007,17 @@ def user_delete_view(request, user_id):
         return redirect('user_list')
 
     if request.method == 'POST':
-        # Unlink staff profile if any
-        if hasattr(user_obj, 'staff_profile') and user_obj.staff_profile:
-            staff = user_obj.staff_profile
-            staff.user = None
-            staff.save()
+        # Handle linked staff profile if any
+        staff = getattr(user_obj, 'staff_profile', None)
+        if staff:
+            has_history = staff.appointments.exists() or staff.sales.exists() or staff.payroll_settlements.exists()
+            delete_completely = (request.POST.get('delete_staff_completely') == '1') or not has_history
+            if delete_completely:
+                staff.delete()
+            else:
+                staff.is_active = False
+                staff.user = None
+                staff.save()
 
         user_email = user_obj.email
         user_obj.delete()
@@ -1948,7 +2042,8 @@ def role_create_view(request):
         return redirect('dashboard')
 
     allowed_plan_modules = business.get_allowed_modules()
-    available_modules = [m for m in ALL_SYSTEM_MODULES if m['code'] in allowed_plan_modules]
+    catalog = get_system_modules_for_business(business)
+    available_modules = [m for m in catalog if m['code'] in allowed_plan_modules]
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
@@ -2005,7 +2100,8 @@ def role_edit_view(request, role_id):
 
     role_obj = get_object_or_404(UserProfileRole, id=role_id, business=business)
     allowed_plan_modules = business.get_allowed_modules()
-    available_modules = [m for m in ALL_SYSTEM_MODULES if m['code'] in allowed_plan_modules]
+    catalog = get_system_modules_for_business(business)
+    available_modules = [m for m in catalog if m['code'] in allowed_plan_modules]
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'apps.marketing',
     'apps.properties',
     'apps.projects',
+    'apps.travel',
     'apps.superadmin',
 ]
 
@@ -184,11 +185,11 @@ if ENVIRONMENT == 'production' and not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-# Session Timeout Configuration (Cierre de sesión por inactividad)
-# 14400 segundos = 4 horas de inactividad (más de 3 horas)
-SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', 14400))
+# Session Configuration (Sesión persistente sin límite de tiempo)
+# 315360000 segundos = 10 años (sesión permanente, no expira por inactividad ni al cerrar el navegador)
+SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', 315360000))
 SESSION_SAVE_EVERY_REQUEST = True
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # Authentication URLs
 LOGIN_URL = 'login'
