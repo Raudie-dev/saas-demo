@@ -63,13 +63,13 @@ class ProjectType(TimeStampedModel):
 
 class Project(TimeStampedModel):
     PROJECT_TYPE_CHOICES = [
-        ('SOCIAL_MEDIA', 'Gestión de Redes Sociales'),
-        ('BRANDING', 'Diseño de Marca & Identidad'),
-        ('WEB_DEV', 'Desarrollo Web / E-Commerce'),
-        ('MARKETING_ADS', 'Campañas Publicitarias & Ads'),
-        ('AUDIOVISUAL', 'Producción Audiovisual & Foto'),
-        ('CONSULTING', 'Consultoría & Estrategia'),
-        ('OTHER', 'Servicio General / Otro'),
+        ('SOCIAL_MEDIA', 'Redes Sociales'),
+        ('BRANDING', 'Branding'),
+        ('WEB_DEV', 'Desarrollo Web'),
+        ('MARKETING_ADS', 'Marketing & Ads'),
+        ('AUDIOVISUAL', 'Audiovisual'),
+        ('CONSULTING', 'Consultoría'),
+        ('OTHER', 'General'),
     ]
 
     STATUS_CHOICES = [
