@@ -4,17 +4,17 @@
 {% block header_title %}Directorio Unificado de Usuarios / Agencias{% endblock %}
 
 {% block content %}
-<div class="space-y-6 max-w-7xl mx-auto">
+<div class="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
 
     <!-- Top Action & Search Bar -->
-    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="p-4 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div>
-            <h2 class="text-xl font-bold font-display text-slate-900">Directorio de Usuarios / Agencias</h2>
+            <h2 class="text-lg sm:text-xl font-bold font-display text-slate-900">Directorio de Usuarios / Agencias</h2>
             <p class="text-xs text-slate-500 mt-0.5">Gestión unificada de clientes registrados, estado de cuenta y acceso directo a la ficha completa.</p>
         </div>
 
-        <form method="GET" class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <select name="status" onchange="this.form.submit()" class="bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl p-2.5 focus:outline-none focus:border-brand-900 font-semibold">
+        <form method="GET" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
+            <select name="status" onchange="this.form.submit()" class="bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl p-2.5 focus:outline-none focus:border-brand-900 font-semibold cursor-pointer w-full sm:w-auto">
                 <option value="ALL" {% if status_filter == 'ALL' %}selected{% endif %}>Todos los Estados</option>
                 <option value="ACTIVE" {% if status_filter == 'ACTIVE' %}selected{% endif %}>Activas</option>
                 <option value="TRIAL" {% if status_filter == 'TRIAL' %}selected{% endif %}>En Prueba</option>
@@ -22,161 +22,371 @@
                 <option value="SUSPENDED" {% if status_filter == 'SUSPENDED' %}selected{% endif %}>Suspendidas</option>
             </select>
 
-            <div class="flex items-center gap-2">
-                <input type="text" name="q" value="{{ query }}" placeholder="Buscar agencia o usuario..." class="bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl p-2.5 w-56 focus:outline-none focus:border-brand-900">
-                <button type="submit" class="px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition cursor-pointer">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <div class="relative flex-1 sm:w-60">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" name="q" value="{{ query }}" placeholder="Buscar agencia o email..." class="bg-slate-50 border border-slate-300 text-slate-900 text-xs rounded-xl pl-9 pr-3 py-2.5 w-full focus:outline-none focus:border-brand-900">
+                </div>
+                <button type="submit" class="px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition cursor-pointer shrink-0">
                     Buscar
                 </button>
+                {% if query or status_filter != 'ALL' %}
+                <a href="{% url 'superadmin_users' %}" class="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition shrink-0" title="Limpiar filtros">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </a>
+                {% endif %}
             </div>
         </form>
     </div>
 
-    <!-- Users / Businesses Table -->
-    <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                    <tr class="bg-slate-950 text-white uppercase font-bold text-[10px] tracking-wider">
-                        <th class="p-4">ID Agencia</th>
-                        <th class="p-4">Agencia / Usuario</th>
-                        <th class="p-4">Contacto</th>
-                        <th class="p-4">Estado de Cuenta</th>
-                        <th class="p-4">Plan Actual</th>
-                        <th class="p-4">Vencimiento</th>
-                        <th class="p-4 text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    {% for biz in businesses %}
-                    <tr class="hover:bg-slate-50/60 transition">
-                        <td class="p-4 font-mono text-[10px] text-slate-500 font-bold">
-                            {{ biz.id|stringformat:".8s" }}...
-                        </td>
+    <!-- Desktop View: Table (hidden on mobile) -->
+    <div class="hidden md:block glass-card bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <table class="w-full text-left border-collapse text-xs table-auto">
+            <thead>
+                <tr class="bg-slate-950 text-white uppercase font-bold text-[10px] tracking-wider border-b border-slate-800">
+                    <th class="py-3 px-3.5">Agencia / Negocio</th>
+                    <th class="py-3 px-3.5">Contacto</th>
+                    <th class="py-3 px-3.5 whitespace-nowrap">Estado de Cuenta</th>
+                    <th class="py-3 px-3.5 whitespace-nowrap">Plan Actual</th>
+                    <th class="py-3 px-3.5 whitespace-nowrap">Vencimiento</th>
+                    <th class="py-3 px-3.5 text-right whitespace-nowrap">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for biz in businesses %}
+                <tr class="hover:bg-slate-50/70 transition">
+                    <!-- Agencia / Negocio + ID -->
+                    <td class="py-3 px-3.5">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-50 to-brand-100 text-brand-900 border border-brand-200/80 font-bold font-display text-[11px] flex items-center justify-center shrink-0 shadow-2xs">
+                                {{ biz.name|slice:":2"|upper }}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-slate-900 text-xs font-display truncate max-w-[160px] sm:max-w-[200px] hover:text-brand-900 transition leading-tight" title="{{ biz.name }}">
+                                    {{ biz.name }}
+                                </div>
+                                <div class="flex items-center gap-1.5 mt-0.5">
+                                    <a href="/reservas/{{ biz.slug }}/" target="_blank" class="text-[10px] text-brand-900 hover:text-brand-950 hover:underline font-mono inline-flex items-center gap-0.5">
+                                        <span>/reservas/{{ biz.slug }}</span>
+                                        <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
+                                    </a>
+                                    <span class="text-slate-300">•</span>
+                                    <span class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1 py-0.2 rounded border border-slate-200" title="ID: {{ biz.id }}">
+                                        {{ biz.id|stringformat:".8s" }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
 
-                        <td class="p-4">
-                            <div class="font-bold text-slate-900 text-sm font-display">{{ biz.name }}</div>
-                            <a href="/reservas/{{ biz.slug }}/" target="_blank" class="text-[11px] text-brand-900 hover:underline font-mono inline-block">
-                                /reservas/{{ biz.slug }} ↗
-                            </a>
-                        </td>
+                    <!-- Contacto -->
+                    <td class="py-3 px-3.5">
+                        <div class="font-medium text-slate-800 text-[11px] flex items-center gap-1.5">
+                            <i data-lucide="mail" class="w-3 h-3 text-slate-400 shrink-0"></i>
+                            <span class="truncate max-w-[150px] sm:max-w-[180px]" title="{{ biz.email }}">{{ biz.email }}</span>
+                        </div>
+                        {% if biz.phone %}
+                        <div class="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                            <i data-lucide="phone" class="w-2.5 h-2.5 text-slate-400 shrink-0"></i>
+                            <span class="truncate max-w-[130px]">{{ biz.phone }}</span>
+                        </div>
+                        {% else %}
+                        <div class="text-[10px] text-slate-400 italic mt-0.5">Sin teléfono</div>
+                        {% endif %}
+                    </td>
 
-                        <td class="p-4">
-                            <div class="font-semibold text-slate-800">{{ biz.email }}</div>
-                            <div class="text-[10px] text-slate-500 mt-0.5">{{ biz.phone }}</div>
-                        </td>
-
-                        <td class="p-4">
-                            {% if biz.subscription %}
-                                {% if biz.subscription.status == 'ACTIVE' %}
-                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                    ACTIVA
-                                </span>
-                                {% elif biz.subscription.status == 'TRIAL' %}
-                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                                    PRUEBA ({{ biz.subscription.days_remaining }}d)
-                                </span>
-                                {% elif biz.subscription.status == 'EXPIRED' %}
-                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
-                                    VENCIDA
-                                </span>
-                                {% else %}
-                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-800 border border-slate-300">
-                                    {{ biz.subscription.get_status_display }}
-                                </span>
-                                {% endif %}
-                            {% else %}
-                            <span class="text-slate-400 italic">Sin Suscripción</span>
-                            {% endif %}
-                        </td>
-
-                        <td class="p-4">
-                            {% if biz.subscription and biz.subscription.plan %}
-                            <span class="font-bold text-rose-900 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                                {{ biz.subscription.plan.name }}
+                    <!-- Estado de Cuenta -->
+                    <td class="py-3 px-3.5 whitespace-nowrap">
+                        {% if biz.subscription %}
+                            {% if biz.subscription.status == 'ACTIVE' %}
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span>Activa</span>
+                            </span>
+                            {% elif biz.subscription.status == 'TRIAL' %}
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                                <i data-lucide="clock" class="w-3 h-3 text-amber-600"></i>
+                                <span>Prueba ({{ biz.subscription.days_remaining }}d)</span>
+                            </span>
+                            {% elif biz.subscription.status == 'EXPIRED' %}
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-2xs">
+                                <i data-lucide="alert-circle" class="w-3 h-3 text-rose-500"></i>
+                                <span>Vencida</span>
+                            </span>
+                            {% elif biz.subscription.status == 'SUSPENDED' %}
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
+                                <i data-lucide="shield-alert" class="w-3 h-3 text-slate-500"></i>
+                                <span>Suspendida</span>
                             </span>
                             {% else %}
-                            <span class="text-slate-400 italic">Sin Plan</span>
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                <span>{{ biz.subscription.get_status_display }}</span>
+                            </span>
                             {% endif %}
-                        </td>
-
-                        <td class="p-4 font-mono text-slate-700">
-                            {% if biz.subscription and biz.subscription.expiration_date %}
-                                {{ biz.subscription.expiration_date|date:"d/m/Y" }}
-                            {% else %}
-                                <span class="text-slate-400 italic">N/A</span>
-                            {% endif %}
-                        </td>
-
-                        <td class="p-4 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                                <a href="{% url 'superadmin_user_detail' biz.id %}" class="px-3.5 py-2 rounded-xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-1.5">
-                                    <i data-lucide="user-cog" class="w-3.5 h-3.5"></i> <span>Ver Ficha</span>
-                                </a>
-                                <button type="button"
-                                        onclick="openDeleteBusinessModal('{{ biz.id }}', '{{ biz.name|escapejs }}', '{{ biz.email|escapejs }}')"
-                                        class="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-200 transition font-bold text-xs inline-flex items-center gap-1 cursor-pointer"
-                                        title="Eliminar Cuenta y Registros">
-                                    <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i>
-                                    <span class="sr-only sm:not-sr-only text-[11px]">Borrar</span>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="p-8 text-center text-slate-400 italic">No se encontraron agencias o usuarios registrados.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        {% if page_obj and page_obj.has_other_pages %}
-        <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <div class="text-slate-500 font-medium">
-                Mostrando <span class="font-bold text-slate-900">{{ page_obj.start_index }}</span> a <span class="font-bold text-slate-900">{{ page_obj.end_index }}</span> de <span class="font-bold text-slate-900">{{ page_obj.paginator.count }}</span> registros
-            </div>
-            
-            <div class="flex items-center gap-1.5">
-                {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-                   class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
-                    <i data-lucide="chevron-left" class="w-4 h-4 text-slate-500"></i> Anterior
-                </a>
-                {% else %}
-                <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
-                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
-                </span>
-                {% endif %}
-
-                <div class="flex items-center gap-1">
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                        <span class="w-8 h-8 rounded-xl bg-brand-900 text-white font-extrabold flex items-center justify-center shadow-xs text-xs">
-                            {{ num }}
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] text-slate-400 italic bg-slate-50 border border-slate-100">
+                            Sin Suscripción
                         </span>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                        <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-                           class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold flex items-center justify-center transition text-xs shadow-2xs">
-                            {{ num }}
-                        </a>
                         {% endif %}
-                    {% endfor %}
+                    </td>
+
+                    <!-- Plan Actual -->
+                    <td class="py-3 px-3.5 whitespace-nowrap">
+                        {% if biz.subscription and biz.subscription.plan %}
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-brand-50 text-brand-900 border border-brand-200/70 shadow-2xs whitespace-nowrap">
+                            <i data-lucide="sparkles" class="w-3 h-3 text-brand-700 shrink-0"></i>
+                            <span>{{ biz.subscription.plan.name }}</span>
+                        </span>
+                        {% else %}
+                        <span class="text-slate-400 italic text-xs">Sin Plan</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Vencimiento -->
+                    <td class="py-3 px-3.5 whitespace-nowrap">
+                        {% if biz.subscription and biz.subscription.expiration_date %}
+                        <div class="flex flex-col">
+                            <div class="font-semibold text-slate-800 text-xs flex items-center gap-1.5">
+                                <i data-lucide="calendar" class="w-3 h-3 text-slate-400 shrink-0"></i>
+                                <span>{{ biz.subscription.expiration_date|date:"d/m/Y" }}</span>
+                            </div>
+                            {% if biz.subscription.days_remaining is not None %}
+                            <span class="text-[10px] pl-4.5 mt-0.5 {% if biz.subscription.days_remaining <= 5 %}text-rose-600 font-bold{% elif biz.subscription.days_remaining <= 15 %}text-amber-600 font-semibold{% else %}text-slate-400{% endif %}">
+                                {% if biz.subscription.days_remaining > 0 %}
+                                    {{ biz.subscription.days_remaining }}d restantes
+                                {% elif biz.subscription.days_remaining == 0 %}
+                                    Vence hoy
+                                {% else %}
+                                    Expirada
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-slate-400 italic text-xs">N/A</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Acciones -->
+                    <td class="py-3 px-3.5 text-right whitespace-nowrap">
+                        <div class="inline-flex items-center justify-end gap-1.5">
+                            <a href="{% url 'superadmin_user_detail' biz.id %}"
+                               class="whitespace-nowrap inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs shadow-xs hover:shadow transition-all cursor-pointer group">
+                                <i data-lucide="user-cog" class="w-3.5 h-3.5 transition-transform group-hover:scale-110"></i>
+                                <span>Ver Ficha</span>
+                            </a>
+                            <button type="button"
+                                    onclick="openDeleteBusinessModal('{{ biz.id }}', '{{ biz.name|escapejs }}', '{{ biz.email|escapejs }}')"
+                                    class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition shadow-2xs cursor-pointer"
+                                    title="Eliminar Cuenta y Registros">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-500"></i>
+                                <span class="sr-only">Borrar</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-12 px-4 text-center">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                            <i data-lucide="users" class="w-6 h-6"></i>
+                        </div>
+                        <p class="font-bold text-slate-700 text-sm">No se encontraron agencias o usuarios</p>
+                        <p class="text-xs text-slate-400 mt-1">Prueba cambiando los filtros de búsqueda o el estado seleccionado.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile View: Responsive Cards List (shown on mobile, hidden on desktop) -->
+    <div class="block md:hidden space-y-3">
+        {% for biz in businesses %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-4 space-y-3">
+            <!-- Card Header: Initials + Name + Status -->
+            <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-50 to-brand-100 text-brand-900 border border-brand-200/80 font-bold font-display text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                        {{ biz.name|slice:":2"|upper }}
+                    </div>
+                    <div class="min-w-0">
+                        <div class="font-bold text-slate-900 text-sm font-display truncate leading-tight">
+                            {{ biz.name }}
+                        </div>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                            <a href="/reservas/{{ biz.slug }}/" target="_blank" class="text-[11px] text-brand-900 hover:underline font-mono inline-flex items-center gap-0.5">
+                                <span>/reservas/{{ biz.slug }}</span>
+                                <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
+                            </a>
+                            <span class="text-slate-300">•</span>
+                            <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">
+                                {{ biz.id|stringformat:".8s" }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-                   class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
-                    Siguiente <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
-                </a>
-                {% else %}
-                <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
-                    Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                </span>
+                <!-- Status Pill -->
+                <div class="shrink-0">
+                    {% if biz.subscription %}
+                        {% if biz.subscription.status == 'ACTIVE' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>Activa</span>
+                        </span>
+                        {% elif biz.subscription.status == 'TRIAL' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
+                            <i data-lucide="clock" class="w-3 h-3 text-amber-600"></i>
+                            <span>Prueba ({{ biz.subscription.days_remaining }}d)</span>
+                        </span>
+                        {% elif biz.subscription.status == 'EXPIRED' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80">
+                            <i data-lucide="alert-circle" class="w-3 h-3 text-rose-500"></i>
+                            <span>Vencida</span>
+                        </span>
+                        {% elif biz.subscription.status == 'SUSPENDED' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            <i data-lucide="shield-alert" class="w-3 h-3 text-slate-500"></i>
+                            <span>Suspendida</span>
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            <span>{{ biz.subscription.get_status_display }}</span>
+                        </span>
+                        {% endif %}
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded text-[10px] text-slate-400 italic bg-slate-50 border border-slate-100">
+                        Sin Suscripción
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Card Middle Details: Plan + Vencimiento -->
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
+                <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Plan Actual</span>
+                    {% if biz.subscription and biz.subscription.plan %}
+                    <span class="font-bold text-brand-900 text-xs truncate block mt-0.5">
+                        <i data-lucide="sparkles" class="w-3 h-3 inline text-brand-700 mr-0.5"></i>
+                        {{ biz.subscription.plan.name }}
+                    </span>
+                    {% else %}
+                    <span class="text-slate-400 italic text-xs block mt-0.5">Sin Plan</span>
+                    {% endif %}
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vencimiento</span>
+                    <span class="font-semibold text-slate-800 text-xs block mt-0.5">
+                        {% if biz.subscription and biz.subscription.expiration_date %}
+                            {{ biz.subscription.expiration_date|date:"d/m/Y" }}
+                        {% else %}
+                            <span class="text-slate-400 italic">N/A</span>
+                        {% endif %}
+                    </span>
+                    {% if biz.subscription and biz.subscription.days_remaining is not None %}
+                    <span class="text-[10px] block mt-0.5 {% if biz.subscription.days_remaining <= 5 %}text-rose-600 font-bold{% elif biz.subscription.days_remaining <= 15 %}text-amber-600 font-semibold{% else %}text-slate-400{% endif %}">
+                        {% if biz.subscription.days_remaining > 0 %}
+                            {{ biz.subscription.days_remaining }}d restantes
+                        {% elif biz.subscription.days_remaining == 0 %}
+                            Vence hoy
+                        {% else %}
+                            Expirada
+                        {% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Contact info -->
+            <div class="text-[11px] text-slate-600 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                <div class="flex items-center gap-1.5 min-w-0">
+                    <i data-lucide="mail" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                    <span class="truncate">{{ biz.email }}</span>
+                </div>
+                {% if biz.phone %}
+                <div class="flex items-center gap-1 text-slate-500 shrink-0">
+                    <i data-lucide="phone" class="w-3 h-3 text-slate-400"></i>
+                    <span>{{ biz.phone }}</span>
+                </div>
                 {% endif %}
             </div>
+
+            <!-- Card Actions -->
+            <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                <a href="{% url 'superadmin_user_detail' biz.id %}"
+                   class="flex-1 py-2 px-3 rounded-xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs text-center flex items-center justify-center gap-1.5 shadow-xs transition">
+                    <i data-lucide="user-cog" class="w-3.5 h-3.5"></i>
+                    <span>Ver Ficha Completa</span>
+                </a>
+                <button type="button"
+                        onclick="openDeleteBusinessModal('{{ biz.id }}', '{{ biz.name|escapejs }}', '{{ biz.email|escapejs }}')"
+                        class="p-2 rounded-xl text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition shadow-2xs shrink-0 cursor-pointer"
+                        title="Eliminar Cuenta">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </div>
         </div>
-        {% endif %}
+        {% empty %}
+        <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 shadow-2xs">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                <i data-lucide="users" class="w-6 h-6"></i>
+            </div>
+            <p class="font-bold text-slate-700 text-sm">No se encontraron agencias o usuarios</p>
+            <p class="text-xs text-slate-400 mt-1">Prueba cambiando los filtros de búsqueda o el estado seleccionado.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination (shared) -->
+    {% if page_obj and page_obj.has_other_pages %}
+    <div class="px-6 py-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div class="text-slate-500 font-medium text-center sm:text-left">
+            Mostrando <span class="font-bold text-slate-900">{{ page_obj.start_index }}</span> a <span class="font-bold text-slate-900">{{ page_obj.end_index }}</span> de <span class="font-bold text-slate-900">{{ page_obj.paginator.count }}</span> registros
+        </div>
+        
+        <div class="flex items-center gap-1.5">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+               class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                <i data-lucide="chevron-left" class="w-4 h-4 text-slate-500"></i> Anterior
+            </a>
+            {% else %}
+            <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+            </span>
+            {% endif %}
+
+            <div class="flex items-center gap-1">
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="w-8 h-8 rounded-xl bg-brand-900 text-white font-extrabold flex items-center justify-center shadow-xs text-xs">
+                        {{ num }}
+                    </span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                       class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold flex items-center justify-center transition text-xs shadow-2xs">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+               class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
+                Siguiente <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+            </a>
+            {% else %}
+            <span class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60 flex items-center gap-1">
+                Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
     </div>
 
 </div>

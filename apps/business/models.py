@@ -52,6 +52,15 @@ class Business(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    BUSINESS_TYPE_MODULES = {
+        'MARKETING': ['projects', 'crm', 'invoicing', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions'],
+        'REAL_ESTATE': ['properties', 'crm', 'invoicing', 'commissions', 'booking', 'agenda', 'ai_engine', 'marketing'],
+        'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'marketing', 'invoicing'],
+        'CONSULTING': ['projects', 'crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine', 'marketing'],
+        'TRAVEL': ['travel', 'crm', 'agenda', 'booking', 'invoicing', 'commissions', 'marketing', 'ai_engine', 'pos'],
+        'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'marketing', 'agenda', 'booking'],
+    }
+
     @property
     def is_real_estate(self):
         return self.business_type == 'REAL_ESTATE'
@@ -60,39 +69,106 @@ class Business(TimeStampedModel):
     def is_marketing_agency(self):
         return self.business_type == 'MARKETING'
 
+    @property
+    def is_health_beauty(self):
+        return self.business_type == 'HEALTH_BEAUTY'
+
+    @property
+    def is_consulting(self):
+        return self.business_type == 'CONSULTING'
+
+    @property
+    def is_travel(self):
+        return self.business_type == 'TRAVEL'
+
+    @property
+    def is_retail(self):
+        return self.business_type == 'RETAIL_OTHER'
+
+    @property
+    def business_entity_label(self):
+        labels = {
+            'MARKETING': 'la Agencia',
+            'REAL_ESTATE': 'la Inmobiliaria',
+            'HEALTH_BEAUTY': 'la Clínica / Spa',
+            'CONSULTING': 'la Consultora',
+            'TRAVEL': 'la Agencia de Viajes',
+            'RETAIL_OTHER': 'la Empresa',
+        }
+        return labels.get(self.business_type, 'la Empresa')
+
+    @property
+    def client_label_singular(self):
+        if self.is_health_beauty:
+            return 'Paciente'
+        if self.is_travel:
+            return 'Pasajero / Cliente'
+        return 'Cliente'
+
+    @property
+    def client_label_plural(self):
+        if self.is_health_beauty:
+            return 'Pacientes'
+        if self.is_travel:
+            return 'Pasajeros & Clientes'
+        return 'Clientes'
+
+    def is_module_allowed_by_business_type(self, module_name):
+        """Valida si un módulo es compatible con el tipo de negocio."""
+        allowed_for_type = self.BUSINESS_TYPE_MODULES.get(self.business_type)
+        if allowed_for_type is not None:
+            return module_name in allowed_for_type
+        return True
 
     def get_allowed_modules(self):
+        """Retorna los módulos permitidos según el plan de suscripción y filtrados estrictamente por tipo de negocio."""
         sub = getattr(self, 'subscription', None)
         if sub and sub.plan and sub.plan.included_modules:
             modules = list(sub.plan.included_modules)
             if self.is_real_estate and 'properties' not in modules:
                 modules.append('properties')
-            if self.is_marketing_agency and 'projects' not in modules:
+            if (self.is_marketing_agency or self.is_consulting) and 'projects' not in modules:
                 modules.append('projects')
-            return modules
-        return ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing', 'properties', 'projects']
+            if self.is_travel and 'travel' not in modules:
+                modules.append('travel')
+            return [m for m in modules if self.is_module_allowed_by_business_type(m)]
+        
+        # Fallback sin suscripción o plan abierto
+        default_modules = self.BUSINESS_TYPE_MODULES.get(
+            self.business_type,
+            ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
+        )
+        return list(default_modules)
 
     def is_module_allowed_by_plan(self, module_name):
-        if module_name == 'properties' and self.is_real_estate:
-            return True
-        if module_name == 'projects' and self.is_marketing_agency:
-            return True
+        if not self.is_module_allowed_by_business_type(module_name):
+            return False
         allowed = self.get_allowed_modules()
         return module_name in allowed
 
     def is_module_enabled(self, module_name):
+        # 1. Filtro estricto por tipo de negocio
+        if not self.is_module_allowed_by_business_type(module_name):
+            return False
+        # 2. Si el portal de reservas está desactivado globalmente para el negocio
         if module_name == 'booking' and not getattr(self, 'is_booking_enabled', True):
             return False
+        # 3. Validación por plan de suscripción
         if not self.is_module_allowed_by_plan(module_name):
             return False
+        # 4. Habilitación específica por el negocio
         if module_name == 'properties':
             if self.is_real_estate:
                 return True
-            return 'properties' in (self.enabled_modules or [])
+            return False
         if module_name == 'projects':
-            if self.is_marketing_agency:
+            if self.is_marketing_agency or self.is_consulting:
                 return True
-            return 'projects' in (self.enabled_modules or [])
+            return False
+        if module_name == 'travel':
+            if self.is_travel:
+                return True
+            return False
         if not self.enabled_modules:
             return True
         return module_name in self.enabled_modules
@@ -104,18 +180,34 @@ class Business(TimeStampedModel):
         if self.pk:
             try:
                 old_instance = Business.objects.get(pk=self.pk)
-                if self.logo_url and hasattr(self.logo_url, 'file') and getattr(old_instance.logo_url, 'name', None) != self.logo_url.name:
-                    process_image_to_webp(self.logo_url, max_size=(512, 512))
+                if self.logo_url and getattr(old_instance.logo_url, 'name', None) != self.logo_url.name:
+                    try:
+                        if hasattr(self.logo_url, 'file'):
+                            process_image_to_webp(self.logo_url, max_size=(512, 512))
+                    except (FileNotFoundError, OSError, Exception) as e:
+                        print(f"Skipping logo webp conversion: {e}")
                 
-                if self.banner_url and hasattr(self.banner_url, 'file') and getattr(old_instance.banner_url, 'name', None) != self.banner_url.name:
-                    process_image_to_webp(self.banner_url, max_size=(1920, 1080))
+                if self.banner_url and getattr(old_instance.banner_url, 'name', None) != self.banner_url.name:
+                    try:
+                        if hasattr(self.banner_url, 'file'):
+                            process_image_to_webp(self.banner_url, max_size=(1920, 1080))
+                    except (FileNotFoundError, OSError, Exception) as e:
+                        print(f"Skipping banner webp conversion: {e}")
             except Business.DoesNotExist:
                 pass
         else:
-            if self.logo_url and hasattr(self.logo_url, 'file'):
-                process_image_to_webp(self.logo_url, max_size=(512, 512))
-            if self.banner_url and hasattr(self.banner_url, 'file'):
-                process_image_to_webp(self.banner_url, max_size=(1920, 1080))
+            if self.logo_url:
+                try:
+                    if hasattr(self.logo_url, 'file'):
+                        process_image_to_webp(self.logo_url, max_size=(512, 512))
+                except (FileNotFoundError, OSError, Exception) as e:
+                    print(f"Skipping logo webp conversion: {e}")
+            if self.banner_url:
+                try:
+                    if hasattr(self.banner_url, 'file'):
+                        process_image_to_webp(self.banner_url, max_size=(1920, 1080))
+                except (FileNotFoundError, OSError, Exception) as e:
+                    print(f"Skipping banner webp conversion: {e}")
 
         super().save(*args, **kwargs)
 
@@ -168,65 +260,85 @@ class UserProfileRole(TimeStampedModel):
         self.allowed_modules = [m for m in (self.allowed_modules or []) if m in allowed_in_plan]
 
 def ensure_default_profiles(business):
-    """Crea los 3 perfiles base estándar para una clínica o negocio si no existen."""
+    """Crea los 3 perfiles base estándar para un negocio únicamente si no tiene ningún perfil configurado."""
     if not business:
-        return
-    allowed_plan_modules = business.get_allowed_modules()
+        return []
     
-    # 1. Profesional / Especialista
-    prof_modules = [m for m in ['agenda', 'commissions'] if m in allowed_plan_modules]
-    UserProfileRole.objects.get_or_create(
+    allowed_plan_modules = business.get_allowed_modules()
+
+    # Si la empresa ya tiene perfiles creados (o el usuario los borró intencionalmente), no recrear automáticamente
+    if UserProfileRole.objects.filter(business=business).exists():
+        # Sincronizar el perfil Administrador del sistema para que contenga todos los módulos permitidos actuales
+        admin_role = UserProfileRole.objects.filter(business=business, name='Administrador', is_system_default=True).first()
+        if admin_role:
+            updated_mods = list(admin_role.allowed_modules or [])
+            changed = False
+            for mod in allowed_plan_modules:
+                if mod not in updated_mods:
+                    updated_mods.append(mod)
+                    changed = True
+            if changed:
+                admin_role.allowed_modules = updated_mods
+                admin_role.save(update_fields=['allowed_modules'])
+        return list(UserProfileRole.objects.filter(business=business))
+    
+    role1_name = 'Profesional'
+    role1_desc = 'Acceso a sus citas o proyectos asignados y sus comisiones personales.'
+    role1_mods = [m for m in ['agenda', 'projects', 'properties', 'travel', 'commissions', 'crm'] if m in allowed_plan_modules]
+    
+    role2_name = 'Recepción'
+    role2_desc = 'Control de agenda, gestión de clientes y cobro en POS / Caja.'
+    role2_mods = [m for m in ['agenda', 'crm', 'pos', 'booking', 'invoicing', 'travel'] if m in allowed_plan_modules]
+    
+    role3_name = 'Administrador'
+    role3_desc = 'Acceso total a reportes, facturación, usuarios y configuración del negocio.'
+
+    # 1. Perfil Operativo / Profesional
+    UserProfileRole.objects.create(
         business=business,
-        name='Profesional / Especialista',
-        defaults={
-            'description': 'Acceso exclusivo a sus citas asignadas y sus comisiones personales.',
-            'is_system_default': True,
-            'allowed_modules': prof_modules,
-            'scope_appointments': 'OWN',
-            'scope_commissions': 'OWN',
-            'can_charge_pos': False,
-            'can_view_financial_reports': False,
-            'can_manage_settings': False,
-            'can_manage_clients': True,
-            'can_manage_inventory': False,
-        }
+        name=role1_name,
+        description=role1_desc,
+        is_system_default=True,
+        allowed_modules=role1_mods,
+        scope_appointments='OWN',
+        scope_commissions='OWN',
+        can_charge_pos=False,
+        can_view_financial_reports=False,
+        can_manage_settings=False,
+        can_manage_clients=True,
+        can_manage_inventory=False,
     )
 
-    # 2. Recepción & Caja
-    recep_modules = [m for m in ['agenda', 'crm', 'pos'] if m in allowed_plan_modules]
-    UserProfileRole.objects.get_or_create(
+    # 2. Perfil Atención / Recepción
+    UserProfileRole.objects.create(
         business=business,
-        name='Recepción & Caja',
-        defaults={
-            'description': 'Control de agenda de la clínica, gestión de clientes y cobro en POS / Caja.',
-            'is_system_default': True,
-            'allowed_modules': recep_modules,
-            'scope_appointments': 'ALL',
-            'scope_commissions': 'NONE',
-            'can_charge_pos': True,
-            'can_view_financial_reports': False,
-            'can_manage_settings': False,
-            'can_manage_clients': True,
-            'can_manage_inventory': False,
-        }
+        name=role2_name,
+        description=role2_desc,
+        is_system_default=True,
+        allowed_modules=role2_mods,
+        scope_appointments='ALL',
+        scope_commissions='NONE',
+        can_charge_pos=True if 'pos' in allowed_plan_modules else False,
+        can_view_financial_reports=False,
+        can_manage_settings=False,
+        can_manage_clients=True,
+        can_manage_inventory=False,
     )
 
-    # 3. Administrador de Clínica
-    UserProfileRole.objects.get_or_create(
+    # 3. Perfil Administrador
+    UserProfileRole.objects.create(
         business=business,
-        name='Administrador de Clínica',
-        defaults={
-            'description': 'Acceso total a todos los módulos y herramientas de configuración del negocio.',
-            'is_system_default': True,
-            'allowed_modules': list(allowed_plan_modules),
-            'scope_appointments': 'ALL',
-            'scope_commissions': 'ALL',
-            'can_charge_pos': True,
-            'can_view_financial_reports': True,
-            'can_manage_settings': True,
-            'can_manage_clients': True,
-            'can_manage_inventory': True,
-        }
+        name=role3_name,
+        description=role3_desc,
+        is_system_default=True,
+        allowed_modules=list(allowed_plan_modules),
+        scope_appointments='ALL',
+        scope_commissions='ALL',
+        can_charge_pos=True if 'pos' in allowed_plan_modules else False,
+        can_view_financial_reports=True,
+        can_manage_settings=True,
+        can_manage_clients=True,
+        can_manage_inventory=True,
     )
     return list(UserProfileRole.objects.filter(business=business))
 
@@ -259,9 +371,9 @@ class User(AbstractUser):
         if self.role == 'ADMIN':
             return True
         elif self.role == 'PROFESSIONAL':
-            return module_code in ['agenda', 'commissions', 'crm']
+            return module_code in ['agenda', 'commissions', 'crm', 'projects', 'properties', 'travel']
         elif self.role == 'RECEPTIONIST':
-            return module_code in ['agenda', 'crm', 'pos']
+            return module_code in ['agenda', 'crm', 'pos', 'booking', 'travel']
         return False
 
     def has_perm_flag(self, flag_name):
@@ -329,13 +441,21 @@ class StaffMember(TimeStampedModel):
         if self.pk:
             try:
                 old_instance = StaffMember.objects.get(pk=self.pk)
-                if self.profile_picture and hasattr(self.profile_picture, 'file') and getattr(old_instance.profile_picture, 'name', None) != self.profile_picture.name:
-                    process_image_to_webp(self.profile_picture, max_size=(512, 512))
+                if self.profile_picture and getattr(old_instance.profile_picture, 'name', None) != self.profile_picture.name:
+                    try:
+                        if hasattr(self.profile_picture, 'file'):
+                            process_image_to_webp(self.profile_picture, max_size=(512, 512))
+                    except (FileNotFoundError, OSError, Exception) as e:
+                        print(f"Skipping staff profile webp conversion: {e}")
             except StaffMember.DoesNotExist:
                 pass
         else:
-            if self.profile_picture and hasattr(self.profile_picture, 'file'):
-                process_image_to_webp(self.profile_picture, max_size=(512, 512))
+            if self.profile_picture:
+                try:
+                    if hasattr(self.profile_picture, 'file'):
+                        process_image_to_webp(self.profile_picture, max_size=(512, 512))
+                except (FileNotFoundError, OSError, Exception) as e:
+                    print(f"Skipping staff profile webp conversion: {e}")
 
         super().save(*args, **kwargs)
 

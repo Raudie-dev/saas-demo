@@ -165,6 +165,18 @@
                 </div>
             </div>
 
+            <!-- Estado Activo Toggle -->
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-4">
+                <div>
+                    <label for="staffIsActive" class="text-xs font-bold text-slate-800 block cursor-pointer">Colaborador Activo en el Negocio</label>
+                    <p class="text-[11px] text-slate-500 mt-0.5">Si está inactivo, no aparecerá en selectores de citas, turnos, cotizaciones ni proyectos.</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input type="checkbox" name="is_active" id="staffIsActive" value="1" {% if not staff or staff.is_active %}checked{% endif %} class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+            </div>
+
             <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
                 <a href="{% url 'staff_list' %}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition cursor-pointer">Cancelar</a>
                 <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-sm font-bold shadow-md transition cursor-pointer">Guardar Profesional</button>

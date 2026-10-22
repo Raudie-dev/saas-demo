@@ -24,6 +24,7 @@ urlpatterns = [
     path('marketing/', include('apps.marketing.urls')),
     path('propiedades/', include('apps.properties.urls')),
     path('proyectos/', include('apps.projects.urls')),
+    path('viajes/', include('apps.travel.urls')),
     path('superadmin/', include('apps.superadmin.urls')),
 ]
 

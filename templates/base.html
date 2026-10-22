@@ -159,16 +159,13 @@
                         </div>
                         <p class="text-sm font-bold text-white truncate mt-0.5">{{ current_business.name }}</p>
                     </div>
+                    {% if modules_enabled.booking %}
                     <div class="flex items-center gap-1 shrink-0">
-                        <a href="{% url 'booking_portal_config' %}" title="Configurar Enlace & Estado del Portal" class="p-1.5 text-slate-400 hover:text-white hover:bg-rose-900/50 rounded-lg transition border border-transparent hover:border-rose-800/60">
-                            <i data-lucide="settings-2" class="w-4 h-4"></i>
-                        </a>
-                        {% if modules_enabled.booking %}
                         <a href="{% url 'public_booking' current_business.slug %}" target="_blank" title="Abrir Portal Público 24/7" class="p-1.5 text-slate-400 hover:text-rose-300 hover:bg-rose-900/50 rounded-lg transition border border-transparent hover:border-rose-800/60">
                             <i data-lucide="external-link" class="w-4 h-4"></i>
                         </a>
-                        {% endif %}
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- 1-Click Link Access & Status Pill -->
@@ -231,11 +228,11 @@
                 {% if modules_enabled.crm %}
                 <a href="{% url 'client_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'crm' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="users" class="w-5 h-5"></i>
-                    <span>CRM & Clientes</span>
+                    <span>CRM & {{ client_label_plural|default:'Clientes' }}</span>
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.projects or is_marketing_agency %}
+                {% if modules_enabled.projects and not is_real_estate and not is_health_beauty and not is_travel %}
                 <a href="{% url 'project_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'proyectos' in request.path and 'contenido' not in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="folder-kanban" class="w-5 h-5"></i>
                     <span>Proyectos & Tareas</span>
@@ -247,10 +244,22 @@
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.properties or is_real_estate %}
+                {% if modules_enabled.properties and is_real_estate %}
                 <a href="{% url 'property_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'propiedades' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="building-2" class="w-5 h-5"></i>
                     <span>Propiedades</span>
+                </a>
+                {% endif %}
+
+                {% if modules_enabled.travel or is_travel %}
+                <a href="{% url 'travel_package_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'viajes' in request.path and 'reservas' not in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="plane" class="w-5 h-5"></i>
+                    <span>Paquetes & Viajes</span>
+                </a>
+
+                <a href="{% url 'travel_booking_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'viajes/reservas' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="ticket" class="w-5 h-5"></i>
+                    <span>Reservas de Viajes</span>
                 </a>
                 {% endif %}
 
@@ -450,11 +459,11 @@
                 {% if modules_enabled.crm %}
                 <a href="{% url 'client_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'crm' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="users" class="w-5 h-5"></i>
-                    <span>CRM & Clientes</span>
+                    <span>CRM & {{ client_label_plural|default:'Clientes' }}</span>
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.projects or is_marketing_agency %}
+                {% if modules_enabled.projects and not is_real_estate and not is_health_beauty %}
                 <a href="{% url 'project_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'proyectos' in request.path and 'contenido' not in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="folder-kanban" class="w-5 h-5"></i>
                     <span>Proyectos & Tareas</span>
@@ -466,7 +475,7 @@
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.properties or is_real_estate %}
+                {% if modules_enabled.properties and is_real_estate %}
                 <a href="{% url 'property_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'propiedades' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="building-2" class="w-5 h-5"></i>
                     <span>Propiedades</span>
@@ -612,18 +621,16 @@
                 </form>
                 {% endif %}
                 {% if current_business and modules_enabled.booking %}
-                <div class="hidden lg:flex items-center gap-1">
+                <div class="hidden lg:flex items-center">
                     <a href="{% url 'public_booking' current_business.slug %}" target="_blank" title="Abrir portal público en pestaña nueva" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold {% if current_business.is_booking_enabled %}bg-rose-50 text-rose-900 border border-rose-200 hover:bg-rose-100{% else %}bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200{% endif %} transition">
                         {% if current_business.is_booking_enabled %}
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Portal Online</span>
+                        <span>Ver Portal Online</span>
+                        <i data-lucide="external-link" class="w-3.5 h-3.5 text-rose-800/70"></i>
                         {% else %}
                         <span class="w-2 h-2 rounded-full bg-slate-400"></span>
                         <span>Portal Pausado</span>
                         {% endif %}
-                    </a>
-                    <a href="{% url 'booking_portal_config' %}" title="Configurar Enlace & Estado del Portal" class="p-1.5 text-slate-500 hover:text-rose-900 hover:bg-rose-50 rounded-lg transition border border-slate-200">
-                        <i data-lucide="settings-2" class="w-4 h-4"></i>
                     </a>
                 </div>
                 {% endif %}
@@ -894,6 +901,7 @@
 
     {% block extra_scripts %}{% endblock %}
 
+    {% include 'includes/confirm_modal.html' %}
 
 </body>
 </html>

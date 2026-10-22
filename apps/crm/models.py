@@ -56,12 +56,12 @@ class Client(TimeStampedModel):
             if has_sell_to_buy or ((has_owned or has_seller_inq) and (has_buyer_inq or has_visits)):
                 return {'badge': 'Vender para Comprar', 'color': 'purple', 'type': 'SELL_TO_BUY'}
             elif has_owned or has_seller_inq:
-                return {'badge': 'Propietario / Vendedor', 'color': 'amber', 'type': 'SELLER'}
+                return {'badge': 'Propietario', 'color': 'amber', 'type': 'SELLER'}
             elif has_buyer_inq or has_visits:
-                return {'badge': 'Interesado en Comprar / Alquilar', 'color': 'emerald', 'type': 'BUYER'}
+                return {'badge': 'Comprador', 'color': 'emerald', 'type': 'BUYER'}
         except Exception:
             pass
-        return {'badge': 'Cliente / Prospecto', 'color': 'slate', 'type': 'PROSPECT'}
+        return {'badge': 'Cliente', 'color': 'slate', 'type': 'PROSPECT'}
 
     def __str__(self):
         return f"{self.full_name} ({self.phone})"

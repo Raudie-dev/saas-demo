@@ -9,29 +9,30 @@
     <!-- Top Module Header Card -->
     <div class="glass-card bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-start gap-3.5">
-                <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center shrink-0">
-                    <i data-lucide="layout-grid" class="w-6 h-6"></i>
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center shrink-0">
+                    <i data-lucide="layout-grid" class="w-5 h-5 sm:w-6 sm:h-6"></i>
                 </div>
-                <div>
-                    <div class="flex items-center gap-2">
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <h3 class="font-extrabold text-slate-900 text-lg sm:text-xl leading-tight">Gestión de Proyectos</h3>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-200 uppercase tracking-wider">Tablero Trello</span>
+                        <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-200 uppercase tracking-wider">Tablero Trello</span>
                     </div>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Supervisa avances, mueve proyectos entre etapas y gestiona entregables en tiempo real.</p>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1 leading-snug">Supervisa avances, mueve proyectos entre etapas y gestiona entregables en tiempo real.</p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0">
-                <a href="{% url 'project_types' %}" class="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
-                    <i data-lucide="tags" class="w-4 h-4 text-rose-800"></i>
-                    <span>Tipos de Proyecto</span>
+            <!-- Action buttons: responsive grid on mobile, flex on desktop -->
+            <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0">
+                <a href="{% url 'project_types' %}" class="h-9 sm:h-10 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition shadow-2xs">
+                    <i data-lucide="tags" class="w-3.5 h-3.5 text-rose-800 shrink-0"></i>
+                    <span class="truncate">Tipos de Proyecto</span>
                 </a>
-                <a href="{% url 'content_planner' %}" class="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
-                    <i data-lucide="calendar" class="w-4 h-4 text-slate-500"></i>
-                    <span>Plan de Contenidos</span>
+                <a href="{% url 'content_planner' %}" class="h-9 sm:h-10 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition shadow-2xs">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+                    <span class="truncate">Plan Contenidos</span>
                 </a>
-                <a href="{% url 'project_create' %}" class="h-10 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition">
+                <a href="{% url 'project_create' %}" class="col-span-2 sm:col-span-1 h-10 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition">
                     <i data-lucide="plus-circle" class="w-4 h-4 text-rose-400"></i>
                     <span>Nuevo Proyecto</span>
                 </a>
@@ -39,47 +40,47 @@
         </div>
 
         <!-- Metrics Row -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
-            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Proyectos</p>
-                <p class="text-xl font-black text-slate-900 mt-0.5" id="metricTotalProjects">{{ total_projects }}</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-3 border-t border-slate-100">
+            <div class="p-2.5 sm:p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                <p class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">Total Proyectos</p>
+                <p class="text-lg sm:text-xl font-black text-slate-900 mt-0.5" id="metricTotalProjects">{{ total_projects }}</p>
             </div>
 
-            <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/70">
-                <p class="text-[10px] font-bold text-blue-700 uppercase tracking-wider">En Curso</p>
-                <p class="text-xl font-black text-blue-900 mt-0.5" id="metricActiveProjects">{{ active_projects }}</p>
+            <div class="p-2.5 sm:p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/70">
+                <p class="text-[9px] sm:text-[10px] font-bold text-blue-700 uppercase tracking-wider truncate">En Curso</p>
+                <p class="text-lg sm:text-xl font-black text-blue-900 mt-0.5" id="metricActiveProjects">{{ active_projects }}</p>
             </div>
 
-            <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/70">
-                <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Completados</p>
-                <p class="text-xl font-black text-emerald-900 mt-0.5" id="metricCompletedProjects">{{ completed_projects }}</p>
+            <div class="p-2.5 sm:p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/70">
+                <p class="text-[9px] sm:text-[10px] font-bold text-emerald-700 uppercase tracking-wider truncate">Completados</p>
+                <p class="text-lg sm:text-xl font-black text-emerald-900 mt-0.5" id="metricCompletedProjects">{{ completed_projects }}</p>
             </div>
 
-            <div class="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/70">
-                <p class="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Presupuesto Activo</p>
-                <p class="text-xl font-black text-rose-950 mt-0.5">{{ business.currency }}{{ total_budget|floatformat:2 }}</p>
+            <div class="p-2.5 sm:p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/70">
+                <p class="text-[9px] sm:text-[10px] font-bold text-rose-700 uppercase tracking-wider truncate">Presupuesto Activo</p>
+                <p class="text-lg sm:text-xl font-black text-rose-950 mt-0.5 truncate">{{ business.currency }}{{ total_budget|floatformat:2 }}</p>
             </div>
         </div>
     </div>
 
     <!-- Filters, View Switcher & Search Bar -->
-    <div class="glass-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+    <div class="glass-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         
         <!-- View Mode Switcher & Quick Pills -->
-        <div class="flex items-center gap-2">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
             <!-- View Mode Switcher -->
-            <div class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/80 shrink-0">
-                <button type="button" onclick="switchView('kanban')" id="btnViewKanban" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-slate-900 shadow-2xs">
+            <div class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/80 w-full sm:w-auto">
+                <button type="button" onclick="switchView('kanban')" id="btnViewKanban" class="flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-2xs">
                     <i data-lucide="trello" class="w-3.5 h-3.5 text-rose-900"></i>
                     <span>Tablero Kanban</span>
                 </button>
-                <button type="button" onclick="switchView('grid')" id="btnViewGrid" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+                <button type="button" onclick="switchView('grid')" id="btnViewGrid" class="flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
                     <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-slate-400"></i>
                     <span>Cuadrícula</span>
                 </button>
             </div>
 
-            <div id="gridStatusPills" class="hidden flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+            <div id="gridStatusPills" class="hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
                 <a href="{% url 'project_list' %}?view=grid" class="px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap {% if not status_filter %}bg-rose-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
                     Todos
                 </a>
@@ -96,20 +97,36 @@
         </div>
 
         <!-- Search & Type Filter -->
-        <form method="GET" action="{% url 'project_list' %}" id="filterForm" class="flex flex-wrap items-center gap-2">
+        <form method="GET" action="{% url 'project_list' %}" id="filterForm" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <input type="hidden" name="view" id="inputViewMode" value="{{ view_mode|default:'kanban' }}">
             {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
 
+            <!-- Top row on mobile: Search Input + Filtrar button -->
+            <div class="flex items-center gap-2 flex-1">
+                <div class="relative flex-1 sm:w-56">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" id="kanbanSearchInput" name="q" value="{{ search_query }}" placeholder="Buscar por proyecto o cliente..." class="w-full pl-9 pr-3 py-2 sm:py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
+                </div>
+                <button type="submit" class="h-9 sm:h-8 px-3.5 rounded-xl bg-slate-900 sm:bg-slate-100 hover:bg-slate-800 sm:hover:bg-slate-200 text-white sm:text-slate-700 font-bold text-xs transition shrink-0">
+                    Filtrar
+                </button>
+                {% if search_query or status_filter or type_filter %}
+                <a href="{% url 'project_list' %}" class="p-2 text-slate-400 hover:text-rose-600 transition shrink-0" title="Limpiar filtros">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </a>
+                {% endif %}
+            </div>
+
             <!-- Filtro Dinámico de Tipo de Proyecto -->
-            <div class="relative" id="filter-type-wrapper">
+            <div class="relative w-full sm:w-auto" id="filter-type-wrapper">
                 <input type="hidden" name="type" id="filter_type_input" value="{{ type_filter }}">
                 <button type="button" 
                         onclick="toggleFilterTypeDropdown(event)"
                         id="filter-type-btn"
-                        class="h-8 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer shadow-2xs">
-                    <div class="flex items-center gap-1.5" id="filter-type-display">
-                        <i data-lucide="tag" class="w-3.5 h-3.5 text-slate-400"></i>
-                        <span>
+                        class="w-full sm:w-auto h-9 sm:h-8 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 flex items-center justify-between sm:justify-start gap-2 transition cursor-pointer shadow-2xs">
+                    <div class="flex items-center gap-1.5 truncate" id="filter-type-display">
+                        <i data-lucide="tag" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                        <span class="truncate">
                             {% if type_filter %}
                                 {% for pt in project_types %}
                                     {% if type_filter == pt.id|stringformat:'s' or type_filter == pt.code %}{{ pt.name }}{% endif %}
@@ -120,16 +137,16 @@
                         </span>
                     </div>
                     {% if type_filter %}
-                    <span onclick="clearFilterType(event)" class="p-0.5 text-slate-400 hover:text-rose-600 transition" title="Quitar filtro">
+                    <span onclick="clearFilterType(event)" class="p-0.5 text-slate-400 hover:text-rose-600 transition shrink-0" title="Quitar filtro">
                         <i data-lucide="x" class="w-3.5 h-3.5"></i>
                     </span>
                     {% else %}
-                    <i data-lucide="chevron-down" id="filter-type-chevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"></i>
+                    <i data-lucide="chevron-down" id="filter-type-chevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0"></i>
                     {% endif %}
                 </button>
 
                 <!-- Menú desplegable interactivo -->
-                <div id="filter-type-dropdown" class="hidden absolute left-0 top-full mt-1.5 w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 p-1.5 space-y-1">
+                <div id="filter-type-dropdown" class="hidden absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-full sm:w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 p-1.5 space-y-1">
                     <button type="button" 
                             onclick="selectFilterType('')"
                             class="w-full flex items-center justify-between p-2 rounded-xl text-xs font-semibold hover:bg-slate-100 transition text-left cursor-pointer {% if not type_filter %}bg-slate-50 text-slate-900 font-bold{% endif %}">
@@ -160,44 +177,59 @@
                     </a>
                 </div>
             </div>
-
-            <div class="relative flex-1 sm:w-56">
-                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                <input type="text" id="kanbanSearchInput" name="q" value="{{ search_query }}" placeholder="Buscar en tablero..." class="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-800/20 focus:border-rose-800">
-            </div>
-
-            <button type="submit" class="h-8 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
-                Filtrar
-            </button>
-            {% if search_query or status_filter or type_filter %}
-            <a href="{% url 'project_list' %}" class="p-2 text-slate-400 hover:text-rose-600 transition" title="Limpiar filtros">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </a>
-            {% endif %}
         </form>
     </div>
 
     <!-- ============================================================== -->
     <!-- TABLERO KANBAN / TRELLO -->
     <!-- ============================================================== -->
-    <div id="kanbanViewContainer" class="space-y-2">
+    <div id="kanbanViewContainer" class="space-y-2.5">
+        
+        <!-- Mobile Column Quick Selector Bar (Pills) -->
+        <div class="sm:hidden -mx-2 px-2 overflow-x-auto no-scrollbar flex items-center gap-1.5 pb-0.5">
+            {% for col in columns %}
+            <button type="button" onclick="scrollToColumn('{{ col.code }}')" id="mobileColBtn-{{ col.code }}"
+                    class="mobile-col-pill px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border flex items-center gap-1.5 shrink-0 {% if forloop.first %}bg-rose-900 text-white border-rose-900{% else %}bg-white text-slate-700 border-slate-200{% endif %} shadow-2xs">
+                <span class="w-2 h-2 rounded-full {{ col.dot_color }} shrink-0"></span>
+                <span>{{ col.label }}</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] {% if forloop.first %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-700{% endif %} font-black column-pill-count" data-column-status="{{ col.code }}">{{ col.count }}</span>
+            </button>
+            {% endfor %}
+        </div>
+
         <div class="flex items-center justify-between text-xs text-slate-500 px-1">
-            <div class="flex items-center gap-1.5 font-medium">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-rose-800"></i>
-                <span>Arrastra y suelta las tarjetas para cambiar su estado en tiempo real</span>
+            <div class="flex items-center gap-1.5 font-medium text-[11px] sm:text-xs">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-rose-800 shrink-0"></i>
+                <span class="hidden sm:inline">Arrastra y suelta las tarjetas para cambiar su estado en tiempo real</span>
+                <span class="sm:hidden">Desliza entre columnas o toca las pestañas superiores</span>
             </div>
             <div class="text-[11px] text-slate-400 hidden sm:block">
                 <span>Shift + Scroll para mover horizontalmente</span>
             </div>
         </div>
 
-        <div class="overflow-x-auto pb-6 custom-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0">
-            <div class="flex gap-4 min-w-[1350px]">
+        <!-- Kanban Horizontal Scroll Container with Snap -->
+        <div id="kanbanScrollContainer" class="overflow-x-auto pb-6 custom-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0 snap-x snap-mandatory scroll-smooth">
+            <div class="flex gap-3 sm:gap-4 min-w-max">
                 {% for col in columns %}
-                <div class="w-[270px] sm:w-[290px] lg:w-[310px] shrink-0 bg-slate-100/90 rounded-2xl p-3 border border-slate-200/90 flex flex-col shadow-2xs">
+                <div id="kanbanCol-{{ col.code }}" class="w-[84vw] max-w-[320px] sm:w-[290px] lg:w-[310px] shrink-0 snap-center bg-slate-100/90 rounded-2xl p-3 border border-slate-200/90 flex flex-col shadow-2xs">
                     
                     <!-- Column Header -->
-                    <div class="p-2.5 rounded-xl {{ col.header_bg }} border border-slate-200/70 flex items-center justify-between mb-3 shadow-2xs">
+                    <div class="p-2.5 rounded-xl {{ col.header_bg }} border border-slate-200/70 flex items-center justify-between mb-2.5 shadow-2xs">
+                        <div class="flex items-center gap-2 truncate">
+                            <span class="w-2 h-2 rounded-full {{ col.dot_color }} shrink-0"></span>
+                            <span class="text-xs font-black text-slate-800 tracking-tight truncate">{{ col.label }}</span>
+                            <span class="column-count px-2 py-0.5 rounded-full text-[10px] font-black {{ col.badge_bg }} shrink-0" data-column-status="{{ col.code }}">
+                                {{ col.count }}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-1 shrink-0">
+                            <a href="{% url 'project_create' %}?status={{ col.code }}" class="p-1 rounded-lg bg-white/70 hover:bg-white text-slate-600 hover:text-rose-900 transition shadow-2xs" title="Añadir proyecto en {{ col.label }}">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            </a>
+                        </div>
+                    </div>
                         <div class="flex items-center gap-2">
                             <span class="w-2 h-2 rounded-full {{ col.dot_color }} shrink-0"></span>
                             <span class="text-xs font-black text-slate-800 tracking-tight">{{ col.label }}</span>
@@ -503,6 +535,13 @@
         box-shadow: 0 14px 28px rgba(0,0,0,0.18), 0 10px 10px rgba(0,0,0,0.12) !important;
         opacity: 0.95;
     }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
 </style>
 
 <script>
@@ -633,6 +672,36 @@
         }
     }
 
+    // Scroll a columna en mobile
+    function scrollToColumn(statusCode) {
+        const col = document.getElementById(`kanbanCol-${statusCode}`);
+        const container = document.getElementById('kanbanScrollContainer');
+        if (col && container) {
+            col.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            
+            // Actualizar estilo visual de las píldoras
+            document.querySelectorAll('.mobile-col-pill').forEach(btn => {
+                btn.classList.remove('bg-rose-900', 'text-white', 'border-rose-900');
+                btn.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+                const badge = btn.querySelector('.column-pill-count');
+                if (badge) {
+                    badge.classList.remove('bg-white/20', 'text-white');
+                    badge.classList.add('bg-slate-100', 'text-slate-700');
+                }
+            });
+            const activeBtn = document.getElementById(`mobileColBtn-${statusCode}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-rose-900', 'text-white', 'border-rose-900');
+                activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+                const badge = activeBtn.querySelector('.column-pill-count');
+                if (badge) {
+                    badge.classList.add('bg-white/20', 'text-white');
+                    badge.classList.remove('bg-slate-100', 'text-slate-700');
+                }
+            }
+        }
+    }
+
     // Recalcular contadores y presupuestos de cada columna en vivo
     function updateColumnCounters() {
         let totalActive = 0;
@@ -643,9 +712,13 @@
             const cards = col.querySelectorAll('.kanban-project-card');
             const count = cards.length;
 
-            // Actualizar badge de conteo
+            // Actualizar badge de conteo en columna
             const badge = document.querySelector(`.column-count[data-column-status="${colStatus}"]`);
             if (badge) badge.textContent = count;
+
+            // Actualizar badge en píldora móvil
+            const pillBadge = document.querySelector(`.column-pill-count[data-column-status="${colStatus}"]`);
+            if (pillBadge) pillBadge.textContent = count;
 
             // Actualizar presupuesto acumulado de columna
             let colBudget = 0;
@@ -683,10 +756,10 @@
                 animation: 180,
                 ghostClass: 'sortable-ghost',
                 dragClass: 'sortable-drag',
-                delay: 0,
+                delay: 150,
                 delayOnTouchOnly: true,
-                touchStartThreshold: 3,
-                fallbackTolerance: 3,
+                touchStartThreshold: 5,
+                fallbackTolerance: 5,
                 onEnd: async function(evt) {
                     const fromCol = evt.from;
                     const toCol = evt.to;
@@ -707,6 +780,46 @@
                 }
             });
         });
+
+        // Sincronizar píldora activa al deslizar el contenedor en mobile
+        const scrollContainer = document.getElementById('kanbanScrollContainer');
+        if (scrollContainer && 'IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+                        const colId = entry.target.id;
+                        const statusCode = colId.replace('kanbanCol-', '');
+                        
+                        document.querySelectorAll('.mobile-col-pill').forEach(btn => {
+                            btn.classList.remove('bg-rose-900', 'text-white', 'border-rose-900');
+                            btn.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+                            const badge = btn.querySelector('.column-pill-count');
+                            if (badge) {
+                                badge.classList.remove('bg-white/20', 'text-white');
+                                badge.classList.add('bg-slate-100', 'text-slate-700');
+                            }
+                        });
+                        const activeBtn = document.getElementById(`mobileColBtn-${statusCode}`);
+                        if (activeBtn) {
+                            activeBtn.classList.add('bg-rose-900', 'text-white', 'border-rose-900');
+                            activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+                            const badge = activeBtn.querySelector('.column-pill-count');
+                            if (badge) {
+                                badge.classList.add('bg-white/20', 'text-white');
+                                badge.classList.remove('bg-slate-100', 'text-slate-700');
+                            }
+                        }
+                    }
+                });
+            }, {
+                root: scrollContainer,
+                threshold: 0.6
+            });
+
+            document.querySelectorAll('[id^="kanbanCol-"]').forEach(colEl => {
+                observer.observe(colEl);
+            });
+        }
 
         // Búsqueda en tiempo real en las tarjetas del tablero
         const searchInput = document.getElementById('kanbanSearchInput');

@@ -22,7 +22,7 @@ def client_list_view(request):
     query = request.GET.get('q', '')
     real_estate_filter = request.GET.get('re_filter', 'all')
     
-    is_real_estate = (business.business_type == 'REAL_ESTATE') or business.is_module_enabled('properties')
+    is_real_estate = business.is_real_estate and business.is_module_enabled('properties')
     
     clients = Client.objects.filter(business=business).order_by('-created_at') if business else []
     if is_real_estate:
@@ -205,7 +205,7 @@ def client_detail_view(request, client_id):
     allow_editing_history = getattr(business, 'allow_editing_client_history', True)
     
     # Real estate intelligence
-    is_real_estate = (business.business_type == 'REAL_ESTATE') or business.is_module_enabled('properties')
+    is_real_estate = business.is_real_estate and business.is_module_enabled('properties')
     
     seller_inquiries = []
     buyer_inquiries = []

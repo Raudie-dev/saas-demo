@@ -129,7 +129,7 @@
                         <span>Editar</span>
                     </button>
 
-                    <form method="POST" action="{% url 'project_type_delete' t.id %}" onsubmit="return confirm('¿Estás seguro de eliminar el tipo de proyecto \'{{ t.name|escapejs }}\'?');" class="inline">
+                    <form method="POST" action="{% url 'project_type_delete' t.id %}" data-confirm="¿Estás seguro de que deseas eliminar el tipo de proyecto '{{ t.name|escapejs }}'?" data-confirm-title="Eliminar Tipo de Proyecto" data-confirm-btn="Sí, Eliminar" class="inline">
                         {% csrf_token %}
                         <button type="submit" 
                                 class="p-1.5 rounded-xl text-slate-400 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"

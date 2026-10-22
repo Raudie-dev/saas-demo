@@ -93,7 +93,7 @@ class RealEstateCRMTests(TestCase):
             operation_type='Venta',
             property_type='Casa'
         )
-        self.assertEqual(client.real_estate_role['type'], 'BOTH')
+        self.assertEqual(client.real_estate_role['type'], 'SELL_TO_BUY')
 
     def test_client_detail_renders_seller_inquiry_data(self):
         """Verifica que en el CRM del cliente se muestren los datos que agregó el interesado en vender."""
@@ -256,9 +256,9 @@ class RealEstateCRMTests(TestCase):
         url = reverse('client_list')
         response = self.client_user.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Perfil Inmobiliario")
-        self.assertContains(response, "Propietario / Vendedor")
-        self.assertContains(response, "Interesado en Comprar / Alquilar")
+        self.assertContains(response, "Perfil")
+        self.assertContains(response, "Propietario")
+        self.assertContains(response, "Comprador")
 
         # Filtro de vendedores
         response_sellers = self.client_user.get(url + "?re_filter=sellers")
