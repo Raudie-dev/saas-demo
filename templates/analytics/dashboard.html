@@ -232,36 +232,7 @@
                 <i data-lucide="clock" class="w-3.5 h-3.5"></i> {{ agenda_occupancy_pct }}% ocupación estimada
             </p>
         </div>
-
-        {% if modules_enabled.projects and not is_real_estate and not is_health_beauty %}
-        <!-- 3. Proyectos Activos (Agencias & Consultoría) -->
-        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-rose-900/40 transition group">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Proyectos Activos</span>
-                <div class="p-2.5 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 group-hover:scale-105 transition">
-                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
-                </div>
-            </div>
-            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ active_projects_count }}</p>
-            <p class="text-xs text-rose-900 mt-1 flex items-center gap-1 font-semibold">
-                <i data-lucide="check-square" class="w-3.5 h-3.5"></i> Proyectos en curso
-            </p>
-        </div>
-        {% elif modules_enabled.properties and is_real_estate %}
-        <!-- 3. Inmuebles en Cartera (Inmobiliaria) -->
-        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-rose-900/40 transition group">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Cartera Inmobiliaria</span>
-                <div class="p-2.5 bg-blue-50 text-blue-700 rounded-xl border border-blue-200 group-hover:scale-105 transition">
-                    <i data-lucide="building-2" class="w-5 h-5"></i>
-                </div>
-            </div>
-            <p class="text-2xl font-extrabold font-display text-slate-900 mt-3">{{ active_properties_count }}</p>
-            <p class="text-xs text-blue-800 mt-1 flex items-center gap-1 font-semibold">
-                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Propiedades disponibles
-            </p>
-        </div>
-        {% elif modules_enabled.inventory %}
+        {% if modules_enabled.inventory %}
         <!-- 3. Alertas de Stock Crítico -->
         <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-rose-900/40 transition group">
             <div class="flex items-center justify-between">
@@ -358,92 +329,7 @@
                 {% endfor %}
             </div>
         </div>
-
-        {% if modules_enabled.projects and not is_real_estate and not is_health_beauty %}
-        <!-- Right Column: Proyectos Activos (5 cols) -->
-        <div class="lg:col-span-5 glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
-                <div class="flex items-center gap-2.5">
-                    <div class="p-2 bg-rose-50 text-rose-900 rounded-xl border border-rose-200 shrink-0">
-                        <i data-lucide="folder-kanban" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-slate-900 text-base font-display">Proyectos en Curso</h3>
-                        <p class="text-xs text-slate-500">Últimos proyectos y entregables activos</p>
-                    </div>
-                </div>
-                <a href="{% url 'project_list' %}" class="shrink-0 w-fit inline-flex text-xs font-bold text-rose-900 hover:text-rose-950 items-center gap-1">
-                    Ver Todos <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                </a>
-            </div>
-
-            <div class="space-y-3 flex-1">
-                {% for proj in active_projects %}
-                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
-                    <div class="min-w-0">
-                        <p class="text-sm font-bold text-slate-900 truncate">{{ proj.title }}</p>
-                        <p class="text-xs text-slate-500 mt-0.5 truncate">
-                            {% if proj.client %}{{ proj.client.full_name }}{% else %}Proyecto interno{% endif %}
-                            {% if proj.deadline %}<span class="text-slate-400 mx-1">•</span> Entrega: {{ proj.deadline|date:"d/m/Y" }}{% endif %}
-                        </p>
-                    </div>
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-900 border border-rose-200 shrink-0">
-                        {{ proj.get_status_display|default:proj.status }}
-                    </span>
-                </div>
-                {% empty %}
-                <div class="py-12 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                    <i data-lucide="folder-plus" class="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
-                    <p class="text-sm font-bold text-slate-700">Sin proyectos activos</p>
-                    <p class="text-xs text-slate-400 mt-1">Crea tu primer proyecto para gestionar entregables con tus clientes.</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        {% elif modules_enabled.properties and is_real_estate %}
-        <!-- Right Column: Cartera de Propiedades (5 cols) -->
-        <div class="lg:col-span-5 glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
-                <div class="flex items-center gap-2.5">
-                    <div class="p-2 bg-blue-50 text-blue-700 rounded-xl border border-blue-200 shrink-0">
-                        <i data-lucide="building-2" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-slate-900 text-base font-display">Propiedades Disponibles</h3>
-                        <p class="text-xs text-slate-500">Inmuebles destacados en cartera</p>
-                    </div>
-                </div>
-                <a href="{% url 'property_list' %}" class="shrink-0 w-fit inline-flex text-xs font-bold text-blue-700 hover:text-blue-900 items-center gap-1">
-                    Ver Cartera <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                </a>
-            </div>
-
-            <div class="space-y-3 flex-1">
-                {% for prop in active_properties %}
-                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
-                    <div class="min-w-0">
-                        <p class="text-sm font-bold text-slate-900 truncate">{{ prop.title }}</p>
-                        <p class="text-xs text-slate-500 mt-0.5 truncate">
-                            {{ prop.get_operation_type_display }} • {{ prop.get_property_type_display }}
-                            {% if prop.city %}<span class="text-slate-400 mx-1">•</span> {{ prop.city }}{% endif %}
-                        </p>
-                    </div>
-                    <span class="text-xs font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200 shrink-0">
-                        {{ business.currency }}{{ prop.price|floatformat:0 }}
-                    </span>
-                </div>
-                {% empty %}
-                <div class="py-12 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                    <i data-lucide="home" class="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
-                    <p class="text-sm font-bold text-slate-700">Sin propiedades disponibles</p>
-                    <p class="text-xs text-slate-400 mt-1">Agrega inmuebles para publicar y agendar visitas.</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        {% elif modules_enabled.inventory %}
+        {% if modules_enabled.inventory %}
         <!-- Right Column: Alerta de Stock & Productos Críticos (5 cols) -->
         <div class="lg:col-span-5 glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">

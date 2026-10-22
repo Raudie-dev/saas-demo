@@ -1,109 +1,176 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-slate-50 text-slate-900">
+<html lang="es" class="h-full bg-[#FAF8F5] text-[#0F0F10]">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuración de Agencia - RauDie OS Onboarding</title>
-    <!-- Google Fonts Inter & Outfit -->
+    <title>Configuración Inicial — RauDie OS</title>
+    
+    <!-- Google Fonts: Strictly Montserrat (Official Brand Manual) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    colors: {
+                        burgundy: {
+                            DEFAULT: '#6B0D16',
+                            hover: '#82131D',
+                            50: '#FBF2F3',
+                            100: '#F5E2E4',
+                            200: '#ECC5C9',
+                            300: '#DE9FA5',
+                        },
+                        charcoal: {
+                            DEFAULT: '#0F0F10',
+                            800: '#1D1D1F',
+                            600: '#48484A',
+                            500: '#636366',
+                            400: '#8E8E93',
+                        },
+                        brandgray: {
+                            DEFAULT: '#D9D9D9',
+                            light: '#F2F2F2',
+                        },
+                        cream: '#FAF8F5',
+                    },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Outfit', 'sans-serif'],
+                        sans: ['Montserrat', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
     <style>
+        body {
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #FAF8F5;
+            color: #0F0F10;
+        }
+
         .light-box {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04);
+            background: #FFFFFF;
+            border: 1px solid #E8E5E1;
+            box-shadow: 0 10px 30px -5px rgba(15, 15, 16, 0.04);
         }
+
+        .profile-card {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
         .profile-card.active {
-            border-color: #be123c;
-            background: #fff1f2;
-            box-shadow: 0 0 0 2px rgba(190, 18, 60, 0.2);
+            border-color: #6B0D16;
+            background: #FBF2F3;
+            box-shadow: 0 0 0 2px rgba(107, 13, 22, 0.25);
         }
+
         .step-container {
             display: none;
-            animation: fadeIn 0.4s ease-in-out;
+            animation: fadeIn 0.35s ease-in-out;
         }
+
         .step-container.active {
             display: block;
         }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body class="h-full font-sans antialiased bg-slate-50 text-slate-900 py-10 px-4 flex justify-center items-start min-h-screen relative overflow-y-auto">
-    <!-- Background Decorator Elements -->
-    <div class="fixed -top-40 -left-40 w-96 h-96 bg-rose-100/60 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="fixed -bottom-40 -right-40 w-96 h-96 bg-slate-200/50 rounded-full blur-3xl pointer-events-none"></div>
+<body class="h-full font-sans antialiased bg-[#FAF8F5] text-charcoal py-8 sm:py-12 px-4 flex justify-center items-start min-h-screen relative overflow-y-auto selection:bg-burgundy selection:text-white">
+    
+    <!-- Background Ambient Glow -->
+    <div class="fixed -top-40 -left-40 w-96 h-96 bg-burgundy/5 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="fixed -bottom-40 -right-40 w-96 h-96 bg-charcoal/5 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="w-full max-w-4xl space-y-8 relative z-10 my-auto">
         
-        <!-- Top Title Header -->
-        <div class="text-center space-y-3">
-            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-xs font-bold text-rose-800 shadow-xs">
-                <i data-lucide="sparkles" class="w-4 h-4 text-rose-700"></i>
-                <span>Asistente de Configuración Inteligente</span>
+        <!-- Header with Official Logo -->
+        <div class="text-center space-y-4">
+            <a href="{% url 'landing' %}" class="inline-block hover:opacity-90 transition">
+                <img src="/static/images/brand/logo-light.png" alt="RauDie OS" class="h-8 sm:h-9 w-auto mx-auto object-contain">
+            </a>
+
+            <div class="space-y-2">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-burgundy-50 border border-burgundy/20 text-xs font-bold text-burgundy shadow-xs">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>Configuración Inicial de tu Negocio</span>
+                </div>
+                <h1 class="font-extrabold text-2xl sm:text-4xl text-charcoal tracking-tight">
+                    Personaliza RauDie OS para tu Operación
+                </h1>
+                <p class="text-xs sm:text-sm text-charcoal-500 max-w-lg mx-auto font-medium">
+                    Activa los motores ideales para tu sector: agenda de turnos, WhatsApp, terminal POS, comisiones y control de inventario.
+                </p>
             </div>
-            <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-slate-900 tracking-tight">Adapta RauDie OS a tu Agencia</h1>
-            <p class="text-sm text-slate-600 max-w-xl mx-auto">Responde estas sencillas preguntas para habilitar las herramientas ideales y personalizar la experiencia de tu equipo.</p>
+
+            <!-- Steps Progress Bar -->
+            <div class="max-w-xs mx-auto flex items-center justify-between text-xs font-bold text-charcoal-500 pt-2">
+                <div id="step-dot-1" class="flex items-center gap-1.5 text-burgundy font-extrabold">
+                    <span class="w-6 h-6 rounded-full bg-burgundy text-white flex items-center justify-center text-[11px]">1</span>
+                    <span>Sector</span>
+                </div>
+                <div class="h-0.5 w-8 bg-charcoal/15 rounded-full"></div>
+                <div id="step-dot-2" class="flex items-center gap-1.5 text-charcoal-400">
+                    <span class="w-6 h-6 rounded-full bg-charcoal/10 text-charcoal flex items-center justify-center text-[11px]">2</span>
+                    <span>Módulos</span>
+                </div>
+                <div class="h-0.5 w-8 bg-charcoal/15 rounded-full"></div>
+                <div id="step-dot-3" class="flex items-center gap-1.5 text-charcoal-400">
+                    <span class="w-6 h-6 rounded-full bg-charcoal/10 text-charcoal flex items-center justify-center text-[11px]">3</span>
+                    <span>Identidad</span>
+                </div>
+            </div>
         </div>
 
         <form id="onboardingForm" method="POST" action="{% url 'onboarding' %}">
             {% csrf_token %}
 
-            <!-- PASO 1: Tipo de Agencia / Negocio -->
-            <div id="step-1" class="step-container active light-box rounded-3xl p-6 sm:p-8 space-y-6">
-                <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
-                    <span class="w-8 h-8 rounded-xl bg-rose-800 text-white font-extrabold flex items-center justify-center text-sm shadow-sm">1</span>
+            <!-- PASO 1: Tipo de Negocio / Especialidad -->
+            <div id="step-1" class="step-container active light-box rounded-3xl p-6 sm:p-10 space-y-6">
+                <div class="flex items-center gap-3 border-b border-charcoal/10 pb-4">
+                    <span class="w-8 h-8 rounded-xl bg-burgundy text-white font-extrabold flex items-center justify-center text-sm shadow-sm">1</span>
                     <div>
-                        <h2 class="text-lg font-bold text-slate-900 font-display">¿Qué tipo de agencia o negocio administras?</h2>
-                        <p class="text-xs text-slate-500">Al seleccionar un perfil se activarán automáticamente las funciones recomendadas para tu sector.</p>
+                        <h2 class="text-lg font-bold text-charcoal">¿Qué tipo de negocio administras?</h2>
+                        <p class="text-xs text-charcoal-500">Selecciona tu sector para preconfigurar automáticamente los flujos de agenda, cobros y permisos recomendados.</p>
                     </div>
                 </div>
 
-                <input type="hidden" name="business_type" id="selected_business_type" value="{{ business.business_type|default:'MARKETING' }}">
+                <input type="hidden" name="business_type" id="selected_business_type" value="{{ business.business_type|default:'HEALTH_CLINIC' }}">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {% for profile in agency_profiles %}
                     <div onclick="selectProfile('{{ profile.code }}', {{ profile.modules|safe }})" 
                          id="card-{{ profile.code }}" 
-                         class="profile-card cursor-pointer p-5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-rose-400 transition duration-200 flex flex-col justify-between space-y-3 relative group">
+                         class="profile-card cursor-pointer p-5 rounded-2xl bg-[#FAF8F5] border border-charcoal/10 hover:border-burgundy/40 transition duration-200 flex flex-col justify-between space-y-3 relative group">
                         
                         <div class="space-y-2">
                             <div class="flex items-center justify-between">
-                                <div class="w-10 h-10 rounded-xl bg-white text-rose-700 border border-slate-200 flex items-center justify-center shadow-xs group-hover:scale-105 transition duration-200">
+                                <div class="w-10 h-10 rounded-xl bg-white text-burgundy border border-charcoal/10 flex items-center justify-center shadow-xs group-hover:scale-105 transition duration-200">
                                     <i data-lucide="{{ profile.icon }}" class="w-5 h-5"></i>
                                 </div>
-                                <span class="check-icon hidden text-rose-700 bg-rose-100 rounded-full p-1 border border-rose-300">
+                                <span class="check-icon hidden text-burgundy bg-burgundy-50 rounded-full p-1 border border-burgundy/20">
                                     <i data-lucide="check" class="w-3.5 h-3.5"></i>
                                 </span>
                             </div>
-                            <h3 class="font-bold text-slate-900 text-base font-display mt-2">{{ profile.title }}</h3>
-                            <p class="text-xs text-slate-600 leading-relaxed">{{ profile.desc }}</p>
+                            <h3 class="font-bold text-charcoal text-sm mt-2">{{ profile.title }}</h3>
+                            <p class="text-xs text-charcoal-500 leading-relaxed font-medium">{{ profile.desc }}</p>
                         </div>
 
                         <div class="pt-2 flex flex-wrap gap-1">
                             {% for m in profile.modules|slice:":3" %}
-                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600 font-mono font-medium">{{ m }}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-white border border-charcoal/10 text-charcoal-600 font-medium">{{ m }}</span>
                             {% endfor %}
                             {% if profile.modules|length > 3 %}
-                            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white border border-slate-200 text-slate-500 font-medium">+{{ profile.modules|length|add:"-3" }}</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white border border-charcoal/10 text-charcoal-400 font-medium">+{{ profile.modules|length|add:"-3" }}</span>
                             {% endif %}
                         </div>
                     </div>
@@ -111,81 +178,83 @@
                 </div>
                 
                 <div class="pt-4 flex justify-end">
-                    <button type="button" onclick="nextStep(2)" class="px-6 py-3 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-md transition duration-200 flex items-center gap-2">
-                        <span>Siguiente</span>
+                    <button type="button" onclick="nextStep(2)" class="px-7 py-3 rounded-full text-xs font-bold text-white bg-burgundy hover:bg-burgundy-hover shadow-xs transition duration-200 flex items-center gap-2 hover:scale-105 active:scale-95">
+                        <span>Continuar</span>
                         <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- PASO 2: ¿Para qué requiere el sistema? (Módulos & Objetivos) -->
-            <div id="step-2" class="step-container light-box rounded-3xl p-6 sm:p-8 space-y-6">
-                <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
-                    <span class="w-8 h-8 rounded-xl bg-rose-800 text-white font-extrabold flex items-center justify-center text-sm shadow-sm">2</span>
+            <!-- PASO 2: Módulos & Objetivos -->
+            <div id="step-2" class="step-container light-box rounded-3xl p-6 sm:p-10 space-y-6">
+                <div class="flex items-center gap-3 border-b border-charcoal/10 pb-4">
+                    <span class="w-8 h-8 rounded-xl bg-burgundy text-white font-extrabold flex items-center justify-center text-sm shadow-sm">2</span>
                     <div>
-                        <h2 class="text-lg font-bold text-slate-900 font-display">¿Para qué requiere el sistema tu agencia?</h2>
-                        <p class="text-xs text-slate-500">Selecciona los módulos y herramientas activas que tu equipo necesita en el día a día.</p>
+                        <h2 class="text-lg font-bold text-charcoal">Herramientas & Módulos para tu Negocio</h2>
+                        <p class="text-xs text-charcoal-500">Puedes activar o desactivar módulos en cualquier momento desde el panel de control.</p>
                     </div>
                 </div>
 
-                <div class="space-y-4">
+                <div class="space-y-5">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Objetivo Principal de la Agencia</label>
-                        <input type="text" name="primary_goal" id="primary_goal_input" value="{{ business.primary_goal|default:'Captar clientes y automatizar ventas' }}" placeholder="Ej: Gestionar citas, captar leads y llevar facturación de clientes" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-rose-600 transition">
+                        <label class="block text-xs font-semibold text-charcoal mb-1.5">Objetivo Principal de tu Negocio</label>
+                        <input type="text" name="primary_goal" id="primary_goal_input" value="{{ business.primary_goal|default:'Optimizar turnos, reducir ausencias y controlar ventas' }}" placeholder="Ej: Reducir inasistencias con WhatsApp, cobrar con POS y liquidar comisiones" class="w-full bg-[#FAF8F5] border border-charcoal/15 rounded-xl px-4 py-3 text-sm text-charcoal placeholder-charcoal-400 focus:bg-white focus:outline-none focus:border-burgundy transition">
                     </div>
 
-                    <label class="block text-xs font-semibold text-slate-700">Módulos que Necesitas Activar:</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {% for mod in all_modules %}
-                        <label class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-white cursor-pointer transition">
-                            <input type="checkbox" name="enabled_modules" value="{{ mod.code }}" id="mod-{{ mod.code }}" class="module-checkbox mt-1 w-4 h-4 accent-rose-700 rounded border-slate-300">
-                            <div>
-                                <div class="flex items-center gap-1.5">
-                                    <i data-lucide="{{ mod.icon }}" class="w-4 h-4 text-rose-700"></i>
-                                    <span class="text-xs font-bold text-slate-900">{{ mod.name }}</span>
+                    <div>
+                        <label class="block text-xs font-semibold text-charcoal mb-2">Módulos que Necesitas Activar:</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {% for mod in all_modules %}
+                            <label class="flex items-start gap-3 p-3.5 rounded-2xl bg-[#FAF8F5] border border-charcoal/10 hover:border-burgundy/30 hover:bg-white cursor-pointer transition">
+                                <input type="checkbox" name="enabled_modules" value="{{ mod.code }}" id="mod-{{ mod.code }}" class="module-checkbox mt-1 w-4 h-4 accent-burgundy rounded border-charcoal/20">
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <i data-lucide="{{ mod.icon }}" class="w-4 h-4 text-burgundy"></i>
+                                        <span class="text-xs font-bold text-charcoal">{{ mod.name }}</span>
+                                    </div>
+                                    <p class="text-[11px] text-charcoal-500 mt-0.5 leading-tight font-medium">{{ mod.desc }}</p>
                                 </div>
-                                <p class="text-[11px] text-slate-500 mt-0.5 leading-tight">{{ mod.desc }}</p>
-                            </div>
-                        </label>
-                        {% endfor %}
+                            </label>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
 
                 <div class="pt-4 flex justify-between">
-                    <button type="button" onclick="prevStep(1)" class="px-6 py-3 rounded-xl text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition duration-200 flex items-center gap-2">
+                    <button type="button" onclick="prevStep(1)" class="px-6 py-3 rounded-full text-xs font-bold text-charcoal-700 bg-white border border-charcoal/15 hover:bg-[#FAF8F5] transition duration-200 flex items-center gap-2">
                         <i data-lucide="arrow-left" class="w-4 h-4"></i>
                         <span>Atrás</span>
                     </button>
-                    <button type="button" onclick="nextStep(3)" class="px-6 py-3 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-md transition duration-200 flex items-center gap-2">
-                        <span>Siguiente</span>
+                    <button type="button" onclick="nextStep(3)" class="px-7 py-3 rounded-full text-xs font-bold text-white bg-burgundy hover:bg-burgundy-hover shadow-xs transition duration-200 flex items-center gap-2 hover:scale-105 active:scale-95">
+                        <span>Continuar</span>
                         <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- PASO 3: Identidad & Configuración General -->
-            <div id="step-3" class="step-container light-box rounded-3xl p-6 sm:p-8 space-y-6">
-                <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
-                    <span class="w-8 h-8 rounded-xl bg-rose-800 text-white font-extrabold flex items-center justify-center text-sm shadow-sm">3</span>
+            <!-- PASO 3: Identidad & Sede Principal -->
+            <div id="step-3" class="step-container light-box rounded-3xl p-6 sm:p-10 space-y-6">
+                <div class="flex items-center gap-3 border-b border-charcoal/10 pb-4">
+                    <span class="w-8 h-8 rounded-xl bg-burgundy text-white font-extrabold flex items-center justify-center text-sm shadow-sm">3</span>
                     <div>
-                        <h2 class="text-lg font-bold text-slate-900 font-display">Identidad y Datos de la Agencia</h2>
-                        <p class="text-xs text-slate-500">Nombre público, teléfono de contacto y moneda predeterminada.</p>
+                        <h2 class="text-lg font-bold text-charcoal">Identidad de tu Negocio & Sede Principal</h2>
+                        <p class="text-xs text-charcoal-500">Estos datos aparecerán en tu portal de reservas online, tickets de caja y comprobantes.</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nombre de la Agencia</label>
-                        <input type="text" name="agency_name" required value="{{ business.name }}" placeholder="Ej: Innova Marketing Agency" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-rose-600 transition">
+                        <label class="block text-xs font-semibold text-charcoal mb-1.5">Nombre del Negocio / Clínica</label>
+                        <input type="text" name="business_name" required value="{{ business.name }}" placeholder="Ej: Clínica & Estudio Integral San Martín" class="w-full bg-[#FAF8F5] border border-charcoal/15 rounded-xl px-4 py-3 text-sm text-charcoal placeholder-charcoal-400 focus:bg-white focus:outline-none focus:border-burgundy transition">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Teléfono / WhatsApp de Agencia</label>
-                        <div class="relative flex items-center bg-slate-50 border border-slate-300 rounded-xl focus-within:bg-white focus-within:border-rose-600 transition">
+                        <label class="block text-xs font-semibold text-charcoal mb-1.5">Teléfono / WhatsApp de Atención</label>
+                        <div class="relative flex items-center bg-[#FAF8F5] border border-charcoal/15 rounded-xl focus-within:bg-white focus-within:border-burgundy transition">
                             <div class="relative flex items-center shrink-0">
-                                <div class="flex items-center gap-1.5 pl-3.5 pr-2.5 py-3 text-sm font-bold text-slate-700 select-none pointer-events-none">
-                                    <span id="onboarding_phone_prefix_display" class="font-bold text-slate-800">{{ business_phone_prefix|default:'+54' }}</span>
-                                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                <div class="flex items-center gap-1.5 pl-3.5 pr-2.5 py-3 text-sm font-bold text-charcoal select-none pointer-events-none">
+                                    <span id="onboarding_phone_prefix_display" class="font-bold text-charcoal">{{ business_phone_prefix|default:'+54' }}</span>
+                                    <svg class="w-3.5 h-3.5 text-charcoal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                 </div>
                                 <select name="phone_prefix" id="onboarding_phone_prefix_select" title="Código de país"
                                         onchange="document.getElementById('onboarding_phone_prefix_display').textContent = this.value"
@@ -193,26 +262,26 @@
                                     {% include 'components/phone_prefix_options.html' with selected_prefix=business_phone_prefix %}
                                 </select>
                             </div>
-                            <div class="h-5 w-px bg-slate-200 shrink-0"></div>
-                            <input type="text" name="phone_number" value="{{ business_phone_number|default:'' }}" placeholder="9 11 9999 8888" class="flex-1 min-w-0 bg-transparent border-0 px-3.5 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-0">
+                            <div class="h-5 w-px bg-charcoal/15 shrink-0"></div>
+                            <input type="text" name="phone_number" value="{{ business_phone_number|default:'' }}" placeholder="9 11 9999 8888" class="flex-1 min-w-0 bg-transparent border-0 px-3.5 py-3 text-sm text-charcoal placeholder-charcoal-400 focus:outline-none focus:ring-0">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Región Comercial</label>
-                        <select name="region_id" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-rose-600 transition">
+                        <label class="block text-xs font-semibold text-charcoal mb-1.5">Región Comercial</label>
+                        <select name="region_id" required class="w-full bg-[#FAF8F5] border border-charcoal/15 rounded-xl px-4 py-3 text-sm text-charcoal focus:bg-white focus:outline-none focus:border-burgundy transition">
                             <option value="">-- Seleccionar Región --</option>
                             {% for region in all_regions %}
                             <option value="{{ region.id }}" {% if business.region and business.region.id == region.id %}selected{% endif %}>{{ region.name }} ({{ region.code }})</option>
                             {% endfor %}
                         </select>
-                        <p class="text-[10px] text-slate-500 mt-1">Define los métodos de pago disponibles y configuración por defecto.</p>
+                        <p class="text-[10px] text-charcoal-500 mt-1 font-medium">Define los métodos de pago disponibles y configuración tributaria por defecto.</p>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Símbolo de Moneda Principal</label>
-                        <select name="currency" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-rose-600 transition">
-                            <option value="$" {% if business.currency == '$' %}selected{% endif %}>$ (Dólares / Pesos AR)</option>
+                        <label class="block text-xs font-semibold text-charcoal mb-1.5">Símbolo de Moneda</label>
+                        <select name="currency" class="w-full bg-[#FAF8F5] border border-charcoal/15 rounded-xl px-4 py-3 text-sm text-charcoal focus:bg-white focus:outline-none focus:border-burgundy transition">
+                            <option value="$" {% if business.currency == '$' %}selected{% endif %}>$ (Pesos AR / Dólares)</option>
                             <option value="CLP $" {% if business.currency == 'CLP $' %}selected{% endif %}>CLP $ (Pesos Chilenos)</option>
                             <option value="COP $" {% if business.currency == 'COP $' %}selected{% endif %}>COP $ (Pesos Colombianos)</option>
                             <option value="MXN $" {% if business.currency == 'MXN $' %}selected{% endif %}>MXN $ (Pesos Mexicanos)</option>
@@ -231,21 +300,21 @@
                     </div>
 
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Dirección Principal u Oficina</label>
-                        <input type="text" name="address" value="{{ business.address|default:'' }}" placeholder="Ej: Av. Principal 123, Oficina 402" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-rose-600 transition">
+                        <label class="block text-xs font-semibold text-charcoal mb-1.5">Dirección de Sede Principal</label>
+                        <input type="text" name="address" value="{{ business.address|default:'' }}" placeholder="Ej: Av. Santa Fe 3240, Palermo, CABA" class="w-full bg-[#FAF8F5] border border-charcoal/15 rounded-xl px-4 py-3 text-sm text-charcoal placeholder-charcoal-400 focus:bg-white focus:outline-none focus:border-burgundy transition">
                     </div>
                 </div>
 
                 <!-- Submit Action Bar -->
-                <div class="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6 mt-8">
-                    <button type="button" onclick="prevStep(2)" class="px-6 py-3 rounded-xl text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition duration-200 flex items-center gap-2">
+                <div class="pt-6 border-t border-charcoal/10 flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+                    <button type="button" onclick="prevStep(2)" class="px-6 py-3 rounded-full text-xs font-bold text-charcoal-700 bg-white border border-charcoal/15 hover:bg-[#FAF8F5] transition duration-200 flex items-center gap-2">
                         <i data-lucide="arrow-left" class="w-4 h-4"></i>
                         <span>Atrás</span>
                     </button>
                     
-                    <button type="submit" class="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-rose-800 via-rose-700 to-rose-600 hover:from-rose-700 hover:to-rose-500 shadow-lg shadow-rose-900/20 transition duration-200 flex items-center justify-center gap-3 shrink-0">
-                        <i data-lucide="check-circle" class="w-5 h-5 text-white"></i>
-                        <span>Finalizar Configuración y Entrar</span>
+                    <button type="submit" class="w-full sm:w-auto px-8 py-3.5 rounded-full text-xs font-bold text-white bg-burgundy hover:bg-burgundy-hover shadow-md transition duration-200 flex items-center justify-center gap-2.5 hover:scale-105 active:scale-95">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-white"></i>
+                        <span>Finalizar Configuración y Entrar al Panel</span>
                     </button>
                 </div>
             </div>
@@ -253,82 +322,64 @@
         </form>
     </div>
 
+    <!-- Onboarding Script -->
     <script>
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
+
+        function nextStep(stepNumber) {
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${stepNumber}`).classList.add('active');
+
+            // Update Progress Dots
+            for (let i = 1; i <= 3; i++) {
+                const dot = document.getElementById(`step-dot-${i}`);
+                if (i <= stepNumber) {
+                    dot.className = "flex items-center gap-1.5 text-burgundy font-extrabold";
+                    dot.querySelector('span').className = "w-6 h-6 rounded-full bg-burgundy text-white flex items-center justify-center text-[11px]";
+                } else {
+                    dot.className = "flex items-center gap-1.5 text-charcoal-400";
+                    dot.querySelector('span').className = "w-6 h-6 rounded-full bg-charcoal/10 text-charcoal flex items-center justify-center text-[11px]";
+                }
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function prevStep(stepNumber) {
+            nextStep(stepNumber);
+        }
 
         function selectProfile(code, modules) {
             document.getElementById('selected_business_type').value = code;
 
-            // Update UI card highlight
+            // Highlight selected card
             document.querySelectorAll('.profile-card').forEach(card => {
                 card.classList.remove('active');
-                card.querySelector('.check-icon').classList.add('hidden');
+                const check = card.querySelector('.check-icon');
+                if (check) check.classList.add('hidden');
             });
 
-            const selectedCard = document.getElementById('card-' + code);
-            if (selectedCard) {
-                selectedCard.classList.add('active');
-                selectedCard.querySelector('.check-icon').classList.remove('hidden');
+            const currentCard = document.getElementById(`card-${code}`);
+            if (currentCard) {
+                currentCard.classList.add('active');
+                const check = currentCard.querySelector('.check-icon');
+                if (check) check.classList.remove('hidden');
             }
 
-            // Uncheck all module checkboxes
+            // Auto-check recommended modules in Step 2
             document.querySelectorAll('.module-checkbox').forEach(cb => {
-                cb.checked = false;
+                cb.checked = modules.includes(cb.value);
             });
-
-            // Check recommended modules for selected profile
-            modules.forEach(mCode => {
-                const cb = document.getElementById('mod-' + mCode);
-                if (cb) {
-                    cb.checked = true;
-                }
-            });
-
-            // Update primary goal placeholder / text
-            const goalInput = document.getElementById('primary_goal_input');
-            if (code === 'MARKETING') {
-                goalInput.value = 'Captar clientes, gestionar propuestas y automatizar marketing';
-            } else if (code === 'REAL_ESTATE') {
-                goalInput.value = 'Gestión de prospectos inmobiliarios, visitas y comisiones';
-            } else if (code === 'TRAVEL') {
-                goalInput.value = 'Reservas de paquetes de viaje, itinerarios y facturación';
-            } else if (code === 'CONSULTING') {
-                goalInput.value = 'Agenda de citas de consultoría, propuestas y facturación';
-            } else if (code === 'HEALTH_BEAUTY') {
-                goalInput.value = 'Control de citas 24/7, caja registradora POS y comisiones';
-            } else if (code === 'RETAIL_OTHER') {
-                goalInput.value = 'Ventas en punto de venta, inventario y facturación';
-            }
-        }
-        
-        function nextStep(step) {
-            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
-            document.getElementById('step-' + step).classList.add('active');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        
-        function prevStep(step) {
-            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
-            document.getElementById('step-' + step).classList.add('active');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Initialize default selection on page load
+        // Auto-select first profile on load if none selected
         window.addEventListener('DOMContentLoaded', () => {
-            const currentType = document.getElementById('selected_business_type').value || 'MARKETING';
-            
-            // Map default modules per type
-            const defaultModulesMap = {
-                'MARKETING': ['crm', 'invoicing', 'marketing', 'ai_engine', 'commissions', 'agenda'],
-                'REAL_ESTATE': ['crm', 'agenda', 'commissions', 'invoicing', 'ai_engine'],
-                'TRAVEL': ['crm', 'booking', 'agenda', 'pos', 'invoicing', 'commissions'],
-                'CONSULTING': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine'],
-                'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm'],
-                'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'analytics']
-            };
-
-            const modules = defaultModulesMap[currentType] || ['crm', 'agenda', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing'];
-            selectProfile(currentType, modules);
+            const currentVal = document.getElementById('selected_business_type').value;
+            const targetCode = currentVal || 'HEALTH_CLINIC';
+            const targetCard = document.getElementById(`card-${targetCode}`) || document.querySelector('.profile-card');
+            if (targetCard) {
+                targetCard.click();
+            }
         });
     </script>
 </body>

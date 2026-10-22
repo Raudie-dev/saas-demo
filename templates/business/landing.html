@@ -1,508 +1,652 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full scroll-smooth bg-white text-slate-900">
+<html lang="es" class="h-full scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
-        // Immediately redirect to dashboard if running inside PWA standalone mode
+        // Redirect to dashboard if in PWA standalone mode
         if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true || window.location.search.includes('pwa=1')) {
             window.location.replace('/dashboard/?pwa=1');
         }
     </script>
-    <title>RauDie OS - CRM, Facturación & Reservas de Citas 24/7</title>
+    <title>RauDie OS • Más control. Mejores decisiones.</title>
 
-    <!-- PWA Manifest & Mobile App Tags -->
+    <!-- PWA Manifest & App Tags -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#881337">
+    <meta name="theme-color" content="#6B0D16">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="RauDie OS">
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
 
-    <!-- Google Fonts: Plus Jakarta Sans & Outfit (Strict 2 Typography System) -->
+    <!-- Official Brand Font: Montserrat -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap" rel="stylesheet">
 
-    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                        display: ['Outfit', 'sans-serif'],
+                        sans: ['"Montserrat"', 'sans-serif'],
+                        display: ['"Montserrat"', 'sans-serif'],
                     },
                     colors: {
-                        cotton: '#EDEBDD',
-                        cherry: '#810100',
-                        maroon: '#630000',
-                        noir: '#1B1717',
-                        brand: {
-                            50: '#fff1f2',
-                            100: '#ffe4e6',
-                            200: '#fecdd3',
-                            300: '#fda4af',
-                            400: '#fb7185',
-                            500: '#f43f5e',
-                            600: '#e11d48',
-                            700: '#be123c',
-                            800: '#9f1239',
-                            900: '#881337',
-                            950: '#4c0519',
-                        }
+                        burgundy: {
+                            DEFAULT: '#6B0D16', // Confianza / Liderazgo
+                            hover: '#540910',
+                            light: '#8F1320',
+                            50: '#FBF0F1',
+                            100: '#F6DCDE',
+                            200: '#EDB7BB',
+                            300: '#E18890',
+                            400: '#D0525E',
+                            500: '#B82837',
+                            600: '#941423',
+                            700: '#6B0D16',
+                            800: '#4F080F',
+                            900: '#350409',
+                        },
+                        charcoal: {
+                            DEFAULT: '#0F0F10', // Tecnología / Estabilidad
+                            50: '#F5F5F5',
+                            100: '#E8E8E8',
+                            200: '#D4D4D4',
+                            300: '#B5B5B6',
+                            400: '#8C8C8E',
+                            500: '#68686A',
+                            600: '#4A4A4C',
+                            700: '#323234',
+                            800: '#1E1E20',
+                            900: '#0F0F10',
+                        },
+                        brandgray: {
+                            DEFAULT: '#D9D9D9', // Equilibrio / Claridad
+                            light: '#EFEFEF',
+                            border: '#E2E2E2',
+                        },
+                        cream: '#FAF8F5', // Presensio Canvas
                     },
-                    animation: {
-                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'float': 'float 6s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-8px)' },
-                        }
+                    boxShadow: {
+                        'presensio-nav': '0 8px 30px -4px rgba(15, 15, 16, 0.05), 0 1px 2px rgba(15, 15, 16, 0.04)',
+                        'presensio-card': '0 14px 36px -8px rgba(15, 15, 16, 0.05)',
+                        'presensio-phone': '0 30px 70px -15px rgba(15, 15, 16, 0.16)',
+                        'float-widget': '0 16px 36px -6px rgba(15, 15, 16, 0.10), 0 0 0 1px rgba(15, 15, 16, 0.05)',
                     }
                 }
             }
         }
     </script>
-    
+
     <style>
-        /* Light Theme Design System Tokens */
-        .glass-panel-light {
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(226, 232, 240, 0.8);
-        }
-        
-        .light-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .light-card:hover {
-            background: #ffffff;
-            border-color: #fda4af;
-            box-shadow: 0 16px 32px -8px rgba(225, 29, 72, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
-            transform: translateY(-3px);
+        body {
+            background-color: #FAF8F5;
+            color: #0F0F10;
+            font-family: 'Montserrat', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
 
-        .title-gradient-light {
-            background: linear-gradient(135deg, #0f172a 0%, #be123c 45%, #e11d48 70%, #f43f5e 100%);
-            background-size: 200% 200%;
-            animation: gradient-x 7s ease infinite;
+        /* Ambient Glow in Header with subtle animation */
+        .hero-ambient-glow {
+            background: 
+                radial-gradient(ellipse 55% 45% at 5% 5%, rgba(107, 13, 22, 0.09) 0%, rgba(250, 248, 245, 0) 70%),
+                radial-gradient(ellipse 55% 45% at 95% 5%, rgba(107, 13, 22, 0.08) 0%, rgba(250, 248, 245, 0) 70%),
+                radial-gradient(ellipse 65% 30% at 50% 25%, rgba(15, 15, 16, 0.03) 0%, rgba(250, 248, 245, 0) 80%),
+                #FAF8F5;
+        }
+
+        .cta-ambient-glow {
+            background: 
+                radial-gradient(circle at 10% 90%, rgba(107, 13, 22, 0.12) 0%, rgba(255, 255, 255, 0) 60%),
+                radial-gradient(circle at 90% 90%, rgba(107, 13, 22, 0.10) 0%, rgba(255, 255, 255, 0) 60%),
+                #FFFFFF;
+        }
+
+        /* DYNAMIC SCROLL REVEAL ANIMATIONS */
+        .reveal {
+            opacity: 0;
+            transform: translateY(32px);
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: opacity, transform;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-delay-1 { transition-delay: 0.12s; }
+        .reveal-delay-2 { transition-delay: 0.24s; }
+        .reveal-delay-3 { transition-delay: 0.36s; }
+        .reveal-delay-4 { transition-delay: 0.48s; }
+
+        /* SOFT BLUR & GRADIENT FADE WORD/LINE REVEAL (NO HARD CUTS) */
+        .word-jump-wrapper {
+            display: inline-block;
+            vertical-align: baseline;
+            position: relative;
+        }
+
+        .word-jump {
+            display: inline-block;
+            transform: translateY(12px) scale(0.98);
+            opacity: 0;
+            filter: blur(8px);
+            transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                        opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+                        filter 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+            transition-delay: calc(var(--word-idx, 0) * 0.022s);
+            will-change: transform, opacity, filter;
+        }
+
+        .reveal.active .word-jump,
+        .active .word-jump,
+        .word-jump.is-visible {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            filter: blur(0px);
+        }
+
+        /* SOFT BLUR LINE REVEAL FOR HEADINGS */
+        .line-jump {
+            display: block;
+            position: relative;
+        }
+
+        .line-jump-inner {
+            display: block;
+            transform: translateY(14px) scale(0.99);
+            opacity: 0;
+            filter: blur(10px);
+            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                        opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                        filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity, filter;
+        }
+
+        .reveal.active .line-jump-inner,
+        .active .line-jump-inner {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            filter: blur(0px);
+        }
+
+        .line-delay-1 { transition-delay: 0.08s; }
+        .line-delay-2 { transition-delay: 0.18s; }
+        .line-delay-3 { transition-delay: 0.28s; }
+
+        /* TEXT GRADIENT SHIMMER ON HEADLINE */
+        .animated-text-gradient {
+            background: linear-gradient(135deg, #6B0D16 0%, #B82837 35%, #0F0F10 70%, #6B0D16 100%);
+            background-size: 250% 250%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            animation: textShimmer 8s ease infinite;
         }
 
-        @keyframes gradient-x {
+        @keyframes textShimmer {
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
         }
 
-        @keyframes pulse-glow {
-            0%, 100% { opacity: 0.4; transform: scale(1); }
-            50% { opacity: 0.75; transform: scale(1.06); }
+        /* SHIMMER EFFECT FOR CTA BUTTONS */
+        .shimmer-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .animate-pulse-glow {
-            animation: pulse-glow 5s ease-in-out infinite;
-        }
-
-        .tech-card-glow {
-            box-shadow: 0 0 40px -10px rgba(225, 29, 72, 0.15), 0 20px 25px -5px rgba(0, 0, 0, 0.05);
-        }
-
-        .accent-gradient-light {
-            background: linear-gradient(135deg, #e11d48 0%, #be123c 50%, #881337 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .bg-grid-pattern-light {
-            background-size: 44px 44px;
-            background-image: 
-                radial-gradient(circle at 1px 1px, rgba(225, 29, 72, 0.12) 1.5px, transparent 0),
-                linear-gradient(to right, rgba(203, 213, 225, 0.45) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(203, 213, 225, 0.45) 1px, transparent 1px);
-        }
-
-        .hero-vignette {
-            mask-image: radial-gradient(ellipse 85% 70% at 50% 20%, #000 65%, transparent 100%);
-            -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 20%, #000 65%, transparent 100%);
-        }
-
-        .glow-orb-light {
+        .shimmer-btn::after {
+            content: '';
             position: absolute;
-            border-radius: 50%;
-            filter: blur(90px);
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+            transform: translateX(-100%);
+            animation: btnShimmer 3.8s ease-in-out infinite;
+        }
+
+        @keyframes btnShimmer {
+            0% { transform: translateX(-100%); }
+            40%, 100% { transform: translateX(200%); }
+        }
+
+        /* SPOTLIGHT / CURSOR HOVER GLOW ON CARDS */
+        .spotlight-card {
+            position: relative;
+            background: #FFFFFF;
+            border: 1px solid #E8E5E1;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px -10px rgba(15, 15, 16, 0.03);
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .spotlight-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(350px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), rgba(107, 13, 22, 0.06), transparent 75%);
             pointer-events: none;
-            z-index: 0;
-            opacity: 0.85;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
-        .tab-btn.active {
-            background: linear-gradient(135deg, #e11d48, #be123c);
-            border-color: #be123c;
-            color: #ffffff;
-            box-shadow: 0 6px 20px -4px rgba(225, 29, 72, 0.35);
+        .spotlight-card:hover::before {
+            opacity: 1;
         }
 
-        .tab-btn.active .tab-icon {
-            color: #ffffff;
+        .spotlight-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(107, 13, 22, 0.28);
+            box-shadow: 0 20px 42px -12px rgba(107, 13, 22, 0.09);
         }
 
-        /* Hide scrollbars for tab bar and horizontal scroll containers */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none !important;
-            scrollbar-width: none !important;
+        .floating-pill-nav {
+            background: rgba(250, 248, 245, 0.90);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(15, 15, 16, 0.08);
         }
 
-        /* Custom Scrollbar for main window */
-        ::-webkit-scrollbar {
-            width: 8px;
+        /* HARDWARE IPHONE CONTAINER */
+        .iphone-frame {
+            border: 8px solid #0F0F10;
+            border-radius: 46px;
+            background: #FFFFFF;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        ::-webkit-scrollbar-track {
-            background: #f8fafc;
+
+        .iphone-dynamic-island {
+            width: 84px;
+            height: 22px;
+            background: #0F0F10;
+            border-radius: 14px;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
+
+        /* REQUESTED FADE-OUT GRADIENT AT BOTTOM */
+        .phone-fade-bottom {
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 68%, rgba(0, 0, 0, 0) 100%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 68%, rgba(0, 0, 0, 0) 100%);
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #e11d48;
+
+        /* CONTINUOUS FLOATING ANIMATIONS */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(0.4deg); }
         }
+        @keyframes floatDelayed {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-7px) rotate(-0.4deg); }
+        }
+        .animate-float {
+            animation: floatSlow 5.5s ease-in-out infinite;
+        }
+        .animate-float-delayed {
+            animation: floatDelayed 6.5s ease-in-out infinite 2s;
+        }
+
+        /* INFINITE MARQUEE ANIMATION FOR LOGOS */
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: flex;
+            width: max-content;
+            animation: marquee 26s linear infinite;
+        }
+        .animate-marquee:hover {
+            animation-play-state: paused;
+        }
+
+        /* TOAST NOTIFICATION */
+        @keyframes toastSlide {
+            0% { transform: translateY(-12px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .animate-toast {
+            animation: toastSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* TYPING DOTS REBOUND */
+        @keyframes bounceDot {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        .dot-1 { animation: bounceDot 1.4s infinite 0s ease-in-out; }
+        .dot-2 { animation: bounceDot 1.4s infinite 0.2s ease-in-out; }
+        .dot-3 { animation: bounceDot 1.4s infinite 0.4s ease-in-out; }
     </style>
 </head>
-<body class="h-full font-sans antialiased bg-white text-slate-900 selection:bg-brand-600 selection:text-white flex flex-col min-h-screen relative overflow-x-hidden">
+<body class="min-h-screen flex flex-col bg-cream text-charcoal selection:bg-burgundy selection:text-white">
 
-    <!-- Floating Light Glassmorphism Navbar (Harmonized & Spacious) -->
-    <header class="sticky top-3 sm:top-5 z-50 px-2 sm:px-4 max-w-7xl mx-auto transition-all duration-300">
-        <div class="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-full px-4 sm:px-8 py-3 sm:py-4 shadow-lg shadow-slate-200/60 border border-slate-200/90 flex items-center justify-between">
-            
-            <!-- Brand Logo -->
-            <a href="{% url 'landing' %}" class="flex items-center gap-3 group font-display font-black text-xl sm:text-2xl text-slate-900 tracking-tight pr-3 sm:pr-8 md:border-r border-slate-200/80 shrink-0">
-                <img src="/static/images/logo.png" alt="RauDie OS Logo" class="w-9 h-9 sm:w-10 sm:h-10 drop-shadow-md object-contain group-hover:scale-105 transition-transform">
-                <span class="bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 bg-clip-text text-transparent">RauDie<span class="text-brand-700">OS</span></span>
-            </a>
+    <!-- FLOATING PILL NAVBAR -->
+    <header class="fixed top-4 left-0 right-0 z-50 px-4 transition-all duration-300">
+        <div class="max-w-4xl mx-auto">
+            <nav class="floating-pill-nav rounded-full px-4 sm:px-6 py-2.5 flex items-center justify-between shadow-presensio-nav">
+                
+                <!-- Official RauDie Logo -->
+                <a href="{% url 'landing' %}" class="flex items-center gap-2 group">
+                    <img src="/static/images/brand/logo-light.png" alt="RauDie OS" class="h-8 sm:h-9 md:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105">
+                </a>
 
-            <!-- Navigation Center Links (Generous Spacing) -->
-            <nav class="hidden md:flex items-center gap-8 lg:gap-12 px-6">
-                <a href="#soluciones" class="text-xs sm:text-sm font-semibold text-slate-600 hover:text-brand-700 transition-colors duration-200">Soluciones</a>
-                <a href="#modulos" class="text-xs sm:text-sm font-semibold text-slate-600 hover:text-brand-700 transition-colors duration-200">Módulos</a>
-                <a href="#precios" class="text-xs sm:text-sm font-semibold text-slate-600 hover:text-brand-700 transition-colors duration-200">Planes</a>
-                <a href="#faq" class="text-xs sm:text-sm font-semibold text-slate-600 hover:text-brand-700 transition-colors duration-200">Preguntas</a>
-            </nav>
+                <!-- Desktop Nav Links -->
+                <div class="hidden md:flex items-center gap-6 text-[12px] font-semibold tracking-wide text-charcoal-700">
+                    <a href="#ecosistema" class="hover:text-burgundy transition-colors duration-200">Ecosistema</a>
+                    <a href="#modulos" class="hover:text-burgundy transition-colors duration-200">Módulos</a>
+                    <a href="#precios" class="hover:text-burgundy transition-colors duration-200">Planes</a>
+                    <a href="#faq" class="hover:text-burgundy transition-colors duration-200">FAQ</a>
+                </div>
 
-            <!-- Right CTA Buttons -->
-            <div class="hidden sm:flex items-center gap-3 pl-4 shrink-0">
-                <!-- PWA Download App Button -->
-                <button id="pwa-install-nav-btn" class="px-4 py-2 rounded-full text-xs font-bold text-slate-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 shadow-sm flex items-center gap-1.5 transition">
-                    <i data-lucide="smartphone" class="w-4 h-4 text-brand-700"></i>
-                    <span>Instalar App Móvil</span>
+                <!-- Desktop Actions -->
+                <div class="hidden sm:flex items-center gap-3">
+                    {% if request.user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="px-5 py-2 rounded-full text-xs font-bold text-white bg-burgundy hover:bg-burgundy-hover transition-all duration-200 shadow-xs flex items-center gap-1.5 hover:scale-105 active:scale-95">
+                            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+                            <span>Ir al Panel</span>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="text-xs font-semibold text-charcoal hover:text-burgundy transition-colors">
+                            Iniciar Sesión
+                        </a>
+                        <a href="{% url 'register' %}" class="shimmer-btn px-5 py-2 rounded-full text-xs font-bold text-white bg-burgundy hover:bg-burgundy-hover transition-all duration-200 shadow-xs flex items-center gap-1 hover:scale-105 active:scale-95">
+                            <span>Probar Gratis</span>
+                            <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                        </a>
+                    {% endif %}
+                </div>
+
+                <!-- Mobile Hamburger Toggle -->
+                <button id="mobile-toggle" class="p-1.5 rounded-full text-charcoal hover:bg-black/5 md:hidden transition" aria-label="Abrir menú">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
                 </button>
-
-                {% if request.user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-brand-700 via-brand-600 to-rose-600 hover:from-brand-600 hover:to-rose-500 shadow-md shadow-brand-700/20 transition-all duration-200 flex items-center gap-1.5">
-                    <span>Ir a Mi Panel</span>
-                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                </a>
-                {% else %}
-                <a href="{% url 'login' %}" class="px-4 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-brand-700 transition-colors">
-                    Iniciar Sesión
-                </a>
-                <a href="{% url 'register' %}" class="px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-brand-700 via-brand-600 to-rose-600 hover:from-brand-600 hover:to-rose-500 shadow-md shadow-brand-700/20 transition-all duration-200 flex items-center gap-1.5 group">
-                    <span>Probar Gratis</span>
-                    <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-0.5 transition-transform"></i>
-                </a>
-                {% endif %}
-            </div>
-
-            <!-- Mobile Menu Toggle Button (Prominent & Easy to Tap) -->
-            <button id="mobile-menu-btn" class="md:hidden px-3 py-2 rounded-xl bg-rose-50 text-brand-900 border border-rose-200 font-bold text-xs flex items-center gap-1.5 focus:outline-none transition">
-                <i data-lucide="menu" class="w-5 h-5"></i>
-                <span>Menú</span>
-            </button>
+            </nav>
         </div>
 
-
-        <!-- Mobile Navigation Menu Dropdown -->
-        <div id="mobile-menu" class="hidden md:hidden mt-3 bg-white/95 border border-slate-200/90 rounded-3xl px-6 pt-4 pb-6 space-y-3 shadow-2xl text-slate-800 backdrop-blur-xl">
-            <a href="#soluciones" class="block py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Soluciones por Sector</a>
-            <a href="#modulos" class="block py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Módulos del Sistema</a>
-            <a href="#precios" class="block py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Planes y Precios</a>
-            <a href="#faq" class="block py-2 text-sm font-bold text-slate-700 hover:text-brand-700">Preguntas Frecuentes</a>
-            <div class="pt-4 border-t border-slate-100 flex flex-col gap-2">
-                <!-- PWA Mobile Install Button -->
-                <button id="pwa-install-mobile-btn" class="w-full text-center py-3 rounded-full text-xs font-bold text-brand-900 bg-rose-100 hover:bg-rose-200 border border-rose-300 flex items-center justify-center gap-2">
-                    <i data-lucide="download" class="w-4 h-4 text-brand-700"></i>
-                    <span>Instalar App en el Celular</span>
+        <!-- Mobile Drawer -->
+        <div id="mobile-menu" class="fixed inset-x-4 top-16 bg-white rounded-3xl p-6 shadow-2xl border border-charcoal/10 hidden z-50 flex-col gap-4 animate-toast">
+            <div class="flex items-center justify-between pb-3 border-b border-charcoal/10">
+                <img src="/static/images/brand/logo-light.png" alt="RauDie OS" class="h-8 w-auto">
+                <button id="mobile-close" class="p-1 rounded-full text-charcoal-500 hover:bg-charcoal/5">
+                    <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
+            </div>
+            <div class="flex flex-col gap-3 text-xs font-bold text-charcoal">
+                <a href="#ecosistema" class="mobile-item py-1.5 hover:text-burgundy transition">Ecosistema RauDie OS</a>
+                <a href="#modulos" class="mobile-item py-1.5 hover:text-burgundy transition">Módulos del Sistema</a>
+                <a href="#precios" class="mobile-item py-1.5 hover:text-burgundy transition">Planes & Precios</a>
+                <a href="#faq" class="mobile-item py-1.5 hover:text-burgundy transition">Preguntas Frecuentes</a>
+            </div>
+            <div class="pt-3 border-t border-charcoal/10 flex flex-col gap-2">
                 {% if request.user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="w-full text-center py-3 rounded-full text-xs font-bold text-white bg-gradient-to-r from-brand-700 to-rose-600 shadow-md">Ir a Mi Panel</a>
+                    <a href="{% url 'dashboard' %}" class="w-full text-center py-2.5 rounded-full text-xs font-bold text-white bg-burgundy">
+                        Mi Panel de Control
+                    </a>
                 {% else %}
-                <a href="{% url 'login' %}" class="w-full text-center py-2.5 rounded-full text-xs font-bold text-slate-700 border border-slate-200">Iniciar Sesión</a>
-                <a href="{% url 'register' %}" class="w-full text-center py-3 rounded-full text-xs font-bold text-white bg-gradient-to-r from-brand-700 to-rose-600 shadow-md flex items-center justify-center gap-1">
-                    <span>Probar Gratis</span>
-                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                </a>
+                    <a href="{% url 'login' %}" class="w-full text-center py-2.5 rounded-full text-xs font-bold text-charcoal border border-charcoal/20">
+                        Iniciar Sesión
+                    </a>
+                    <a href="{% url 'register' %}" class="w-full text-center py-2.5 rounded-full text-xs font-bold text-white bg-burgundy">
+                        Comenzar Ahora Gratis
+                    </a>
                 {% endif %}
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-1">
+    <!-- MAIN BODY -->
+    <main class="flex-grow">
 
-        <!-- Hero Section (Apple / Linear Minimalist Experience) -->
-        <section class="relative pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-16 lg:pb-24 px-4 bg-white overflow-hidden">
-            <!-- Vibrant Vinotinto Ambient Mesh Aura -->
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-4xl h-[480px] bg-gradient-to-tr from-brand-900/25 via-rose-600/20 to-rose-200/30 rounded-full blur-3xl pointer-events-none opacity-80"></div>
-            
-            <div class="max-w-7xl mx-auto space-y-8 sm:space-y-10 relative z-10">
+        <!-- HERO SECTION (Interactive Phone Simulator with Fade Bottom + Dynamic Lighting) -->
+        <section class="hero-ambient-glow pt-28 sm:pt-36 pb-16 sm:pb-24 px-4 overflow-hidden relative">
+            <div class="max-w-4xl mx-auto text-center space-y-6">
                 
-                <div class="text-center space-y-4 sm:space-y-5 max-w-4xl mx-auto">
-                    <!-- Clean Pill Tagline -->
-                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-xs font-bold text-brand-800 tracking-wide uppercase">
-                        <span>CRM • Facturación • Reservas de Citas 24/7</span>
-                    </div>
-
-                    <!-- Main Hero Title (Pure Clean Sans Display) -->
-                    <h1 class="font-display font-black text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.08] text-slate-900">
-                        El CRM y Facturación que <br>
-                        <span class="title-gradient-light">Evoluciona con tu Agencia</span>
-                    </h1>
-
-                    <!-- Hero Subtitle -->
-                    <p class="text-sm sm:text-base lg:text-lg text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed">
-                        Toma el control total de tu tiempo con nuestra plataforma integral. Organiza prospectos, agenda citas 24/7 y factura sin estrés ni complicaciones.
-                    </p>
-
-                    <!-- Harmonized Action Buttons -->
-                    <div class="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 max-w-md mx-auto sm:max-w-none">
-                        <a href="{% url 'register' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-full text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-brand-800 via-brand-700 to-rose-600 hover:from-brand-700 hover:to-rose-500 shadow-xl shadow-brand-900/20 transition-all duration-300 flex items-center justify-center gap-2 group">
-                            <span>Probar Gratis</span>
-                            <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
-                        </a>
-
-                        <!-- Hero PWA Install Button -->
-                        <button id="pwa-install-hero-btn" class="w-full sm:w-auto px-7 py-3.5 rounded-full text-xs sm:text-sm font-bold text-slate-900 bg-rose-100 hover:bg-rose-200 border border-rose-300 shadow-sm transition-all duration-200 flex items-center justify-center gap-2">
-                            <i data-lucide="smartphone" class="w-4.5 h-4.5 text-brand-700"></i>
-                            <span>Descargar App en Móvil</span>
-                        </button>
-                        
-                        <a href="#soluciones" class="w-full sm:w-auto px-7 py-3.5 rounded-full text-xs sm:text-sm font-bold text-slate-800 bg-white/90 backdrop-blur-md hover:bg-slate-100 border border-slate-300/90 shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2">
-                            <i data-lucide="play-circle" class="w-4.5 h-4.5 text-slate-600"></i>
-                            <span>Ver Demostración</span>
-                        </a>
-                    </div>
+                <!-- Refined Brand Pill Badge -->
+                <div class="reveal inline-flex items-center px-4 py-1.5 rounded-full bg-white border border-charcoal/10 shadow-xs text-xs font-semibold text-charcoal-700 hover:border-burgundy/30 transition-all duration-300">
+                    <span class="text-charcoal-800">RauDie OS</span>
+                    <span class="mx-2 text-charcoal-300">•</span>
+                    <span class="text-burgundy font-bold">Software SaaS para Negocios</span>
                 </div>
 
+                <!-- Main Official Headline with Animated Gradient Shimmer & Line Jump -->
+                <h1 class="reveal reveal-delay-1 text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-charcoal leading-[1.15] max-w-3xl mx-auto">
+                    <span class="line-jump"><span class="line-jump-inner line-delay-1">Más control.</span></span>
+                    <span class="line-jump"><span class="line-jump-inner line-delay-2 animated-text-gradient pb-1">Mejores decisiones.</span></span>
+                </h1>
 
-                <!-- macOS Light Window Frame Mockup with Floating Tech Badges -->
-                <div class="relative max-w-5xl mx-auto pt-2">
-                    
+                <!-- Subtitle with Exact System Context -->
+                <p class="reveal reveal-delay-2 max-w-xl mx-auto text-xs sm:text-sm md:text-base text-charcoal-600 font-medium leading-relaxed text-words-jump">
+                    El software todo en uno para gestionar citas, clientes y ventas sin fricción. Diseñado para que tu negocio crezca con orden y claridad.
+                </p>
 
-                    <!-- Ambient Soft Halo -->
-                    <div class="absolute -inset-1.5 bg-gradient-to-r from-rose-400 via-brand-300 to-indigo-300 rounded-[2.5rem] opacity-50 blur-2xl animate-pulse-glow"></div>
+                <!-- Action Buttons with Shimmer & Interactive Ripple -->
+                <div class="reveal reveal-delay-3 pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <a href="{% url 'register' %}" class="shimmer-btn w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-full text-xs sm:text-sm font-bold text-white bg-burgundy hover:bg-burgundy-hover transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 active:scale-95">
+                        Comenzar Prueba Gratuita
+                    </a>
+                    <button onclick="triggerInteractiveSimulation()" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 rounded-full text-xs sm:text-sm font-bold text-charcoal bg-white border border-charcoal/15 hover:border-burgundy/40 hover:bg-cream transition-all duration-300 shadow-xs hover:scale-105 active:scale-95">
+                        <span>Simular Notificación WhatsApp</span>
+                    </button>
+                </div>
+
+                <!-- DYNAMIC INTERACTIVE SMARTPHONE (With clickable days and live UI update) -->
+                <div class="reveal reveal-delay-4 relative pt-10 sm:pt-16 max-w-sm sm:max-w-md mx-auto">
                     
-                    <!-- macOS Window Container -->
-                    <div class="relative rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 shadow-2xl shadow-slate-300/80 overflow-hidden hover:scale-[1.01] transition-transform duration-500">
-                        
-                        <!-- Window Header Bar -->
-                        <div class="px-4 py-3 bg-slate-100/90 border-b border-slate-200 flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
-                                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-                                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
-                                <span class="ml-2 text-xs font-mono text-slate-500">https://raudieos.app/dashboard</span>
+                    <!-- Floating Widget 1: Top Left (Dynamic Occupancy) -->
+                    <div class="absolute -left-12 sm:-left-20 top-20 sm:top-24 z-20 animate-float hidden xs:block sm:block">
+                        <div class="p-3 sm:p-3.5 rounded-2xl bg-white shadow-float-widget border border-charcoal/10 text-left space-y-1.5 w-36 sm:w-40 transition-all hover:scale-105">
+                            <div class="flex items-center justify-between text-[10px] font-bold text-charcoal-500">
+                                <span>Ocupación</span>
+                                <span id="widget-occupancy" class="text-burgundy font-extrabold count-up" data-target="94">94%</span>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    En Vivo
-                                </span>
+                            <div class="h-2 w-full bg-brandgray-light rounded-full overflow-hidden">
+                                <div id="widget-occupancy-bar" class="h-full bg-burgundy rounded-full w-[94%] transition-all duration-700 ease-out"></div>
+                            </div>
+                            <div id="widget-occupancy-text" class="text-[9px] text-charcoal-500 font-medium">18 turnos hoy</div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Widget 2: Bottom Left (Incoming Appointment) -->
+                    <div class="absolute -left-8 sm:-left-16 bottom-24 sm:bottom-32 z-20 animate-float-delayed hidden xs:block sm:block">
+                        <div class="p-3 rounded-2xl bg-white shadow-float-widget border border-charcoal/10 text-left flex items-center gap-2.5 w-44 sm:w-48 transition-all hover:scale-105">
+                            <div class="w-8 h-8 rounded-full bg-burgundy-50 text-burgundy flex items-center justify-center shrink-0 font-bold">
+                                <i data-lucide="calendar" class="w-4 h-4"></i>
+                            </div>
+                            <div class="text-[11px] leading-tight">
+                                <div id="widget-appt-title" class="font-bold text-charcoal">Cita 09:30 AM</div>
+                                <div id="widget-appt-client" class="text-charcoal-500 text-[10px]">Camila Navarro • Confirmada</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Widget 3: Top Right (WhatsApp Gateway Notification) -->
+                    <div class="absolute -right-12 sm:-right-20 top-24 sm:top-28 z-20 animate-float-delayed hidden xs:block sm:block">
+                        <div class="p-3 rounded-2xl bg-white shadow-float-widget border border-charcoal/10 text-left flex items-center gap-2.5 w-40 sm:w-44 transition-all hover:scale-105">
+                            <div class="w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                                <i data-lucide="check-check" class="w-4 h-4"></i>
+                            </div>
+                            <div class="text-[11px] leading-tight">
+                                <div class="font-bold text-charcoal">WhatsApp Gateway</div>
+                                <div class="text-emerald-700 font-bold text-[10px]">Recordatorio enviado</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Widget 4: Bottom Right (POS Real-time Cash Sale) -->
+                    <div class="absolute -right-8 sm:-right-16 bottom-20 sm:bottom-28 z-20 animate-float hidden xs:block sm:block">
+                        <div class="p-3 rounded-2xl bg-white shadow-float-widget border border-charcoal/10 text-left space-y-1 w-36 sm:w-40 transition-all hover:scale-105">
+                            <div class="text-[10px] text-charcoal-500 font-semibold">Caja & Cobro POS</div>
+                            <div id="widget-pos-amount" class="text-base font-extrabold text-charcoal">$ 73.500,00</div>
+                            <div class="text-[9px] text-emerald-700 font-bold">✓ 2 ventas cobradas hoy</div>
+                        </div>
+                    </div>
+
+                    <!-- REAL IPHONE DEVICE SHOWCASE WITH BOTTOM FADE EFFECT -->
+                    <div class="relative mx-auto inline-block group">
+                        <!-- Ambient Burgundy Backlight Glow -->
+                        <div class="absolute -inset-8 bg-burgundy/15 rounded-full blur-3xl opacity-60 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+
+                        <!-- Interactive Live Toast Message inside Dynamic Island on Click -->
+                        <div id="phone-toast" class="hidden absolute top-4 left-6 right-6 z-40 bg-charcoal text-white rounded-2xl p-3 shadow-2xl text-[10px] border border-white/10 animate-toast">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                </div>
+                                <div class="leading-tight text-left">
+                                    <div class="font-bold text-white">WhatsApp Enviado</div>
+                                    <div class="text-charcoal-300 text-[9px]">Recordatorio de turno recibido por Camila Navarro</div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Inner SaaS Dashboard UI (Clean Light Theme) -->
-                        <div class="p-4 sm:p-6 bg-slate-50/70 space-y-6">
-                            
-                            <!-- Top Bar inside SaaS -->
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-                                <div>
-                                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                        <span>Panel de Control - RauDie OS</span>
-                                        <span class="text-xs px-2.5 py-0.5 rounded-md bg-rose-100 text-brand-800 font-semibold border border-rose-200">Marketing Digital</span>
-                                    </h3>
-                                    <p class="text-xs text-slate-500">Resumen operativo general de la semana en curso</p>
+                        <!-- Real Hardware iPhone Image with Fade-Out Gradient -->
+                        <div class="relative inline-block overflow-hidden rounded-t-[44px]">
+                            <img src="/static/images/showcase/dashboard-mobile.png" 
+                                 alt="RauDie OS Panel Principal Móvil" 
+                                 class="phone-fade-bottom w-[270px] sm:w-[320px] max-h-[580px] sm:max-h-[640px] object-cover object-top select-none pointer-events-none transition-transform duration-500 hover:scale-[1.015] filter drop-shadow-2xl">
+                        </div>
+                    </div>
+</div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- INFINITE LOGO MARQUEE (Dynamic Brand Ribbon) -->
+        <section class="py-10 border-y border-charcoal/10 bg-cream overflow-hidden">
+            <div class="max-w-6xl mx-auto space-y-4 text-center">
+                <div class="text-[10px] font-extrabold tracking-widest text-charcoal-400 uppercase">
+                    CLÍNICAS Y NEGOCIOS QUE CRECEN CON RAUDIE OS
+                </div>
+                <!-- Continuous Marquee Ribbon -->
+                <div class="overflow-hidden relative w-full">
+                    <div class="animate-marquee items-center gap-12 sm:gap-20 text-charcoal-600 font-bold text-xs sm:text-sm tracking-wider cursor-default select-none">
+                        <span>CLÍNICA DENTAL SAN MARTÍN</span>
+                        <span>CENTRO KINESIOLÓGICO ANDES</span>
+                        <span>ESTUDIO BARBERÍA DEL PLATA</span>
+                        <span>ESPACIO BIENESTAR & SPA</span>
+                        <span>CONSULTORIOS MÉDICOS DEL SUR</span>
+                        <span>SALÓN DE BELLEZA PALERMO</span>
+                        <span>CENTRO DE ESTÉTICA INTEGRAL</span>
+                        <!-- Duplicate for infinite loop -->
+                        <span>CLÍNICA DENTAL SAN MARTÍN</span>
+                        <span>CENTRO KINESIOLÓGICO ANDES</span>
+                        <span>ESTUDIO BARBERÍA DEL PLATA</span>
+                        <span>ESPACIO BIENESTAR & SPA</span>
+                        <span>CONSULTORIOS MÉDICOS DEL SUR</span>
+                        <span>SALÓN DE BELLEZA PALERMO</span>
+                        <span>CENTRO DE ESTÉTICA INTEGRAL</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- INTERACTIVE MODULE EXPLORER (Deep RauDie OS Context with Live Tab Switcher) -->
+        <section id="ecosistema" class="py-16 sm:py-24 px-4 bg-white border-b border-charcoal/10">
+            <div class="max-w-4xl mx-auto space-y-10 text-center">
+                
+                <div class="reveal space-y-3 max-w-xl mx-auto">
+                    <div class="inline-flex items-center px-3 py-1 rounded-full bg-burgundy-50 border border-burgundy/20 text-burgundy text-[10px] font-bold uppercase tracking-widest">
+                        ARQUITECTURA MODULAR
+                    </div>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold text-charcoal tracking-tight">
+                        Explora los motores de RauDie OS
+                    </h2>
+                    <p class="text-xs sm:text-sm text-charcoal-600 font-medium text-words-jump">
+                        Haz clic en cada módulo para ver cómo automatiza la gestión operativa de tu negocio.
+                    </p>
+                </div>
+
+                <!-- Horizontal Interactive Pill Tabs with Hover Physics -->
+                <div class="reveal reveal-delay-1 flex justify-center overflow-x-auto py-2">
+                    <div class="inline-flex items-center gap-1.5 p-1.5 bg-white rounded-full border border-charcoal/10 shadow-xs max-w-full overflow-x-auto">
+                        <button onclick="switchModuleTab('agenda')" id="tab-btn-agenda" class="module-tab-btn whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 bg-burgundy text-white shadow-xs hover:bg-burgundy-hover hover:scale-105 active:scale-95">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                            <span>Agenda & Turnos</span>
+                        </button>
+                        <button onclick="switchModuleTab('pos')" id="tab-btn-pos" class="module-tab-btn whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-charcoal-700 hover:text-burgundy hover:bg-burgundy-50/60 hover:scale-105 active:scale-95">
+                            <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+                            <span>Caja & POS</span>
+                        </button>
+                        <button onclick="switchModuleTab('commissions')" id="tab-btn-commissions" class="module-tab-btn whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-charcoal-700 hover:text-burgundy hover:bg-burgundy-50/60 hover:scale-105 active:scale-95">
+                            <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                            <span>Comisiones</span>
+                        </button>
+                        <button onclick="switchModuleTab('crm')" id="tab-btn-crm" class="module-tab-btn whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-charcoal-700 hover:text-burgundy hover:bg-burgundy-50/60 hover:scale-105 active:scale-95">
+                            <i data-lucide="gift" class="w-3.5 h-3.5"></i>
+                            <span>Fidelización</span>
+                        </button>
+                        <button onclick="switchModuleTab('inventory')" id="tab-btn-inventory" class="module-tab-btn whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-charcoal-700 hover:text-burgundy hover:bg-burgundy-50/60 hover:scale-105 active:scale-95">
+                            <i data-lucide="package" class="w-3.5 h-3.5"></i>
+                            <span>Inventario</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dynamic Module Content Box with Spotlight Glow -->
+                <div id="module-display" class="reveal reveal-delay-2 spotlight-card p-6 sm:p-10 rounded-3xl bg-cream border border-charcoal/10 text-left transition-all duration-300">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div class="space-y-4">
+                            <span id="mod-tag" class="text-[10px] font-bold text-burgundy uppercase tracking-wider">APPOINTMENT & BOOKING ENGINE</span>
+                            <h3 id="mod-title" class="text-xl sm:text-2xl font-extrabold text-charcoal">Agenda Inteligente con Portal de Reservas 24/7</h3>
+                            <p id="mod-desc" class="text-xs sm:text-sm text-charcoal-600 font-medium leading-relaxed">
+                                Permite a tus clientes agendar turnos desde cualquier dispositivo. Configura duraciones variables, servicios combinados, especialistas con horarios personalizados y bloqueos por vacaciones o pausas.
+                            </p>
+                            <div id="mod-bullets" class="space-y-2 text-xs font-semibold text-charcoal-800">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="check" class="w-4 h-4 text-burgundy"></i>
+                                    <span>Portal público personalizado con tu marca y colores</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-xs text-slate-500">Sede:</span>
-                                    <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-white text-slate-700 border border-slate-200 shadow-2xs">Central Principal</span>
-                                    <span class="px-3 py-1 text-xs font-bold bg-gradient-to-r from-brand-700 to-rose-600 text-white rounded-lg flex items-center gap-1 shadow-xs">
-                                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Nuevo Lead
-                                    </span>
+                                    <i data-lucide="check" class="w-4 h-4 text-burgundy"></i>
+                                    <span>Horarios y cupos por sucursal y colaborador</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="check" class="w-4 h-4 text-burgundy"></i>
+                                    <span>Bloqueo automático de turnos superpuestos</span>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Live Metric Widgets Grid with Sparklines -->
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                                <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2 relative overflow-hidden group hover:border-emerald-300 transition-colors">
-                                    <div class="flex items-center justify-between text-xs text-slate-500">
-                                        <span>Ingresos Mensuales</span>
-                                        <i data-lucide="dollar-sign" class="w-4 h-4 text-emerald-600"></i>
-                                    </div>
-                                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 font-display">$28,450</p>
-                                    <div class="flex items-center justify-between">
-                                        <p class="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                                            <i data-lucide="trending-up" class="w-3 h-3"></i> +18.4% este mes
-                                        </p>
-                                        <svg class="w-12 h-5 text-emerald-500 opacity-70" viewBox="0 0 50 20" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M0 15 Q 12 5, 25 10 T 50 2" />
-                                        </svg>
-                                    </div>
+                        <!-- Mini UI Preview Card inside Module -->
+                        <div class="p-5 rounded-2xl bg-white border border-charcoal/10 shadow-sm space-y-3 hover:shadow-md transition">
+                            <div class="flex items-center justify-between border-b border-charcoal/10 pb-2">
+                                <span id="mod-preview-badge" class="text-xs font-bold text-charcoal">Reserva #B-2026-904</span>
+                                <span id="mod-preview-status" class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold">Confirmada</span>
+                            </div>
+                            <div class="space-y-1.5 text-xs">
+                                <div class="flex justify-between text-charcoal-600">
+                                    <span id="mod-row1-label">Cliente:</span>
+                                    <strong id="mod-row1-val" class="text-charcoal">Martina Gómez</strong>
                                 </div>
-
-                                <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2 relative overflow-hidden group hover:border-brand-300 transition-colors">
-                                    <div class="flex items-center justify-between text-xs text-slate-500">
-                                        <span>Citas en Agenda</span>
-                                        <i data-lucide="calendar" class="w-4 h-4 text-brand-700"></i>
-                                    </div>
-                                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 font-display">42 Hoy</p>
-                                    <div class="flex items-center justify-between">
-                                        <p class="text-[11px] text-slate-500 font-medium">98.5% Asistencia</p>
-                                        <svg class="w-12 h-5 text-brand-500 opacity-70" viewBox="0 0 50 20" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M0 12 Q 15 18, 30 6 T 50 4" />
-                                        </svg>
-                                    </div>
+                                <div class="flex justify-between text-charcoal-600">
+                                    <span id="mod-row2-label">Servicio:</span>
+                                    <strong id="mod-row2-val" class="text-charcoal">Tratamiento Facial + Corte</strong>
                                 </div>
-
-                                <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2 relative overflow-hidden group hover:border-blue-300 transition-colors">
-                                    <div class="flex items-center justify-between text-xs text-slate-500">
-                                        <span>Leads CRM</span>
-                                        <i data-lucide="users" class="w-4 h-4 text-blue-600"></i>
-                                    </div>
-                                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 font-display">158 Activos</p>
-                                    <div class="flex items-center justify-between">
-                                        <p class="text-[11px] text-blue-600 font-semibold">34 en Cierre</p>
-                                        <svg class="w-12 h-5 text-blue-500 opacity-70" viewBox="0 0 50 20" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M0 16 Q 10 4, 25 12 T 50 3" />
-                                        </svg>
-                                    </div>
+                                <div class="flex justify-between text-charcoal-600">
+                                    <span id="mod-row3-label">Especialista:</span>
+                                    <strong id="mod-row3-val" class="text-charcoal">Dra. Claudia Santos</strong>
                                 </div>
-
-                                <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2 relative overflow-hidden group hover:border-amber-300 transition-colors">
-                                    <div class="flex items-center justify-between text-xs text-slate-500">
-                                        <span>Citas Confirmadas</span>
-                                        <i data-lucide="calendar-check" class="w-4 h-4 text-amber-600"></i>
-                                    </div>
-                                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 font-display">1,240</p>
-                                    <div class="flex items-center justify-between">
-                                        <p class="text-[11px] text-amber-600 font-semibold">Tasa de Asistencia 98%</p>
-                                        <svg class="w-12 h-5 text-amber-500 opacity-70" viewBox="0 0 50 20" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M0 18 Q 15 2, 35 14 T 50 2" />
-                                        </svg>
-                                    </div>
+                                <div class="flex justify-between text-charcoal-600 pt-2 border-t border-charcoal/5">
+                                    <span id="mod-row4-label">Total a Cobrar:</span>
+                                    <strong id="mod-row4-val" class="text-burgundy font-extrabold text-sm">$ 85.00</strong>
                                 </div>
                             </div>
-
-                            <!-- Live Activity Feed & AI Assistant Widget -->
-                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                
-                                <!-- Recent Activity Feed -->
-                                <div class="lg:col-span-2 p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-3">
-                                    <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-                                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                                            <i data-lucide="activity" class="w-3.5 h-3.5 text-brand-700"></i>
-                                            <span>Actividad en Tiempo Real</span>
-                                        </h4>
-                                        <span class="text-[10px] text-slate-400">Actualizado hace instantes</span>
-                                    </div>
-                                    <div class="space-y-2 text-xs">
-                                        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-between hover:bg-rose-50/30 transition-colors">
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                                </div>
-                                                <div>
-                                                    <p class="text-slate-800 font-semibold">Factura #F-2026-089 cobrada exitosamente</p>
-                                                    <p class="text-[10px] text-slate-500">Cliente: Empresa Alpha S.A. • $1,200.00</p>
-                                                </div>
-                                            </div>
-                                            <span class="text-[10px] text-slate-400">Hace 3 min</span>
-                                        </div>
-
-                                        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-between hover:bg-rose-50/30 transition-colors">
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-7 h-7 rounded-full bg-rose-100 text-brand-700 flex items-center justify-center font-bold">
-                                                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-                                                </div>
-                                                <div>
-                                                    <p class="text-slate-800 font-semibold">Nueva Reserva agendada vía Portal Web 24/7</p>
-                                                    <p class="text-[10px] text-slate-500">Asesor: Carlos Mendoza • Mañana 15:00 hs</p>
-                                                </div>
-                                            </div>
-                                            <span class="text-[10px] text-slate-400">Hace 8 min</span>
-                                        </div>
-
-                                        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-between hover:bg-rose-50/30 transition-colors">
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-7 h-7 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                                                    <i data-lucide="zap" class="w-3.5 h-3.5"></i>
-                                                </div>
-                                                <div>
-                                                    <p class="text-slate-800 font-semibold">Propuesta comercial enviada en PDF</p>
-                                                    <p class="text-[10px] text-slate-500">Prospecto: Grupo Inmobiliario Sur</p>
-                                                </div>
-                                            </div>
-                                            <span class="text-[10px] text-slate-400">Hace 14 min</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Portal de Reservas Widget -->
-                                <div class="p-4 rounded-xl bg-gradient-to-b from-rose-50/80 via-white to-white border border-rose-200/90 shadow-xs space-y-3 flex flex-col justify-between relative overflow-hidden">
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-6 h-6 rounded-lg bg-brand-700 text-white flex items-center justify-center">
-                                                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-                                                </div>
-                                                <span class="text-xs font-bold text-slate-900">Portal de Citas 24/7</span>
-                                            </div>
-                                            <span class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 flex items-center gap-1">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> ACTIVO
-                                            </span>
-                                        </div>
-                                        <div class="p-3 rounded-lg bg-white border border-rose-100 text-[11px] text-slate-700 space-y-1.5 shadow-2xs">
-                                            <p class="text-brand-700 font-bold flex items-center gap-1.5">
-                                                <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
-                                                <span>Próxima cita confirmada:</span>
-                                            </p>
-                                            <p class="text-slate-600">Cliente Laura Giménez agendó consulta de servicios para mañana 10:00 hs con pago verificado.</p>
-                                        </div>
-                                    </div>
-                                    <a href="{% url 'register' %}" class="w-full py-2.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-brand-700 to-rose-600 hover:from-brand-600 hover:to-rose-500 shadow-md transition flex items-center justify-center gap-1.5 group text-center justify-center">
-                                        <span>Ver Portal de Clientes</span>
-                                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"></i>
-                                    </a>
-                                </div>
-
-                            </div>
-
                         </div>
                     </div>
                 </div>
@@ -510,482 +654,255 @@
             </div>
         </section>
 
-        <!-- PWA Mobile App Download Banner Section -->
-        <section id="descargar-app" class="py-10 px-4 bg-gradient-to-r from-slate-950 via-brand-950 to-slate-950 text-white relative overflow-hidden border-y border-rose-900/50 shadow-2xl">
-            <div class="absolute -top-20 -left-20 w-60 h-60 bg-rose-700/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-20 -right-20 w-60 h-60 bg-brand-800/20 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-                <div class="space-y-2 text-center md:text-left max-w-2xl">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950 text-rose-300 text-xs font-bold border border-rose-800/80">
-                        <i data-lucide="smartphone" class="w-4 h-4"></i> App Móvil Instalable para Celulares & Tablets
-                    </span>
-                    <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-white">Instala RauDie OS en tu Pantalla de Inicio</h2>
-                    <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                        Accede a tu negocio con 1 solo toque desde iOS o Android. Funciona de manera nativa sin pasar por tiendas de aplicaciones y con soporte offline.
+        <!-- ZIG-ZAG FEATURE 1: AGENDA 24/7 (With Reveal Animation & Fade Bottom Phone) -->
+        <section id="modulos" class="py-16 sm:py-24 px-4 bg-cream">
+            <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                
+                <!-- Text Left -->
+                <div class="reveal space-y-5 text-left">
+                    <div class="inline-flex items-center px-3 py-1 rounded-full bg-burgundy-50 border border-burgundy/20 text-burgundy text-[10px] font-bold uppercase tracking-widest">
+                        AGENDA & RESERVAS 24/7
+                    </div>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold text-charcoal tracking-tight leading-tight">
+                        Tus clientes reservan citas en segundos, a cualquier hora.
+                    </h2>
+                    <p class="text-xs sm:text-sm text-charcoal-600 leading-relaxed font-medium">
+                        Publica tu portal de reservas con tu propio enlace personalizado. Tus clientes eligen servicio, profesional y horario sin intermediarios ni llamadas telefónicas.
                     </p>
+                    
+                    <div class="grid grid-cols-2 gap-4 pt-2">
+                        <div class="space-y-1">
+                            <div class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy flex items-center justify-center font-bold text-xs">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            </div>
+                            <div class="font-bold text-xs text-charcoal">Disponibilidad 24/7</div>
+                            <div class="text-[11px] text-charcoal-500 leading-snug">Turnos confirmados automáticamente.</div>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy flex items-center justify-center font-bold text-xs">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            </div>
+                            <div class="font-bold text-xs text-charcoal">Multi-Especialista</div>
+                            <div class="text-[11px] text-charcoal-500 leading-snug">Agendas individuales por profesional.</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 shrink-0 w-full sm:w-auto">
-                    <button id="pwa-banner-install-btn" class="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-brand-600 via-rose-600 to-rose-500 hover:from-brand-500 hover:to-rose-400 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-brand-900/50 flex items-center justify-center gap-2 transition">
-                        <i data-lucide="download" class="w-4.5 h-4.5"></i>
-                        <span>Instalar App Móvil Gratis</span>
-                    </button>
+
+                <!-- Phone Mockup Right with Fade Effect -->
+                <div class="reveal reveal-delay-2 flex justify-center">
+                    <div class="relative inline-block hover:scale-[1.02] transition-transform duration-300 group">
+                        <div class="absolute -inset-4 bg-burgundy/10 rounded-full blur-2xl opacity-40 group-hover:opacity-75 transition-opacity duration-500 pointer-events-none"></div>
+                        <div class="relative inline-block overflow-hidden rounded-t-[44px]">
+                            <img src="/static/images/showcase/portal-mobile.png" 
+                                 alt="Portal de Reservas RauDie OS" 
+                                 class="phone-fade-bottom w-[240px] sm:w-[275px] max-h-[480px] sm:max-h-[510px] object-cover object-top select-none pointer-events-none filter drop-shadow-xl">
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Section 2: Designed to Help You Do More With Less Stress (Matching Reference Image) -->
-        <section class="py-20 sm:py-28 px-4 bg-white border-t border-slate-100 relative overflow-hidden">
-
-            <!-- Vinotinto to Light Slate Bottom Mesh Aura -->
-            <div class="absolute bottom-0 left-0 right-0 h-56 bg-gradient-to-tr from-rose-100/40 via-slate-100/50 to-white blur-3xl pointer-events-none"></div>
-
-            <div class="max-w-5xl mx-auto space-y-12 relative z-10">
+        <!-- ZIG-ZAG FEATURE 2: WHATSAPP GATEWAY (With Live Typing Simulation) -->
+        <section id="how-it-works" class="py-16 sm:py-24 px-4 bg-cream border-t border-charcoal/10">
+            <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                 
-                <!-- Split Section Title (Tighter Proportional Columns) -->
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-end">
-                    <div class="lg:col-span-7 space-y-1">
-                        <h2 class="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-slate-900 tracking-tight leading-[1.05]">
-                            Diseñado para Ayudarte a <br>
-                            <span class="text-brand-700">Hacer Más Con Menos Estrés</span>
+                <!-- Phone Mockup Left with Fade Effect -->
+                <div class="reveal order-2 md:order-1 flex justify-center">
+                    <div class="relative inline-block hover:scale-[1.02] transition-transform duration-300 group">
+                        <div class="absolute -inset-4 bg-emerald-600/10 rounded-full blur-2xl opacity-40 group-hover:opacity-75 transition-opacity duration-500 pointer-events-none"></div>
+                        <div class="relative inline-block overflow-hidden rounded-t-[44px]">
+                            <img src="/static/images/showcase/agenda-mobile.png" 
+                                 alt="Agenda y Recordatorios WhatsApp RauDie OS" 
+                                 class="phone-fade-bottom w-[240px] sm:w-[275px] max-h-[480px] sm:max-h-[510px] object-cover object-top select-none pointer-events-none filter drop-shadow-xl">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Text Right -->
+                <div class="reveal reveal-delay-2 space-y-5 text-left order-1 md:order-2">
+                    <div class="inline-flex items-center px-3 py-1 rounded-full bg-burgundy-50 border border-burgundy/20 text-burgundy text-[10px] font-bold uppercase tracking-widest">
+                        WHATSAPP GATEWAY
+                    </div>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold text-charcoal tracking-tight leading-tight">
+                        Cero ausentismo gracias a recordatorios automáticos.
+                    </h2>
+                    <p class="text-xs sm:text-sm text-charcoal-600 leading-relaxed font-medium text-words-jump">
+                        Reduce las inasistencias drásticamente. El sistema envía avisos preventivos a tus clientes con opciones de confirmar o reprogramar su turno al instante.
+                    </p>
+
+                    <div class="space-y-2 pt-2 text-xs">
+                        <div class="flex items-center gap-2 p-2.5 rounded-2xl bg-white border border-charcoal/10 hover:border-burgundy/30 transition shadow-xs">
+                            <span class="w-2 h-2 rounded-full bg-burgundy"></span>
+                            <span class="font-bold text-charcoal">Recordatorios automáticos 24h y 2h antes</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2.5 rounded-2xl bg-white border border-charcoal/10 hover:border-burgundy/30 transition shadow-xs">
+                            <span class="w-2 h-2 rounded-full bg-charcoal"></span>
+                            <span class="font-bold text-charcoal">Reprogramación en 1 toque sin fricción</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2.5 rounded-2xl bg-white border border-charcoal/10 hover:border-burgundy/30 transition shadow-xs">
+                            <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                            <span class="font-bold text-charcoal">Historial de conversaciones sincronizado al CRM</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- FEATURE 3: HIGHLIGHT CARD (With Fade Bottom Phone) -->
+        <section class="py-12 sm:py-16 px-4 bg-cream">
+            <div class="reveal max-w-4xl mx-auto rounded-[32px] sm:rounded-[36px] bg-white border border-charcoal/10 p-8 sm:p-12 shadow-sm relative overflow-hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    
+                    <!-- Left Copy -->
+                    <div class="space-y-5 text-left">
+                        <div class="inline-flex items-center px-3 py-1 rounded-full bg-burgundy-50 border border-burgundy/20 text-burgundy text-[10px] font-bold uppercase tracking-widest">
+                            FACTURACIÓN & COBROS
+                        </div>
+                        <h2 class="text-2xl sm:text-4xl font-extrabold text-charcoal tracking-tight leading-tight">
+                            Cobra más rápido, emite facturas y cuadra tu caja.
                         </h2>
-                    </div>
-                    <div class="lg:col-span-5 pb-1">
-                        <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
-                            Nuestra plataforma está construida para profesionales y agencias modernas que buscan mantener el control total de sus clientes, cobros y agendamiento 24/7 de forma intuitiva.
+                        <p class="text-xs sm:text-sm text-charcoal-600 leading-relaxed font-medium text-words-jump">
+                            Punto de venta integrado con soporte para múltiples métodos de pago, comprobantes electrónicos y cálculo de comisiones por especialista.
                         </p>
+
+                        <div class="grid grid-cols-2 gap-4 pt-2">
+                            <div class="space-y-1">
+                                <div class="text-xl font-extrabold text-charcoal">100%</div>
+                                <div class="text-[11px] text-charcoal-500 font-medium">Facturación electrónica compatible</div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-xl font-extrabold text-charcoal">0%</div>
+                                <div class="text-[11px] text-charcoal-500 font-medium">Sin comisiones sorpresa por venta</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Phone Inside Card with Fade Effect -->
+                    <div class="flex justify-center">
+                        <div class="relative inline-block hover:scale-[1.02] transition-transform duration-300 group">
+                            <div class="absolute -inset-4 bg-burgundy/10 rounded-full blur-2xl opacity-40 group-hover:opacity-75 transition-opacity duration-500 pointer-events-none"></div>
+                            <div class="relative inline-block overflow-hidden rounded-t-[44px]">
+                                <img src="/static/images/showcase/pos-mobile.png" 
+                                     alt="Terminal de Cobro POS RauDie OS" 
+                                     class="phone-fade-bottom w-[230px] sm:w-[260px] max-h-[440px] sm:max-h-[470px] object-cover object-top select-none pointer-events-none filter drop-shadow-xl">
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <!-- 3 Column Features Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4 border-t border-slate-100">
-                    
-                    <div class="space-y-2.5">
-                        <h3 class="font-display font-bold text-lg text-slate-900">Gestión Inteligente de Prospectos</h3>
-                        <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                            Crea, categoriza y prioriza prospectos con un pipeline visual interactivo que se adapta perfectamente a tu flujo de trabajo.
-                        </p>
-                    </div>
-
-                    <div class="space-y-2.5">
-                        <h3 class="font-display font-bold text-lg text-slate-900">Agenda & Citas Integradas</h3>
-                        <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                            Mantente al día con un calendario centralizado que se sincroniza entre dispositivos y notifica antes de los vencimientos.
-                        </p>
-                    </div>
-
-                    <div class="space-y-2.5">
-                        <h3 class="font-display font-bold text-lg text-slate-900">Modo Enfoque & POS Ágil</h3>
-                        <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                            Elimina distracciones con un panel minimalista y herramientas ágiles para cobro en caja e impresión de comprobantes.
-                        </p>
-                    </div>
-
-                </div>
-
             </div>
         </section>
 
-        <!-- Soluciones por Agencia (Light Interactive Tabbed Experience) -->
-        <section id="soluciones" class="py-20 px-4 bg-white border-y border-slate-200 relative">
-            <div class="max-w-7xl mx-auto space-y-12">
+        <!-- GRID DE 6 TARJETAS CON SPOTLIGHT GLOW (Presensio 3x2 Architecture) -->
+        <section class="py-20 sm:py-28 px-4 bg-cream border-t border-charcoal/10">
+            <div class="max-w-4xl mx-auto space-y-12">
                 
-                <div class="text-center space-y-4 max-w-3xl mx-auto">
-                    <span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-50 text-brand-800 border border-rose-200">
-                        Adaptabilidad Específica
-                    </span>
-                    <h2 class="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-slate-900 tracking-tight">
-                        Diseñado para el Flujo Exacto de <span class="text-brand-700">tu Industria</span>
+                <div class="reveal text-center space-y-3 max-w-xl mx-auto">
+                    <div class="inline-flex items-center px-3 py-1 rounded-full bg-burgundy-50 border border-burgundy/20 text-burgundy text-[10px] font-bold uppercase tracking-widest">
+                        CARACTERÍSTICAS
+                    </div>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold text-charcoal tracking-tight">
+                        Todo lo que necesitas para operar con precisión.
                     </h2>
-                    <p class="text-sm sm:text-base text-slate-600 font-normal">
-                        Selecciona tu tipo de empresa para descubrir cómo RauDie OS habilita los módulos y automatizaciones ideales para ti.
+                    <p class="text-xs sm:text-sm text-charcoal-600 font-medium leading-relaxed text-words-jump">
+                        Herramientas nativas pensadas para optimizar la rentabilidad y el tiempo de tu equipo.
                     </p>
                 </div>
 
-                <!-- Interactive Profile Navigation Tabs (Responsive Mobile Touch Carousel & Grid) -->
-                <div class="flex overflow-x-auto no-scrollbar gap-2.5 sm:grid sm:grid-cols-2 md:grid-cols-3 max-w-5xl mx-auto pt-2 pb-2 px-1">
-                    <button onclick="switchTab('marketing')" id="tab-marketing" class="tab-btn active shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="cpu" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Agencia Digital & Marketing</span>
-                    </button>
-
-                    <button onclick="switchTab('realestate')" id="tab-realestate" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="home" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Inmobiliaria & Bienes Raíces</span>
-                    </button>
-
-                    <button onclick="switchTab('travel')" id="tab-travel" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="plane" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Agencia de Viajes & Turismo</span>
-                    </button>
-
-                    <button onclick="switchTab('consulting')" id="tab-consulting" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="briefcase" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Consultoría & Servicios</span>
-                    </button>
-
-                    <button onclick="switchTab('health')" id="tab-health" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="heart-pulse" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Salud, Estética & Spa</span>
-                    </button>
-
-                    <button onclick="switchTab('retail')" id="tab-retail" class="tab-btn shrink-0 min-w-[220px] sm:min-w-0 w-full px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:text-slate-900 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xs whitespace-nowrap sm:whitespace-normal">
-                        <i data-lucide="shopping-bag" class="w-4 h-4 tab-icon shrink-0"></i>
-                        <span>Comercio & Retail</span>
-                    </button>
-                </div>
-
-                <!-- Tab Content Panel -->
-                <div class="light-card p-6 sm:p-10 rounded-3xl border border-slate-200 relative min-h-[380px] flex items-center bg-white shadow-xl shadow-slate-200/50">
+                <!-- 3x2 Cards Grid with Interactive Spotlight on Mouse Move -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                     
-                    <!-- Content: Marketing -->
-                    <div id="content-marketing" class="tab-content grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
-                        <div class="space-y-5">
-                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-rose-50 text-brand-700 border border-rose-200 text-xs font-bold">
-                                <i data-lucide="bot" class="w-4 h-4"></i>
-                                <span>Solución Especializada</span>
-                            </div>
-                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
-                                Gestiona Proyectos Recurrentes, Retainers y Clientes
+                    <!-- Card 1: Multi-Sucursal -->
+                    <div class="reveal reveal-delay-1 spotlight-card p-6 flex flex-col justify-between space-y-4">
+                        <div class="space-y-2">
+                            <div class="text-[10px] font-bold text-burgundy uppercase tracking-wider">01 • MULTI-SUCURSAL</div>
+                            <h3 class="text-base font-extrabold text-charcoal leading-snug">
+                                Cambia de sede en 1 clic sin cerrar sesión.
                             </h3>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Optimiza la captación de clientes con un canal pipeline de leads visual, emite facturas periódicas automáticas y asigna comisiones por cierre a tus ejecutivos.
+                            <p class="text-xs text-charcoal-600 leading-relaxed font-medium">
+                                Administra múltiples locales con cajas separadas y reportes consolidados en tiempo real.
                             </p>
-                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-brand-700"></i>
-                                    <span>Pipeline CRM visual para leads de agencias y retainers</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-brand-700"></i>
-                                    <span>Generación automática de presupuestos e informes</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-brand-700"></i>
-                                    <span>Emisión y cobro de facturas recurrentes automatizadas</span>
-                                </li>
-                            </ul>
-                            <div class="pt-2">
-                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-brand-700 hover:bg-brand-600 transition shadow-md">
-                                    <span>Configurar como Agencia Digital</span>
-                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
-                                <span>Módulos Activos Recomendados</span>
-                                <span class="text-brand-700 font-bold">6 Módulos</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="users" class="w-4 h-4 text-brand-700"></i> CRM & Leads
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="file-text" class="w-4 h-4 text-brand-700"></i> Facturación
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="globe" class="w-4 h-4 text-brand-700"></i> Reservas 24/7
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="dollar-sign" class="w-4 h-4 text-brand-700"></i> Comisiones
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="calendar" class="w-4 h-4 text-brand-700"></i> Agenda
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="tag" class="w-4 h-4 text-brand-700"></i> Marketing
-                                </div>
-                            </div>
                         </div>
                     </div>
 
-                    <!-- Content: Real Estate -->
-                    <div id="content-realestate" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
-                        <div class="space-y-5">
-                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
-                                <i data-lucide="home" class="w-4 h-4"></i>
-                                <span>Solución Inmobiliaria</span>
+                    <!-- Card 2: Heatmap Widget -->
+                    <div class="reveal reveal-delay-2 spotlight-card p-6 flex flex-col justify-between space-y-4">
+                        <div class="p-3 rounded-2xl bg-cream border border-charcoal/10 space-y-2">
+                            <div class="flex justify-between text-[10px] font-bold text-charcoal">
+                                <span>Cumplimiento Semanal</span>
+                                <span class="text-burgundy font-extrabold">96%</span>
                             </div>
-                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
-                                Organiza Propiedades, Visitas de Campo y Comisiones de Agentes
-                            </h3>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Coordina la agenda de tu equipo de asesores inmobiliarios, lleva el registro de prospectos compradores y vendedores, y calcula comisiones de forma transparente.
-                            </p>
-                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
-                                    <span>Agenda de visitas guiadas y asignación por corredor</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
-                                    <span>Inventario centralizado de inmuebles y estado comercial</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
-                                    <span>Cálculo automático de comisiones por venta/alquiler</span>
-                                </li>
-                            </ul>
-                            <div class="pt-2">
-                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-blue-700 hover:bg-blue-600 transition shadow-md">
-                                    <span>Configurar como Inmobiliaria</span>
-                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                                </a>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="w-5 h-5 rounded-full bg-burgundy text-white text-[9px] flex items-center justify-center font-bold">L</span>
+                                <span class="w-5 h-5 rounded-full bg-burgundy text-white text-[9px] flex items-center justify-center font-bold">M</span>
+                                <span class="w-5 h-5 rounded-full bg-charcoal text-white text-[9px] flex items-center justify-center font-bold">X</span>
+                                <span class="w-5 h-5 rounded-full bg-burgundy text-white text-[9px] flex items-center justify-center font-bold">J</span>
+                                <span class="w-5 h-5 rounded-full bg-burgundy text-white text-[9px] flex items-center justify-center font-bold">V</span>
+                                <span class="w-5 h-5 rounded-full bg-brandgray text-charcoal-600 text-[9px] flex items-center justify-center font-bold">S</span>
                             </div>
                         </div>
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
-                                <span>Módulos Activos Recomendados</span>
-                                <span class="text-blue-700 font-bold">5 Módulos</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="users" class="w-4 h-4 text-blue-600"></i> CRM Clientes
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i> Agenda Citas
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="dollar-sign" class="w-4 h-4 text-blue-600"></i> Comisiones
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i> Contratos
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
-                                    <i data-lucide="home" class="w-4 h-4 text-blue-600"></i> Fichas Inmobiliarias & Visitas
-                                </div>
-                            </div>
+                        <div class="space-y-1">
+                            <h3 class="font-bold text-xs sm:text-sm text-charcoal">Objetivos de Ocupación</h3>
+                            <p class="text-[11px] text-charcoal-600 font-medium leading-relaxed">Monitorea la capacidad instalada y productividad por especialista.</p>
                         </div>
                     </div>
 
-                    <!-- Content: Travel -->
-                    <div id="content-travel" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
-                        <div class="space-y-5">
-                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
-                                <i data-lucide="plane" class="w-4 h-4"></i>
-                                <span>Solución Turismo & Viajes</span>
-                            </div>
-                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
-                                Controla Paquetes, Reservas de Clientes y Caja Registradora
-                            </h3>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Administra itinerarios turísticos, venta directa en ventanilla o en línea, liquidación de operadores y reporte de cobros al instante.
-                            </p>
-                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-amber-600"></i>
-                                    <span>Gestión de itinerarios de viajes y documentos</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-amber-600"></i>
-                                    <span>Cobro en punto de venta (POS) y facturación rápida</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-amber-600"></i>
-                                    <span>Comisiones automáticas para asesores de viajes</span>
-                                </li>
-                            </ul>
-                            <div class="pt-2">
-                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-500 transition shadow-md">
-                                    <span>Configurar Agencia de Viajes</span>
-                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                                </a>
-                            </div>
+                    <!-- Card 3: Equipo y Roles -->
+                    <div class="reveal reveal-delay-3 spotlight-card p-6 flex flex-col justify-between space-y-4">
+                        <div class="flex items-center -space-x-2 pt-2">
+                            <div class="w-10 h-10 rounded-full bg-burgundy text-white font-bold text-xs flex items-center justify-center border-2 border-white shadow-xs hover:scale-110 transition">MG</div>
+                            <div class="w-10 h-10 rounded-full bg-charcoal text-white font-bold text-xs flex items-center justify-center border-2 border-white shadow-xs hover:scale-110 transition">CR</div>
+                            <div class="w-10 h-10 rounded-full bg-burgundy-400 text-white font-bold text-xs flex items-center justify-center border-2 border-white shadow-xs hover:scale-110 transition">VT</div>
+                            <div class="w-10 h-10 rounded-full bg-charcoal-700 text-white font-bold text-xs flex items-center justify-center border-2 border-white shadow-xs hover:scale-110 transition">+8</div>
                         </div>
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
-                                <span>Módulos Activos Recomendados</span>
-                                <span class="text-amber-700 font-bold">6 Módulos</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="globe" class="w-4 h-4 text-amber-600"></i> Reservas 24/7
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-600"></i> Ventas POS
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="users" class="w-4 h-4 text-amber-600"></i> CRM Clientes
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="dollar-sign" class="w-4 h-4 text-amber-600"></i> Comisiones
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
-                                    <i data-lucide="file-text" class="w-4 h-4 text-amber-600"></i> Facturación & Vouchers
-                                </div>
-                            </div>
+                        <div class="space-y-1">
+                            <h3 class="font-bold text-xs sm:text-sm text-charcoal">Control de Roles y Permisos</h3>
+                            <p class="text-[11px] text-charcoal-600 font-medium leading-relaxed">Accesos estrictos para recepcionistas, especialistas y contadores.</p>
                         </div>
                     </div>
 
-                    <!-- Content: Consulting -->
-                    <div id="content-consulting" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
-                        <div class="space-y-5">
-                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold">
-                                <i data-lucide="briefcase" class="w-4 h-4"></i>
-                                <span>Solución Consultoría & Asesoría</span>
-                            </div>
-                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
-                                Portal de Agendamiento Online, Cobro Integrado e Historial
-                            </h3>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Permite que tus clientes elijan fecha, hora y consultor desde tu sitio web, cobrando por adelantado o emitiendo comprobantes al instante.
-                            </p>
-                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-purple-600"></i>
-                                    <span>Portal público de agendamiento 24/7 sin intermediarios</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-purple-600"></i>
-                                    <span>Seguimiento de propuestas comerciales y cobros</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-purple-600"></i>
-                                    <span>Control de horarios de consultores y disponibilidad</span>
-                                </li>
-                            </ul>
-                            <div class="pt-2">
-                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-purple-700 hover:bg-purple-600 transition shadow-md">
-                                    <span>Configurar Consultoría</span>
-                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                                </a>
-                            </div>
+                    <!-- Card 4: Bloqueos de Agenda -->
+                    <div class="reveal reveal-delay-1 spotlight-card p-6 flex flex-col justify-between space-y-4">
+                        <div class="grid grid-cols-4 gap-1 p-2 bg-cream rounded-xl border border-charcoal/10">
+                            <div class="h-6 rounded bg-burgundy-200"></div>
+                            <div class="h-6 rounded bg-burgundy-400"></div>
+                            <div class="h-6 rounded bg-burgundy"></div>
+                            <div class="h-6 rounded bg-charcoal"></div>
                         </div>
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
-                                <span>Módulos Activos Recomendados</span>
-                                <span class="text-purple-700 font-bold">5 Módulos</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="globe" class="w-4 h-4 text-purple-600"></i> Reservas Online
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="calendar" class="w-4 h-4 text-purple-600"></i> Agenda Pro
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="users" class="w-4 h-4 text-purple-600"></i> CRM Clientes
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="file-text" class="w-4 h-4 text-purple-600"></i> Facturación
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
-                                    <i data-lucide="credit-card" class="w-4 h-4 text-purple-600"></i> Portal de Pagos Integrado
-                                </div>
-                            </div>
+                        <div class="space-y-1">
+                            <h3 class="font-bold text-xs sm:text-sm text-charcoal">Bloqueo Inteligente de Horarios</h3>
+                            <p class="text-[11px] text-charcoal-600 font-medium leading-relaxed">Vacaciones, descansos y emergencias sincronizados al instante.</p>
                         </div>
                     </div>
 
-                    <!-- Content: Health & Beauty -->
-                    <div id="content-health" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
-                        <div class="space-y-5">
-                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
-                                <i data-lucide="heart-pulse" class="w-4 h-4"></i>
-                                <span>Solución Salud, Estética & Spa</span>
+                    <!-- Card 5: CRM & Fidelización -->
+                    <div class="reveal reveal-delay-2 spotlight-card p-6 flex flex-col justify-between space-y-4 bg-burgundy-50 border-burgundy/20">
+                        <div class="space-y-1 text-left">
+                            <div class="text-[10px] font-bold text-burgundy flex items-center gap-1 uppercase tracking-wider">
+                                <span>FIDELIZACIÓN & PUNTOS</span>
                             </div>
-                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
-                                Turnos en Vivo, Punto de Venta POS y Control de Productos
-                            </h3>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Administra múltiples especialistas, permite agendamiento 24/7 por tratamiento, lleva el control de insumos y liquida comisiones diarias.
+                            <h3 class="font-bold text-xs sm:text-sm text-charcoal">CRM con Fichas de Clientes</h3>
+                            <p class="text-[11px] text-charcoal-600 font-medium leading-relaxed">
+                                Historial de visitas, notas técnicas, preferencias y acumulación de puntos VIP.
                             </p>
-                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
-                                    <span>Calendario visual por profesional y sala de atención</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
-                                    <span>Cobro rápido en caja registradora POS con impresoras</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
-                                    <span>Control de stock de productos y alertas de inventario</span>
-                                </li>
-                            </ul>
-                            <div class="pt-2">
-                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 transition shadow-md">
-                                    <span>Configurar Centro de Estética</span>
-                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
-                                <span>Módulos Activos Recomendados</span>
-                                <span class="text-emerald-700 font-bold">6 Módulos</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Citas & Turnos
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="shopping-bag" class="w-4 h-4 text-emerald-600"></i> Caja POS
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="package" class="w-4 h-4 text-emerald-600"></i> Stock Productos
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="dollar-sign" class="w-4 h-4 text-emerald-600"></i> Comisiones
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
-                                    <i data-lucide="globe" class="w-4 h-4 text-emerald-600"></i> Portal de Reservas 24/7
-                                </div>
-                            </div>
                         </div>
                     </div>
 
-                    <!-- Content: Retail -->
-                    <div id="content-retail" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
-                        <div class="space-y-5">
-                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold">
-                                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-                                <span>Solución Comercio & Retail</span>
+                    <!-- Card 6: Analytics -->
+                    <div class="reveal reveal-delay-3 spotlight-card p-6 flex flex-col justify-between space-y-4">
+                        <div class="space-y-1.5 p-2 bg-cream rounded-xl border border-charcoal/10">
+                            <div class="flex justify-between text-[10px] font-bold text-charcoal">
+                                <span>Ticket Promedio</span>
+                                <span class="text-emerald-700 font-bold">+24%</span>
                             </div>
-                            <h3 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900">
-                                Punto de Venta Ultra Rápido, Stock Real y Arqueo de Caja
-                            </h3>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Realiza cobros ágiles en mostrador, emite comprobantes fiscales o digitales, gestiona variantes de productos y abre/cierra caja diariamente.
-                            </p>
-                            <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
-                                    <span>Punto de venta táctil con lector de código de barras</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
-                                    <span>Inventario multisede con control de faltantes</span>
-                                </li>
-                                <li class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
-                                    <span>Fidelización de clientes y promociones de marketing</span>
-                                </li>
-                            </ul>
-                            <div class="pt-2">
-                                <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-600 transition shadow-md">
-                                    <span>Configurar Comercio</span>
-                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                                </a>
+                            <div class="h-2 w-full bg-brandgray-light rounded-full overflow-hidden flex">
+                                <div class="bg-burgundy w-3/5"></div>
+                                <div class="bg-charcoal w-2/5"></div>
                             </div>
                         </div>
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                            <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 pb-3">
-                                <span>Módulos Activos Recomendados</span>
-                                <span class="text-indigo-700 font-bold">3 Módulos</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="package" class="w-4 h-4 text-indigo-600"></i> Inventario Stock
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs">
-                                    <i data-lucide="tag" class="w-4 h-4 text-indigo-600"></i> Promociones
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-medium flex items-center gap-2.5 shadow-2xs col-span-2">
-                                    <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i> Historial de Clientes VIP
-                                </div>
-                            </div>
+                        <div class="space-y-1">
+                            <h3 class="font-bold text-xs sm:text-sm text-charcoal">Business Analytics</h3>
+                            <p class="text-[11px] text-charcoal-600 font-medium leading-relaxed">Reportes de ventas, servicios con mayor demanda y liquidación de comisiones.</p>
                         </div>
                     </div>
 
@@ -994,238 +911,108 @@
             </div>
         </section>
 
-        <!-- System Modules Suite Grid (Clean Light Cards) -->
-        <section id="modulos" class="py-20 px-4 bg-slate-50/80 border-b border-slate-200 relative">
-            <div class="max-w-7xl mx-auto space-y-12">
+        <!-- PRICING & PLANS (Django Dynamic Integration) -->
+        <section id="precios" class="py-20 sm:py-24 px-4 bg-white border-t border-charcoal/10">
+            <div class="max-w-4xl mx-auto space-y-12">
                 
-                <div class="text-center space-y-4 max-w-3xl mx-auto">
-                    <span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-50 text-brand-800 border border-rose-200">
-                        Suite Integral
-                    </span>
-                    <h2 class="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-slate-900 tracking-tight">
-                        6 Módulos Potentes. <span class="text-brand-700">Cero Dispersión.</span>
+                <div class="reveal text-center space-y-4 max-w-xl mx-auto">
+                    <div class="inline-flex items-center px-3 py-1 rounded-full bg-burgundy-50 border border-burgundy/20 text-burgundy text-[10px] font-bold uppercase tracking-widest">
+                        PLANES CLAROS
+                    </div>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold text-charcoal tracking-tight">
+                        Planes transparentes para cada etapa
                     </h2>
-                    <p class="text-sm sm:text-base text-slate-600 font-normal">
-                        Reemplaza múltiples suscripciones costosas por un ecosistema sincronizado en tiempo real.
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     
-                    <!-- Module 1: CRM -->
-                    <div class="light-card p-6 rounded-3xl space-y-4">
-                        <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-brand-700 flex items-center justify-center font-bold">
-                            <i data-lucide="users" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">CRM & Gestión de Prospectos</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            Visualiza tus oportunidades de venta en etapas, guarda notas de seguimiento, registra clientes VIP e historial de interacciones.
-                        </p>
-                    </div>
-
-                    <!-- Module 2: Agenda -->
-                    <div class="light-card p-6 rounded-3xl space-y-4">
-                        <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center font-bold">
-                            <i data-lucide="calendar" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Agenda & Control de Horarios</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            Organiza el calendario de tus colaboradores por sede, evita duplicidades de turnos y sincroniza alertas de recordatorio.
-                        </p>
-                    </div>
-
-                    <!-- Module 3: Booking -->
-                    <div class="light-card p-6 rounded-3xl space-y-4">
-                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold">
-                            <i data-lucide="globe" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Portal de Reservas 24/7</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            Entrega a tus clientes un enlace personalizado para que agenden sus citas o servicios automáticamente en cualquier momento.
-                        </p>
-                    </div>
-
-
-                    <!-- Module 6: Inventory -->
-                    <div class="light-card p-6 rounded-3xl space-y-4">
-                        <div class="w-12 h-12 rounded-2xl bg-cyan-50 border border-cyan-200 text-cyan-700 flex items-center justify-center font-bold">
-                            <i data-lucide="package" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Inventario & Stock Bajo Control</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            Catálogo completo de productos y servicios con alertas automáticas cuando el inventario alcance el nivel mínimo.
-                        </p>
-                    </div>
-
-                    <!-- Module 7: Commissions -->
-                    <div class="light-card p-6 rounded-3xl space-y-4">
-                        <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center justify-center font-bold">
-                            <i data-lucide="dollar-sign" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Comisiones de Equipo</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            Asigna porcentajes de comisión por ventas o servicios realizados a cada miembro del staff sin cálculos manuales en Excel.
-                        </p>
-                    </div>
-
-
-                    <!-- Module 9: Marketing -->
-                    <div class="light-card p-6 rounded-3xl space-y-4">
-                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center font-bold">
-                            <i data-lucide="tag" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="font-display font-bold text-xl text-slate-900">Marketing & Promociones</h3>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            Crea códigos de descuento, campañas para reactivar clientes inactivos y programas de recompensas para tu audiencia.
-                        </p>
-                    </div>
-
-                </div>
-
-            </div>
-        </section>
-
-        <!-- Pricing Section -->
-        <section id="precios" class="py-20 px-4 bg-white border-t border-slate-200">
-            <div class="max-w-7xl mx-auto space-y-12">
-                
-                <div class="text-center space-y-4 max-w-3xl mx-auto">
-                    <span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-50 text-brand-800 border border-rose-200">
-                        Planes & Precios Transparentes
-                    </span>
-                    <h2 class="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-slate-900 tracking-tight">
-                        Planes Diseñados para <span class="text-brand-700">Tu Crecimiento.</span>
-                    </h2>
-                    <p class="text-sm sm:text-base text-slate-600 font-normal">
-                        Elige el plan ideal para tu negocio. Administra o escala módulos en cualquier momento.
-                    </p>
-
                     <!-- Region Selector -->
                     <div class="pt-2 flex justify-center">
                         <form method="GET" action="#precios" class="inline-block relative">
-                            <select name="region" onchange="this.form.submit()" class="appearance-none bg-slate-50 border border-slate-300 text-slate-800 text-sm font-bold rounded-full py-2 pl-4 pr-10 hover:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all cursor-pointer shadow-sm">
+                            <select name="region" onchange="this.form.submit()" class="appearance-none bg-cream border border-charcoal/15 text-charcoal text-xs font-bold rounded-full py-2 pl-4 pr-10 hover:border-burgundy focus:outline-none transition cursor-pointer">
                                 {% for r in regions %}
                                 <option value="{{ r.id }}" {% if current_region and current_region.id == r.id %}selected{% endif %}>
                                     🌎 Precios para {{ r.name }} ({{ r.currency_symbol }})
                                 </option>
                                 {% endfor %}
                             </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-charcoal-500">
+                                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
                             </div>
                         </form>
                     </div>
 
-                    <!-- Monthly/Annual Toggle -->
-                    <div class="pt-4 flex items-center justify-center gap-3 text-xs font-bold">
-                        <span id="label-monthly" class="text-slate-900 font-bold">Facturación Mensual</span>
-                        <button onclick="togglePricing()" id="pricing-toggle-btn" class="w-12 h-6 rounded-full bg-slate-200 p-1 relative transition-colors duration-200 focus:outline-none">
-                            <div id="pricing-toggle-circle" class="w-4 h-4 rounded-full bg-brand-700 transition-transform duration-200"></div>
+                    <!-- Monthly / Annual Toggle Switch -->
+                    <div class="pt-3 flex items-center justify-center gap-3 text-xs font-semibold">
+                        <span id="label-monthly" class="text-charcoal font-bold">Facturación Mensual</span>
+                        <button onclick="togglePricing()" id="pricing-toggle-btn" class="w-12 h-6 rounded-full bg-brandgray p-1 relative transition-colors duration-200 focus:outline-none hover:scale-105" aria-label="Cambiar periodicidad">
+                            <div id="pricing-toggle-circle" class="w-4 h-4 rounded-full bg-burgundy transition-transform duration-200"></div>
                         </button>
-                        <span id="label-yearly" class="text-slate-500 flex items-center gap-1.5">
+                        <span id="label-yearly" class="text-charcoal-500 flex items-center gap-1.5 font-medium">
                             <span>Facturación Anual</span>
-                            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] border border-emerald-200">Ahorra hasta 20%</span>
+                            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold animate-pulse">Ahorra 20%</span>
                         </span>
                     </div>
                 </div>
 
-                <!-- Dynamic Grid for Database Subscription Plans -->
-                <div class="grid grid-cols-1 {% if plans|length == 1 %}max-w-xl mx-auto{% elif plans|length == 2 %}md:grid-cols-2 max-w-4xl mx-auto{% else %}md:grid-cols-3 max-w-6xl mx-auto{% endif %} gap-8 items-stretch">
+                <!-- Database Plans Grid -->
+                <div class="grid grid-cols-1 {% if plans|length == 1 %}max-w-md mx-auto{% elif plans|length == 2 %}md:grid-cols-2 max-w-2xl mx-auto{% else %}md:grid-cols-3 max-w-4xl mx-auto{% endif %} gap-6 items-stretch">
                     {% for plan in plans %}
-                    <div class="light-card p-5 sm:p-10 rounded-3xl border-2 {% if plan.code == 'PRO' or forloop.counter == 2 %}border-brand-600 shadow-2xl shadow-rose-900/10 bg-gradient-to-b from-white via-rose-50/20 to-white{% else %}border-slate-200 shadow-lg bg-white{% endif %} relative flex flex-col justify-between">
+                    <div class="reveal reveal-delay-{{ forloop.counter }} spotlight-card p-6 sm:p-8 flex flex-col justify-between {% if plan.code == 'PRO' or forloop.counter == 2 %}border-2 border-burgundy bg-burgundy-50/20 shadow-md relative scale-102{% endif %}">
+                        
                         {% if plan.code == 'PRO' or forloop.counter == 2 %}
-                        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-brand-700 to-rose-600 text-white font-bold text-[10px] tracking-wider uppercase shadow-xs">
-                            Plan Destacado
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-burgundy text-white font-bold text-[10px] tracking-wide uppercase shadow-sm">
+                            Más Recomendado
                         </div>
                         {% endif %}
 
-                        <div class="space-y-6">
-                            <div class="text-center space-y-3 pt-2">
-                                <h3 class="font-display font-extrabold text-2xl text-slate-900">{{ plan.name }}</h3>
-                                <p class="text-xs sm:text-sm text-slate-600">
-                                    {% if plan.max_users == 0 %}Usuarios Ilimitados{% else %}Hasta {{ plan.max_users }} colaboradores{% endif %} • 
-                                    {% if plan.max_branches == 0 %}Sucursales Ilimitadas{% else %}{{ plan.max_branches }} sucursal(es){% endif %}
+                        <div class="space-y-5">
+                            <div class="space-y-1">
+                                <h3 class="font-extrabold text-xl text-charcoal">{{ plan.name }}</h3>
+                                <p class="text-xs text-charcoal-600 font-medium">
+                                    {% if plan.max_users == 0 %}Usuarios Ilimitados{% else %}Hasta {{ plan.max_users }} colaboradores{% endif %}
                                 </p>
-                                
-                                <div class="pt-4 flex items-baseline justify-center gap-2">
-                                    <span class="font-display font-black text-5xl sm:text-6xl text-slate-900 plan-price-display" data-monthly="{{ plan.currency }}{{ plan.display_monthly|floatformat:0 }}" data-yearly="{{ plan.currency }}{{ plan.display_annual|floatformat:0 }}">{{ plan.currency }}{{ plan.display_monthly|floatformat:0 }}</span>
-                                    <span class="text-sm text-slate-500 font-bold billing-period">/ mes</span>
-                                </div>
                             </div>
 
-                            <!-- Feature Checklist Grid -->
-                            <div class="space-y-3 text-xs sm:text-sm text-slate-800 pt-6 border-t border-slate-200">
-                                <div class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
-                                    <span class="font-semibold">{% if plan.max_users == 0 %}Usuarios e Integrantes Ilimitados{% else %}Hasta {{ plan.max_users }} Usuarios{% endif %}</span>
+                            <div class="pt-2 flex items-baseline gap-1">
+                                <span class="font-extrabold text-3xl sm:text-4xl text-charcoal plan-price-display" data-monthly="{{ plan.currency }}{{ plan.display_monthly|floatformat:0 }}" data-yearly="{{ plan.currency }}{{ plan.display_annual|floatformat:0 }}">
+                                    {{ plan.currency }}{{ plan.display_monthly|floatformat:0 }}
+                                </span>
+                                <span class="text-xs text-charcoal-500 font-semibold billing-period">/ mes</span>
+                            </div>
+
+                            <div class="space-y-2.5 text-xs text-charcoal pt-4 border-t border-charcoal/10 font-medium">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="check" class="w-4 h-4 text-burgundy shrink-0"></i>
+                                    <span>{% if plan.max_users == 0 %}Usuarios ilimitados{% else %}Hasta {{ plan.max_users }} Usuarios{% endif %}</span>
                                 </div>
-                                <div class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
-                                    <span class="font-semibold">{% if plan.max_branches == 0 %}Sucursales Ilimitadas{% else %}{{ plan.max_branches }} Sucursal(es){% endif %}</span>
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="check" class="w-4 h-4 text-burgundy shrink-0"></i>
+                                    <span>{% if plan.max_branches == 0 %}Sucursales Ilimitadas{% else %}{{ plan.max_branches }} Sucursal(es){% endif %}</span>
                                 </div>
                                 {% if 'crm' in plan.included_modules %}
-                                <div class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
-                                    <span class="font-semibold">CRM & Gestión de Clientes</span>
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="check" class="w-4 h-4 text-burgundy shrink-0"></i>
+                                    <span>CRM & Fichas de Clientes</span>
                                 </div>
                                 {% endif %}
                                 {% if 'agenda' in plan.included_modules or 'booking' in plan.included_modules %}
-                                <div class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
-                                    <span class="font-semibold">Agenda 24/7 y Reservas Públicas</span>
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="check" class="w-4 h-4 text-burgundy shrink-0"></i>
+                                    <span>Reservas Online 24/7</span>
                                 </div>
                                 {% endif %}
                                 {% if 'invoicing' in plan.included_modules or 'pos' in plan.included_modules %}
-                                <div class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
-                                    <span class="font-semibold">Facturación, Ventas POS & Gastos</span>
-                                </div>
-                                {% endif %}
-                                {% if 'inventory' in plan.included_modules %}
-                                <div class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
-                                    <span class="font-semibold">Control de Inventario & Stock</span>
-                                </div>
-                                {% endif %}
-                                {% if 'commissions' in plan.included_modules %}
-                                <div class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
-                                    <span class="font-semibold">Cálculo de Comisiones de Equipo</span>
-                                </div>
-                                {% endif %}
-                                {% if 'ai_engine' in plan.included_modules %}
-                                <div class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
-                                    <span class="font-semibold">Chatbot de Atención IA 24/7</span>
-                                </div>
-                                {% endif %}
-                                {% if 'marketing' in plan.included_modules %}
-                                <div class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
-                                    <span class="font-semibold">Marketing & Campañas de Descuento</span>
-                                </div>
-                                {% endif %}
-                                {% if 'properties' in plan.included_modules %}
-                                <div class="flex items-center gap-2.5">
-                                    <i data-lucide="check-circle-2" class="w-4.5 h-4.5 text-emerald-600 shrink-0"></i>
-                                    <span class="font-semibold">Catálogo Inmobiliario & Portales</span>
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="check" class="w-4 h-4 text-burgundy shrink-0"></i>
+                                    <span>Facturación & Punto de Venta</span>
                                 </div>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <!-- CTA Button -->
-                        <div class="pt-6 space-y-3 text-center mt-auto">
-                            <a href="{% url 'register' %}" class="w-full py-3.5 rounded-full text-xs font-bold text-slate-900 border-2 border-slate-900 hover:bg-slate-900 hover:text-white transition-all duration-300 tracking-wider uppercase shadow-md flex items-center justify-center gap-2 group">
-                                <span>PROBAR RAUDIE OS GRATIS</span>
-                                <span class="group-hover:translate-x-1 transition-transform text-sm">→</span>
+                        <div class="pt-6">
+                            <a href="{% url 'register' %}" class="shimmer-btn w-full py-2.5 rounded-full text-xs font-bold flex items-center justify-center transition hover:scale-105 active:scale-95 {% if plan.code == 'PRO' or forloop.counter == 2 %}bg-burgundy text-white hover:bg-burgundy-hover{% else %}bg-charcoal text-white hover:bg-black{% endif %}">
+                                Elegir Plan
                             </a>
-                            <p class="text-[11px] text-slate-500">15 días gratis • Sin tarjeta requerida</p>
                         </div>
-                    </div>
-                    {% empty %}
-                    <div class="col-span-full text-center p-8 bg-slate-50 rounded-2xl border border-slate-200">
-                        <p class="text-sm text-slate-600">No hay planes de suscripción configurados en este momento.</p>
                     </div>
                     {% endfor %}
                 </div>
@@ -1233,388 +1020,477 @@
             </div>
         </section>
 
-        <!-- FAQ Section -->
-        <section id="faq" class="py-20 px-4 bg-slate-50 border-t border-slate-200">
-            <div class="max-w-4xl mx-auto space-y-12">
-                
-                <div class="text-center space-y-4">
-                    <span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-50 text-brand-800 border border-rose-200">
-                        Dudas Frecuentes
-                    </span>
-                    <h2 class="font-display font-black text-3xl sm:text-4xl text-slate-900 tracking-tight">
-                        Preguntas Resueltas <span class="text-brand-700">al Instante</span>
+        <!-- FAQ (Minimalist Divided Accordion with Smooth Reveal) -->
+        <section id="faq" class="py-20 sm:py-24 px-4 bg-cream border-t border-charcoal/10">
+            <div class="max-w-2xl mx-auto space-y-12">
+                <div class="reveal text-center space-y-3">
+                    <div class="inline-flex items-center px-3 py-1 rounded-full bg-burgundy-50 border border-burgundy/20 text-burgundy text-[10px] font-bold uppercase tracking-widest">
+                        FAQ
+                    </div>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold text-charcoal tracking-tight">
+                        Preguntas Frecuentes
                     </h2>
                 </div>
 
-                <div class="space-y-4">
+                <div class="divide-y divide-charcoal/10 border-y border-charcoal/10 text-left">
                     
-                    <!-- FAQ Item 1 -->
-                    <div class="light-card rounded-2xl overflow-hidden">
-                        <button onclick="toggleFaq(1)" class="w-full p-5 text-left flex items-center justify-between font-bold text-sm text-slate-900 focus:outline-none">
-                            <span>¿Cómo se adapta el sistema a mi tipo de agencia?</span>
-                            <i id="faq-icon-1" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
-                        </button>
-                        <div id="faq-ans-1" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                            Durante el registro o en cualquier momento desde tu panel de configuración, puedes seleccionar el perfil de tu empresa (Marketing, Inmobiliaria, Viajes, Estética, Consultoría o Retail). El sistema activará automáticamente los módulos, nomenclaturas y flujos recomendados para tu negocio.
+                    <div class="reveal py-5 cursor-pointer faq-item group" onclick="toggleFaq(this)">
+                        <div class="flex items-center justify-between font-bold text-xs sm:text-sm text-charcoal group-hover:text-burgundy transition">
+                            <span>¿Puedo probar RauDie OS gratis antes de pagar?</span>
+                            <span class="text-burgundy text-lg font-bold faq-sign transition-transform duration-200">+</span>
+                        </div>
+                        <div class="faq-content hidden pt-3 text-xs text-charcoal-600 leading-relaxed font-medium">
+                            Sí. Puedes registrarte y comenzar tu periodo de prueba gratis sin necesidad de ingresar tarjeta de crédito. Dispondrás de acceso a las funcionalidades principales para configurar tu negocio.
                         </div>
                     </div>
 
-                    <!-- FAQ Item 2 -->
-                    <div class="light-card rounded-2xl overflow-hidden">
-                        <button onclick="toggleFaq(2)" class="w-full p-5 text-left flex items-center justify-between font-bold text-sm text-slate-900 focus:outline-none">
-                            <span>¿Puedo probar la plataforma gratis sin ingresar tarjeta?</span>
-                            <i id="faq-icon-2" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
-                        </button>
-                        <div id="faq-ans-2" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                            Sí, totalmente. Al registrarte creas tu cuenta de prueba sin requerir datos de tarjeta de crédito. Tendrás acceso a las funciones completas para configurar tu agencia.
+                    <div class="reveal reveal-delay-1 py-5 cursor-pointer faq-item group" onclick="toggleFaq(this)">
+                        <div class="flex items-center justify-between font-bold text-xs sm:text-sm text-charcoal group-hover:text-burgundy transition">
+                            <span>¿Cómo funciona el envío automático por WhatsApp?</span>
+                            <span class="text-burgundy text-lg font-bold faq-sign transition-transform duration-200">+</span>
+                        </div>
+                        <div class="faq-content hidden pt-3 text-xs text-charcoal-600 leading-relaxed font-medium">
+                            RauDie OS cuenta con una pasarela automatizada que envía avisos a tus clientes 24h y 2h antes de cada cita para confirmar o reprogramar con un solo tap.
                         </div>
                     </div>
 
-                    <!-- FAQ Item 3 -->
-                    <div class="light-card rounded-2xl overflow-hidden">
-                        <button onclick="toggleFaq(3)" class="w-full p-5 text-left flex items-center justify-between font-bold text-sm text-slate-900 focus:outline-none">
-                            <span>¿Puedo gestionar múltiples calendarios y profesionales?</span>
-                            <i id="faq-icon-3" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
-                        </button>
-                        <div id="faq-ans-3" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                            Sí. Puedes agregar múltiples profesionales con sus propios horarios de trabajo, asignación de comisiones y agenda independiente.
+                    <div class="reveal reveal-delay-2 py-5 cursor-pointer faq-item group" onclick="toggleFaq(this)">
+                        <div class="flex items-center justify-between font-bold text-xs sm:text-sm text-charcoal group-hover:text-burgundy transition">
+                            <span>¿Mis datos están seguros y respaldados?</span>
+                            <span class="text-burgundy text-lg font-bold faq-sign transition-transform duration-200">+</span>
+                        </div>
+                        <div class="faq-content hidden pt-3 text-xs text-charcoal-600 leading-relaxed font-medium">
+                            Absolutamente. Utilizamos servidores seguros en la nube con backups diarios automáticos y cifrado SSL de extremo a extremo.
                         </div>
                     </div>
 
-                    <!-- FAQ Item 4 -->
-                    <div class="light-card rounded-2xl overflow-hidden">
-                        <button onclick="toggleFaq(4)" class="w-full p-5 text-left flex items-center justify-between font-bold text-sm text-slate-900 focus:outline-none">
-                            <span>¿Es posible gestionar múltiples sucursales o colaboradores?</span>
-                            <i id="faq-icon-4" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
-                        </button>
-                        <div id="faq-ans-4" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                            Sí. Puedes agregar múltiples profesionales con sus propios horarios de trabajo, porcentaje de comisiones y sedes asignadas.
+                    <div class="reveal reveal-delay-3 py-5 cursor-pointer faq-item group" onclick="toggleFaq(this)">
+                        <div class="flex items-center justify-between font-bold text-xs sm:text-sm text-charcoal group-hover:text-burgundy transition">
+                            <span>¿Se puede instalar en iPhone y Android?</span>
+                            <span class="text-burgundy text-lg font-bold faq-sign transition-transform duration-200">+</span>
                         </div>
-                    </div>
-
-                    <!-- FAQ Item 5 -->
-                    <div class="light-card rounded-2xl overflow-hidden">
-                        <button onclick="toggleFaq(5)" class="w-full p-5 text-left flex items-center justify-between font-bold text-sm text-slate-900 focus:outline-none">
-                            <span>¿Cómo funciona el Chatbot personalizable y el agendamiento?</span>
-                            <i id="faq-icon-5" data-lucide="chevron-down" class="w-5 h-5 text-brand-700 transition-transform"></i>
-                        </button>
-                        <div id="faq-ans-5" class="hidden px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                            Puedes personalizar las respuestas, servicios y disponibilidad del Chatbot. Cuando un cliente conversa y reserva una cita, la información se sincroniza y muestra de forma automática e inmediata en tu Dashboard principal.
+                        <div class="faq-content hidden pt-3 text-xs text-charcoal-600 leading-relaxed font-medium">
+                            Sí. RauDie OS es una Progressive Web App (PWA). Cada especialista o recepcionista puede instalarla en su teléfono para recibir notificaciones y gestionar citas al instante.
                         </div>
                     </div>
 
                 </div>
-
             </div>
         </section>
 
-        <!-- Final Conversion CTA Section (Strict Vinotinto, Blanco & Negro) -->
-        <section class="py-24 px-4 bg-slate-950 text-white relative overflow-hidden">
-            <!-- Strict Vinotinto to Black Gradient Mesh Aura -->
-            <div class="absolute inset-0 bg-gradient-to-tr from-brand-950 via-brand-900/80 to-slate-950 pointer-events-none"></div>
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[450px] bg-gradient-to-tr from-brand-900/40 via-rose-700/30 to-transparent rounded-full blur-3xl pointer-events-none"></div>
-
-            <div class="max-w-4xl mx-auto text-center space-y-8 relative z-10">
-                <span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/10 text-rose-200 border border-white/20">
-                    Empieza Hoy Mismo
-                </span>
-
-                <h2 class="font-display font-black text-3xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-[1.08]">
-                    Empieza a Operar tu Agencia <br>
-                    <span class="text-rose-300">Con la Mejor Eficiencia</span>
+        <!-- CTA FINAL BANNER (With Shimmer Button & Spotlight) -->
+        <section class="py-16 sm:py-20 px-4 bg-cream">
+            <div class="reveal max-w-4xl mx-auto rounded-[32px] sm:rounded-[40px] cta-ambient-glow border border-charcoal/10 p-10 sm:p-16 text-center space-y-6 shadow-presensio-card relative overflow-hidden">
+                
+                <h2 class="text-2xl sm:text-4xl md:text-5xl font-extrabold text-charcoal tracking-tight max-w-xl mx-auto leading-tight">
+                    ¿Listo para tomar el control de tu negocio?
                 </h2>
 
-                <p class="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
-                    Únete a los negocios que ya automatizaron sus citas, clientes, comprobantes y comisiones con RauDie OS.
+                <p class="text-xs sm:text-sm text-charcoal-600 font-medium max-w-md mx-auto leading-relaxed">
+                    Únete a miles de profesionales que ya recuperaron su tiempo y multiplicaron sus reservas con RauDie OS.
                 </p>
 
-                <div class="pt-4 flex justify-center">
-                    <a href="{% url 'register' %}" class="px-9 py-3.5 rounded-full text-xs sm:text-sm font-bold text-slate-950 bg-white hover:bg-slate-100 transition-all duration-300 tracking-wider uppercase shadow-2xl flex items-center justify-center gap-2 group">
-                        <span>PROBAR RAUDIE OS GRATIS</span>
-                        <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+                <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <a href="{% url 'register' %}" class="shimmer-btn w-full sm:w-auto px-8 py-3.5 rounded-full text-xs sm:text-sm font-bold text-white bg-burgundy hover:bg-burgundy-hover transition-all duration-300 shadow-md hover:scale-105 active:scale-95">
+                        Iniciar Prueba Gratuita
+                    </a>
+                    <a href="{% url 'login' %}" class="w-full sm:w-auto px-7 py-3.5 rounded-full text-xs sm:text-sm font-bold text-charcoal bg-white border border-charcoal/15 hover:bg-cream transition-all duration-300 hover:scale-105 active:scale-95">
+                        Acceder a mi Cuenta
                     </a>
                 </div>
+
             </div>
         </section>
 
     </main>
 
-    <!-- Footer (Clean Light Theme) -->
-    <footer class="bg-white border-t border-slate-200 py-12 px-4 text-xs text-slate-500">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            
-            <div class="space-y-3">
-                <div class="flex items-center gap-2.5">
-                    <img src="/static/images/logo.png" alt="RauDie OS Logo" class="w-7 h-7 drop-shadow-sm object-contain">
-                    <span class="font-bold text-slate-900 text-base font-display">RauDie<span class="text-brand-700">OS</span></span>
+    <!-- FOOTER -->
+    <footer class="py-14 px-4 bg-cream border-t border-charcoal/10 text-left">
+        <div class="max-w-4xl mx-auto space-y-10">
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-8 text-xs">
+                
+                <!-- Brand Column -->
+                <div class="col-span-2 space-y-3">
+                    <img src="/static/images/brand/logo-light.png" alt="RauDie OS" class="h-8 w-auto">
+                    <p class="text-charcoal-500 text-[11px] font-medium leading-relaxed max-w-xs">
+                        Más control. Mejores decisiones. Software SaaS integral para negocios de servicios y retail.
+                    </p>
+                    <div class="text-[11px] text-charcoal-400 font-medium">
+                        © 2026 RauDie OS. Todos los derechos reservados.
+                    </div>
                 </div>
-                <p class="text-slate-600 leading-relaxed text-xs">
-                    Plataforma Integral de CRM, Facturación Electrónica y Reserva de Citas 24/7.
-                </p>
-                <div class="flex items-center gap-2 text-[11px] text-emerald-700 font-medium">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Todos los servicios operativos</span>
+
+                <!-- Product Column -->
+                <div class="space-y-2.5">
+                    <div class="font-bold text-charcoal">Producto</div>
+                    <div class="flex flex-col gap-1.5 text-charcoal-500 font-medium">
+                        <a href="#features" class="hover:text-burgundy transition">Agenda 24/7</a>
+                        <a href="#how-it-works" class="hover:text-burgundy transition">WhatsApp Gateway</a>
+                        <a href="#features" class="hover:text-burgundy transition">Facturación & POS</a>
+                        <a href="#precios" class="hover:text-burgundy transition">Planes</a>
+                    </div>
                 </div>
-            </div>
 
-            <div class="space-y-2">
-                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Perfiles de Agencia</h4>
-                <ul class="space-y-1.5 text-slate-600">
-                    <li><a href="#soluciones" onclick="switchTab('marketing')" class="hover:text-brand-700 transition">Agencia Digital & Marketing</a></li>
-                    <li><a href="#soluciones" onclick="switchTab('realestate')" class="hover:text-brand-700 transition">Inmobiliaria & Bienes Raíces</a></li>
-                    <li><a href="#soluciones" onclick="switchTab('travel')" class="hover:text-brand-700 transition">Agencia de Viajes</a></li>
-                    <li><a href="#soluciones" onclick="switchTab('consulting')" class="hover:text-brand-700 transition">Consultoría & Asesorías</a></li>
-                    <li><a href="#soluciones" onclick="switchTab('health')" class="hover:text-brand-700 transition">Salud & Estética</a></li>
-                </ul>
-            </div>
+                <!-- Company Column -->
+                <div class="space-y-2.5">
+                    <div class="font-bold text-charcoal">Empresa</div>
+                    <div class="flex flex-col gap-1.5 text-charcoal-500 font-medium">
+                        <a href="#faq" class="hover:text-burgundy transition">Preguntas</a>
+                        <a href="{% url 'login' %}" class="hover:text-burgundy transition">Iniciar Sesión</a>
+                    </div>
+                </div>
 
-            <div class="space-y-2">
-                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Módulos</h4>
-                <ul class="space-y-1.5 text-slate-600">
-                    <li><a href="#modulos" class="hover:text-brand-700 transition">CRM & Leads</a></li>
-                    <li><a href="#modulos" class="hover:text-brand-700 transition">Agenda & Citas 24/7</a></li>
-                    <li><a href="#modulos" class="hover:text-brand-700 transition">Facturación & Gastos</a></li>
-                    <li><a href="#modulos" class="hover:text-brand-700 transition">Comisiones de Equipo</a></li>
-                    <li><a href="#modulos" class="hover:text-brand-700 transition">Portal de Reservas 24/7</a></li>
-                </ul>
-            </div>
+                <!-- Legal Column -->
+                <div class="space-y-2.5">
+                    <div class="font-bold text-charcoal">Legal</div>
+                    <div class="flex flex-col gap-1.5 text-charcoal-500 font-medium">
+                        <a href="{% url 'privacy' %}" class="hover:text-burgundy transition">Privacidad</a>
+                        <a href="{% url 'terms' %}" class="hover:text-burgundy transition">Términos</a>
+                        <a href="{% url 'security' %}" class="hover:text-burgundy transition">Seguridad</a>
+                    </div>
+                </div>
 
-            <div class="space-y-2">
-                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Acceso Rápido</h4>
-                <ul class="space-y-1.5 text-slate-600">
-                    <li><a href="{% url 'login' %}" class="hover:text-brand-700 transition">Iniciar Sesión</a></li>
-                    <li><a href="{% url 'register' %}" class="hover:text-brand-700 transition">Registro de Agencia</a></li>
-                    <li><a href="#precios" class="hover:text-brand-700 transition">Planes & Tarifas</a></li>
-                    <li><a href="#faq" class="hover:text-brand-700 transition">Centro de Ayuda FAQ</a></li>
-                </ul>
-            </div>
-
-        </div>
-
-        <div class="max-w-7xl mx-auto pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p>&copy; 2026 RauDie OS SaaS Platform. Todos los derechos reservados.</p>
-            <div class="flex items-center gap-4 text-slate-600">
-                <span>Español (Latam)</span>
-                <span>•</span>
-                <a href="#" class="hover:text-slate-900 transition">Privacidad</a>
-                <a href="#" class="hover:text-slate-900 transition">Términos</a>
             </div>
         </div>
     </footer>
 
-    <!-- Vanilla Javascript Interactive Controls -->
+    <!-- INTERACTIVE JAVASCRIPT CONTROLLERS -->
     <script>
-        // Initialize Lucide Icons
-        lucide.createIcons();
-
-        // Mobile Menu Toggle
-        const mobileBtn = document.getElementById('mobile-menu-btn');
-        const mobileMenu = document.getElementById('mobile-menu');
-        if (mobileBtn && mobileMenu) {
-            mobileBtn.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
-        }
-
-        // Tab Switching for Soluciones por Agencia
-        function switchTab(tabId) {
-            // Remove active class from all tab buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            // Hide all tab content elements
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-
-            // Activate chosen tab button
-            const activeBtn = document.getElementById(`tab-${tabId}`);
-            if (activeBtn) activeBtn.classList.add('active');
-
-            // Show chosen tab content
-            const activeContent = document.getElementById(`content-${tabId}`);
-            if (activeContent) activeContent.classList.remove('hidden');
-        }
-
-        // Pricing Toggle Switcher (Monthly vs Yearly)
-        let isYearly = false;
-        function togglePricing() {
-            isYearly = !isYearly;
-            const circle = document.getElementById('pricing-toggle-circle');
-            const labelMonthly = document.getElementById('label-monthly');
-            const labelYearly = document.getElementById('label-yearly');
-
-            const priceDisplays = document.querySelectorAll('.plan-price-display');
-            const periodDisplays = document.querySelectorAll('.billing-period');
-
-            if (isYearly) {
-                circle.style.transform = 'translateX(24px)';
-                labelMonthly.className = 'text-slate-500';
-                labelYearly.className = 'text-slate-900 font-bold flex items-center gap-1.5';
-                
-                priceDisplays.forEach(el => {
-                    const yearly = el.getAttribute('data-yearly');
-                    if (yearly) el.textContent = yearly;
-                });
-                periodDisplays.forEach(el => el.textContent = 'USD / año');
-            } else {
-                circle.style.transform = 'translateX(0px)';
-                labelMonthly.className = 'text-slate-900 font-bold';
-                labelYearly.className = 'text-slate-500 flex items-center gap-1.5';
-                
-                priceDisplays.forEach(el => {
-                    const monthly = el.getAttribute('data-monthly');
-                    if (monthly) el.textContent = monthly;
-                });
-                periodDisplays.forEach(el => el.textContent = 'USD / mes');
-            }
-        }
-
-        // Accordion FAQ Toggle
-        function toggleFaq(id) {
-            const answer = document.getElementById(`faq-ans-${id}`);
-            const icon = document.getElementById(`faq-icon-${id}`);
-
-            if (answer) {
-                answer.classList.toggle('hidden');
-                if (icon) {
-                    icon.style.transform = answer.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-                }
-            }
-        }
-    </script>
-
-    <!-- Universal Mobile PWA Installation Guide Modal for Landing -->
-    <div id="pwa-universal-modal-landing" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
-        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-5 text-center shadow-2xl relative border border-slate-100 animate-in fade-in zoom-in duration-200">
-            <button onclick="closeLandingUniversalModal()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-full">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-900 to-rose-700 text-white flex items-center justify-center mx-auto shadow-lg shadow-rose-900/30">
-                <i data-lucide="download" class="w-8 h-8"></i>
-            </div>
-
-            <div class="space-y-1">
-                <h3 class="font-display font-extrabold text-xl text-slate-900">Instalar RauDie OS en tu Celular</h3>
-                <p class="text-xs text-slate-500">Agrega la aplicación a tu pantalla de inicio en 1 minuto:</p>
-            </div>
-
-            <!-- Android / Chrome / Edge Instructions -->
-            <div id="landing-guide-android" class="space-y-3 text-left bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs">
-                <p class="font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-200 pb-2">
-                    <i data-lucide="smartphone" class="w-4 h-4 text-emerald-600"></i> Guía Android / Chrome / Edge:
-                </p>
-                <div class="flex items-start gap-2.5">
-                    <span class="w-5 h-5 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">1</span>
-                    <p class="text-slate-700">Toca el botón de <strong>3 puntos (⋮)</strong> en la esquina superior del navegador.</p>
-                </div>
-                <div class="flex items-start gap-2.5">
-                    <span class="w-5 h-5 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
-                    <p class="text-slate-700">Toca en <strong>"Instalar aplicación"</strong> o <strong>"Agregar a la pantalla principal"</strong>.</p>
-                </div>
-                <div class="flex items-start gap-2.5">
-                    <span class="w-5 h-5 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">3</span>
-                    <p class="text-slate-700">Presiona <strong>"Instalar"</strong>. ¡El acceso aparecerá en tu teléfono!</p>
-                </div>
-            </div>
-
-            <!-- iOS / iPhone / Safari Instructions -->
-            <div id="landing-guide-ios" class="space-y-3 text-left bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs hidden">
-                <p class="font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-200 pb-2">
-                    <i data-lucide="smartphone" class="w-4 h-4 text-brand-700"></i> Guía iPhone / iPad Safari:
-                </p>
-                <div class="flex items-start gap-2.5">
-                    <span class="w-5 h-5 rounded-full bg-brand-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">1</span>
-                    <p class="text-slate-700">Toca el botón <strong>Compartir</strong> <i data-lucide="share" class="w-4 h-4 text-brand-700 inline"></i> (en la barra inferior de Safari).</p>
-                </div>
-                <div class="flex items-start gap-2.5">
-                    <span class="w-5 h-5 rounded-full bg-brand-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
-                    <p class="text-slate-700">Desplázate y selecciona <strong>"Agregar a inicio"</strong> <i data-lucide="plus-square" class="w-4 h-4 text-brand-700 inline"></i>.</p>
-                </div>
-                <div class="flex items-start gap-2.5">
-                    <span class="w-5 h-5 rounded-full bg-brand-900 text-white font-bold flex items-center justify-center text-[10px] shrink-0">3</span>
-                    <p class="text-slate-700">Toca <strong>"Agregar"</strong> arriba a la derecha.</p>
-                </div>
-            </div>
-
-            <button onclick="closeLandingUniversalModal()" class="w-full py-3 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-md transition">
-                ¡Entendido, abriré el menú!
-            </button>
-        </div>
-    </div>
-
-    <script>
-        // Initialize Lucide Icons
         if (window.lucide) {
             lucide.createIcons();
         }
 
-        // PWA Service Worker Registration & Multi-Button Installation Handler for Landing Page
-        let pwaDeferredPrompt;
-        const pwaBtns = [
-            document.getElementById('pwa-install-nav-btn'),
-            document.getElementById('pwa-install-mobile-btn'),
-            document.getElementById('pwa-install-hero-btn'),
-            document.getElementById('pwa-banner-install-btn')
-        ].filter(Boolean);
+        // WORD-BY-WORD & LINE JUMP ANIMATION ON SCROLL
+        function initWordJumpAnimations() {
+            document.querySelectorAll('.text-words-jump').forEach(el => {
+                if (el.dataset.splitDone) return;
+                el.dataset.splitDone = "true";
 
-        function showLandingUniversalModal() {
-            const modal = document.getElementById('pwa-universal-modal-landing');
-            const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            const androidGuide = document.getElementById('landing-guide-android');
-            const iosGuide = document.getElementById('landing-guide-ios');
+                let wordCount = 0;
 
-            if (isIos) {
-                androidGuide?.classList.add('hidden');
-                iosGuide?.classList.remove('hidden');
-            } else {
-                iosGuide?.classList.add('hidden');
-                androidGuide?.classList.remove('hidden');
-            }
+                function process(node) {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const text = node.textContent;
+                        if (!text.trim()) return null;
 
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
+                        const parts = text.split(/(\s+)/);
+                        const frag = document.createDocumentFragment();
+
+                        parts.forEach(part => {
+                            if (/^\s+$/.test(part)) {
+                                frag.appendChild(document.createTextNode(part));
+                            } else if (part.length > 0) {
+                                const wrap = document.createElement('span');
+                                wrap.className = 'word-jump-wrapper';
+
+                                const word = document.createElement('span');
+                                word.className = 'word-jump';
+                                word.style.setProperty('--word-idx', wordCount++);
+                                word.textContent = part;
+
+                                wrap.appendChild(word);
+                                frag.appendChild(wrap);
+                            }
+                        });
+                        return frag;
+                    } else if (node.nodeType === Node.ELEMENT_NODE) {
+                        if (node.classList.contains('word-jump') || node.classList.contains('word-jump-wrapper')) return null;
+                        const children = Array.from(node.childNodes);
+                        children.forEach(child => {
+                            const rep = process(child);
+                            if (rep) node.replaceChild(rep, child);
+                        });
+                        return null;
+                    }
+                    return null;
+                }
+
+                process(el);
+            });
         }
 
-        function closeLandingUniversalModal() {
-            const modal = document.getElementById('pwa-universal-modal-landing');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        }
+        // Initialize word splitting before observer runs
+        initWordJumpAnimations();
 
-        // Ensure all PWA install buttons are always visible and active on mobile
-        pwaBtns.forEach(btn => {
-            btn.style.display = 'inline-flex';
-            btn.addEventListener('click', async () => {
-                if (pwaDeferredPrompt) {
-                    pwaDeferredPrompt.prompt();
-                    const { outcome } = await pwaDeferredPrompt.userChoice;
-                    console.log(`[PWA Landing] Resultado instalación: ${outcome}`);
-                    pwaDeferredPrompt = null;
-                } else {
-                    showLandingUniversalModal();
+        // 1. SCROLL REVEAL OBSERVER WITH STAGGER & WORD JUMPS
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    // Activate any word jumps inside
+                    entry.target.querySelectorAll('.word-jump').forEach(w => w.classList.add('is-visible'));
                 }
             });
+        }, { threshold: 0.12, rootMargin: '0px 0px -30px 0px' });
+
+        document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+        // 2. SPOTLIGHT / MOUSE-FOLLOW GLOW EFFECT ON CARDS
+        document.querySelectorAll('.spotlight-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
         });
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((reg) => console.log('[PWA Landing] Service Worker activo:', reg.scope))
-                    .catch((err) => console.error('[PWA Landing] Error Service Worker:', err));
+        // 3. Mobile Menu Toggle
+        const mobileToggle = document.getElementById('mobile-toggle');
+        const mobileClose = document.getElementById('mobile-close');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileItems = document.querySelectorAll('.mobile-item');
+
+        if (mobileToggle) {
+            mobileToggle.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+                mobileMenu.classList.toggle('flex');
             });
         }
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            pwaDeferredPrompt = e;
+        if (mobileClose) {
+            mobileClose.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+                mobileMenu.classList.remove('flex');
+            });
+        }
+        mobileItems.forEach(item => {
+            item.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+                mobileMenu.classList.remove('flex');
+            });
         });
+
+        // 4. DYNAMIC PHONE SIMULATION & CLICKABLE DAYS
+        const dayData = {
+            'lun': { label: 'Lunes', occ: 82, occBar: '82%', turns: 14, time: '2h 10m', alert: 'Inicio de semana con 14 turnos confirmados y recordatorios enviados.', sub1: '↗ 8% hoy', sub2: '↗ 5% hoy', sub3: '✓ 0 ausencias', widgetTitle: 'Cita 09:30 AM', widgetClient: 'Sofía V. • Confirmada', widgetPos: '$ 95.00' },
+            'mar': { label: 'Martes', occ: 88, occBar: '88%', turns: 16, time: '2h 30m', alert: 'Martes de alta demanda en estética y odontología. 16 pacientes atendidos.', sub1: '↗ 10% hoy', sub2: '↗ 6% hoy', sub3: '✓ 0 ausencias', widgetTitle: 'Cita 11:15 AM', widgetClient: 'Carlos R. • Confirmada', widgetPos: '$ 110.00' },
+            'mie': { label: 'Miércoles', occ: 91, occBar: '91%', turns: 17, time: '2h 40m', alert: 'Caja chica conciliada y stock de insumos actualizado automáticamente.', sub1: '↗ 11% hoy', sub2: '↗ 7% hoy', sub3: '✓ 0 ausencias', widgetTitle: 'Cita 02:00 PM', widgetClient: 'Laura T. • Confirmada', widgetPos: '$ 130.00' },
+            'jue': { label: 'Jueves', occ: 94, occBar: '94%', turns: 18, time: '2h 45m', alert: 'Has completado más de 45 citas esta semana con 0 ausencias gracias a los recordatorios de WhatsApp.', sub1: '↗ 12% hoy', sub2: '↗ 7% hoy', sub3: '✓ 0 ausencias', widgetTitle: 'Cita 10:00 AM', widgetClient: 'Martina • Confirmada', widgetPos: '$ 140.00' },
+            'vie': { label: 'Viernes', occ: 98, occBar: '98%', turns: 22, time: '3h 15m', alert: '¡Pico de ocupación del 98%! Todos los especialistas con agenda completa.', sub1: '↗ 16% hoy', sub2: '↗ 10% hoy', sub3: '✓ 0 ausencias', widgetTitle: 'Cita 04:30 PM', widgetClient: 'Javier M. • Confirmada', widgetPos: '$ 210.00' },
+            'sab': { label: 'Sábado', occ: 100, occBar: '100%', turns: 24, time: '3h 40m', alert: 'Sábado exitoso: 24 citas procesadas, caja cerrada y comisiones liquidadas.', sub1: '↗ 20% hoy', sub2: '↗ 12% hoy', sub3: '✓ 0 ausencias', widgetTitle: 'Cita 12:00 PM', widgetClient: 'Elena B. • Confirmada', widgetPos: '$ 280.00' },
+            'dom': { label: 'Domingo', occ: 65, occBar: '65%', turns: 8, time: '1h 10m', alert: 'Guardia de fin de semana con cobros directos y reservas online activas para el lunes.', sub1: '↗ 4% hoy', sub2: '↗ 3% hoy', sub3: '✓ 0 ausencias', widgetTitle: 'Cita 11:00 AM', widgetClient: 'Tomás C. • Confirmada', widgetPos: '$ 75.00' }
+        };
+
+        function selectPhoneDay(dayKey) {
+            const data = dayData[dayKey];
+            if (!data) return;
+
+            const elDay = document.getElementById('selected-day-label');
+            if (elDay) elDay.textContent = `Día: ${data.label}`;
+            const elOcc = document.getElementById('phone-stat-occ');
+            if (elOcc) elOcc.innerHTML = `${data.occ}<span class="text-[9px] font-normal text-charcoal-400">/100</span>`;
+            const elTime = document.getElementById('phone-stat-time');
+            if (elTime) elTime.textContent = data.time;
+            const elTurns = document.getElementById('phone-stat-turns');
+            if (elTurns) elTurns.textContent = data.turns;
+            const elAlert = document.getElementById('phone-alert-text');
+            if (elAlert) elAlert.textContent = data.alert;
+            const elSub1 = document.getElementById('phone-stat-sub1');
+            if (elSub1) elSub1.textContent = data.sub1;
+            const elSub2 = document.getElementById('phone-stat-sub2');
+            if (elSub2) elSub2.textContent = data.sub2;
+            const elSub3 = document.getElementById('phone-stat-sub3');
+            if (elSub3) elSub3.textContent = data.sub3;
+
+            // Update external floating widgets
+            const wOcc = document.getElementById('widget-occupancy');
+            if (wOcc) wOcc.textContent = `${data.occ}%`;
+            const wOccBar = document.getElementById('widget-occupancy-bar');
+            if (wOccBar) wOccBar.style.width = data.occBar;
+            const wOccText = document.getElementById('widget-occupancy-text');
+            if (wOccText) wOccText.textContent = `${data.turns} turnos ${data.label.toLowerCase()}`;
+            const wApptTitle = document.getElementById('widget-appt-title');
+            if (wApptTitle) wApptTitle.textContent = data.widgetTitle;
+            const wApptClient = document.getElementById('widget-appt-client');
+            if (wApptClient) wApptClient.textContent = data.widgetClient;
+            const wPosAmount = document.getElementById('widget-pos-amount');
+            if (wPosAmount) wPosAmount.textContent = data.widgetPos;
+        }
+
+        function triggerInteractiveSimulation() {
+            const toast = document.getElementById('phone-toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+
+        // 5. DYNAMIC MODULE SWITCHER TABS
+        const moduleDetails = {
+            'agenda': {
+                tag: 'APPOINTMENT & BOOKING ENGINE',
+                title: 'Agenda Inteligente con Portal de Reservas 24/7',
+                desc: 'Permite a tus clientes agendar turnos desde cualquier dispositivo. Configura duraciones variables, servicios combinados, especialistas con horarios personalizados y bloqueos por vacaciones o pausas.',
+                bullets: [
+                    'Portal público personalizado con tu marca y colores',
+                    'Horarios y cupos por sucursal y colaborador',
+                    'Bloqueo automático de turnos superpuestos'
+                ],
+                badge: 'Reserva #B-2026-904',
+                status: 'Confirmada',
+                r1Label: 'Cliente:', r1Val: 'Martina Gómez',
+                r2Label: 'Servicio:', r2Val: 'Tratamiento Facial + Corte',
+                r3Label: 'Especialista:', r3Val: 'Dra. Claudia Santos',
+                r4Label: 'Total a Cobrar:', r4Val: '$ 85.00'
+            },
+            'pos': {
+                tag: 'POINT OF SALE & CASH REGISTER',
+                title: 'Punto de Venta (POS) & Control de Caja en Tiempo Real',
+                desc: 'Apertura y cierre de turnos de caja con arqueo ciego, registro de cobros en múltiples medios de pago (efectivo, tarjeta, transferencias) y emisión de facturas o tickets fiscales al instante.',
+                bullets: [
+                    'Arqueo de caja chica y registro de ingresos/egresos',
+                    'Cobros divididos en múltiples métodos de pago',
+                    'Facturas electrónicas y notas de crédito'
+                ],
+                badge: 'Ticket POS #T-0824',
+                status: 'Cobrado',
+                r1Label: 'Caja:', r1Val: 'Caja Mostrador Principal',
+                r2Label: 'Operador:', r2Val: 'Carlos Recepción',
+                r3Label: 'Medio de Pago:', r3Val: '50% Visa + 50% Efectivo',
+                r4Label: 'Total Cobrado:', r4Val: '$ 120.00'
+            },
+            'commissions': {
+                tag: 'STAFF PAYROLL & COMMISSION TRACKER',
+                title: 'Cálculo Automático de Comisiones por Profesional',
+                desc: 'Olvídate de calcular comisiones a mano en planillas de cálculo. Define porcentajes fijos o variables por servicio y liquida los honorarios de cada colaborador con 1 solo clic.',
+                bullets: [
+                    'Porcentaje personalizado por especialista y servicio',
+                    'Reporte transparente para cada miembro del equipo',
+                    'Liquidación periódica y cierre de nómina en segundos'
+                ],
+                badge: 'Liquidación #COM-42',
+                status: 'Aprobada',
+                r1Label: 'Profesional:', r1Val: 'Lic. Roberto Paz',
+                r2Label: 'Servicios Realizados:', r2Val: '28 atenciones esta semana',
+                r3Label: 'Tasa Pactada:', r3Val: '40% por servicio',
+                r4Label: 'Comisión Neta:', r4Val: '$ 480.00'
+            },
+            'crm': {
+                tag: 'CUSTOMER RELATIONSHIP & LOYALTY',
+                title: 'Ficha Clínica, Historial & Fidelización por Puntos',
+                desc: 'Cada cliente tiene su propio perfil con historial clínico o de visitas, notas técnicas, preferencias, cupones aplicados y tarjeta digital de puntos acumulables para canjear en futuras visitas.',
+                bullets: [
+                    'Ficha de cliente con historial completo de visitas y notas',
+                    'Programa de puntos y cupones de fidelización',
+                    'Alertas de cumpleaños y campañas automáticas'
+                ],
+                badge: 'Ficha VIP #CLI-109',
+                status: 'Cliente Activo',
+                r1Label: 'Nombre:', r1Val: 'Sofía Castro (VIP)',
+                r2Label: 'Visitas Acumuladas:', r2Val: '14 visitas este año',
+                r3Label: 'Puntos de Lealtad:', r3Val: '340 pts acumulados',
+                r4Label: 'Beneficio Disponible:', r4Val: '20% en próximo turno'
+            },
+            'inventory': {
+                tag: 'INVENTORY & STOCK MOVEMENTS',
+                title: 'Control de Stock, Insumos y Alerta de Quiebre',
+                desc: 'Monitorea las existencias de productos de reventa y consumo interno. El sistema descuenta insumos automáticamente al facturar un servicio y te avisa cuando un producto llega a su stock mínimo.',
+                bullets: [
+                    'Kardex de entradas y salidas automatizado',
+                    'Descuento automático de insumos por servicio realizado',
+                    'Alertas de reposición antes de quedar sin stock'
+                ],
+                badge: 'Kardex #INV-018',
+                status: 'Stock Óptimo',
+                r1Label: 'Producto:', r1Val: 'Ampolla Tratamiento Keratina',
+                r2Label: 'Existencias en Bodega:', r2Val: '48 unidades disponibles',
+                r3Label: 'Stock Mínimo Alerta:', r3Val: '10 unidades',
+                r4Label: 'Valoración de Stock:', r4Val: '$ 1,440.00'
+            }
+        };
+
+        function switchModuleTab(key) {
+            const mod = moduleDetails[key];
+            if (!mod) return;
+
+            document.querySelectorAll('.module-tab-btn').forEach(btn => {
+                btn.className = 'module-tab-btn whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-charcoal-700 hover:text-burgundy hover:bg-burgundy-50/60 hover:scale-105 active:scale-95';
+            });
+            const activeBtn = document.getElementById(`tab-btn-${key}`);
+            if (activeBtn) {
+                activeBtn.className = 'module-tab-btn whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 bg-burgundy text-white shadow-xs hover:bg-burgundy-hover hover:scale-105 active:scale-95';
+            }
+
+            document.getElementById('mod-tag').textContent = mod.tag;
+            document.getElementById('mod-title').textContent = mod.title;
+            document.getElementById('mod-desc').textContent = mod.desc;
+            
+            const bulletsContainer = document.getElementById('mod-bullets');
+            bulletsContainer.innerHTML = mod.bullets.map(b => `
+                <div class="flex items-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4 text-burgundy"></i>
+                    <span>${b}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('mod-preview-badge').textContent = mod.badge;
+            document.getElementById('mod-preview-status').textContent = mod.status;
+            document.getElementById('mod-row1-label').textContent = mod.r1Label;
+            document.getElementById('mod-row1-val').textContent = mod.r1Val;
+            document.getElementById('mod-row2-label').textContent = mod.r2Label;
+            document.getElementById('mod-row2-val').textContent = mod.r2Val;
+            document.getElementById('mod-row3-label').textContent = mod.r3Label;
+            document.getElementById('mod-row3-val').textContent = mod.r3Val;
+            document.getElementById('mod-row4-label').textContent = mod.r4Label;
+            document.getElementById('mod-row4-val').textContent = mod.r4Val;
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // 6. FAQ ACCORDION
+        function toggleFaq(item) {
+            const content = item.querySelector('.faq-content');
+            const sign = item.querySelector('.faq-sign');
+            const isOpen = !content.classList.contains('hidden');
+
+            document.querySelectorAll('.faq-content').forEach(c => c.classList.add('hidden'));
+            document.querySelectorAll('.faq-sign').forEach(s => s.textContent = '+');
+
+            if (!isOpen) {
+                content.classList.remove('hidden');
+                sign.textContent = '−';
+            }
+        }
+
+        // 7. PRICING MONTHLY / ANNUAL SWITCHER
+        let isYearly = false;
+        function togglePricing() {
+            isYearly = !isYearly;
+            const toggleCircle = document.getElementById('pricing-toggle-circle');
+            const labelMonthly = document.getElementById('label-monthly');
+            const labelYearly = document.getElementById('label-yearly');
+            const priceDisplays = document.querySelectorAll('.plan-price-display');
+            const billingPeriods = document.querySelectorAll('.billing-period');
+
+            if (isYearly) {
+                toggleCircle.style.transform = 'translateX(24px)';
+                labelMonthly.classList.remove('font-bold', 'text-charcoal');
+                labelMonthly.classList.add('text-charcoal-400');
+                labelYearly.classList.add('font-bold', 'text-charcoal');
+                labelYearly.classList.remove('text-charcoal-500');
+
+                priceDisplays.forEach(el => {
+                    el.textContent = el.dataset.yearly;
+                });
+                billingPeriods.forEach(el => {
+                    el.textContent = '/ año';
+                });
+            } else {
+                toggleCircle.style.transform = 'translateX(0px)';
+                labelMonthly.classList.add('font-bold', 'text-charcoal');
+                labelMonthly.classList.remove('text-charcoal-400');
+                labelYearly.classList.remove('font-bold', 'text-charcoal');
+                labelYearly.classList.add('text-charcoal-500');
+
+                priceDisplays.forEach(el => {
+                    el.textContent = el.dataset.monthly;
+                });
+                billingPeriods.forEach(el => {
+                    el.textContent = '/ mes';
+                });
+            }
+        }
     </script>
 </body>
 </html>
-
-
-
-
-

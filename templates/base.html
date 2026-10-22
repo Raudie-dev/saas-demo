@@ -231,37 +231,7 @@
                     <span>CRM & {{ client_label_plural|default:'Clientes' }}</span>
                 </a>
                 {% endif %}
-
-                {% if modules_enabled.projects and not is_real_estate and not is_health_beauty and not is_travel %}
-                <a href="{% url 'project_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'proyectos' in request.path and 'contenido' not in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
-                    <span>Proyectos & Tareas</span>
-                </a>
-
-                <a href="{% url 'content_planner' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'contenido' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="share-2" class="w-5 h-5"></i>
-                    <span>Plan de Contenidos</span>
-                </a>
-                {% endif %}
-
-                {% if modules_enabled.properties and is_real_estate %}
-                <a href="{% url 'property_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'propiedades' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="building-2" class="w-5 h-5"></i>
-                    <span>Propiedades</span>
-                </a>
-                {% endif %}
-
-                {% if modules_enabled.travel or is_travel %}
-                <a href="{% url 'travel_package_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'viajes' in request.path and 'reservas' not in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="plane" class="w-5 h-5"></i>
-                    <span>Paquetes & Viajes</span>
-                </a>
-
-                <a href="{% url 'travel_booking_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'viajes/reservas' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="ticket" class="w-5 h-5"></i>
-                    <span>Reservas de Viajes</span>
-                </a>
-                {% endif %}
+"
 
                 {% if not user_is_professional %}
                 <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'service' in request.resolver_match.url_name %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
@@ -462,25 +432,7 @@
                     <span>CRM & {{ client_label_plural|default:'Clientes' }}</span>
                 </a>
                 {% endif %}
-
-                {% if modules_enabled.projects and not is_real_estate and not is_health_beauty %}
-                <a href="{% url 'project_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'proyectos' in request.path and 'contenido' not in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
-                    <span>Proyectos & Tareas</span>
-                </a>
-
-                <a href="{% url 'content_planner' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'contenido' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="share-2" class="w-5 h-5"></i>
-                    <span>Plan de Contenidos</span>
-                </a>
-                {% endif %}
-
-                {% if modules_enabled.properties and is_real_estate %}
-                <a href="{% url 'property_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'propiedades' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="building-2" class="w-5 h-5"></i>
-                    <span>Propiedades</span>
-                </a>
-                {% endif %}
+"
                 {% if not user_is_professional %}
                 <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'service' in request.resolver_match.url_name %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="scissors" class="w-5 h-5"></i>

@@ -216,11 +216,11 @@ def onboarding_view(request):
     user = request.user
     business = getattr(user, 'business', None)
     if not business:
-        agency_name = f"Agencia {user.first_name or user.username}".strip()
+        business_name = f"Negocio {user.first_name or user.username}".strip()
         business = Business.objects.create(
-            name=f"Agencia de {user.first_name or user.username}",
-            slug=f"agencia-{user.username}-{uuid.uuid4().hex[:4]}",
-            email=user.email or "contacto@agencia.com",
+            name=f"Negocio de {user.first_name or user.username}",
+            slug=f"negocio-{user.username}-{uuid.uuid4().hex[:4]}",
+            email=user.email or "contacto@negocio.com",
             phone=user.phone or "+1 555-0000",
             onboarding_completed=False
         )
@@ -228,7 +228,7 @@ def onboarding_view(request):
         user.save()
 
     if request.method == 'POST':
-        agency_name = request.POST.get('agency_name', '').strip()
+        agency_name = (request.POST.get('business_name') or request.POST.get('agency_name') or '').strip()
         business_type = request.POST.get('business_type', 'MARKETING')
         primary_goal = request.POST.get('primary_goal', '').strip()
         selected_modules = request.POST.getlist('enabled_modules')
@@ -267,7 +267,7 @@ def onboarding_view(request):
             if region:
                 business.region = region
 
-        business.primary_goal = primary_goal or "Gestionar y hacer crecer la agencia"
+        business.primary_goal = primary_goal or "Gestionar y hacer crecer el negocio"
         business.enabled_modules = selected_modules
         business.currency = currency
         if phone:
@@ -296,50 +296,51 @@ def onboarding_view(request):
         return redirect('dashboard')
 
     # Available business profiles & recommended modules
-    agency_profiles = [
+    business_profiles = [
         {
-            'code': 'MARKETING',
-            'title': 'Agencia Digital & Marketing',
+            'code': 'HEALTH_CLINIC',
+            'title': 'Clínicas, Consultorios & Odontología',
+            'icon': 'stethoscope',
+            'desc': 'Gestión de pacientes, turnos médicos, historias clínicas, facturación y recordatorios por WhatsApp.',
+            'modules': ['agenda', 'booking', 'crm', 'invoicing', 'pos', 'commissions']
+        },
+        {
+            'code': 'AESTHETICS_SPA',
+            'title': 'Estética, Dermatología & Spas',
             'icon': 'sparkles',
-            'desc': 'Especializada en captación de leads, servicios recurrentes, campañas, facturación y automatización con IA.',
-            'modules': ['crm', 'invoicing', 'marketing', 'ai_engine', 'commissions', 'agenda']
+            'desc': 'Tratamientos faciales/corporales, agenda multi-especialista, fichas con notas, stock y fidelización.',
+            'modules': ['agenda', 'booking', 'crm', 'pos', 'inventory', 'commissions', 'marketing']
         },
         {
-            'code': 'REAL_ESTATE',
-            'title': 'Agencia Inmobiliaria / Bienes Raíces',
-            'icon': 'home',
-            'desc': 'Gestión de clientes interesados, agenda de visitas, contratos, comisión de agentes e inventario de propiedades.',
-            'modules': ['crm', 'agenda', 'commissions', 'invoicing', 'ai_engine']
+            'code': 'BARBER_SALON',
+            'title': 'Barberías, Salones & Peluquerías',
+            'icon': 'scissors',
+            'desc': 'Turnos rápidos por sillón o estilista, caja mostrador POS, comisiones del equipo y venta de productos.',
+            'modules': ['agenda', 'booking', 'pos', 'commissions', 'inventory', 'crm']
         },
         {
-            'code': 'TRAVEL',
-            'title': 'Agencia de Viajes & Turismo',
-            'icon': 'plane',
-            'desc': 'Reservas de paquetes, agenda de itinerarios, venta POS, facturación y comisión de asesores de viaje.',
-            'modules': ['crm', 'booking', 'agenda', 'pos', 'invoicing', 'commissions']
+            'code': 'KINESIOLOGY',
+            'title': 'Kinesiología & Fisioterapia',
+            'icon': 'activity',
+            'desc': 'Sesiones periódicas, evolución clínica, asignación de boxes o gabinetes y cobro en mostrador.',
+            'modules': ['agenda', 'booking', 'crm', 'invoicing', 'commissions']
         },
         {
-            'code': 'CONSULTING',
-            'title': 'Agencia de Consultoría & Servicios',
-            'icon': 'briefcase',
-            'desc': 'Agenda de reuniones, reservas en línea, propuestas, seguimiento de clientes y facturación rápida.',
-            'modules': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine']
-        },
-        {
-            'code': 'HEALTH_BEAUTY',
-            'title': 'Salud, Estética & Spa',
-            'icon': 'heart-pulse',
-            'desc': 'Citas de pacientes/clientes, portal de reservas 24/7, productos en stock, comisiones y caja registradora POS.',
-            'modules': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm']
-        },
-        {
-            'code': 'RETAIL_OTHER',
-            'title': 'Comercio, Retail & Servicios Generales',
+            'code': 'RETAIL_COMMERCE',
+            'title': 'Comercio, Retail & Venta Directa',
             'icon': 'shopping-bag',
-            'desc': 'Punto de venta directo, control de inventario de productos, facturación, clientes y reportes financieros.',
-            'modules': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'analytics']
+            'desc': 'Terminal de cobro POS, apertura y arqueo de caja, inventario con alertas de stock y comprobantes fiscales.',
+            'modules': ['pos', 'inventory', 'invoicing', 'crm', 'commissions']
+        },
+        {
+            'code': 'SERVICES_OTHER',
+            'title': 'Servicios Profesionales & Otros',
+            'icon': 'briefcase',
+            'desc': 'Agenda interactiva, portal de reservas online 24/7, seguimiento de clientes, presupuestos y cobros.',
+            'modules': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine']
         }
     ]
+    agency_profiles = business_profiles
 
     # Obtain default plan modules allowed
     allowed_codes = business.get_allowed_modules() if business else ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
@@ -2167,3 +2168,22 @@ def role_delete_view(request, role_id):
         messages.success(request, f"Perfil '{role_name}' eliminado correctamente.")
 
     return redirect('/business/usuarios/?tab=roles')
+
+
+def privacy_view(request):
+    return render(request, 'business/legal.html', {
+        'active_tab': 'privacy',
+        'page_title': 'Política de Privacidad'
+    })
+
+def terms_view(request):
+    return render(request, 'business/legal.html', {
+        'active_tab': 'terms',
+        'page_title': 'Términos y Condiciones de Uso'
+    })
+
+def security_view(request):
+    return render(request, 'business/legal.html', {
+        'active_tab': 'security',
+        'page_title': 'Seguridad y Protección de Datos'
+    })

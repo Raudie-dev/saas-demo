@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth bg-[#FAF8F5] text-[#0F0F10]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title|default:"Términos & Políticas Legales" }} — RauDie OS</title>
+    
+    <!-- Google Fonts: Strictly Montserrat (Official Brand Manual) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        burgundy: {
+                            DEFAULT: '#6B0D16',
+                            hover: '#82131D',
+                            50: '#FBF2F3',
+                            100: '#F5E2E4',
+                            200: '#ECC5C9',
+                        },
+                        charcoal: {
+                            DEFAULT: '#0F0F10',
+                            800: '#1D1D1F',
+                            600: '#48484A',
+                            500: '#636366',
+                            400: '#8E8E93',
+                        },
+                        brandgray: {
+                            DEFAULT: '#D9D9D9',
+                            light: '#F2F2F2',
+                        },
+                        cream: '#FAF8F5',
+                    },
+                    fontFamily: {
+                        sans: ['Montserrat', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #FAF8F5;
+            color: #0F0F10;
+        }
+
+        .floating-pill-nav {
+            background: rgba(250, 248, 245, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(15, 15, 16, 0.08);
+        }
+
+        .legal-card {
+            background: #FFFFFF;
+            border: 1px solid #E8E5E1;
+            border-radius: 24px;
+            box-shadow: 0 4px 20px -6px rgba(15, 15, 16, 0.04);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-burgundy selection:text-white">
+
+    <!-- TOP NAVIGATION PILL (Matches Landing Page) -->
+    <header class="fixed top-0 inset-x-0 z-50 px-4 py-4 sm:py-5 flex justify-center pointer-events-none">
+        <div class="pointer-events-auto max-w-4xl w-full">
+            <nav class="floating-pill-nav rounded-full px-4 sm:px-6 py-2.5 flex items-center justify-between shadow-sm">
+                <!-- Logo -->
+                <a href="{% url 'landing' %}" class="flex items-center gap-2 group">
+                    <img src="/static/images/brand/logo-light.png" alt="RauDie OS" class="h-8 sm:h-9 md:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105">
+                </a>
+
+                <!-- Back to Landing Link -->
+                <div class="flex items-center gap-3">
+                    <a href="{% url 'landing' %}" class="text-xs font-semibold text-charcoal-700 hover:text-burgundy transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-black/5">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                        <span>Volver al Inicio</span>
+                    </a>
+                    <a href="{% url 'register' %}" class="px-4 py-1.5 rounded-full text-xs font-bold text-white bg-burgundy hover:bg-burgundy-hover transition-all duration-200 shadow-xs">
+                        Probar Gratis
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN LEGAL CONTAINER -->
+    <main class="flex-grow pt-28 sm:pt-36 pb-20 px-4">
+        <div class="max-w-4xl mx-auto space-y-8">
+            
+            <!-- Page Header -->
+            <div class="text-center space-y-4 max-w-2xl mx-auto">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-burgundy-50 border border-burgundy/20 text-burgundy text-[11px] font-bold uppercase tracking-widest">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                    <span>Centro Legal & Cumplimiento</span>
+                </div>
+                <h1 class="text-3xl sm:text-5xl font-extrabold text-charcoal tracking-tight">
+                    Términos, Privacidad & Seguridad
+                </h1>
+                <p class="text-xs sm:text-sm text-charcoal-500 font-medium leading-relaxed">
+                    En <strong>RauDie OS</strong> garantizamos la protección estricta de la información de tu negocio, especialistas y clientes, cumpliendo con los más altos estándares de seguridad y privacidad en la nube.
+                </p>
+                <div class="text-[11px] text-charcoal-400 font-semibold">
+                    Última actualización: <strong>Octubre de 2026</strong> • Vigente para todos los planes
+                </div>
+            </div>
+
+            <!-- Tab Switcher Navigation -->
+            <div class="flex justify-center">
+                <div class="inline-flex items-center p-1.5 bg-white rounded-full border border-charcoal/10 shadow-xs max-w-full overflow-x-auto gap-1">
+                    <a href="{% url 'privacy' %}" 
+                       class="whitespace-nowrap px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 {% if active_tab == 'privacy' %}bg-burgundy text-white shadow-xs{% else %}text-charcoal-700 hover:text-burgundy hover:bg-burgundy-50/60{% endif %}">
+                        <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                        <span>Privacidad</span>
+                    </a>
+                    <a href="{% url 'terms' %}" 
+                       class="whitespace-nowrap px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 {% if active_tab == 'terms' %}bg-burgundy text-white shadow-xs{% else %}text-charcoal-700 hover:text-burgundy hover:bg-burgundy-50/60{% endif %}">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                        <span>Términos de Servicio</span>
+                    </a>
+                    <a href="{% url 'security' %}" 
+                       class="whitespace-nowrap px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 {% if active_tab == 'security' %}bg-burgundy text-white shadow-xs{% else %}text-charcoal-700 hover:text-burgundy hover:bg-burgundy-50/60{% endif %}">
+                        <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+                        <span>Seguridad de Datos</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- SECTION CONTENT: PRIVACY -->
+            {% if active_tab == 'privacy' %}
+            <div class="legal-card p-6 sm:p-12 space-y-10 text-charcoal leading-relaxed">
+                <div class="border-b border-charcoal/10 pb-6 space-y-2">
+                    <h2 class="text-2xl font-extrabold text-charcoal flex items-center gap-2.5">
+                        <i data-lucide="lock" class="w-6 h-6 text-burgundy"></i>
+                        <span>Política de Privacidad</span>
+                    </h2>
+                    <p class="text-xs text-charcoal-500">
+                        Cómo recopilamos, utilizamos, almacenamos y protegemos los datos de tu empresa, colaboradores y pacientes o clientes finales.
+                    </p>
+                </div>
+
+                <!-- 1. Rol de RauDie OS -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-charcoal flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy text-xs flex items-center justify-center font-extrabold">1</span>
+                        <span>Roles y Responsabilidades en el Tratamiento de Datos</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-charcoal-600 font-medium">
+                        A los efectos de las leyes aplicables de protección de datos personales, el <strong>Negocio o Profesional Titular</strong> actúa como <em>Responsable del Tratamiento</em> de los datos de sus clientes o pacientes. <strong>RauDie OS</strong> actúa estrictamente como <em>Encargado del Tratamiento</em>, proveyendo la infraestructura tecnológica en la nube para procesar, resguardar y organizar dicha información bajo instrucción directa del cliente.
+                    </p>
+                </div>
+
+                <!-- 2. Información que se recopila -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-charcoal flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy text-xs flex items-center justify-center font-extrabold">2</span>
+                        <span>Categorías de Información Recopilada</span>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="p-4 rounded-2xl bg-cream border border-charcoal/10 space-y-1.5">
+                            <strong class="font-bold text-charcoal flex items-center gap-1.5">
+                                <i data-lucide="building-2" class="w-4 h-4 text-burgundy"></i>
+                                Datos del Negocio y Equipo
+                            </strong>
+                            <p class="text-charcoal-600 font-medium">
+                                Nombre comercial, razón social, CUIT/RUT, correos corporativos, sucursales físicas, credenciales de acceso y tasas pactadas de comisiones de especialistas.
+                            </p>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-cream border border-charcoal/10 space-y-1.5">
+                            <strong class="font-bold text-charcoal flex items-center gap-1.5">
+                                <i data-lucide="users" class="w-4 h-4 text-burgundy"></i>
+                                Datos de Clientes y Pacientes
+                            </strong>
+                            <p class="text-charcoal-600 font-medium">
+                                Nombre completo, teléfono WhatsApp, email, historial de citas, notas clínicas o estéticas cargadas por los profesionales, y saldos de fidelización.
+                            </p>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-cream border border-charcoal/10 space-y-1.5">
+                            <strong class="font-bold text-charcoal flex items-center gap-1.5">
+                                <i data-lucide="receipt" class="w-4 h-4 text-burgundy"></i>
+                                Datos Transaccionales & Caja
+                            </strong>
+                            <p class="text-charcoal-600 font-medium">
+                                Arqueos de caja, métodos de pago utilizados (efectivo, tarjeta, transferencia), montos facturados e ítems de servicios y productos consumidos.
+                            </p>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-cream border border-charcoal/10 space-y-1.5">
+                            <strong class="font-bold text-charcoal flex items-center gap-1.5">
+                                <i data-lucide="smartphone" class="w-4 h-4 text-burgundy"></i>
+                                Metadatos de Comunicación
+                            </strong>
+                            <p class="text-charcoal-600 font-medium">
+                                Registros de entrega y estado de recordatorios automatizados enviados mediante la pasarela de WhatsApp Gateway.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Finalidades del Tratamiento -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-charcoal flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy text-xs flex items-center justify-center font-extrabold">3</span>
+                        <span>Finalidades del Procesamiento</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-charcoal-600 font-medium">
+                        Utilizamos la información exclusivamente para:
+                    </p>
+                    <ul class="space-y-2 text-xs sm:text-sm text-charcoal-600 font-medium pl-2">
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+                            <span>Gestionar la disponibilidad de agendas, citas en línea y asignación de profesionales en tiempo real.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+                            <span>Enviar notificaciones operativas y recordatorios preventivos de citas por WhatsApp para mitigar el ausentismo.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+                            <span>Emitir comprobantes de cobro y liquidar automáticamente las comisiones por profesional según sus atenciones.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+                            <span>Garantizar la continuidad operativa, seguridad y respaldo de las bases de datos de cada sucursal.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 4. Confidencialidad y No Venta de Datos -->
+                <div class="p-5 rounded-2xl bg-burgundy-50 border border-burgundy/20 space-y-2 text-xs sm:text-sm text-charcoal">
+                    <strong class="font-extrabold text-burgundy flex items-center gap-1.5 text-sm">
+                        <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                        Compromiso Estricto: Jamás vendemos ni compartimos tus datos
+                    </strong>
+                    <p class="font-medium text-charcoal-700">
+                        <strong>RauDie OS no vende, no comercializa ni arrienda</strong> las listas de clientes, pacientes, números de teléfono ni historias clínicas a terceros o anunciantes. Toda la información ingresada en el sistema es propiedad privada del negocio cliente.
+                    </p>
+                </div>
+
+                <!-- 5. Derechos ARCO -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-charcoal flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy text-xs flex items-center justify-center font-extrabold">4</span>
+                        <span>Derechos de los Titulares (ARCO)</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-charcoal-600 font-medium">
+                        Los usuarios y clientes tienen derecho a solicitar el <strong>acceso, rectificación, portabilidad o eliminación definitiva</strong> de sus datos personales. Las solicitudes pueden enviarse en cualquier momento a <a href="mailto:privacidad@raudie.com" class="text-burgundy font-bold underline">privacidad@raudie.com</a> o gestionarse directamente desde las herramientas de exportación de clientes de la plataforma.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- SECTION CONTENT: TERMS OF SERVICE -->
+            {% if active_tab == 'terms' %}
+            <div class="legal-card p-6 sm:p-12 space-y-10 text-charcoal leading-relaxed">
+                <div class="border-b border-charcoal/10 pb-6 space-y-2">
+                    <h2 class="text-2xl font-extrabold text-charcoal flex items-center gap-2.5">
+                        <i data-lucide="file-text" class="w-6 h-6 text-burgundy"></i>
+                        <span>Términos y Condiciones de Uso</span>
+                    </h2>
+                    <p class="text-xs text-charcoal-500">
+                        Reglas y condiciones de contratación para el uso del software SaaS RauDie OS.
+                    </p>
+                </div>
+
+                <!-- 1. Aceptación -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-charcoal flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy text-xs flex items-center justify-center font-extrabold">1</span>
+                        <span>Aceptación del Servicio</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-charcoal-600 font-medium">
+                        Al crear una cuenta en <strong>RauDie OS</strong> o utilizar cualquier funcionalidad de la plataforma (Agenda, POS, WhatsApp Gateway, Comisiones, etc.), aceptas de forma íntegra estos Términos y Condiciones. Si utilizas la plataforma en representación de una clínica, empresa o entidad comercial, declaras contar con las facultades legales para vincularla a este acuerdo.
+                    </p>
+                </div>
+
+                <!-- 2. Periodo de Prueba y Planes -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-charcoal flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy text-xs flex items-center justify-center font-extrabold">2</span>
+                        <span>Prueba Gratuita y Suscripciones</span>
+                    </h3>
+                    <ul class="space-y-2 text-xs sm:text-sm text-charcoal-600 font-medium pl-2">
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-burgundy shrink-0 mt-0.5"></i>
+                            <span><strong>Prueba Gratuita de 14 Días:</strong> Acceso completo a todas las características del plan seleccionado sin requerir tarjeta de crédito. Al finalizar el período, el negocio puede elegir su plan de pago o conservar su cuenta inactiva.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-burgundy shrink-0 mt-0.5"></i>
+                            <span><strong>Ciclos de Facturación:</strong> Las suscripciones se abonan de forma mensual o anual con descuento, renovándose automáticamente salvo cancelación previa.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-burgundy shrink-0 mt-0.5"></i>
+                            <span><strong>Cancelación sin Penalizaciones:</strong> Puedes cancelar tu suscripción en cualquier momento desde el panel de control. Mantendrás el acceso hasta el final del período ya pagado.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 3. Uso Aceptable y Pasarela WhatsApp -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-charcoal flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy text-xs flex items-center justify-center font-extrabold">3</span>
+                        <span>Uso Responsable del Gateway de WhatsApp</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-charcoal-600 font-medium">
+                        La integración con WhatsApp está destinada exclusivamente al envío de recordatorios de turnos, confirmaciones operativas y atención comercial legítima a clientes que hayan brindado su consentimiento. <strong>Queda estrictamente prohibido el envío de spam, publicidad no solicitada masiva o contenido ilícito</strong>. El incumplimiento puede motivar la suspensión inmediata del servicio.
+                    </p>
+                </div>
+
+                <!-- 4. Propiedad Intelectual -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-charcoal flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy text-xs flex items-center justify-center font-extrabold">4</span>
+                        <span>Propiedad Intelectual y Titularidad</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-charcoal-600 font-medium">
+                        RauDie OS conserva todos los derechos, títulos e intereses de propiedad intelectual sobre el código fuente, diseño de interfaces, algoritmos y marcas registradas. El negocio suscriptor conserva la <strong>propiedad absoluta sobre sus bases de datos</strong>, catálogos, registros contables e información médica o comercial cargada en la plataforma.
+                    </p>
+                </div>
+
+                <!-- 5. Disponibilidad y SLA -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-charcoal flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-burgundy-50 text-burgundy text-xs flex items-center justify-center font-extrabold">5</span>
+                        <span>Disponibilidad del Servicio (SLA)</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-charcoal-600 font-medium">
+                        RauDie OS implementa infraestructura redundante en la nube con un objetivo de disponibilidad del <strong>99.8%</strong>. Las tareas de mantenimiento programado se comunican con anticipación y se ejecutan preferentemente en horarios de bajo impacto operativo.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- SECTION CONTENT: SECURITY -->
+            {% if active_tab == 'security' %}
+            <div class="legal-card p-6 sm:p-12 space-y-10 text-charcoal leading-relaxed">
+                <div class="border-b border-charcoal/10 pb-6 space-y-2">
+                    <h2 class="text-2xl font-extrabold text-charcoal flex items-center gap-2.5">
+                        <i data-lucide="shield" class="w-6 h-6 text-burgundy"></i>
+                        <span>Seguridad y Protección de Datos</span>
+                    </h2>
+                    <p class="text-xs text-charcoal-500">
+                        Nuestra arquitectura técnica de defensa en profundidad para blindar la operación y confidencialidad de tu negocio.
+                    </p>
+                </div>
+
+                <!-- 4 Security Pillars Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+                    
+                    <div class="p-5 rounded-2xl bg-cream border border-charcoal/10 space-y-2">
+                        <div class="w-8 h-8 rounded-full bg-burgundy-50 text-burgundy flex items-center justify-center font-bold text-xs">
+                            <i data-lucide="key" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-charcoal">Cifrado de Extremo a Extremo</h3>
+                        <p class="text-charcoal-600 font-medium leading-relaxed">
+                            Todo el tráfico entre tu navegador o dispositivo móvil y los servidores de RauDie OS está cifrado mediante <strong>TLS 1.3 con certificados SSL de 256 bits</strong>. Las contraseñas se almacenan mediante hashes criptográficos irreversibles (PBKDF2/SHA-256 con salt dinámico).
+                        </p>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-cream border border-charcoal/10 space-y-2">
+                        <div class="w-8 h-8 rounded-full bg-burgundy-50 text-burgundy flex items-center justify-center font-bold text-xs">
+                            <i data-lucide="database" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-charcoal">Aislamiento Lógico Multi-Tenant</h3>
+                        <p class="text-charcoal-600 font-medium leading-relaxed">
+                            Garantizamos la estricta separación de datos entre empresas. Cada consulta y operación está aislada a nivel de modelo de base de datos con validación por token de sesión; ningún negocio puede visualizar ni acceder a datos de otra entidad.
+                        </p>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-cream border border-charcoal/10 space-y-2">
+                        <div class="w-8 h-8 rounded-full bg-burgundy-50 text-burgundy flex items-center justify-center font-bold text-xs">
+                            <i data-lucide="user-check" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-charcoal">Control de Roles y Permisos (RBAC)</h3>
+                        <p class="text-charcoal-600 font-medium leading-relaxed">
+                            Políticas granulares de acceso por colaborador: los recepcionistas solo ven agenda y cobros, los especialistas solo sus propios turnos y comisiones, y el dueño tiene control total sobre caja, reportes financieros y usuarios.
+                        </p>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-cream border border-charcoal/10 space-y-2">
+                        <div class="w-8 h-8 rounded-full bg-burgundy-50 text-burgundy flex items-center justify-center font-bold text-xs">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-charcoal">Copias de Seguridad Diarias</h3>
+                        <p class="text-charcoal-600 font-medium leading-relaxed">
+                            Respaldos automatizados periódicos con almacenamiento geográficamente redundante. En caso de corte eléctrico o falla física local en tu negocio, tu información permanece intacta y disponible desde cualquier otro teléfono o computadora.
+                        </p>
+                    </div>
+
+                </div>
+
+                <!-- WhatsApp Gateway Security -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-charcoal flex items-center gap-2">
+                        <i data-lucide="message-square" class="w-5 h-5 text-emerald-600"></i>
+                        <span>Seguridad en la Pasarela de WhatsApp</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-charcoal-600 font-medium leading-relaxed">
+                        La vinculación de tu línea de WhatsApp se realiza a través de un código QR temporal con autenticación de dos factores nativa de WhatsApp. Las claves de sesión se almacenan en bóvedas seguras y los mensajes de recordatorio se emiten de forma directa sin intermediarios no autorizados.
+                    </p>
+                </div>
+
+                <!-- Report a Vulnerability -->
+                <div class="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs space-y-1.5 text-emerald-950">
+                    <strong class="font-bold flex items-center gap-1.5 text-emerald-900">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                        Canal de Seguridad y Divulgación Responsable
+                    </strong>
+                    <p class="text-emerald-800">
+                        Si detectas alguna anomalía o tienes consultas técnicas sobre nuestras políticas de seguridad, comunícate directamente con nuestro equipo de ingeniería en <a href="mailto:seguridad@raudie.com" class="font-bold text-emerald-950 underline">seguridad@raudie.com</a>.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </main>
+
+    <!-- FOOTER (Matches Landing) -->
+    <footer class="py-10 px-4 bg-cream border-t border-charcoal/10 text-left text-xs">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <img src="/static/images/brand/logo-light.png" alt="RauDie OS" class="h-7 w-auto">
+                <span class="text-charcoal-400 font-medium">© 2026 RauDie OS. Todos los derechos reservados.</span>
+            </div>
+            <div class="flex items-center gap-6 font-semibold text-charcoal-600">
+                <a href="{% url 'privacy' %}" class="hover:text-burgundy transition">Privacidad</a>
+                <a href="{% url 'terms' %}" class="hover:text-burgundy transition">Términos</a>
+                <a href="{% url 'security' %}" class="hover:text-burgundy transition">Seguridad</a>
+                <a href="{% url 'landing' %}" class="hover:text-burgundy transition">Inicio</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>

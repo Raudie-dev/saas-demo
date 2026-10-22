@@ -5,12 +5,18 @@ from apps.core.models import TimeStampedModel
 
 class Business(TimeStampedModel):
     BUSINESS_TYPE_CHOICES = [
-        ('MARKETING', 'Agencia Digital & Marketing'),
-        ('REAL_ESTATE', 'Agencia Inmobiliaria / Bienes Raíces'),
-        ('TRAVEL', 'Agencia de Viajes & Turismo'),
-        ('CONSULTING', 'Agencia de Consultoría & Servicios'),
+        ('HEALTH_CLINIC', 'Clínica, Consultorio & Odontología'),
+        ('AESTHETICS_SPA', 'Estética, Dermatología & Spa'),
+        ('BARBER_SALON', 'Barbería, Salón & Peluquería'),
+        ('KINESIOLOGY', 'Kinesiología & Fisioterapia'),
+        ('RETAIL_COMMERCE', 'Comercio, Retail & Venta Directa'),
+        ('SERVICES_OTHER', 'Servicios Profesionales & Otros'),
         ('HEALTH_BEAUTY', 'Salud, Estética & Spa'),
-        ('RETAIL_OTHER', 'Comercio & Servicios Generales'),
+        ('RETAIL_OTHER', 'Comercio & Retail'),
+        ('MARKETING', 'Servicios Digitales'),
+        ('CONSULTING', 'Consultoría'),
+        ('REAL_ESTATE', 'Inmobiliaria (Deshabilitado)'),
+        ('TRAVEL', 'Viajes (Deshabilitado)'),
     ]
 
     name = models.CharField(max_length=200, verbose_name="Nombre del Negocio")
@@ -53,17 +59,23 @@ class Business(TimeStampedModel):
         return self.name
 
     BUSINESS_TYPE_MODULES = {
-        'MARKETING': ['projects', 'crm', 'invoicing', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions'],
-        'REAL_ESTATE': ['properties', 'crm', 'invoicing', 'commissions', 'booking', 'agenda', 'ai_engine', 'marketing'],
+        'HEALTH_CLINIC': ['agenda', 'booking', 'crm', 'invoicing', 'pos', 'commissions'],
+        'AESTHETICS_SPA': ['agenda', 'booking', 'crm', 'pos', 'inventory', 'commissions', 'marketing', 'invoicing'],
+        'BARBER_SALON': ['agenda', 'booking', 'pos', 'commissions', 'inventory', 'crm'],
+        'KINESIOLOGY': ['agenda', 'booking', 'crm', 'invoicing', 'commissions'],
+        'RETAIL_COMMERCE': ['pos', 'inventory', 'invoicing', 'crm', 'commissions'],
+        'SERVICES_OTHER': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine'],
         'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'marketing', 'invoicing'],
-        'CONSULTING': ['projects', 'crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine', 'marketing'],
-        'TRAVEL': ['travel', 'crm', 'agenda', 'booking', 'invoicing', 'commissions', 'marketing', 'ai_engine', 'pos'],
-        'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'marketing', 'agenda', 'booking'],
+        'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'agenda', 'booking'],
+        'MARKETING': ['crm', 'invoicing', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions'],
+        'CONSULTING': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine'],
+        'REAL_ESTATE': ['crm', 'invoicing', 'commissions', 'booking', 'agenda'],
+        'TRAVEL': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'pos'],
     }
 
     @property
     def is_real_estate(self):
-        return self.business_type == 'REAL_ESTATE'
+        return False
 
     @property
     def is_marketing_agency(self):
@@ -79,7 +91,7 @@ class Business(TimeStampedModel):
 
     @property
     def is_travel(self):
-        return self.business_type == 'TRAVEL'
+        return False
 
     @property
     def is_retail(self):
@@ -125,12 +137,7 @@ class Business(TimeStampedModel):
         sub = getattr(self, 'subscription', None)
         if sub and sub.plan and sub.plan.included_modules:
             modules = list(sub.plan.included_modules)
-            if self.is_real_estate and 'properties' not in modules:
-                modules.append('properties')
-            if (self.is_marketing_agency or self.is_consulting) and 'projects' not in modules:
-                modules.append('projects')
-            if self.is_travel and 'travel' not in modules:
-                modules.append('travel')
+            modules = [m for m in modules if m not in ('properties', 'projects', 'travel')]
             return [m for m in modules if self.is_module_allowed_by_business_type(m)]
         
         # Fallback sin suscripción o plan abierto
