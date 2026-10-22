@@ -3,11 +3,19 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
-from apps.business.views import landing_view, manifest_view, service_worker_view, offline_view
+from django.views.generic import RedirectView
+
+from apps.business.views import (
+    landing_view, manifest_view, service_worker_view, offline_view,
+    privacy_view, terms_view, security_view
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', landing_view, name='landing'),
+    path('privacidad/', privacy_view, name='privacy'),
+    path('terminos/', terms_view, name='terms'),
+    path('seguridad/', security_view, name='security'),
     path('manifest.json', manifest_view, name='pwa_manifest'),
     path('sw.js', service_worker_view, name='pwa_service_worker'),
     path('offline/', offline_view, name='pwa_offline'),
@@ -22,7 +30,9 @@ urlpatterns = [
     path('comisiones/', include('apps.commissions.urls')),
     path('ia/', include('apps.ai_engine.urls')),
     path('marketing/', include('apps.marketing.urls')),
-    path('proyectos/', include('apps.projects.urls')),
+    path('propiedades/', RedirectView.as_view(pattern_name='dashboard', permanent=False)),
+    path('proyectos/', RedirectView.as_view(pattern_name='dashboard', permanent=False)),
+    path('viajes/', RedirectView.as_view(pattern_name='dashboard', permanent=False)),
     path('superadmin/', include('apps.superadmin.urls')),
 ]
 

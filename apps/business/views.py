@@ -159,7 +159,7 @@ def register_view(request):
             phone=phone,
             currency="$",
             branding_color="#881337",
-            business_type='HEALTH_BEAUTY',
+            business_type='MARKETING',
             primary_goal='Captar clientes y automatizar ventas',
             enabled_modules=['crm', 'agenda', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing'],
             onboarding_completed=False
@@ -216,11 +216,11 @@ def onboarding_view(request):
     user = request.user
     business = getattr(user, 'business', None)
     if not business:
-        agency_name = f"Agencia {user.first_name or user.username}".strip()
+        business_name = f"Negocio {user.first_name or user.username}".strip()
         business = Business.objects.create(
-            name=f"Agencia de {user.first_name or user.username}",
-            slug=f"agencia-{user.username}-{uuid.uuid4().hex[:4]}",
-            email=user.email or "contacto@agencia.com",
+            name=f"Negocio de {user.first_name or user.username}",
+            slug=f"negocio-{user.username}-{uuid.uuid4().hex[:4]}",
+            email=user.email or "contacto@negocio.com",
             phone=user.phone or "+1 555-0000",
             onboarding_completed=False
         )
@@ -228,8 +228,8 @@ def onboarding_view(request):
         user.save()
 
     if request.method == 'POST':
-        agency_name = request.POST.get('agency_name', '').strip()
-        business_type = request.POST.get('business_type', 'HEALTH_BEAUTY')
+        agency_name = (request.POST.get('business_name') or request.POST.get('agency_name') or '').strip()
+        business_type = request.POST.get('business_type', 'MARKETING')
         primary_goal = request.POST.get('primary_goal', '').strip()
         selected_modules = request.POST.getlist('enabled_modules')
         currency = request.POST.get('currency', '$')
@@ -267,7 +267,7 @@ def onboarding_view(request):
             if region:
                 business.region = region
 
-        business.primary_goal = primary_goal or "Gestionar y hacer crecer la agencia"
+        business.primary_goal = primary_goal or "Gestionar y hacer crecer el negocio"
         business.enabled_modules = selected_modules
         business.currency = currency
         if phone:
@@ -296,29 +296,51 @@ def onboarding_view(request):
         return redirect('dashboard')
 
     # Available business profiles & recommended modules
-    agency_profiles = [
+    business_profiles = [
         {
-            'code': 'HEALTH_BEAUTY',
-            'title': 'Salud, Estética, Spa & Clínicas',
-            'icon': 'heart-pulse',
-            'desc': 'Citas de pacientes/clientes, portal de reservas online 24/7, caja POS, inventario de insumos/productos y comisiones.',
-            'modules': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'marketing', 'invoicing']
+            'code': 'HEALTH_CLINIC',
+            'title': 'Clínicas, Consultorios & Odontología',
+            'icon': 'stethoscope',
+            'desc': 'Gestión de pacientes, turnos médicos, historias clínicas, facturación y recordatorios por WhatsApp.',
+            'modules': ['agenda', 'booking', 'crm', 'invoicing', 'pos', 'commissions']
         },
         {
-            'code': 'CONSULTING',
-            'title': 'Consultoría & Servicios Profesionales',
-            'icon': 'briefcase',
-            'desc': 'Agenda de citas y asesorías, propuestas, seguimiento de proyectos, CRM de clientes y facturación de servicios.',
-            'modules': ['projects', 'crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine', 'marketing']
-        },
-        {
-            'code': 'MARKETING',
-            'title': 'Agencia Digital, Diseño & Marketing',
+            'code': 'AESTHETICS_SPA',
+            'title': 'Estética, Dermatología & Spas',
             'icon': 'sparkles',
-            'desc': 'Tableros Kanban de proyectos y entregables, clientes, propuestas, campañas de marketing y automatización con IA.',
-            'modules': ['projects', 'crm', 'invoicing', 'marketing', 'ai_engine', 'commissions', 'booking', 'agenda']
+            'desc': 'Tratamientos faciales/corporales, agenda multi-especialista, fichas con notas, stock y fidelización.',
+            'modules': ['agenda', 'booking', 'crm', 'pos', 'inventory', 'commissions', 'marketing']
+        },
+        {
+            'code': 'BARBER_SALON',
+            'title': 'Barberías, Salones & Peluquerías',
+            'icon': 'scissors',
+            'desc': 'Turnos rápidos por sillón o estilista, caja mostrador POS, comisiones del equipo y venta de productos.',
+            'modules': ['agenda', 'booking', 'pos', 'commissions', 'inventory', 'crm']
+        },
+        {
+            'code': 'KINESIOLOGY',
+            'title': 'Kinesiología & Fisioterapia',
+            'icon': 'activity',
+            'desc': 'Sesiones periódicas, evolución clínica, asignación de boxes o gabinetes y cobro en mostrador.',
+            'modules': ['agenda', 'booking', 'crm', 'invoicing', 'commissions']
+        },
+        {
+            'code': 'RETAIL_COMMERCE',
+            'title': 'Comercio, Retail & Venta Directa',
+            'icon': 'shopping-bag',
+            'desc': 'Terminal de cobro POS, apertura y arqueo de caja, inventario con alertas de stock y comprobantes fiscales.',
+            'modules': ['pos', 'inventory', 'invoicing', 'crm', 'commissions']
+        },
+        {
+            'code': 'SERVICES_OTHER',
+            'title': 'Servicios Profesionales & Otros',
+            'icon': 'briefcase',
+            'desc': 'Agenda interactiva, portal de reservas online 24/7, seguimiento de clientes, presupuestos y cobros.',
+            'modules': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine']
         }
     ]
+    agency_profiles = business_profiles
 
     # Obtain default plan modules allowed
     allowed_codes = business.get_allowed_modules() if business else ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
@@ -329,6 +351,8 @@ def onboarding_view(request):
         {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'desc': 'Seguimiento de prospectos, clientes VIP e historial completo'},
         {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar', 'desc': 'Programación de citas y control de horarios de colaboradores'},
         {'code': 'booking', 'name': 'Reservas Públicas 24/7', 'icon': 'globe', 'desc': 'Portal web para que tus clientes agenden solos'},
+        {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane', 'desc': 'Vuelos, paquetes turísticos, expedientes de pasajeros y vouchers'},
+        {'code': 'properties', 'name': 'Inmuebles & Propiedades', 'icon': 'building-2', 'desc': 'Catálogo de propiedades, ventas y alquileres inmobiliarios'},
         {'code': 'projects', 'name': 'Proyectos & Tareas', 'icon': 'folder-kanban', 'desc': 'Gestión de proyectos, tareas por fases y entregables'},
         {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'desc': 'Emisión de comprobantes, cuentas por cobrar y control de gastos'},
         {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'desc': 'Cobros rápidos en mostrador y apertura/cierre de caja'},
@@ -639,6 +663,8 @@ def business_config_view(request):
 
     allowed_modules = business.get_allowed_modules() if business else []
     all_modules_catalog = [
+        {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane'},
+        {'code': 'properties', 'name': 'Cartera de Inmuebles & Propiedades', 'icon': 'building-2'},
         {'code': 'projects', 'name': 'Proyectos & Contenido Redes', 'icon': 'folder-kanban'},
         {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users'},
         {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar'},
@@ -1682,6 +1708,8 @@ def booking_portal_toggle_api(request):
 ALL_SYSTEM_MODULES = [
     {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar', 'desc': 'Calendario interactivo, turnos y citas de clientes.'},
     {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'desc': 'Fichas de clientes, historial de visitas y datos de contacto.'},
+    {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane', 'desc': 'Gestión de paquetes turísticos, pasajes, expedientes y vouchers.'},
+    {'code': 'properties', 'name': 'Cartera de Inmuebles & Propiedades', 'icon': 'building-2', 'desc': 'Gestión de catálogo inmobiliario, inmuebles y portales.'},
     {'code': 'projects', 'name': 'Proyectos & Tareas', 'icon': 'folder-kanban', 'desc': 'Seguimiento de proyectos, entregables y plan de contenidos.'},
     {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'desc': 'Cobro rápido, apertura/cierre de caja y emisión de comprobantes.'},
     {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'desc': 'Gestión de comprobantes, egresos y cuentas.'},
@@ -2140,3 +2168,22 @@ def role_delete_view(request, role_id):
         messages.success(request, f"Perfil '{role_name}' eliminado correctamente.")
 
     return redirect('/business/usuarios/?tab=roles')
+
+
+def privacy_view(request):
+    return render(request, 'business/legal.html', {
+        'active_tab': 'privacy',
+        'page_title': 'Política de Privacidad'
+    })
+
+def terms_view(request):
+    return render(request, 'business/legal.html', {
+        'active_tab': 'terms',
+        'page_title': 'Términos y Condiciones de Uso'
+    })
+
+def security_view(request):
+    return render(request, 'business/legal.html', {
+        'active_tab': 'security',
+        'page_title': 'Seguridad y Protección de Datos'
+    })

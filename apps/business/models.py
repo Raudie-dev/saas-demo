@@ -5,9 +5,18 @@ from apps.core.models import TimeStampedModel
 
 class Business(TimeStampedModel):
     BUSINESS_TYPE_CHOICES = [
+        ('HEALTH_CLINIC', 'Clínica, Consultorio & Odontología'),
+        ('AESTHETICS_SPA', 'Estética, Dermatología & Spa'),
+        ('BARBER_SALON', 'Barbería, Salón & Peluquería'),
+        ('KINESIOLOGY', 'Kinesiología & Fisioterapia'),
+        ('RETAIL_COMMERCE', 'Comercio, Retail & Venta Directa'),
+        ('SERVICES_OTHER', 'Servicios Profesionales & Otros'),
         ('HEALTH_BEAUTY', 'Salud, Estética & Spa'),
-        ('CONSULTING', 'Agencia de Consultoría & Servicios'),
-        ('MARKETING', 'Agencia Digital & Marketing'),
+        ('RETAIL_OTHER', 'Comercio & Retail'),
+        ('MARKETING', 'Servicios Digitales'),
+        ('CONSULTING', 'Consultoría'),
+        ('REAL_ESTATE', 'Inmobiliaria (Deshabilitado)'),
+        ('TRAVEL', 'Viajes (Deshabilitado)'),
     ]
 
     name = models.CharField(max_length=200, verbose_name="Nombre del Negocio")
@@ -22,7 +31,7 @@ class Business(TimeStampedModel):
     whatsapp_number = models.CharField(max_length=50, blank=True, null=True, verbose_name="Número de WhatsApp (Opcional)")
     currency = models.CharField(max_length=10, default="$", verbose_name="Símbolo de Moneda")
     branding_color = models.CharField(max_length=20, default="#881337", verbose_name="Color de Marca (Hex)")
-    business_type = models.CharField(max_length=30, choices=BUSINESS_TYPE_CHOICES, default='HEALTH_BEAUTY', verbose_name="Tipo de Agencia / Negocio")
+    business_type = models.CharField(max_length=30, choices=BUSINESS_TYPE_CHOICES, default='MARKETING', verbose_name="Tipo de Agencia / Negocio")
     primary_goal = models.CharField(max_length=255, default="Captar clientes y automatizar ventas", verbose_name="Objetivo Principal")
     appointment_reminder_message = models.TextField(
         default="Hola {client_name}, te recordamos tu cita de *{service}* en *{business}* para el día *{date}* a las *{time}* con *{staff}*. ¡Te esperamos!",
@@ -50,9 +59,18 @@ class Business(TimeStampedModel):
         return self.name
 
     BUSINESS_TYPE_MODULES = {
+        'HEALTH_CLINIC': ['agenda', 'booking', 'crm', 'invoicing', 'pos', 'commissions'],
+        'AESTHETICS_SPA': ['agenda', 'booking', 'crm', 'pos', 'inventory', 'commissions', 'marketing', 'invoicing'],
+        'BARBER_SALON': ['agenda', 'booking', 'pos', 'commissions', 'inventory', 'crm'],
+        'KINESIOLOGY': ['agenda', 'booking', 'crm', 'invoicing', 'commissions'],
+        'RETAIL_COMMERCE': ['pos', 'inventory', 'invoicing', 'crm', 'commissions'],
+        'SERVICES_OTHER': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine'],
         'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'marketing', 'invoicing'],
-        'CONSULTING': ['projects', 'crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine', 'marketing'],
-        'MARKETING': ['projects', 'crm', 'invoicing', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions'],
+        'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'agenda', 'booking'],
+        'MARKETING': ['crm', 'invoicing', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions'],
+        'CONSULTING': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine'],
+        'REAL_ESTATE': ['crm', 'invoicing', 'commissions', 'booking', 'agenda'],
+        'TRAVEL': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'pos'],
     }
 
     @property
@@ -77,14 +95,17 @@ class Business(TimeStampedModel):
 
     @property
     def is_retail(self):
-        return False
+        return self.business_type == 'RETAIL_OTHER'
 
     @property
     def business_entity_label(self):
         labels = {
+            'MARKETING': 'la Agencia',
+            'REAL_ESTATE': 'la Inmobiliaria',
             'HEALTH_BEAUTY': 'la Clínica / Spa',
             'CONSULTING': 'la Consultora',
-            'MARKETING': 'la Agencia',
+            'TRAVEL': 'la Agencia de Viajes',
+            'RETAIL_OTHER': 'la Empresa',
         }
         return labels.get(self.business_type, 'la Empresa')
 
@@ -116,12 +137,7 @@ class Business(TimeStampedModel):
         sub = getattr(self, 'subscription', None)
         if sub and sub.plan and sub.plan.included_modules:
             modules = list(sub.plan.included_modules)
-            if self.is_real_estate and 'properties' not in modules:
-                modules.append('properties')
-            if (self.is_marketing_agency or self.is_consulting) and 'projects' not in modules:
-                modules.append('projects')
-            if self.is_travel and 'travel' not in modules:
-                modules.append('travel')
+            modules = [m for m in modules if m not in ('properties', 'projects', 'travel')]
             return [m for m in modules if self.is_module_allowed_by_business_type(m)]
         
         # Fallback sin suscripción o plan abierto
