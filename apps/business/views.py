@@ -1,11 +1,11 @@
 import os
-from django.conf import settings
 import uuid
 import datetime
 import json
 import urllib.request
 import urllib.parse
 from decimal import Decimal
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout

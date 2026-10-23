@@ -1,7 +1,7 @@
 import os
-from django.conf import settings
 import json
 import urllib.request
+from django.conf import settings
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt

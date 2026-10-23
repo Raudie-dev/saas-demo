@@ -222,4 +222,7 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 # Password Reset Timeout (Tiempo de vida del enlace de recuperación: 30 minutos = 1800 segundos)
 PASSWORD_RESET_TIMEOUT = 1800
 
+# WhatsApp Gateway Microservice
+WHATSAPP_GATEWAY_URL = os.getenv('WHATSAPP_GATEWAY_URL', 'http://127.0.0.1:3000').rstrip('/')
+
 
