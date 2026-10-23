@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 import unicodedata
 import datetime
 import openpyxl
@@ -63,6 +64,9 @@ def client_list_view(request):
     page_obj = paginator.get_page(request.GET.get('page', 1))
 
     wa_templates = list(business.whatsapp_templates.filter(category__in=['CLIENT', 'GENERAL']).values('id', 'title', 'content', 'is_default')) if business else []
+    for t in wa_templates:
+        t['id'] = str(t['id'])
+    wa_templates_json = json.dumps(wa_templates)
 
     return render(request, 'crm/client_list.html', {
         'business': business,
@@ -71,7 +75,7 @@ def client_list_view(request):
         'query': query,
         'is_real_estate': is_real_estate,
         'real_estate_filter': real_estate_filter,
-        'wa_templates': wa_templates,
+        'wa_templates_json': wa_templates_json,
     })
 
 @login_required

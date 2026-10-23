@@ -551,13 +551,13 @@
     });
 
     const whatsappTemplate = `{{ business.appointment_reminder_message|escapejs }}` || `Hola {client_name}, te recordamos tu cita de *{service}* en *{business}* para el día *{date}* a las *{time} hs* con *{staff}*. ¡Te esperamos!`;
-    const waTemplatesList = {{ wa_templates|safe|default:'[]' }};
+    const waTemplatesList = {{ wa_templates_json|safe }};
 
     let activeWhatsappAppointmentData = null;
 
     function openWhatsappSendModal(phone, clientFirstName, clientFullName, serviceName, dateStr, timeStr, staffName, businessName) {
         if (!phone || phone === 'Sin teléfono' || phone.trim() === '') {
-            alert('El cliente no cuenta con un número de teléfono registrado.');
+            if (window.showToast) showToast('El cliente no cuenta con un número de teléfono registrado.', 'warning');
             return;
         }
 
@@ -637,7 +637,7 @@
         const clientDisplayName = activeWhatsappAppointmentData.clientFirstName;
 
         if (!message) {
-            alert('Por favor redacta o selecciona un mensaje.');
+            if (window.showToast) showToast('Por favor redacta o selecciona un mensaje.', 'warning');
             return;
         }
 
@@ -663,7 +663,7 @@
         .then(data => {
             closeWhatsappSendModal();
             if (data.success && data.sent_direct) {
-                alert(`¡Mensaje enviado con éxito por WhatsApp a ${clientDisplayName}!`);
+                if (window.showToast) showToast(`¡Mensaje enviado con éxito por WhatsApp a ${clientDisplayName}!`, 'success');
             } else if (data.fallback_url) {
                 window.open(data.fallback_url, '_blank');
             } else {
