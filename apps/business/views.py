@@ -1,3 +1,5 @@
+import os
+from django.conf import settings
 import uuid
 import datetime
 import json
