@@ -24,12 +24,14 @@ def _start_whatsapp_gateway():
     if not os.path.exists(gw_dir):
         return None
 
+    node_bin = os.environ.get('NODE_PATH_BIN') or 'node'
+
     sys.stdout.write("\033[92m🚀 [WhatsApp Gateway] Iniciando microservicio Node.js en segundo plano (http://127.0.0.1:3000)...\033[0m\n")
     sys.stdout.flush()
 
     try:
         proc = subprocess.Popen(
-            ['node', 'index.js'],
+            [node_bin, 'index.js'],
             cwd=gw_dir,
             stdout=sys.stdout,
             stderr=sys.stderr
