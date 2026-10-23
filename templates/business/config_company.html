@@ -376,6 +376,7 @@
 
         <!-- Section: Active Modules -->
         <div id="sec-modules" class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm hidden">
+            <input type="hidden" name="submitted_modules_section" value="1">
             <div class="border-b border-slate-100 pb-3">
                 <h3 class="font-bold text-slate-900 text-base font-display">Módulos Activos en el Sistema</h3>
                 <p class="text-xs text-slate-500 mt-0.5">Activa o desactiva las secciones según las necesidades operativas de tu equipo.</p>
@@ -1124,9 +1125,10 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        const hash = window.location.hash.replace('#', '');
-        if (['general', 'branches', 'payments', 'schedule', 'modules', 'whatsapp', 'all'].includes(hash)) {
-            showConfigTab(hash);
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab') || window.location.hash.replace('#', '');
+        if (['general', 'branches', 'payments', 'schedule', 'modules', 'whatsapp', 'all'].includes(tab)) {
+            showConfigTab(tab);
         } else {
             showConfigTab('general');
         }

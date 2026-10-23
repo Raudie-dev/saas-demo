@@ -104,6 +104,14 @@ class BusinessSubscription(TimeStampedModel):
         diff = (self.expiration_date - timezone.now().date()).days
         return max(0, diff)
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.business and self.plan:
+            try:
+                self.business.sync_modules_with_plan()
+            except Exception as e:
+                pass
+
 class SystemAuditLog(TimeStampedModel):
     actor_email = models.CharField(max_length=150, verbose_name="Usuario Ejecutor")
     action = models.CharField(max_length=100, verbose_name="Acción Realizada")

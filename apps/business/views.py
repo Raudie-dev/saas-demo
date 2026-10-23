@@ -353,7 +353,7 @@ def onboarding_view(request):
         {'code': 'booking', 'name': 'Reservas Públicas 24/7', 'icon': 'globe', 'desc': 'Portal web para que tus clientes agenden solos'},
         {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane', 'desc': 'Vuelos, paquetes turísticos, expedientes de pasajeros y vouchers'},
         {'code': 'properties', 'name': 'Inmuebles & Propiedades', 'icon': 'building-2', 'desc': 'Catálogo de propiedades, ventas y alquileres inmobiliarios'},
-        {'code': 'projects', 'name': 'Proyectos & Tareas', 'icon': 'folder-kanban', 'desc': 'Gestión de proyectos, tareas por fases y entregables'},
+        {'code': 'projects', 'name': 'Proyectos', 'icon': 'folder-kanban', 'desc': 'Gestión de proyectos, tareas por fases y entregables'},
         {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'desc': 'Emisión de comprobantes, cuentas por cobrar y control de gastos'},
         {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'desc': 'Cobros rápidos en mostrador y apertura/cierre de caja'},
         {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package', 'desc': 'Control de productos, servicios y alertas de stock bajo'},
@@ -528,8 +528,8 @@ def business_config_view(request):
         if 'appointment_reminder_message' in request.POST:
             business.appointment_reminder_message = request.POST.get('appointment_reminder_message').strip()
         
-        selected_modules = request.POST.getlist('enabled_modules')
-        if selected_modules:
+        if request.POST.get('submitted_modules_section') == '1' or 'enabled_modules' in request.POST:
+            selected_modules = request.POST.getlist('enabled_modules')
             allowed_modules = business.get_allowed_modules()
             business.enabled_modules = [m for m in selected_modules if m in allowed_modules and business.is_module_allowed_by_business_type(m)]
 
@@ -577,6 +577,7 @@ def business_config_view(request):
                 )
                 sub.plan = new_plan
                 sub.save()
+                business.sync_modules_with_plan()
 
         business.save()
 
@@ -591,6 +592,8 @@ def business_config_view(request):
                 main_branch.save(update_fields=['address'])
 
         messages.success(request, f"¡Configuración de {business.name} actualizada correctamente!")
+        if request.POST.get('submitted_modules_section') == '1':
+            return redirect(f"{request.path}?tab=modules#modules")
         return redirect('business_config')
 
     branches = Branch.objects.filter(business=business) if business else []
@@ -663,9 +666,6 @@ def business_config_view(request):
 
     allowed_modules = business.get_allowed_modules() if business else []
     all_modules_catalog = [
-        {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane'},
-        {'code': 'properties', 'name': 'Cartera de Inmuebles & Propiedades', 'icon': 'building-2'},
-        {'code': 'projects', 'name': 'Proyectos & Contenido Redes', 'icon': 'folder-kanban'},
         {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users'},
         {'code': 'agenda', 'name': 'Agenda & Citas', 'icon': 'calendar'},
         {'code': 'booking', 'name': 'Portal Reservas 24/7', 'icon': 'globe'},
@@ -675,6 +675,9 @@ def business_config_view(request):
         {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign'},
         {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles'},
         {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag'},
+        {'code': 'projects', 'name': 'Proyectos', 'icon': 'folder-kanban'},
+        {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane'},
+        {'code': 'properties', 'name': 'Cartera de Inmuebles & Propiedades', 'icon': 'building-2'},
     ]
     # Filtrar estrictamente según la matriz del tipo de negocio
     all_modules = [
@@ -1710,7 +1713,7 @@ ALL_SYSTEM_MODULES = [
     {'code': 'crm', 'name': 'CRM & Clientes', 'icon': 'users', 'desc': 'Fichas de clientes, historial de visitas y datos de contacto.'},
     {'code': 'travel', 'name': 'Paquetes & Reservas de Viajes', 'icon': 'plane', 'desc': 'Gestión de paquetes turísticos, pasajes, expedientes y vouchers.'},
     {'code': 'properties', 'name': 'Cartera de Inmuebles & Propiedades', 'icon': 'building-2', 'desc': 'Gestión de catálogo inmobiliario, inmuebles y portales.'},
-    {'code': 'projects', 'name': 'Proyectos & Tareas', 'icon': 'folder-kanban', 'desc': 'Seguimiento de proyectos, entregables y plan de contenidos.'},
+    {'code': 'projects', 'name': 'Proyectos', 'icon': 'folder-kanban', 'desc': 'Seguimiento de proyectos, entregables y tareas.'},
     {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'desc': 'Cobro rápido, apertura/cierre de caja y emisión de comprobantes.'},
     {'code': 'invoicing', 'name': 'Facturación & Gastos', 'icon': 'file-text', 'desc': 'Gestión de comprobantes, egresos y cuentas.'},
     {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package', 'desc': 'Control de productos, existencias y alertas de stock.'},

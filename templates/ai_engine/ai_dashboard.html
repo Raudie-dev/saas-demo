@@ -1,119 +1,478 @@
 {% extends 'base.html' %}
 
-{% block title %}Centro de IA & Automatización - BusinessOS{% endblock %}
-{% block header_title %}Motor de IA & Automatización Comercial (WhatsApp / Marketing){% endblock %}
+{% block title %}IA & Automatizaciones - BusinessOS{% endblock %}
+{% block header_title %}Centro de Inteligencia Artificial & Bot de WhatsApp{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-8 max-w-7xl mx-auto">
 
-    <!-- AI Triggers Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        <!-- 1. IA Administrativa -->
-        <div class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm">
-            <div class="flex items-center gap-3">
-                <div class="p-3 bg-rose-50 text-rose-900 rounded-xl border border-rose-200">
-                    <i data-lucide="bot" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-slate-900 text-base font-display">IA Administrativa & Financiera</h3>
-                    <p class="text-xs text-slate-500">Diagnóstico sintético del negocio en tiempo real</p>
-                </div>
+    <!-- Top Info Bar: WhatsApp & Bot Status -->
+    <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-500/20 shrink-0">
+                <i data-lucide="bot" class="w-7 h-7"></i>
             </div>
-
-            <p class="text-xs text-slate-600">
-                Responde a la pregunta: <em>"¿Cómo estuvo mi negocio este mes y qué acciones debo tomar para elevar el margen?"</em>
-            </p>
-
-            <form method="POST" autocomplete="off">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="run_financial_insight">
-                <button type="submit" class="w-full py-3 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2">
-                    <i data-lucide="sparkles" class="w-4 h-4"></i> Generar Informe Ejecutivo IA
-                </button>
-            </form>
-
-            {% if financial_insight %}
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs whitespace-pre-line font-mono shadow-inner">
-                {{ financial_insight }}
+            <div>
+                <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-bold text-slate-900 font-display">Bot de Atención WhatsApp: {{ bot_config.bot_name }}</h2>
+                    {% if bot_config.is_active %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Activo
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span> En Pausa
+                        </span>
+                    {% endif %}
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Responde automáticamente a tus clientes en WhatsApp 24/7, brinda información de servicios, precios y enlaces de reserva online.
+                </p>
             </div>
-            {% endif %}
         </div>
 
-        <!-- 2. IA Comercial & Reactivación WhatsApp -->
-        <div class="glass-card bg-white p-6 rounded-2xl space-y-4 border border-slate-200 shadow-sm">
-            <div class="flex items-center gap-3">
-                <div class="p-3 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">
-                    <i data-lucide="message-square" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-slate-900 text-base font-display">IA Comercial & Reactivación WhatsApp</h3>
-                    <p class="text-xs text-slate-500">Detección de clientes inactivos (+60 días)</p>
-                </div>
+        <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+            <!-- WhatsApp Gateway Status -->
+            <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                <span class="text-slate-500 font-medium">WhatsApp:</span>
+                {% if gw_status.status == 'connected' %}
+                    <span class="font-bold text-emerald-600 flex items-center gap-1">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i> Conectado
+                    </span>
+                {% elif gw_status.online %}
+                    <span class="font-bold text-amber-600 flex items-center gap-1">
+                        <i data-lucide="smartphone" class="w-4 h-4"></i> Desconectado
+                    </span>
+                {% else %}
+                    <span class="font-bold text-rose-600 flex items-center gap-1">
+                        <i data-lucide="alert-circle" class="w-4 h-4"></i> Servicio Offline
+                    </span>
+                {% endif %}
             </div>
 
-            <p class="text-xs text-slate-600">
-                Analiza la base de clientes, detecta inactividad y redacta mensajes de oferta personalizada para envío automático por WhatsApp.
-            </p>
+            <a href="{% url 'business_config' %}?tab=whatsapp#whatsapp" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-2 shadow-sm shrink-0">
+                <i data-lucide="qr-code" class="w-4 h-4"></i>
+                <span>Vincular / Escanear QR</span>
+            </a>
+        </div>
+    </div>
 
-            <form method="POST" autocomplete="off">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="run_whatsapp_campaign">
-                <button type="submit" class="w-full py-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2">
-                    <i data-lucide="send" class="w-4 h-4"></i> Escanear e Iniciar Campaña WhatsApp
-                </button>
-            </form>
+    <!-- Main Grid: Configuration Form (Left) & Live Simulator (Right) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-            {% if whatsapp_campaigns %}
-            <div class="space-y-3">
-                {% for camp in whatsapp_campaigns %}
-                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                    <div class="flex justify-between text-xs">
-                        <strong class="text-slate-900">{{ camp.client_name }}</strong>
-                        <span class="text-emerald-700 font-mono font-bold">{{ camp.phone }}</span>
+        <!-- Left Column: Bot Settings Form (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+            <div class="glass-card bg-white p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <div class="border-b border-slate-100 pb-4 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                            <i data-lucide="sliders" class="w-5 h-5 text-rose-800"></i>
+                            <span>Configuración del Asistente Virtual</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1">Personaliza el comportamiento, bienvenida y conocimientos del bot para {{ business.name }}.</p>
                     </div>
-                    <p class="text-xs text-slate-800 font-mono bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">{{ camp.message }}</p>
-                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Mensaje Simulado Listo para Envío</span>
                 </div>
-                {% endfor %}
+
+                <form method="POST" class="space-y-5" autocomplete="off">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_bot_config">
+
+                    <!-- Switch: Estado Activo/Pausado -->
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200">
+                        <div>
+                            <label for="is_active" class="font-bold text-sm text-slate-800 cursor-pointer">Activar Respuestas Automáticas</label>
+                            <p class="text-xs text-slate-500">Si está desactivado, el bot no contestará mensajes entrantes en WhatsApp.</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="is_active" name="is_active" value="1" {% if bot_config.is_active %}checked{% endif %} class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                        </label>
+                    </div>
+
+                    <!-- Bot Name & Auto Booking Link -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Nombre del Bot / Asistente</label>
+                            <input type="text" name="bot_name" value="{{ bot_config.bot_name }}" required
+                                   placeholder="Ej: Sofía de Peluquería Bella"
+                                   class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Enlace de Reservas Online</label>
+                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                                <span class="text-xs text-slate-600 font-medium">Adjuntar link al pedir turno</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="auto_booking_link" value="1" {% if bot_config.auto_booking_link %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-900"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Welcome Message -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                            <span>Mensaje de Saludo / Bienvenida</span>
+                            <span class="text-[11px] text-slate-400 font-normal">Se envía cuando el cliente saluda por primera vez</span>
+                        </label>
+                        <textarea name="welcome_message" rows="3" required
+                                  class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-600 focus:bg-white transition font-sans">{{ bot_config.welcome_message }}</textarea>
+                    </div>
+
+                    <!-- System Prompt / Instructions -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                            <span>Instrucciones & Personalidad del Bot (Prompt del Sistema)</span>
+                            <span class="text-[11px] text-slate-400 font-normal">Directivas que guían las respuestas</span>
+                        </label>
+                        <textarea name="system_prompt" rows="5" required
+                                  placeholder="Define cómo debe contestar, qué tono emplear, información especial o políticas de cancelación..."
+                                  class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-xs focus:outline-none focus:border-rose-600 focus:bg-white transition font-mono leading-relaxed">{{ bot_config.system_prompt }}</textarea>
+                        <p class="text-[11px] text-slate-500 mt-1">
+                            El bot ya conoce automáticamente el catálogo de servicios de <strong>{{ business.name }}</strong>, sus precios, horarios comerciales, dirección y enlace de reservas.
+                        </p>
+                    </div>
+
+                    <!-- OpenAI Key (Optional) -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                        <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="key" class="w-3.5 h-3.5 text-slate-500"></i>
+                            <span>OpenAI API Key (Opcional - GPT-4o-mini)</span>
+                        </label>
+                        <input type="password" name="openai_api_key" value="{{ bot_config.openai_api_key|default:'' }}"
+                               placeholder="sk-..."
+                               class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:outline-none focus:border-rose-600 font-mono">
+                        <p class="text-[10px] text-slate-500">
+                            Si no colocas una API Key, el bot funciona de manera 100% gratuita utilizando el motor semántico contextual del sistema con soporte de servicios, horarios y reservas.
+                        </p>
+                    </div>
+
+                    <div class="pt-2 flex justify-end">
+                        <button type="submit" class="px-6 py-3 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-sm shadow-md transition flex items-center gap-2">
+                            <i data-lucide="save" class="w-4 h-4"></i> Guardar Configuración del Bot
+                        </button>
+                    </div>
+                </form>
             </div>
-            {% endif %}
+
+            <!-- Otras Herramientas de IA -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- IA Administrativa -->
+                <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2.5 bg-rose-50 text-rose-900 rounded-xl border border-rose-200">
+                            <i data-lucide="line-chart" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-sm">IA Financiera</h4>
+                            <p class="text-[11px] text-slate-500">Diagnóstico del negocio</p>
+                        </div>
+                    </div>
+                    <form method="POST" autocomplete="off">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="run_financial_insight">
+                        <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition flex items-center justify-center gap-2">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Generar Resumen
+                        </button>
+                    </form>
+                    {% if financial_insight %}
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-[11px] whitespace-pre-line font-mono max-h-48 overflow-y-auto">
+                        {{ financial_insight }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Reactivación WhatsApp -->
+                <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-sm">Reactivar Clientes</h4>
+                            <p class="text-[11px] text-slate-500">Clientes inactivos (+60 días)</p>
+                        </div>
+                    </div>
+                    <form method="POST" autocomplete="off">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="run_whatsapp_campaign">
+                        <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition flex items-center justify-center gap-2">
+                            <i data-lucide="send" class="w-3.5 h-3.5"></i> Escanear Inactivos
+                        </button>
+                    </form>
+                    {% if whatsapp_campaigns %}
+                    <div class="space-y-2 max-h-48 overflow-y-auto">
+                        {% for camp in whatsapp_campaigns %}
+                        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px]">
+                            <strong class="text-slate-900">{{ camp.client_name }}</strong>
+                            <p class="text-slate-700 mt-1 font-mono text-[10px]">{{ camp.message }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Interactive WhatsApp Live Tester (5 cols) -->
+        <div class="lg:col-span-5 sticky top-6">
+            <div class="glass-card bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[650px]">
+                
+                <!-- Chat Header styled like WhatsApp -->
+                <div class="bg-[#075E54] text-white p-4 flex items-center justify-between shrink-0 shadow">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-emerald-700 border-2 border-white/40 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                            {{ bot_config.bot_name|slice:":1"|upper|default:"W" }}
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm flex items-center gap-1.5">
+                                <span>{{ bot_config.bot_name }}</span>
+                                <i data-lucide="badge-check" class="w-4 h-4 text-emerald-300"></i>
+                            </div>
+                            <p class="text-[11px] text-emerald-100 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> En línea (Simulador)
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="clearSimulatorChat()" title="Limpiar conversación" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Chat Body with WhatsApp Pattern BG -->
+                <div id="sim-messages-container" class="flex-1 p-4 overflow-y-auto space-y-3 bg-[#EFEAE2]">
+                    <!-- Encrypted notice -->
+                    <div class="flex justify-center my-2">
+                        <span class="bg-[#FFF9C4] text-[#554D31] text-[10px] px-3 py-1 rounded-lg shadow-sm text-center max-w-[85%]">
+                            🔒 Los mensajes simulan la respuesta exacta que tu bot enviará a clientes reales de WhatsApp.
+                        </span>
+                    </div>
+
+                    <!-- Initial Welcome Bubble -->
+                    <div class="flex justify-start">
+                        <div class="max-w-[85%] bg-white rounded-2xl rounded-tl-none p-3 shadow-sm text-slate-800 text-xs space-y-1 border border-slate-100">
+                            <p class="whitespace-pre-line">{{ bot_config.welcome_message }}</p>
+                            <span class="block text-[9px] text-slate-400 text-right mt-1">Ahora</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggested Quick Prompts -->
+                <div class="bg-slate-100 px-3 py-2 border-t border-slate-200 flex gap-2 overflow-x-auto text-[11px] shrink-0 no-scrollbar">
+                    <button type="button" onclick="quickSend('Hola! ¿Cómo estás?')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
+                        👋 Saludar
+                    </button>
+                    <button type="button" onclick="quickSend('Quiero reservar un turno para mañana')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
+                        📅 Reservar turno
+                    </button>
+                    <button type="button" onclick="quickSend('¿Cuáles son los precios y servicios?')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
+                        ✂️ Precios
+                    </button>
+                    <button type="button" onclick="quickSend('¿Dónde están ubicados y qué horarios tienen?')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
+                        📍 Ubicación
+                    </button>
+                </div>
+
+                <!-- Chat Input Form -->
+                <form id="sim-chat-form" onsubmit="sendSimMessage(event)" class="bg-[#F0F2F5] p-3 border-t border-slate-200 flex items-center gap-2 shrink-0">
+                    <input type="text" id="sim-prompt-input" placeholder="Escribe un mensaje de prueba..." autocomplete="off" required
+                           class="flex-1 bg-white border border-slate-200 rounded-full px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 shadow-sm">
+                    <button type="submit" id="sim-submit-btn" class="w-10 h-10 rounded-full bg-[#00A884] hover:bg-[#008f6f] text-white flex items-center justify-center transition shadow shrink-0">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </form>
+
+            </div>
         </div>
 
     </div>
 
-    <!-- AI Log Activity -->
+    <!-- AI Log Activity Table -->
     <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-        <div class="p-4 border-b border-slate-100 bg-slate-50">
-            <h4 class="font-bold text-slate-900 text-base font-display">Historial de Ejecuciones de IA</h4>
+        <div class="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+            <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                <i data-lucide="history" class="w-5 h-5 text-slate-600"></i>
+                <span>Historial de Automatizaciones & Respuestas de IA</span>
+            </h4>
+            <span class="text-xs text-slate-500 font-mono">{{ logs|length }} registros</span>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 uppercase tracking-wider font-bold">
                     <tr>
-                        <th class="p-4">Acción</th>
-                        <th class="p-4">Prompt / Desencadenante</th>
-                        <th class="p-4">Resultado Generado</th>
-                        <th class="p-4">Fecha</th>
+                        <th class="p-3.5">Acción</th>
+                        <th class="p-3.5">Mensaje Recibido / Prompt</th>
+                        <th class="p-3.5">Respuesta de IA Enviada</th>
+                        <th class="p-3.5">Fecha y Hora</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     {% for log in logs %}
-                    <tr class="hover:bg-slate-50/80 transition">
-                        <td class="p-4 font-bold text-rose-900">{{ log.get_action_type_display }}</td>
-                        <td class="p-4 text-slate-600 text-xs">{{ log.prompt_used }}</td>
-                        <td class="p-4 text-slate-800 text-xs font-mono max-w-md truncate">{{ log.response_generated }}</td>
-                        <td class="p-4 text-slate-500 text-xs whitespace-nowrap">{{ log.created_at|date:"Y-m-d H:i" }}</td>
+                    <tr class="hover:bg-slate-50/70 transition">
+                        <td class="p-3.5 font-bold text-slate-900 whitespace-nowrap">
+                            {% if 'whatsapp' in log.action_type|lower or 'bot' in log.action_type|lower %}
+                                <span class="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                    <i data-lucide="message-square" class="w-3 h-3"></i> {{ log.action_type }}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1 text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                                    <i data-lucide="bot" class="w-3 h-3"></i> {{ log.action_type }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3.5 text-slate-600 max-w-xs truncate" title="{{ log.prompt_trigger }}">
+                            {{ log.prompt_trigger|default:"N/A" }}
+                        </td>
+                        <td class="p-3.5 text-slate-800 font-mono text-[11px] max-w-md truncate" title="{{ log.result_summary }}">
+                            {{ log.result_summary }}
+                        </td>
+                        <td class="p-3.5 text-slate-500 whitespace-nowrap font-mono">
+                            {{ log.created_at|date:"d/m/Y H:i:s" }}
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="p-8 text-center text-slate-500">No hay ejecuciones registradas. Haz clic en uno de los botones para probar la IA.</td>
+                        <td colspan="4" class="p-8 text-center text-slate-400">
+                            Aún no hay interacciones registradas. Prueba enviando un mensaje en el simulador o vinculando WhatsApp.
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-</div>
-{% endblock %}
 
+</div>
+
+<script>
+function quickSend(text) {
+    const input = document.getElementById('sim-prompt-input');
+    input.value = text;
+    document.getElementById('sim-chat-form').dispatchEvent(new Event('submit', { cancelable: true }));
+}
+
+function clearSimulatorChat() {
+    const container = document.getElementById('sim-messages-container');
+    container.innerHTML = `
+        <div class="flex justify-center my-2">
+            <span class="bg-[#FFF9C4] text-[#554D31] text-[10px] px-3 py-1 rounded-lg shadow-sm text-center max-w-[85%]">
+                🔒 Conversación reiniciada. Puedes simular nuevos mensajes de clientes.
+            </span>
+        </div>
+        <div class="flex justify-start">
+            <div class="max-w-[85%] bg-white rounded-2xl rounded-tl-none p-3 shadow-sm text-slate-800 text-xs space-y-1 border border-slate-100">
+                <p class="whitespace-pre-line">{{ bot_config.welcome_message|escapejs }}</p>
+                <span class="block text-[9px] text-slate-400 text-right mt-1">Ahora</span>
+            </div>
+        </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+}
+
+function formatChatTime() {
+    const d = new Date();
+    return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+}
+
+function sendSimMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('sim-prompt-input');
+    const promptText = input.value.trim();
+    if (!promptText) return;
+
+    const container = document.getElementById('sim-messages-container');
+    const btn = document.getElementById('sim-submit-btn');
+
+    // Append User Bubble
+    const userBubble = document.createElement('div');
+    userBubble.className = 'flex justify-end';
+    userBubble.innerHTML = `
+        <div class="max-w-[85%] bg-[#D9FDD3] rounded-2xl rounded-tr-none p-3 shadow-sm text-slate-900 text-xs space-y-1 border border-emerald-100">
+            <p class="whitespace-pre-line">${escapeHTML(promptText)}</p>
+            <span class="block text-[9px] text-slate-400 text-right mt-1">${formatChatTime()} ✓✓</span>
+        </div>
+    `;
+    container.appendChild(userBubble);
+    input.value = '';
+    container.scrollTop = container.scrollHeight;
+
+    // Loading indicator bubble
+    const loadingBubble = document.createElement('div');
+    loadingBubble.className = 'flex justify-start';
+    loadingBubble.id = 'sim-loading-bubble';
+    loadingBubble.innerHTML = `
+        <div class="max-w-[85%] bg-white rounded-2xl rounded-tl-none px-4 py-2.5 shadow-sm text-slate-500 text-xs flex items-center gap-1.5 border border-slate-100">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]"></span>
+            <span class="text-[11px] ml-1 text-slate-400">Escribiendo...</span>
+        </div>
+    `;
+    container.appendChild(loadingBubble);
+    container.scrollTop = container.scrollHeight;
+
+    btn.disabled = true;
+
+    // Send to /ia/chat/
+    const formData = new FormData();
+    formData.append('prompt', promptText);
+    formData.append('mode', 'bot');
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+    fetch('{% url "ai_chat" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        const loading = document.getElementById('sim-loading-bubble');
+        if (loading) loading.remove();
+        btn.disabled = false;
+
+        const replyText = data.reply || "Lo siento, en este momento no pude procesar tu solicitud.";
+        const botBubble = document.createElement('div');
+        botBubble.className = 'flex justify-start';
+        botBubble.innerHTML = `
+            <div class="max-w-[85%] bg-white rounded-2xl rounded-tl-none p-3 shadow-sm text-slate-800 text-xs space-y-1 border border-slate-100">
+                <p class="whitespace-pre-line">${escapeHTML(replyText)}</p>
+                <span class="block text-[9px] text-slate-400 text-right mt-1">${formatChatTime()}</span>
+            </div>
+        `;
+        container.appendChild(botBubble);
+        container.scrollTop = container.scrollHeight;
+    })
+    .catch(err => {
+        const loading = document.getElementById('sim-loading-bubble');
+        if (loading) loading.remove();
+        btn.disabled = false;
+
+        const errorBubble = document.createElement('div');
+        errorBubble.className = 'flex justify-start';
+        errorBubble.innerHTML = `
+            <div class="max-w-[85%] bg-rose-50 rounded-2xl rounded-tl-none p-3 shadow-sm text-rose-800 text-xs border border-rose-200">
+                <p>Error al conectar con el servidor.</p>
+            </div>
+        `;
+        container.appendChild(errorBubble);
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+function escapeHTML(str) {
+    return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag)
+    );
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) lucide.createIcons();
+});
+</script>
+{% endblock %}

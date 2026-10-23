@@ -534,6 +534,116 @@ def project_task_create_view(request, project_id):
 
 
 @login_required
+def project_task_detail_api(request, task_id):
+    """Retorna los datos completos de una tarea o procesa su edición/actualización"""
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'success': False, 'error': 'No autenticado'}, status=403)
+
+    task = get_object_or_404(ProjectTask, id=task_id, project__business=business)
+
+    if request.method == 'GET':
+        return JsonResponse({
+            'success': True,
+            'task': {
+                'id': str(task.id),
+                'project_id': str(task.project.id),
+                'project_name': task.project.name,
+                'title': task.title,
+                'description': task.description or '',
+                'status': task.status,
+                'status_display': task.get_status_display(),
+                'priority': task.priority,
+                'priority_display': task.get_priority_display(),
+                'due_date': task.due_date.strftime('%Y-%m-%d') if task.due_date else '',
+                'due_date_display': task.due_date.strftime('%d/%m/%Y') if task.due_date else '',
+                'estimated_hours': float(task.estimated_hours),
+                'logged_hours': float(task.logged_hours),
+                'assigned_to_id': str(task.assigned_to.id) if task.assigned_to else '',
+                'assigned_to_name': task.assigned_to.first_name if task.assigned_to else 'Sin asignar',
+                'created_at': task.created_at.strftime('%d/%m/%Y %H:%M') if hasattr(task, 'created_at') and task.created_at else '',
+            }
+        })
+
+    if request.method == 'POST':
+        import json
+        data = request.POST
+        if request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body.decode('utf-8'))
+            except Exception:
+                data = request.POST
+
+        title = str(data.get('title', '')).strip()
+        description = str(data.get('description', '')).strip()
+        priority = data.get('priority', task.priority)
+        status = data.get('status', task.status)
+        valid_statuses = [code for code, _ in ProjectTask.STATUS_CHOICES]
+        valid_priorities = [code for code, _ in ProjectTask.PRIORITY_CHOICES]
+
+        if title:
+            task.title = title
+        task.description = description
+
+        if status in valid_statuses:
+            task.status = status
+        if priority in valid_priorities:
+            task.priority = priority
+
+        due_date = data.get('due_date')
+        task.due_date = due_date if due_date else None
+
+        if 'estimated_hours' in data:
+            task.estimated_hours = parse_decimal(data.get('estimated_hours'), '0.00')
+
+        if 'logged_hours' in data:
+            task.logged_hours = parse_decimal(data.get('logged_hours'), '0.00')
+
+        assigned_to_id = data.get('assigned_to_id')
+        if assigned_to_id:
+            task.assigned_to = StaffMember.objects.filter(id=assigned_to_id, business=business).first()
+        else:
+            task.assigned_to = None
+
+        task.save()
+        task.project.update_progress_auto()
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json' or request.content_type == 'application/json':
+            return JsonResponse({
+                'success': True,
+                'message': 'Tarea actualizada correctamente',
+                'task': {
+                    'id': str(task.id),
+                    'title': task.title,
+                    'description': task.description or '',
+                    'status': task.status,
+                    'status_display': task.get_status_display(),
+                    'priority': task.priority,
+                    'priority_display': task.get_priority_display(),
+                    'due_date': task.due_date.strftime('%Y-%m-%d') if task.due_date else '',
+                    'due_date_display': task.due_date.strftime('%d/%m/%Y') if task.due_date else '',
+                    'estimated_hours': float(task.estimated_hours),
+                    'logged_hours': float(task.logged_hours),
+                    'assigned_to_id': str(task.assigned_to.id) if task.assigned_to else '',
+                    'assigned_to_name': task.assigned_to.first_name if task.assigned_to else 'Sin asignar',
+                },
+                'progress_percent': task.project.progress_percent,
+                'completed_tasks': task.project.completed_tasks_count,
+                'total_tasks': task.project.total_tasks_count
+            })
+
+        messages.success(request, f"Tarea '{task.title}' actualizada correctamente.")
+        return redirect('project_detail', project_id=task.project.id)
+
+    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+
+@login_required
+def project_task_edit_view(request, task_id):
+    return project_task_detail_api(request, task_id)
+
+
+@login_required
 def project_task_status_update_view(request, task_id):
     """Actualiza el estado de una tarea vía AJAX (drag and drop del Kanban de tareas)"""
     business = getattr(request, 'current_business', None) or request.user.business

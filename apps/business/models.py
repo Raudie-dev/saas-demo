@@ -59,18 +59,18 @@ class Business(TimeStampedModel):
         return self.name
 
     BUSINESS_TYPE_MODULES = {
-        'HEALTH_CLINIC': ['agenda', 'booking', 'crm', 'invoicing', 'pos', 'commissions'],
-        'AESTHETICS_SPA': ['agenda', 'booking', 'crm', 'pos', 'inventory', 'commissions', 'marketing', 'invoicing'],
-        'BARBER_SALON': ['agenda', 'booking', 'pos', 'commissions', 'inventory', 'crm'],
-        'KINESIOLOGY': ['agenda', 'booking', 'crm', 'invoicing', 'commissions'],
-        'RETAIL_COMMERCE': ['pos', 'inventory', 'invoicing', 'crm', 'commissions'],
-        'SERVICES_OTHER': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine'],
-        'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'marketing', 'invoicing'],
-        'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'agenda', 'booking'],
-        'MARKETING': ['crm', 'invoicing', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions'],
-        'CONSULTING': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine'],
-        'REAL_ESTATE': ['crm', 'invoicing', 'commissions', 'booking', 'agenda'],
-        'TRAVEL': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'pos'],
+        'HEALTH_CLINIC': ['agenda', 'booking', 'crm', 'invoicing', 'pos', 'commissions', 'inventory', 'marketing', 'ai_engine'],
+        'AESTHETICS_SPA': ['agenda', 'booking', 'crm', 'pos', 'inventory', 'commissions', 'marketing', 'invoicing', 'ai_engine'],
+        'BARBER_SALON': ['agenda', 'booking', 'pos', 'commissions', 'inventory', 'crm', 'invoicing', 'marketing', 'ai_engine'],
+        'KINESIOLOGY': ['agenda', 'booking', 'crm', 'invoicing', 'commissions', 'inventory', 'marketing', 'ai_engine'],
+        'RETAIL_COMMERCE': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'marketing', 'agenda', 'booking', 'ai_engine'],
+        'SERVICES_OTHER': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine', 'pos', 'inventory', 'commissions', 'marketing', 'projects'],
+        'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'marketing', 'invoicing', 'ai_engine'],
+        'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'agenda', 'booking', 'marketing', 'ai_engine'],
+        'MARKETING': ['crm', 'invoicing', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions', 'projects'],
+        'CONSULTING': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine', 'marketing', 'projects'],
+        'REAL_ESTATE': ['crm', 'invoicing', 'commissions', 'booking', 'agenda', 'marketing', 'ai_engine'],
+        'TRAVEL': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'pos', 'marketing', 'ai_engine'],
     }
 
     @property
@@ -127,9 +127,10 @@ class Business(TimeStampedModel):
 
     def is_module_allowed_by_business_type(self, module_name):
         """Valida si un módulo es compatible con el tipo de negocio."""
-        allowed_for_type = self.BUSINESS_TYPE_MODULES.get(self.business_type)
-        if allowed_for_type is not None:
-            return module_name in allowed_for_type
+        if module_name == 'properties':
+            return self.is_real_estate
+        if module_name == 'travel':
+            return self.is_travel
         return True
 
     def get_allowed_modules(self):
@@ -137,15 +138,14 @@ class Business(TimeStampedModel):
         sub = getattr(self, 'subscription', None)
         if sub and sub.plan and sub.plan.included_modules:
             modules = list(sub.plan.included_modules)
-            modules = [m for m in modules if m not in ('properties', 'projects', 'travel')]
             return [m for m in modules if self.is_module_allowed_by_business_type(m)]
         
         # Fallback sin suscripción o plan abierto
         default_modules = self.BUSINESS_TYPE_MODULES.get(
             self.business_type,
-            ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing']
+            ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing', 'projects']
         )
-        return list(default_modules)
+        return [m for m in default_modules if self.is_module_allowed_by_business_type(m)]
 
     def is_module_allowed_by_plan(self, module_name):
         if not self.is_module_allowed_by_business_type(module_name):
@@ -165,20 +165,41 @@ class Business(TimeStampedModel):
             return False
         # 4. Habilitación específica por el negocio
         if module_name == 'properties':
-            if self.is_real_estate:
-                return True
-            return False
-        if module_name == 'projects':
-            if self.is_marketing_agency or self.is_consulting:
-                return True
-            return False
+            return self.is_real_estate
         if module_name == 'travel':
-            if self.is_travel:
-                return True
-            return False
+            return self.is_travel
         if not self.enabled_modules:
             return True
         return module_name in self.enabled_modules
+
+    def sync_modules_with_plan(self):
+        """
+        Sincroniza los módulos habilitados del negocio con los permitidos por su plan.
+        Mantiene los módulos previamente habilitados que sigan en el plan,
+        y activa automáticamente los nuevos módulos desbloqueados.
+        También actualiza los roles base del sistema (como Administrador).
+        """
+        allowed = self.get_allowed_modules()
+        current_enabled = list(self.enabled_modules or [])
+        synced_modules = [m for m in current_enabled if m in allowed]
+        for m in allowed:
+            if m not in synced_modules:
+                synced_modules.append(m)
+        self.enabled_modules = synced_modules
+        self.save(update_fields=['enabled_modules'])
+
+        # Limpiar y sincronizar perfiles de usuario existentes contra el plan
+        for role in self.role_profiles.all():
+            role.clean_modules_against_subscription()
+            role.save(update_fields=['allowed_modules'])
+
+        # Sincronizar el rol Administrador del sistema para que contenga todos los módulos del plan
+        admin_role = self.role_profiles.filter(name='Administrador', is_system_default=True).first()
+        if admin_role:
+            admin_role.allowed_modules = list(allowed)
+            admin_role.save(update_fields=['allowed_modules'])
+
+        return synced_modules
 
     def save(self, *args, **kwargs):
         from apps.core.utils_image import process_image_to_webp

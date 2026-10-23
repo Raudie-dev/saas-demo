@@ -13,7 +13,7 @@ import path from 'path';
 import { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
 
 const PORT = process.env.PORT || 3000;
-const DJANGO_WEBHOOK = process.env.DJANGO_WEBHOOK || 'http://127.0.0.1:8000/app2/api/whatsapp/webhook/';
+const DJANGO_WEBHOOK = process.env.DJANGO_WEBHOOK || 'http://127.0.0.1:5555/ia/webhook/whatsapp/';
 
 // Mapas por sesión (clave: userId)
 const sockets = new Map();

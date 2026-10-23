@@ -16,6 +16,8 @@ urlpatterns = [
 
     # Tareas de Proyecto
     path('<uuid:project_id>/tareas/nueva/', views.project_task_create_view, name='project_task_create'),
+    path('tareas/<uuid:task_id>/', views.project_task_detail_api, name='project_task_detail'),
+    path('tareas/<uuid:task_id>/editar/', views.project_task_edit_view, name='project_task_edit'),
     path('tareas/<uuid:task_id>/status/', views.project_task_status_update_view, name='project_task_status_update'),
     path('tareas/<uuid:task_id>/toggle/', views.project_task_toggle_view, name='project_task_toggle'),
     path('tareas/<uuid:task_id>/eliminar/', views.project_task_delete_view, name='project_task_delete'),

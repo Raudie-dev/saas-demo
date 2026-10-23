@@ -598,7 +598,7 @@ def plans_management_view(request):
         {'code': 'commissions', 'name': 'Comisiones de Equipo'},
         {'code': 'ai_engine', 'name': 'IA & Automatización'},
         {'code': 'marketing', 'name': 'Marketing & Promociones'},
-        {'code': 'projects', 'name': 'Proyectos & Contenido Redes'},
+        {'code': 'projects', 'name': 'Proyectos'},
     ]
 
     regions = Region.objects.filter(is_active=True).order_by('name')

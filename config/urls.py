@@ -31,7 +31,7 @@ urlpatterns = [
     path('ia/', include('apps.ai_engine.urls')),
     path('marketing/', include('apps.marketing.urls')),
     path('propiedades/', RedirectView.as_view(pattern_name='dashboard', permanent=False)),
-    path('proyectos/', RedirectView.as_view(pattern_name='dashboard', permanent=False)),
+    path('proyectos/', include('apps.projects.urls')),
     path('viajes/', RedirectView.as_view(pattern_name='dashboard', permanent=False)),
     path('superadmin/', include('apps.superadmin.urls')),
 ]

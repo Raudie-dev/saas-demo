@@ -232,6 +232,27 @@
                 </a>
                 {% endif %}
 
+                {% if modules_enabled.projects and not user_is_professional %}
+                <a href="{% url 'project_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'proyectos' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+                    <span>Proyectos</span>
+                </a>
+                {% endif %}
+
+                {% if modules_enabled.inventory and not user_is_professional %}
+                <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'inventario' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="package" class="w-5 h-5"></i>
+                    <span>Inventario & Stock</span>
+                </a>
+                {% endif %}
+
+                {% if modules_enabled.ai_engine and not user_is_professional %}
+                <a href="{% url 'ai_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'ia' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-emerald-400"></i>
+                    <span>IA & Automatizaciones</span>
+                </a>
+                {% endif %}
+
                 {% if not user_is_professional %}
                 <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'service' in request.resolver_match.url_name %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="scissors" class="w-5 h-5"></i>
@@ -246,7 +267,7 @@
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.pos or modules_enabled.invoicing or modules_enabled.inventory or modules_enabled.commissions %}
+                {% if modules_enabled.pos or modules_enabled.invoicing or modules_enabled.commissions %}
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Administrar</div>
 
                 {% if modules_enabled.pos and user_can_charge_pos %}
@@ -270,13 +291,6 @@
                 <a href="{% url 'payment_plan_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'cobranzas' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="hand-coins" class="w-5 h-5"></i>
                     <span>Cobranzas & Cuotas</span>
-                </a>
-                {% endif %}
-
-                {% if modules_enabled.inventory and not user_is_professional %}
-                <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'inventario' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="package" class="w-5 h-5"></i>
-                    <span>Inventario & Stock</span>
                 </a>
                 {% endif %}
 
@@ -431,6 +445,24 @@
                     <span>CRM & {{ client_label_plural|default:'Clientes' }}</span>
                 </a>
                 {% endif %}
+                {% if modules_enabled.projects and not user_is_professional %}
+                <a href="{% url 'project_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'proyectos' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+                    <span>Proyectos</span>
+                </a>
+                {% endif %}
+                {% if modules_enabled.inventory and not user_is_professional %}
+                <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'inventario' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="package" class="w-5 h-5"></i>
+                    <span>Inventario & Stock</span>
+                </a>
+                {% endif %}
+                {% if modules_enabled.ai_engine and not user_is_professional %}
+                <a href="{% url 'ai_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'ia' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-emerald-400"></i>
+                    <span>IA & Automatizaciones</span>
+                </a>
+                {% endif %}
                 {% if not user_is_professional %}
                 <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'service' in request.resolver_match.url_name %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="scissors" class="w-5 h-5"></i>
@@ -445,7 +477,7 @@
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.pos or modules_enabled.invoicing or modules_enabled.inventory or modules_enabled.commissions %}
+                {% if modules_enabled.pos or modules_enabled.invoicing or modules_enabled.commissions %}
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Administrar</div>
 
                 {% if modules_enabled.pos and user_can_charge_pos %}
@@ -472,13 +504,6 @@
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.inventory and not user_is_professional %}
-                <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'inventario' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="package" class="w-5 h-5"></i>
-                    <span>Inventario & Stock</span>
-                </a>
-                {% endif %}
-
                 {% if modules_enabled.commissions and user_commission_scope != 'NONE' %}
                 <a href="{% url 'commission_report' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'commission_report' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="dollar-sign" class="w-5 h-5"></i>
@@ -489,6 +514,13 @@
 
                 {% if modules_enabled.marketing or user_can_view_financial_reports %}
                 <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Finanzas & Crecimiento</div>
+
+                {% if modules_enabled.marketing and not user_is_professional %}
+                <a href="{% url 'marketing_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'marketing' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="tag" class="w-5 h-5"></i>
+                    <span>Marketing & Promociones</span>
+                </a>
+                {% endif %}
 
                 {% if modules_enabled.marketing and not user_is_professional %}
                 <a href="{% url 'marketing_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'marketing' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">

@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Cargar variables de entorno desde el archivo .env
 load_dotenv(BASE_DIR / '.env')
 
-ENVIRONMENT = 'production'
+ENVIRONMENT = 'develop'
 
 
 SECRET_KEY = os.getenv('SECRET_KEY')
@@ -17,7 +17,7 @@ if not SECRET_KEY:
         raise ValueError("CRITICAL: SECRET_KEY must be set in environment variables for production!")
     SECRET_KEY = 'django-insecure-dev-key-change-me'
 
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
