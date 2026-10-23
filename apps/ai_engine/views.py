@@ -17,7 +17,7 @@ from apps.ai_engine.services import (
     get_or_create_bot_config
 )
 
-GATEWAY_BASE_URL = "http://127.0.0.1:3000"
+GATEWAY_BASE_URL = getattr(settings, 'WHATSAPP_GATEWAY_URL', None) or os.environ.get('WHATSAPP_GATEWAY_URL', 'http://127.0.0.1:3000').rstrip('/')
 
 @login_required
 def ai_dashboard_view(request):

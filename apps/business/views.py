@@ -696,7 +696,7 @@ def business_config_view(request):
     session_user = str(business.id) if business else "default"
     gw_status = {'online': False, 'status': 'offline'}
     try:
-        url = f"http://127.0.0.1:3000/status?user={session_user}"
+        url = f"{GATEWAY_BASE_URL}/status?user={session_user}"
         req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
         with urllib.request.urlopen(req, timeout=2) as resp:
             data = json.loads(resp.read().decode('utf-8'))
@@ -1405,7 +1405,7 @@ def staff_delete_view(request, staff_id):
 # WHATSAPP GATEWAY API PROXY VIEWS (Node.js microservice integration)
 # ==============================================================================
 
-GATEWAY_BASE_URL = "http://127.0.0.1:3000"
+GATEWAY_BASE_URL = getattr(settings, 'WHATSAPP_GATEWAY_URL', None) or os.environ.get('WHATSAPP_GATEWAY_URL', 'http://127.0.0.1:3000').rstrip('/')
 
 def _gw_user(business):
     return str(business.id) if business else "default"
@@ -1517,7 +1517,7 @@ def whatsapp_config_view(request):
     session_user = str(business.id) if business else "default"
     gw_status = {'online': False, 'status': 'offline'}
     try:
-        url = f"http://127.0.0.1:3000/status?user={session_user}"
+        url = f"{GATEWAY_BASE_URL}/status?user={session_user}"
         req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
         with urllib.request.urlopen(req, timeout=2) as resp:
             data = json.loads(resp.read().decode('utf-8'))

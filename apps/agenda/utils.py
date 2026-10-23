@@ -10,7 +10,7 @@ from apps.agenda.models import Appointment, ScheduleBlock, Service
 from apps.ai_engine.models import AIAutomationLog
 
 
-GATEWAY_BASE_URL = "http://127.0.0.1:3000"
+GATEWAY_BASE_URL = getattr(settings, 'WHATSAPP_GATEWAY_URL', None) or os.environ.get('WHATSAPP_GATEWAY_URL', 'http://127.0.0.1:3000').rstrip('/')
 
 
 def expire_overdue_pending_appointments(business):
