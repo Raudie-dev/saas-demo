@@ -37,8 +37,8 @@
     </div>
 
     <!-- Calendar Timeline View -->
-    <div class="glass-card rounded-2xl overflow-hidden border border-slate-200">
-        <div class="p-3.5 sm:p-4 border-b border-slate-200 bg-slate-100/80 flex items-center justify-between gap-2">
+    <div class="glass-card rounded-2xl border border-slate-200">
+        <div class="p-3.5 sm:p-4 border-b border-slate-200 bg-slate-100/80 rounded-t-2xl flex items-center justify-between gap-2">
             <h3 class="font-bold text-slate-900 font-display text-xs sm:text-base truncate">Citas para el {{ selected_date|date:"l d \d\e F, Y" }}</h3>
             <span class="whitespace-nowrap shrink-0 text-[11px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full bg-rose-100 text-rose-900 font-bold border border-rose-200 shadow-xs">
                 {{ appointments|length }} cita(s)
@@ -152,7 +152,7 @@
                                 <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                             </button>
                             
-                            <div id="more-menu-{{ app.id }}" class="hidden absolute right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mb-0 sm:mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-30 py-1.5 font-medium text-xs">
+                            <div id="more-menu-{{ app.id }}" class="hidden absolute right-0 bottom-full mb-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 py-1.5 font-medium text-xs">
                                 <!-- WhatsApp Reminder -->
                                 <button type="button"
                                         onclick="sendWhatsappReminder(
@@ -255,7 +255,7 @@
                                 <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                             </button>
                             
-                            <div id="more-menu-{{ app.id }}" class="hidden absolute right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mb-0 sm:mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-30 py-1.5 font-medium text-xs">
+                            <div id="more-menu-{{ app.id }}" class="hidden absolute right-0 bottom-full mb-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 py-1.5 font-medium text-xs">
                                 <button type="button"
                                         onclick="exportToGoogleCalendar(
                                             'Cita: {{ app.services_summary|escapejs }} - {{ app.client.full_name|escapejs }}',
@@ -306,7 +306,7 @@
                                 <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                             </button>
                             
-                            <div id="more-menu-{{ app.id }}" class="hidden absolute right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mb-0 sm:mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-30 py-1.5 font-medium text-xs">
+                            <div id="more-menu-{{ app.id }}" class="hidden absolute right-0 bottom-full mb-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 py-1.5 font-medium text-xs">
                                 <button type="button"
                                         onclick="sendWhatsappReminder(
                                             '{{ app.client.phone|escapejs }}',
@@ -348,7 +348,7 @@
                                 <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                             </button>
                             
-                            <div id="more-menu-{{ app.id }}" class="hidden absolute right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mb-0 sm:mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-30 py-1.5 font-medium text-xs">
+                            <div id="more-menu-{{ app.id }}" class="hidden absolute right-0 bottom-full mb-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 py-1.5 font-medium text-xs">
                                 <!-- WhatsApp Reminder -->
                                 <button type="button"
                                         onclick="sendWhatsappReminder(
@@ -440,6 +440,57 @@
     </div>
 </div>
 
+<!-- Modal Selección y Envío de Plantilla WhatsApp para Citas -->
+<div id="whatsappAppointmentModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transition-all text-left">
+        <div class="px-6 py-4 bg-emerald-700 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="message-square" class="w-5 h-5 text-emerald-200"></i>
+                <h3 class="text-sm font-bold font-display">Enviar Mensaje de WhatsApp</h3>
+            </div>
+            <button type="button" onclick="closeWhatsappSendModal()" class="text-emerald-100 hover:text-white p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4 text-xs">
+            <!-- Destinatario -->
+            <div class="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between text-emerald-950">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="user" class="w-4 h-4 text-emerald-700"></i>
+                    <span>Destinatario: <strong id="waModalClientName">Cliente</strong></span>
+                </div>
+                <div class="font-mono font-bold text-emerald-800" id="waModalPhone">+...</div>
+            </div>
+
+            <!-- Selector de Plantilla -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-800">Seleccionar Plantilla</label>
+                <select id="waModalTemplateSelect" onchange="updateWaAppointmentModalPreview()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 font-medium focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer">
+                </select>
+                <p class="text-[11px] text-slate-400">Las variables como nombre, fecha, horario y servicio se reemplazan automáticamente.</p>
+            </div>
+
+            <!-- Editor de Mensaje a Enviar -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-800">Mensaje a Enviar (puedes editar antes de enviar)</label>
+                <textarea id="waModalMessageText" rows="5" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-900 font-sans focus:outline-none focus:border-emerald-600 focus:bg-white transition leading-relaxed"></textarea>
+            </div>
+
+            <!-- Botones -->
+            <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button type="button" onclick="closeWhatsappSendModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">
+                    Cancelar
+                </button>
+                <button type="button" id="btnSubmitWaModal" onclick="executeSendWhatsappFromModal()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    <span>Enviar Mensaje WhatsApp</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     function formatIsoForCalendar(dateStr, timeStr) {
         if (!dateStr) return '';
@@ -461,7 +512,24 @@
         });
         const menu = document.getElementById(menuId);
         if (menu) {
+            const willOpen = menu.classList.contains('hidden');
             menu.classList.toggle('hidden');
+
+            if (willOpen) {
+                // Posicionamiento inteligente: verificar si cabe arriba o abajo
+                const rect = menu.getBoundingClientRect();
+                const btn = menu.parentElement;
+                const btnRect = btn.getBoundingClientRect();
+
+                // Si al abrirse hacia arriba se corta por la parte superior de la ventana (< 10px)
+                if (btnRect.top - rect.height < 10) {
+                    menu.classList.remove('bottom-full', 'mb-2');
+                    menu.classList.add('top-full', 'mt-2');
+                } else {
+                    menu.classList.remove('top-full', 'mt-2');
+                    menu.classList.add('bottom-full', 'mb-2');
+                }
+            }
         }
     }
 
@@ -483,24 +551,102 @@
     });
 
     const whatsappTemplate = `{{ business.appointment_reminder_message|escapejs }}` || `Hola {client_name}, te recordamos tu cita de *{service}* en *{business}* para el día *{date}* a las *{time} hs* con *{staff}*. ¡Te esperamos!`;
+    const waTemplatesList = {{ wa_templates|safe|default:'[]' }};
 
-    function sendWhatsappReminder(phone, clientFirstName, clientFullName, serviceName, dateStr, timeStr, staffName, businessName) {
+    let activeWhatsappAppointmentData = null;
+
+    function openWhatsappSendModal(phone, clientFirstName, clientFullName, serviceName, dateStr, timeStr, staffName, businessName) {
         if (!phone || phone === 'Sin teléfono' || phone.trim() === '') {
             alert('El cliente no cuenta con un número de teléfono registrado.');
             return;
         }
 
-        let cleanPhone = phone.replace(/[^\d+]/g, '');
-        const clientDisplayName = clientFirstName || clientFullName || 'Cliente';
-        
-        let message = whatsappTemplate
-            .replace(/{client_name}/g, clientDisplayName)
-            .replace(/{service}/g, serviceName)
-            .replace(/{business}/g, businessName)
-            .replace(/{date}/g, dateStr)
-            .replace(/{time}/g, timeStr)
-            .replace(/{staff}/g, staffName);
-        
+        activeWhatsappAppointmentData = {
+            phone: phone.replace(/[^\d+]/g, ''),
+            clientFirstName: clientFirstName || clientFullName || 'Cliente',
+            clientFullName: clientFullName || clientFirstName || 'Cliente',
+            serviceName: serviceName,
+            dateStr: dateStr,
+            timeStr: timeStr,
+            staffName: staffName,
+            businessName: businessName
+        };
+
+        const modal = document.getElementById('whatsappAppointmentModal');
+        const phoneSpan = document.getElementById('waModalPhone');
+        const nameSpan = document.getElementById('waModalClientName');
+        const selectEl = document.getElementById('waModalTemplateSelect');
+        const textareaEl = document.getElementById('waModalMessageText');
+
+        if (phoneSpan) phoneSpan.textContent = activeWhatsappAppointmentData.phone;
+        if (nameSpan) nameSpan.textContent = activeWhatsappAppointmentData.clientFullName;
+
+        // Populate select options
+        if (selectEl) {
+            selectEl.innerHTML = '';
+            if (waTemplatesList.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = whatsappTemplate;
+                opt.textContent = 'Plantilla de Recordatorio Predeterminada';
+                selectEl.appendChild(opt);
+            } else {
+                waTemplatesList.forEach((tmpl, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = tmpl.content;
+                    opt.textContent = tmpl.title + (tmpl.is_default ? ' (Por Defecto)' : '');
+                    if (tmpl.is_default || idx === 0) opt.selected = true;
+                    selectEl.appendChild(opt);
+                });
+            }
+            updateWaAppointmentModalPreview();
+        }
+
+        if (modal) modal.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeWhatsappSendModal() {
+        const modal = document.getElementById('whatsappAppointmentModal');
+        if (modal) modal.classList.add('hidden');
+        activeWhatsappAppointmentData = null;
+    }
+
+    function updateWaAppointmentModalPreview() {
+        if (!activeWhatsappAppointmentData) return;
+        const selectEl = document.getElementById('waModalTemplateSelect');
+        const textareaEl = document.getElementById('waModalMessageText');
+        const rawContent = selectEl ? selectEl.value : whatsappTemplate;
+
+        const rendered = rawContent
+            .replace(/{(?:client_name|nombre_cliente)}/g, activeWhatsappAppointmentData.clientFirstName)
+            .replace(/{(?:service|servicio)}/g, activeWhatsappAppointmentData.serviceName)
+            .replace(/{(?:business|negocio)}/g, activeWhatsappAppointmentData.businessName)
+            .replace(/{(?:date|fecha)}/g, activeWhatsappAppointmentData.dateStr)
+            .replace(/{(?:time|hora)}/g, activeWhatsappAppointmentData.timeStr)
+            .replace(/{(?:staff|profesional)}/g, activeWhatsappAppointmentData.staffName);
+
+        if (textareaEl) textareaEl.value = rendered;
+    }
+
+    function executeSendWhatsappFromModal() {
+        if (!activeWhatsappAppointmentData) return;
+        const textareaEl = document.getElementById('waModalMessageText');
+        const sendBtn = document.getElementById('btnSubmitWaModal');
+        const message = textareaEl ? textareaEl.value.trim() : '';
+        const cleanPhone = activeWhatsappAppointmentData.phone;
+        const clientDisplayName = activeWhatsappAppointmentData.clientFirstName;
+
+        if (!message) {
+            alert('Por favor redacta o selecciona un mensaje.');
+            return;
+        }
+
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Enviando...';
+            if (window.lucide) lucide.createIcons();
+        }
+
         const formData = new FormData();
         formData.append('phone', cleanPhone);
         formData.append('message', message);
@@ -515,8 +661,9 @@
         })
         .then(res => res.json())
         .then(data => {
+            closeWhatsappSendModal();
             if (data.success && data.sent_direct) {
-                alert(`¡Recordatorio enviado directamente por WhatsApp a ${clientDisplayName}!`);
+                alert(`¡Mensaje enviado con éxito por WhatsApp a ${clientDisplayName}!`);
             } else if (data.fallback_url) {
                 window.open(data.fallback_url, '_blank');
             } else {
@@ -525,9 +672,21 @@
             }
         })
         .catch(err => {
+            closeWhatsappSendModal();
             const whatsappUrl = `https://api.whatsapp.com/send?phone=${encodeURIComponent(cleanPhone)}&text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
+        })
+        .finally(() => {
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Enviar Mensaje WhatsApp';
+                if (window.lucide) lucide.createIcons();
+            }
         });
+    }
+
+    function sendWhatsappReminder(phone, clientFirstName, clientFullName, serviceName, dateStr, timeStr, staffName, businessName) {
+        openWhatsappSendModal(phone, clientFirstName, clientFullName, serviceName, dateStr, timeStr, staffName, businessName);
     }
 
     function exportToGoogleCalendar(title, dateStr, startTimeStr, endTimeStr, details, location) {

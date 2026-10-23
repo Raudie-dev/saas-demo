@@ -254,6 +254,13 @@
                 {% endif %}
 
                 {% if not user_is_professional %}
+                <a href="{% url 'whatsapp_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'whatsapp' in request.path %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="message-square" class="w-5 h-5 text-emerald-500"></i>
+                    <span>WhatsApp</span>
+                </a>
+                {% endif %}
+
+                {% if not user_is_professional %}
                 <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'service' in request.resolver_match.url_name %}bg-rose-900 text-white font-semibold shadow-md shadow-rose-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="scissors" class="w-5 h-5"></i>
                     <span>Servicios & Tarifas</span>
@@ -461,6 +468,13 @@
                 <a href="{% url 'ai_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'ia' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="sparkles" class="w-5 h-5 text-emerald-400"></i>
                     <span>IA & Automatizaciones</span>
+                </a>
+                {% endif %}
+
+                {% if not user_is_professional %}
+                <a href="{% url 'whatsapp_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'whatsapp' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="message-square" class="w-5 h-5 text-emerald-500"></i>
+                    <span>WhatsApp</span>
                 </a>
                 {% endif %}
                 {% if not user_is_professional %}

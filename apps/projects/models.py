@@ -222,70 +222,31 @@ class ProjectTask(TimeStampedModel):
     def __str__(self):
         return f"{self.title} - {self.project.name}"
 
+    @property
+    def checklist_stats(self):
+        total = self.checklists.count()
+        completed = self.checklists.filter(is_completed=True).count()
+        percent = int((completed / total) * 100) if total > 0 else 0
+        return {
+            'total': total,
+            'completed': completed,
+            'percent': percent,
+        }
 
-class SocialPost(TimeStampedModel):
-    PLATFORM_CHOICES = [
-        ('INSTAGRAM', 'Instagram'),
-        ('TIKTOK', 'TikTok'),
-        ('FACEBOOK', 'Facebook'),
-        ('YOUTUBE', 'YouTube / Shorts'),
-        ('LINKEDIN', 'LinkedIn'),
-        ('TWITTER', 'X (Twitter)'),
-        ('THREADS', 'Threads'),
-        ('OTHER', 'Otra Plataforma'),
-    ]
 
-    FORMAT_CHOICES = [
-        ('REEL', 'Reel / Video Vertical'),
-        ('CAROUSEL', 'Carrusel Informativo'),
-        ('STATIC', 'Post Estático / Imagen'),
-        ('STORY', 'Historia / Story'),
-        ('LONG_VIDEO', 'Video Largo / YouTube'),
-        ('ARTICLE', 'Artículo / Texto'),
-    ]
-
-    PILLAR_CHOICES = [
-        ('EDUCATIONAL', 'Educativo & Valor'),
-        ('ENTERTAINMENT', 'Entretenimiento & Tendencias'),
-        ('INSPIRATIONAL', 'Inspiración & Storytelling'),
-        ('PROMOTIONAL', 'Venta Directa & Promoción'),
-        ('BEHIND_SCENES', 'Detrás de Escena & Proceso'),
-        ('COMMUNITY', 'Comunidad & Testimonios'),
-    ]
-
-    STATUS_CHOICES = [
-        ('IDEA', '💡 Idea en Borrador'),
-        ('SCRIPT', '📝 Guion / Copy Listo'),
-        ('DESIGN', '🎨 En Diseño / Edición'),
-        ('CLIENT_REVIEW', '⏳ Esperando Aprobación'),
-        ('APPROVED', '✅ Aprobado'),
-        ('SCHEDULED', '⏰ Programado'),
-        ('PUBLISHED', '🚀 Publicado'),
-    ]
-
-    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="social_posts")
-    client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, blank=True, related_name="social_posts", verbose_name="Cliente / Cuenta")
-    project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True, related_name="social_posts", verbose_name="Proyecto Relacionado")
-    assigned_to = models.ForeignKey(StaffMember, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_posts", verbose_name="Creador / Editor")
-
-    title = models.CharField(max_length=200, verbose_name="Título / Idea del Post")
-    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES, default='INSTAGRAM', verbose_name="Red Social")
-    format = models.CharField(max_length=20, choices=FORMAT_CHOICES, default='REEL', verbose_name="Formato")
-    pillar = models.CharField(max_length=20, choices=PILLAR_CHOICES, default='EDUCATIONAL', verbose_name="Pilar de Contenido")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='IDEA', verbose_name="Estado de Producción")
-
-    scheduled_date = models.DateTimeField(null=True, blank=True, verbose_name="Fecha y Hora Programada")
-    hook = models.CharField(max_length=255, blank=True, null=True, verbose_name="Gancho / Hook inicial")
-    caption = models.TextField(blank=True, null=True, verbose_name="Copy / Guión Completo")
-    hashtags = models.CharField(max_length=300, blank=True, null=True, verbose_name="Hashtags")
-    media_url = models.URLField(blank=True, null=True, verbose_name="Enlace Asset (Drive / Canva / Video)")
-    notes = models.TextField(blank=True, null=True, verbose_name="Notas de Producción / Feedback")
+class TaskChecklistItem(TimeStampedModel):
+    task = models.ForeignKey(ProjectTask, on_delete=models.CASCADE, related_name="checklists")
+    title = models.CharField(max_length=255, verbose_name="Elemento de Checklist")
+    is_completed = models.BooleanField(default=False, verbose_name="Completado")
+    order = models.PositiveIntegerField(default=0, verbose_name="Orden")
 
     class Meta:
-        ordering = ['-scheduled_date', '-created_at']
-        verbose_name = "Planificación de Contenido"
-        verbose_name_plural = "Planificaciones de Contenido"
+        ordering = ['order', 'created_at']
+        verbose_name = "Elemento de Checklist"
+        verbose_name_plural = "Elementos de Checklist"
 
     def __str__(self):
-        client_name = self.client.full_name if self.client else self.business.name
-        return f"[{self.get_platform_display()}] {self.title} ({client_name})"
+        status = "✓" if self.is_completed else "○"
+        return f"{status} {self.title}"
+
+

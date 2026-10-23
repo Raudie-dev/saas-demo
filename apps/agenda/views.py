@@ -58,6 +58,8 @@ def agenda_view(request):
     elif selected_staff_id:
         appointments = appointments.filter(staff_id=selected_staff_id)
 
+    wa_templates = list(business.whatsapp_templates.filter(category__in=['APPOINTMENT', 'GENERAL']).values('id', 'title', 'content', 'is_default')) if business else []
+
     return render(request, 'agenda/agenda.html', {
         'business': business,
         'selected_date': selected_date,
@@ -67,6 +69,7 @@ def agenda_view(request):
         'appointments': appointments,
         'selected_staff_id': selected_staff_id,
         'is_restricted_scope': (user_scope == 'OWN'),
+        'wa_templates': wa_templates,
     })
 
 def _parse_services_from_post(request, business):

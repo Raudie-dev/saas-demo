@@ -33,7 +33,13 @@ def ai_dashboard_view(request):
 
     if request.method == 'POST':
         action = request.POST.get('action')
-        if action == 'save_bot_config':
+        if action == 'toggle_bot_status':
+            bot_config.is_active = not bot_config.is_active
+            bot_config.save()
+            estado_txt = "activado" if bot_config.is_active else "pausado / apagado"
+            messages.success(request, f"El Bot de WhatsApp ha sido {estado_txt} correctamente.")
+            return redirect('ai_dashboard')
+        elif action == 'save_bot_config':
             bot_config.is_active = request.POST.get('is_active') in ['1', 'true', 'on', True]
             bot_config.bot_name = request.POST.get('bot_name', bot_config.bot_name).strip()
             bot_config.welcome_message = request.POST.get('welcome_message', bot_config.welcome_message).strip()
