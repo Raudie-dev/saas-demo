@@ -196,7 +196,7 @@ def client_detail_view(request, client_id):
         return redirect('onboarding')
     client = get_object_or_404(Client, id=client_id, business=business)
     
-    appointments = client.appointments.select_related('staff', 'service', 'related_property').order_by('-date', '-start_time')
+    appointments = client.appointments.select_related('staff', 'service').order_by('-date', '-start_time')
     sales = client.sales.select_related('staff').order_by('-created_at')
     invoices = client.invoices.order_by('-issue_date')
     notes = client.client_notes.all().order_by('-created_at')
