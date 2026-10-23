@@ -37,6 +37,10 @@ class Business(TimeStampedModel):
         default="Hola {client_name}, te recordamos tu cita de *{service}* en *{business}* para el día *{date}* a las *{time}* con *{staff}*. ¡Te esperamos!",
         verbose_name="Plantilla de Recordatorio de Cita (WhatsApp)"
     )
+    client_default_message = models.TextField(
+        default="Hola {client_name}, te escribimos desde *{business}*. ¿En qué te podemos ayudar hoy?",
+        verbose_name="Plantilla de Mensaje a Cliente (WhatsApp)"
+    )
     TIME_FORMAT_CHOICES = [
         ('12h', '12 Horas (ej: 09:00 AM / 09:00 PM)'),
         ('24h', '24 Horas (ej: 09:00 / 21:00)'),
@@ -530,6 +534,29 @@ class PaymentMethodConfig(TimeStampedModel):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="payment_methods")
     name = models.CharField(max_length=100, verbose_name="Método de Pago")
     is_enabled = models.BooleanField(default=True)
+
+
+class WhatsAppMessageTemplate(TimeStampedModel):
+    CATEGORY_CHOICES = [
+        ('APPOINTMENT', 'Citas y Reservas (Menú de Agenda)'),
+        ('CLIENT', 'Clientes y CRM (Menú de Clientes)'),
+        ('GENERAL', 'Uso General / Ambos'),
+    ]
+
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="whatsapp_templates", verbose_name="Negocio")
+    title = models.CharField(max_length=120, verbose_name="Nombre de la Plantilla")
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='APPOINTMENT', verbose_name="Ámbito / Menú")
+    content = models.TextField(verbose_name="Contenido del Mensaje")
+    is_default = models.BooleanField(default=False, verbose_name="Plantilla Principal por Defecto")
+
+    class Meta:
+        ordering = ['-is_default', 'title']
+        verbose_name = "Plantilla de WhatsApp"
+        verbose_name_plural = "Plantillas de WhatsApp"
+
+    def __str__(self):
+        return f"{self.title} ({self.get_category_display()})"
+
     instructions = models.TextField(blank=True, null=True)
 
     def __str__(self):

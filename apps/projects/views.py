@@ -9,7 +9,7 @@ from django.core.paginator import Paginator
 
 from apps.business.models import Business, StaffMember
 from apps.crm.models import Client
-from apps.projects.models import Project, ProjectType, ProjectTask, SocialPost
+from apps.projects.models import Project, ProjectType, ProjectTask
 from apps.core.utils import parse_decimal
 
 DEFAULT_PROJECT_TYPES = [
@@ -295,7 +295,6 @@ def project_detail_view(request, project_id):
         business=business
     )
     tasks = project.tasks.select_related('assigned_to').all()
-    social_posts = project.social_posts.all().order_by('-scheduled_date')[:6]
     staff_members = StaffMember.objects.filter(business=business, is_active=True).order_by('first_name')
 
     total_task_estimated_hours = sum(t.estimated_hours for t in tasks)
@@ -350,7 +349,6 @@ def project_detail_view(request, project_id):
         'project': project,
         'tasks': tasks,
         'task_columns': task_columns,
-        'social_posts': social_posts,
         'staff_members': staff_members,
         'priority_choices': ProjectTask.PRIORITY_CHOICES,
         'task_status_choices': ProjectTask.STATUS_CHOICES,
@@ -458,6 +456,51 @@ def project_status_update_view(request, project_id):
             })
 
         return JsonResponse({'success': False, 'error': f'Estado no válido: {new_status}'}, status=400)
+
+    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+
+@login_required
+def project_quick_update_view(request, project_id):
+    """Actualiza recursos (enlaces Drive/Figma) y descripción/delimitaciones del proyecto."""
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return JsonResponse({'success': False, 'error': 'No autenticado'}, status=403)
+
+    project = get_object_or_404(Project, id=project_id, business=business)
+
+    if request.method == 'POST':
+        import json
+        is_json = request.content_type == 'application/json'
+        data = {}
+        if is_json:
+            try:
+                data = json.loads(request.body.decode('utf-8'))
+            except Exception:
+                data = {}
+        else:
+            data = request.POST
+
+        drive_url = data.get('drive_url', '').strip()
+        figma_url = data.get('figma_url', '').strip()
+        description = data.get('description', '').strip()
+
+        project.drive_url = drive_url
+        project.figma_url = figma_url
+        project.description = description
+        project.save(update_fields=['drive_url', 'figma_url', 'description'])
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or is_json:
+            return JsonResponse({
+                'success': True,
+                'message': 'Recursos y delimitaciones actualizados correctamente',
+                'drive_url': project.drive_url,
+                'figma_url': project.figma_url,
+                'description': project.description,
+            })
+
+        messages.success(request, 'Información del proyecto actualizada correctamente.')
+        return redirect('project_detail', project_id=project.id)
 
     return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
 
@@ -726,225 +769,6 @@ def project_task_delete_view(request, task_id):
             project.update_progress_auto()
 
     return redirect('project_detail', project_id=project_id)
-
-
-# ==========================================
-# PLANIFICADOR DE CONTENIDO PARA REDES SOCIALES
-# ==========================================
-
-@login_required
-def content_planner_view(request):
-    business = getattr(request, 'current_business', None) or request.user.business
-    if not business:
-        return redirect('onboarding')
-
-    platform_filter = request.GET.get('platform', '').strip()
-    status_filter = request.GET.get('status', '').strip()
-    client_filter = request.GET.get('client_id', '').strip()
-    search_query = request.GET.get('q', '').strip()
-
-    posts = SocialPost.objects.filter(business=business).select_related('client', 'project', 'assigned_to')
-
-    if platform_filter:
-        posts = posts.filter(platform=platform_filter)
-    if status_filter:
-        posts = posts.filter(status=status_filter)
-    if client_filter:
-        posts = posts.filter(client_id=client_filter)
-    if search_query:
-        posts = posts.filter(
-            models.Q(title__icontains=search_query) |
-            models.Q(caption__icontains=search_query) |
-            models.Q(hook__icontains=search_query)
-        )
-
-    posts = posts.order_by('-scheduled_date', '-created_at')
-
-    # Métricas
-    all_posts = SocialPost.objects.filter(business=business)
-    total_posts = all_posts.count()
-    in_production = all_posts.filter(status__in=['IDEA', 'SCRIPT', 'DESIGN']).count()
-    awaiting_review = all_posts.filter(status='CLIENT_REVIEW').count()
-    published_or_scheduled = all_posts.filter(status__in=['SCHEDULED', 'PUBLISHED']).count()
-
-    clients = Client.objects.filter(business=business).order_by('first_name')
-
-    # Agrupación estilo Kanban
-    columns = [
-        {'code': 'IDEA', 'label': '💡 Ideas', 'posts': [p for p in posts if p.status == 'IDEA']},
-        {'code': 'SCRIPT', 'label': '📝 Guion / Copy', 'posts': [p for p in posts if p.status == 'SCRIPT']},
-        {'code': 'DESIGN', 'label': '🎨 En Diseño', 'posts': [p for p in posts if p.status == 'DESIGN']},
-        {'code': 'CLIENT_REVIEW', 'label': '⏳ En Aprobación', 'posts': [p for p in posts if p.status == 'CLIENT_REVIEW']},
-        {'code': 'APPROVED', 'label': '✅ Aprobados', 'posts': [p for p in posts if p.status == 'APPROVED']},
-        {'code': 'SCHEDULED', 'label': '⏰ Programados / Listos', 'posts': [p for p in posts if p.status in ['SCHEDULED', 'PUBLISHED']]},
-    ]
-
-    return render(request, 'projects/content_planner.html', {
-        'business': business,
-        'posts': posts,
-        'columns': columns,
-        'clients': clients,
-        'platform_filter': platform_filter,
-        'status_filter': status_filter,
-        'client_filter': client_filter,
-        'search_query': search_query,
-        'total_posts': total_posts,
-        'in_production': in_production,
-        'awaiting_review': awaiting_review,
-        'published_or_scheduled': published_or_scheduled,
-        'platform_choices': SocialPost.PLATFORM_CHOICES,
-        'status_choices': SocialPost.STATUS_CHOICES,
-        'format_choices': SocialPost.FORMAT_CHOICES,
-    })
-
-
-@login_required
-def social_post_create_view(request):
-    business = getattr(request, 'current_business', None) or request.user.business
-    if not business:
-        return redirect('onboarding')
-
-    clients = Client.objects.filter(business=business).order_by('first_name', 'last_name')
-    projects = Project.objects.filter(business=business).order_by('-created_at')
-    staff_members = StaffMember.objects.filter(business=business, is_active=True).order_by('first_name')
-
-    if request.method == 'POST':
-        client_id = request.POST.get('client_id')
-        client = Client.objects.filter(id=client_id, business=business).first() if client_id else None
-
-        project_id = request.POST.get('project_id')
-        project = Project.objects.filter(id=project_id, business=business).first() if project_id else None
-
-        assigned_to_id = request.POST.get('assigned_to_id')
-        assigned_to = StaffMember.objects.filter(id=assigned_to_id, business=business).first() if assigned_to_id else None
-
-        title = request.POST.get('title', '').strip()
-        platform = request.POST.get('platform', 'INSTAGRAM')
-        post_format = request.POST.get('format', 'REEL')
-        pillar = request.POST.get('pillar', 'EDUCATIONAL')
-        status = request.POST.get('status', 'IDEA')
-        scheduled_date = request.POST.get('scheduled_date') or None
-        hook = request.POST.get('hook', '').strip()
-        caption = request.POST.get('caption', '').strip()
-        hashtags = request.POST.get('hashtags', '').strip()
-        media_url = request.POST.get('media_url', '').strip()
-        notes = request.POST.get('notes', '').strip()
-
-        post = SocialPost.objects.create(
-            business=business,
-            client=client,
-            project=project,
-            assigned_to=assigned_to,
-            title=title,
-            platform=platform,
-            format=post_format,
-            pillar=pillar,
-            status=status,
-            scheduled_date=scheduled_date,
-            hook=hook,
-            caption=caption,
-            hashtags=hashtags,
-            media_url=media_url,
-            notes=notes
-        )
-
-        return redirect('content_planner')
-
-    preselected_client_id = request.GET.get('client_id')
-    preselected_project_id = request.GET.get('project_id')
-
-    return render(request, 'projects/social_post_form.html', {
-        'business': business,
-        'post': None,
-        'clients': clients,
-        'projects': projects,
-        'staff_members': staff_members,
-        'preselected_client_id': preselected_client_id,
-        'preselected_project_id': preselected_project_id,
-        'platform_choices': SocialPost.PLATFORM_CHOICES,
-        'format_choices': SocialPost.FORMAT_CHOICES,
-        'pillar_choices': SocialPost.PILLAR_CHOICES,
-        'status_choices': SocialPost.STATUS_CHOICES,
-    })
-
-
-@login_required
-def social_post_edit_view(request, post_id):
-    business = getattr(request, 'current_business', None) or request.user.business
-    if not business:
-        return redirect('onboarding')
-
-    post = get_object_or_404(SocialPost, id=post_id, business=business)
-    clients = Client.objects.filter(business=business).order_by('first_name', 'last_name')
-    projects = Project.objects.filter(business=business).order_by('-created_at')
-    staff_members = StaffMember.objects.filter(business=business, is_active=True).order_by('first_name')
-
-    if request.method == 'POST':
-        client_id = request.POST.get('client_id')
-        post.client = Client.objects.filter(id=client_id, business=business).first() if client_id else None
-
-        project_id = request.POST.get('project_id')
-        post.project = Project.objects.filter(id=project_id, business=business).first() if project_id else None
-
-        assigned_to_id = request.POST.get('assigned_to_id')
-        post.assigned_to = StaffMember.objects.filter(id=assigned_to_id, business=business).first() if assigned_to_id else None
-
-        post.title = request.POST.get('title', post.title).strip()
-        post.platform = request.POST.get('platform', post.platform)
-        post.format = request.POST.get('format', post.format)
-        post.pillar = request.POST.get('pillar', post.pillar)
-        post.status = request.POST.get('status', post.status)
-        post.scheduled_date = request.POST.get('scheduled_date') or None
-        post.hook = request.POST.get('hook', '').strip()
-        post.caption = request.POST.get('caption', '').strip()
-        post.hashtags = request.POST.get('hashtags', '').strip()
-        post.media_url = request.POST.get('media_url', '').strip()
-        post.notes = request.POST.get('notes', '').strip()
-        post.save()
-
-        return redirect('content_planner')
-
-    return render(request, 'projects/social_post_form.html', {
-        'business': business,
-        'post': post,
-        'clients': clients,
-        'projects': projects,
-        'staff_members': staff_members,
-        'platform_choices': SocialPost.PLATFORM_CHOICES,
-        'format_choices': SocialPost.FORMAT_CHOICES,
-        'pillar_choices': SocialPost.PILLAR_CHOICES,
-        'status_choices': SocialPost.STATUS_CHOICES,
-    })
-
-
-@login_required
-def social_post_status_view(request, post_id):
-    business = getattr(request, 'current_business', None) or request.user.business
-    if not business:
-        return redirect('onboarding')
-
-    post = get_object_or_404(SocialPost, id=post_id, business=business)
-    if request.method == 'POST':
-        new_status = request.POST.get('status')
-        if new_status in dict(SocialPost.STATUS_CHOICES):
-            post.status = new_status
-            post.save(update_fields=['status'])
-
-    return redirect('content_planner')
-
-
-@login_required
-def social_post_delete_view(request, post_id):
-    business = getattr(request, 'current_business', None) or request.user.business
-    if not business:
-        return redirect('onboarding')
-
-    post = get_object_or_404(SocialPost, id=post_id, business=business)
-    if request.method == 'POST':
-        post.delete()
-        return redirect('content_planner')
-
-    return redirect('content_planner')
 
 
 # ==========================================

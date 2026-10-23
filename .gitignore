@@ -19,3 +19,7 @@ staticfiles/
 create_admin.py
 
 .env
+
+# WhatsApp Gateway auth sessions
+whatsapp-gateway/auth_info/
+whatsapp-gateway/node_modules/

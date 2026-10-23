@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.utils.text import slugify
 from django.utils import timezone
-from apps.business.models import Business, Branch, StaffMember, WorkSchedule, PaymentMethodConfig, User, UserProfileRole, ensure_default_profiles
+from apps.business.models import Business, Branch, StaffMember, WorkSchedule, PaymentMethodConfig, User, UserProfileRole, WhatsAppMessageTemplate, ensure_default_profiles
 from django.db.models import Count
 from apps.core.utils import parse_decimal, parse_int, format_phone_with_prefix, split_phone_number
 
@@ -524,9 +524,11 @@ def business_config_view(request):
         if 'allow_editing_client_history' in request.POST:
             business.allow_editing_client_history = (request.POST.get('allow_editing_client_history') == 'on' or request.POST.get('allow_editing_client_history') == 'true')
         
-        # Guardar mensaje de recordatorio de cita
+        # Guardar mensaje de recordatorio de cita y mensaje por defecto a cliente
         if 'appointment_reminder_message' in request.POST:
             business.appointment_reminder_message = request.POST.get('appointment_reminder_message').strip()
+        if 'client_default_message' in request.POST:
+            business.client_default_message = request.POST.get('client_default_message').strip()
         
         if request.POST.get('submitted_modules_section') == '1' or 'enabled_modules' in request.POST:
             selected_modules = request.POST.getlist('enabled_modules')
@@ -1408,6 +1410,128 @@ GATEWAY_BASE_URL = "http://127.0.0.1:3000"
 def _gw_user(business):
     return str(business.id) if business else "default"
 
+@login_required(login_url='login')
+@ensure_csrf_cookie
+def whatsapp_config_view(request):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+
+    if not request.user.has_perm_flag('can_manage_settings'):
+        messages.error(request, "No tienes permisos para acceder a la configuración de WhatsApp.")
+        return redirect('dashboard')
+
+    # Sembrar plantillas por defecto si el negocio aún no tiene ninguna
+    if not business.whatsapp_templates.exists():
+        WhatsAppMessageTemplate.objects.create(
+            business=business,
+            title="Recordatorio de Cita Estándar",
+            category="APPOINTMENT",
+            content=business.appointment_reminder_message or "Hola {client_name}, te recordamos tu cita de *{service}* en *{business}* para el día *{date}* a las *{time}* con *{staff}*. ¡Te esperamos!",
+            is_default=True
+        )
+        WhatsAppMessageTemplate.objects.create(
+            business=business,
+            title="Confirmación de Turno",
+            category="APPOINTMENT",
+            content="Hola {client_name}, tu cita en *{business}* para *{service}* el {date} a las {time} hs ha sido confirmada con éxito. ¡Te esperamos!",
+            is_default=False
+        )
+        WhatsAppMessageTemplate.objects.create(
+            business=business,
+            title="Mensaje de Saludo a Cliente",
+            category="CLIENT",
+            content=business.client_default_message or "Hola {client_name}, te escribimos desde *{business}*. ¿En qué te podemos ayudar hoy?",
+            is_default=True
+        )
+        WhatsAppMessageTemplate.objects.create(
+            business=business,
+            title="Seguimiento / Fidelización",
+            category="CLIENT",
+            content="Hola {client_name}, queríamos agradecerte por tu confianza en *{business}*. ¿Cómo fue tu experiencia con nuestro servicio?",
+            is_default=False
+        )
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'create_template':
+            title = request.POST.get('title', '').strip()
+            category = request.POST.get('category', 'APPOINTMENT')
+            content = request.POST.get('content', '').strip()
+            is_default = request.POST.get('is_default') in ['on', '1', 'true', True]
+
+            if title and content:
+                if is_default:
+                    WhatsAppMessageTemplate.objects.filter(business=business, category=category).update(is_default=False)
+                WhatsAppMessageTemplate.objects.create(
+                    business=business,
+                    title=title,
+                    category=category,
+                    content=content,
+                    is_default=is_default
+                )
+                messages.success(request, f"¡Plantilla '{title}' creada con éxito!")
+            else:
+                messages.error(request, "El título y el contenido son obligatorios.")
+            return redirect('whatsapp_config')
+
+        elif action == 'edit_template':
+            template_id = request.POST.get('template_id')
+            tmpl = get_object_or_404(WhatsAppMessageTemplate, id=template_id, business=business)
+            title = request.POST.get('title', '').strip()
+            category = request.POST.get('category', tmpl.category)
+            content = request.POST.get('content', '').strip()
+            is_default = request.POST.get('is_default') in ['on', '1', 'true', True]
+
+            if title and content:
+                if is_default:
+                    WhatsAppMessageTemplate.objects.filter(business=business, category=category).exclude(id=tmpl.id).update(is_default=False)
+                tmpl.title = title
+                tmpl.category = category
+                tmpl.content = content
+                tmpl.is_default = is_default
+                tmpl.save()
+                messages.success(request, f"¡Plantilla '{title}' actualizada!")
+            return redirect('whatsapp_config')
+
+        elif action == 'delete_template':
+            template_id = request.POST.get('template_id')
+            tmpl = get_object_or_404(WhatsAppMessageTemplate, id=template_id, business=business)
+            title = tmpl.title
+            tmpl.delete()
+            messages.success(request, f"Plantilla '{title}' eliminada.")
+            return redirect('whatsapp_config')
+
+        elif action == 'set_default_template':
+            template_id = request.POST.get('template_id')
+            tmpl = get_object_or_404(WhatsAppMessageTemplate, id=template_id, business=business)
+            WhatsAppMessageTemplate.objects.filter(business=business, category=tmpl.category).update(is_default=False)
+            tmpl.is_default = True
+            tmpl.save()
+            messages.success(request, f"'{tmpl.title}' establecida como plantilla por defecto.")
+            return redirect('whatsapp_config')
+
+    templates = business.whatsapp_templates.all().order_by('category', '-is_default', 'title')
+
+    session_user = str(business.id) if business else "default"
+    gw_status = {'online': False, 'status': 'offline'}
+    try:
+        url = f"http://127.0.0.1:3000/status?user={session_user}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            gw_status = {'online': True, 'status': data.get('status', 'disconnected')}
+    except Exception:
+        gw_status = {'online': False, 'status': 'offline'}
+
+    return render(request, 'business/whatsapp_config.html', {
+        'business': business,
+        'gw_status': gw_status,
+        'templates': templates,
+    })
+
+
 @login_required
 @ensure_csrf_cookie
 def whatsapp_gateway_status_api(request):
@@ -1449,9 +1573,6 @@ def whatsapp_gateway_generate_api(request):
     if not business:
         return JsonResponse({'success': False, 'error': 'Negocio no encontrado'}, status=400)
     
-    if not business.is_module_enabled('ai_engine'):
-        return JsonResponse({'success': False, 'error': 'El módulo de IA & Automatización debe estar habilitado para vincular WhatsApp.'}, status=403)
-
     session_user = _gw_user(business)
     try:
         url = f"{GATEWAY_BASE_URL}/generate?user={session_user}"

@@ -62,6 +62,8 @@ def client_list_view(request):
     paginator = Paginator(clients, 10)
     page_obj = paginator.get_page(request.GET.get('page', 1))
 
+    wa_templates = list(business.whatsapp_templates.filter(category__in=['CLIENT', 'GENERAL']).values('id', 'title', 'content', 'is_default')) if business else []
+
     return render(request, 'crm/client_list.html', {
         'business': business,
         'clients': page_obj,
@@ -69,6 +71,7 @@ def client_list_view(request):
         'query': query,
         'is_real_estate': is_real_estate,
         'real_estate_filter': real_estate_filter,
+        'wa_templates': wa_templates,
     })
 
 @login_required

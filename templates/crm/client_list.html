@@ -266,12 +266,17 @@
 
                                     <div id="client-menu-{{ client.id }}" class="hidden absolute right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border border-slate-200 z-50 py-1 font-medium text-xs text-left">
                                         {% if client.phone %}
-                                        <a href="https://wa.me/{{ client.phone|cut:' '|cut:'+'|cut:'-' }}?text=Hola%20{{ client.first_name|urlencode }},%20le%20escribo%20de%20{{ business.name|urlencode }}"
-                                           target="_blank"
-                                           class="w-full text-left px-3.5 py-2 hover:bg-emerald-50 text-emerald-800 flex items-center gap-2 cursor-pointer transition">
+                                        <button type="button"
+                                                onclick="sendClientWhatsappMessage(
+                                                    '{{ client.phone|escapejs }}',
+                                                    '{{ client.first_name|escapejs }}',
+                                                    '{{ client.full_name|escapejs }}',
+                                                    '{{ business.name|escapejs }}'
+                                                )"
+                                                class="w-full text-left px-3.5 py-2 hover:bg-emerald-50 text-emerald-800 flex items-center gap-2 cursor-pointer transition">
                                             <i data-lucide="message-circle" class="w-4 h-4 text-emerald-600 shrink-0"></i>
                                             <span>Mensaje WhatsApp</span>
-                                        </a>
+                                        </button>
                                         <a href="tel:{{ client.phone }}"
                                            class="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 cursor-pointer transition">
                                             <i data-lucide="phone" class="w-4 h-4 text-slate-600 shrink-0"></i>
@@ -491,6 +496,57 @@
     </div>
 </div>
 
+<!-- Modal Selección y Envío de Plantilla WhatsApp para Clientes -->
+<div id="whatsappClientModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transition-all text-left">
+        <div class="px-6 py-4 bg-emerald-700 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="message-square" class="w-5 h-5 text-emerald-200"></i>
+                <h3 class="text-sm font-bold font-display">Enviar Mensaje de WhatsApp al Cliente</h3>
+            </div>
+            <button type="button" onclick="closeClientWhatsappModal()" class="text-emerald-100 hover:text-white p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4 text-xs">
+            <!-- Destinatario -->
+            <div class="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between text-emerald-950">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="user" class="w-4 h-4 text-emerald-700"></i>
+                    <span>Cliente: <strong id="waClientModalClientName">Cliente</strong></span>
+                </div>
+                <div class="font-mono font-bold text-emerald-800" id="waClientModalPhone">+...</div>
+            </div>
+
+            <!-- Selector de Plantilla -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-800">Seleccionar Plantilla</label>
+                <select id="waClientModalTemplateSelect" onchange="updateWaClientModalPreview()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 font-medium focus:outline-none focus:border-emerald-600 focus:bg-white transition cursor-pointer">
+                </select>
+                <p class="text-[11px] text-slate-400">El nombre del cliente y el negocio se sustituyen automáticamente.</p>
+            </div>
+
+            <!-- Editor de Mensaje a Enviar -->
+            <div class="space-y-1.5">
+                <label class="block font-bold text-slate-800">Mensaje a Enviar (puedes editar antes de enviar)</label>
+                <textarea id="waClientModalMessageText" rows="5" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-900 font-sans focus:outline-none focus:border-emerald-600 focus:bg-white transition leading-relaxed"></textarea>
+            </div>
+
+            <!-- Botones -->
+            <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button type="button" onclick="closeClientWhatsappModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">
+                    Cancelar
+                </button>
+                <button type="button" id="btnSubmitWaClientModal" onclick="executeSendWhatsappFromClientModal()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    <span>Enviar Mensaje WhatsApp</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     function openImportModal() {
         const modal = document.getElementById('importClientsModal');
@@ -663,6 +719,135 @@
             document.querySelectorAll('[id^="export-dropdown-menu"]').forEach(el => el.classList.add('hidden'));
         }
     });
+
+    const clientDefaultWaTemplate = `{{ business.client_default_message|escapejs }}` || `Hola {client_name}, te escribimos desde *{business}*. ¿En qué te podemos ayudar hoy?`;
+    const clientWaTemplatesList = {{ wa_templates|safe|default:'[]' }};
+
+    let activeWhatsappClientData = null;
+
+    function openClientWhatsappModal(phone, firstName, fullName, businessName) {
+        if (!phone || phone === 'Sin teléfono' || phone.trim() === '') {
+            alert('El cliente no cuenta con un número de teléfono registrado.');
+            return;
+        }
+
+        activeWhatsappClientData = {
+            phone: phone.replace(/[^\d+]/g, ''),
+            clientFirstName: firstName || fullName || 'Cliente',
+            clientFullName: fullName || firstName || 'Cliente',
+            businessName: businessName
+        };
+
+        const modal = document.getElementById('whatsappClientModal');
+        const phoneSpan = document.getElementById('waClientModalPhone');
+        const nameSpan = document.getElementById('waClientModalClientName');
+        const selectEl = document.getElementById('waClientModalTemplateSelect');
+
+        if (phoneSpan) phoneSpan.textContent = activeWhatsappClientData.phone;
+        if (nameSpan) nameSpan.textContent = activeWhatsappClientData.clientFullName;
+
+        if (selectEl) {
+            selectEl.innerHTML = '';
+            if (clientWaTemplatesList.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = clientDefaultWaTemplate;
+                opt.textContent = 'Mensaje Predeterminado';
+                selectEl.appendChild(opt);
+            } else {
+                clientWaTemplatesList.forEach((tmpl, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = tmpl.content;
+                    opt.textContent = tmpl.title + (tmpl.is_default ? ' (Por Defecto)' : '');
+                    if (tmpl.is_default || idx === 0) opt.selected = true;
+                    selectEl.appendChild(opt);
+                });
+            }
+            updateWaClientModalPreview();
+        }
+
+        if (modal) modal.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeClientWhatsappModal() {
+        const modal = document.getElementById('whatsappClientModal');
+        if (modal) modal.classList.add('hidden');
+        activeWhatsappClientData = null;
+    }
+
+    function updateWaClientModalPreview() {
+        if (!activeWhatsappClientData) return;
+        const selectEl = document.getElementById('waClientModalTemplateSelect');
+        const textareaEl = document.getElementById('waClientModalMessageText');
+        const rawContent = selectEl ? selectEl.value : clientDefaultWaTemplate;
+
+        const rendered = rawContent
+            .replace(/{(?:client_name|nombre_cliente)}/g, activeWhatsappClientData.clientFirstName)
+            .replace(/{(?:business|negocio)}/g, activeWhatsappClientData.businessName);
+
+        if (textareaEl) textareaEl.value = rendered;
+    }
+
+    function executeSendWhatsappFromClientModal() {
+        if (!activeWhatsappClientData) return;
+        const textareaEl = document.getElementById('waClientModalMessageText');
+        const sendBtn = document.getElementById('btnSubmitWaClientModal');
+        const message = textareaEl ? textareaEl.value.trim() : '';
+        const cleanPhone = activeWhatsappClientData.phone;
+        const clientDisplayName = activeWhatsappClientData.clientFirstName;
+
+        if (!message) {
+            alert('Por favor redacta o selecciona un mensaje.');
+            return;
+        }
+
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Enviando...';
+            if (window.lucide) lucide.createIcons();
+        }
+
+        const formData = new FormData();
+        formData.append('phone', cleanPhone);
+        formData.append('message', message);
+
+        fetch('{% url "whatsapp_gateway_send_reminder" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            closeClientWhatsappModal();
+            if (data.success && data.sent_direct) {
+                alert(`¡Mensaje enviado con éxito por WhatsApp a ${clientDisplayName}!`);
+            } else if (data.fallback_url) {
+                window.open(data.fallback_url, '_blank');
+            } else {
+                const whatsappUrl = `https://api.whatsapp.com/send?phone=${encodeURIComponent(cleanPhone)}&text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+            }
+        })
+        .catch(err => {
+            closeClientWhatsappModal();
+            const whatsappUrl = `https://api.whatsapp.com/send?phone=${encodeURIComponent(cleanPhone)}&text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        })
+        .finally(() => {
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Enviar Mensaje WhatsApp';
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+
+    function sendClientWhatsappMessage(phone, firstName, fullName, businessName) {
+        openClientWhatsappModal(phone, firstName, fullName, businessName);
+    }
 </script>
 {% endblock %}
 

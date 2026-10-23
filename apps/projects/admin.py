@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Project, ProjectTask, SocialPost
+from .models import Project, ProjectTask
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
@@ -13,8 +13,3 @@ class ProjectTaskAdmin(admin.ModelAdmin):
     list_filter = ('status', 'priority')
     search_fields = ('title', 'description')
 
-@admin.register(SocialPost)
-class SocialPostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'business', 'client', 'platform', 'format', 'status', 'scheduled_date')
-    list_filter = ('platform', 'format', 'status', 'business')
-    search_fields = ('title', 'caption', 'hook')

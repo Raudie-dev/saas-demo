@@ -41,6 +41,7 @@ urlpatterns = [
     path('perfiles/crear/', views.role_create_view, name='role_create'),
     path('perfiles/<uuid:role_id>/editar/', views.role_edit_view, name='role_edit'),
     path('perfiles/<uuid:role_id>/eliminar/', views.role_delete_view, name='role_delete'),
+    path('whatsapp/', views.whatsapp_config_view, name='whatsapp_config'),
     path('whatsapp-gateway/status/', views.whatsapp_gateway_status_api, name='whatsapp_gateway_status'),
     path('whatsapp-gateway/qr/', views.whatsapp_gateway_qr_api, name='whatsapp_gateway_qr'),
     path('whatsapp-gateway/generate/', views.whatsapp_gateway_generate_api, name='whatsapp_gateway_generate'),
