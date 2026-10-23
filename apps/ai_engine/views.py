@@ -1,3 +1,5 @@
+import os
+from django.conf import settings
 import json
 import urllib.request
 from django.shortcuts import render, redirect
