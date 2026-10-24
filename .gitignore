@@ -22,4 +22,6 @@ create_admin.py
 
 # WhatsApp Gateway auth sessions
 whatsapp-gateway/auth_info/
+auth_info/
 whatsapp-gateway/node_modules/
+node_modules/
