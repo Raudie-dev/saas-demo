@@ -6,7 +6,7 @@ def business_context(request):
     if not business and hasattr(request, 'user') and request.user.is_authenticated and getattr(request.user, 'business', None):
         business = request.user.business
 
-    all_module_keys = ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing', 'projects']
+    all_module_keys = ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'whatsapp', 'ai_engine', 'marketing', 'projects']
     modules_enabled = {}
     
     user = getattr(request, 'user', None)

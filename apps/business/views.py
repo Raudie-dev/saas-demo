@@ -270,6 +270,8 @@ def onboarding_view(request):
                 business.region = region
 
         business.primary_goal = primary_goal or "Gestionar y hacer crecer el negocio"
+        if 'ai_engine' in selected_modules and 'whatsapp' not in selected_modules:
+            selected_modules.append('whatsapp')
         business.enabled_modules = selected_modules
         business.currency = currency
         if phone:
@@ -360,6 +362,7 @@ def onboarding_view(request):
         {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag', 'desc': 'Cobros rápidos en mostrador y apertura/cierre de caja'},
         {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package', 'desc': 'Control de productos, servicios y alertas de stock bajo'},
         {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign', 'desc': 'Cálculo automático de comisiones para tu equipo'},
+        {'code': 'whatsapp', 'name': 'WhatsApp & Mensajería', 'icon': 'message-square', 'desc': 'Conexión QR, recordatorios de citas y plantillas de mensajes'},
         {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles', 'desc': 'Asistente IA para generar copies, presupuestos y resúmenes'},
         {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag', 'desc': 'Campañas de email, descuentos y fidelización de clientes'},
     ]
@@ -534,6 +537,8 @@ def business_config_view(request):
         
         if request.POST.get('submitted_modules_section') == '1' or 'enabled_modules' in request.POST:
             selected_modules = request.POST.getlist('enabled_modules')
+            if 'ai_engine' in selected_modules and 'whatsapp' not in selected_modules:
+                selected_modules.append('whatsapp')
             allowed_modules = business.get_allowed_modules()
             business.enabled_modules = [m for m in selected_modules if m in allowed_modules and business.is_module_allowed_by_business_type(m)]
 
@@ -677,6 +682,7 @@ def business_config_view(request):
         {'code': 'pos', 'name': 'Ventas POS & Caja', 'icon': 'shopping-bag'},
         {'code': 'inventory', 'name': 'Inventario & Stock', 'icon': 'package'},
         {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign'},
+        {'code': 'whatsapp', 'name': 'WhatsApp & Mensajería', 'icon': 'message-square'},
         {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles'},
         {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag'},
         {'code': 'projects', 'name': 'Proyectos', 'icon': 'folder-kanban'},
@@ -1419,6 +1425,14 @@ def whatsapp_config_view(request):
     if not business:
         return redirect('onboarding')
 
+    if not business.is_module_enabled('whatsapp'):
+        messages.error(request, "El módulo de WhatsApp no está contratado en tu plan o está deshabilitado.")
+        return redirect('dashboard')
+
+    if not request.user.has_module_access('whatsapp'):
+        messages.error(request, "No tienes permisos asignados para acceder al módulo de WhatsApp.")
+        return redirect('dashboard')
+
     if not request.user.has_perm_flag('can_manage_settings'):
         messages.error(request, "No tienes permisos para acceder a la configuración de WhatsApp.")
         return redirect('dashboard')
@@ -1593,6 +1607,8 @@ def whatsapp_gateway_unlink_api(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return JsonResponse({'success': False, 'error': 'Negocio no encontrado'}, status=400)
+    if not business.is_module_enabled('whatsapp'):
+        return JsonResponse({'success': False, 'error': 'El módulo de WhatsApp no está habilitado para esta empresa.'}, status=403)
     session_user = _gw_user(business)
     try:
         url = f"{GATEWAY_BASE_URL}/unlink?user={session_user}"
@@ -1611,6 +1627,8 @@ def whatsapp_gateway_send_reminder_api(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return JsonResponse({'success': False, 'error': 'Negocio no encontrado'}, status=400)
+    if not business.is_module_enabled('whatsapp'):
+        return JsonResponse({'success': False, 'error': 'El módulo de WhatsApp no está habilitado para esta empresa.'}, status=403)
     session_user = _gw_user(business)
 
     phone = request.POST.get('phone', '').strip()
@@ -1843,6 +1861,7 @@ ALL_SYSTEM_MODULES = [
     {'code': 'commissions', 'name': 'Comisiones de Equipo', 'icon': 'dollar-sign', 'desc': 'Cálculo de comisiones por servicios y liquidaciones.'},
     {'code': 'marketing', 'name': 'Marketing & Promociones', 'icon': 'tag', 'desc': 'Campañas, promociones y fidelización.'},
     {'code': 'booking', 'name': 'Portal de Reservas Online', 'icon': 'globe', 'desc': 'Enlace público 24/7 para que los clientes reserven.'},
+    {'code': 'whatsapp', 'name': 'WhatsApp & Mensajería', 'icon': 'message-square', 'desc': 'Conexión QR, recordatorios de citas y plantillas de mensajes.'},
     {'code': 'ai_engine', 'name': 'IA & Automatización', 'icon': 'sparkles', 'desc': 'Herramientas de inteligencia artificial.'},
 ]
 
@@ -2187,6 +2206,8 @@ def role_create_view(request):
         if not name:
             messages.error(request, "El nombre del perfil es obligatorio.")
         else:
+            if 'ai_engine' in selected_modules and 'whatsapp' not in selected_modules and 'whatsapp' in allowed_plan_modules:
+                selected_modules.append('whatsapp')
             # Filter strictly against subscription modules
             filtered_modules = [m for m in selected_modules if m in allowed_plan_modules]
 
@@ -2245,6 +2266,8 @@ def role_edit_view(request, role_id):
         if not name:
             messages.error(request, "El nombre del perfil es obligatorio.")
         else:
+            if 'ai_engine' in selected_modules and 'whatsapp' not in selected_modules and 'whatsapp' in allowed_plan_modules:
+                selected_modules.append('whatsapp')
             role_obj.name = name
             role_obj.description = description
             role_obj.allowed_modules = [m for m in selected_modules if m in allowed_plan_modules]

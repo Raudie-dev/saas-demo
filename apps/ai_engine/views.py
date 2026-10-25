@@ -27,6 +27,10 @@ def ai_dashboard_view(request):
     if not business:
         return redirect('onboarding')
 
+    if not business.is_module_enabled('ai_engine'):
+        messages.error(request, "El módulo de Inteligencia Artificial & Automatización no está contratado en tu plan o está deshabilitado.")
+        return redirect('dashboard')
+
     bot_config = get_or_create_bot_config(business)
     logs = AIAutomationLog.objects.filter(business=business).order_by('-created_at')[:50]
     
@@ -36,12 +40,18 @@ def ai_dashboard_view(request):
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'toggle_bot_status':
+            if not business.is_module_enabled('whatsapp'):
+                messages.error(request, "El Bot de WhatsApp requiere que el módulo de WhatsApp esté activo en tu empresa.")
+                return redirect('ai_dashboard')
             bot_config.is_active = not bot_config.is_active
             bot_config.save()
             estado_txt = "activado" if bot_config.is_active else "pausado / apagado"
             messages.success(request, f"El Bot de WhatsApp ha sido {estado_txt} correctamente.")
             return redirect('ai_dashboard')
         elif action == 'save_bot_config':
+            if not business.is_module_enabled('whatsapp'):
+                messages.error(request, "La configuración del Bot de WhatsApp requiere que el módulo de WhatsApp esté activo en tu empresa.")
+                return redirect('ai_dashboard')
             bot_config.is_active = request.POST.get('is_active') in ['1', 'true', 'on', True]
             bot_config.bot_name = request.POST.get('bot_name', bot_config.bot_name).strip()
             bot_config.welcome_message = request.POST.get('welcome_message', bot_config.welcome_message).strip()
