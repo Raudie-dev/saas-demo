@@ -63,18 +63,18 @@ class Business(TimeStampedModel):
         return self.name
 
     BUSINESS_TYPE_MODULES = {
-        'HEALTH_CLINIC': ['agenda', 'booking', 'crm', 'invoicing', 'pos', 'commissions', 'inventory', 'marketing', 'ai_engine'],
-        'AESTHETICS_SPA': ['agenda', 'booking', 'crm', 'pos', 'inventory', 'commissions', 'marketing', 'invoicing', 'ai_engine'],
-        'BARBER_SALON': ['agenda', 'booking', 'pos', 'commissions', 'inventory', 'crm', 'invoicing', 'marketing', 'ai_engine'],
-        'KINESIOLOGY': ['agenda', 'booking', 'crm', 'invoicing', 'commissions', 'inventory', 'marketing', 'ai_engine'],
-        'RETAIL_COMMERCE': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'marketing', 'agenda', 'booking', 'ai_engine'],
-        'SERVICES_OTHER': ['crm', 'agenda', 'booking', 'invoicing', 'ai_engine', 'pos', 'inventory', 'commissions', 'marketing', 'projects'],
-        'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'marketing', 'invoicing', 'ai_engine'],
-        'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'agenda', 'booking', 'marketing', 'ai_engine'],
-        'MARKETING': ['crm', 'invoicing', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions', 'projects'],
-        'CONSULTING': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'ai_engine', 'marketing', 'projects'],
-        'REAL_ESTATE': ['crm', 'invoicing', 'commissions', 'booking', 'agenda', 'marketing', 'ai_engine'],
-        'TRAVEL': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'pos', 'marketing', 'ai_engine'],
+        'HEALTH_CLINIC': ['agenda', 'booking', 'crm', 'invoicing', 'pos', 'commissions', 'inventory', 'whatsapp', 'marketing', 'ai_engine'],
+        'AESTHETICS_SPA': ['agenda', 'booking', 'crm', 'pos', 'inventory', 'commissions', 'whatsapp', 'marketing', 'invoicing', 'ai_engine'],
+        'BARBER_SALON': ['agenda', 'booking', 'pos', 'commissions', 'inventory', 'crm', 'invoicing', 'whatsapp', 'marketing', 'ai_engine'],
+        'KINESIOLOGY': ['agenda', 'booking', 'crm', 'invoicing', 'commissions', 'inventory', 'whatsapp', 'marketing', 'ai_engine'],
+        'RETAIL_COMMERCE': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'whatsapp', 'marketing', 'agenda', 'booking', 'ai_engine'],
+        'SERVICES_OTHER': ['crm', 'agenda', 'booking', 'invoicing', 'whatsapp', 'ai_engine', 'pos', 'inventory', 'commissions', 'marketing', 'projects'],
+        'HEALTH_BEAUTY': ['agenda', 'booking', 'pos', 'inventory', 'commissions', 'crm', 'whatsapp', 'marketing', 'invoicing', 'ai_engine'],
+        'RETAIL_OTHER': ['pos', 'inventory', 'invoicing', 'crm', 'commissions', 'agenda', 'booking', 'whatsapp', 'marketing', 'ai_engine'],
+        'MARKETING': ['crm', 'invoicing', 'whatsapp', 'ai_engine', 'marketing', 'booking', 'agenda', 'commissions', 'projects'],
+        'CONSULTING': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'whatsapp', 'ai_engine', 'marketing', 'projects'],
+        'REAL_ESTATE': ['crm', 'invoicing', 'commissions', 'booking', 'agenda', 'whatsapp', 'marketing', 'ai_engine'],
+        'TRAVEL': ['crm', 'agenda', 'booking', 'invoicing', 'commissions', 'pos', 'whatsapp', 'marketing', 'ai_engine'],
     }
 
     @property
@@ -147,7 +147,7 @@ class Business(TimeStampedModel):
         # Fallback sin suscripción o plan abierto
         default_modules = self.BUSINESS_TYPE_MODULES.get(
             self.business_type,
-            ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'ai_engine', 'marketing', 'projects']
+            ['crm', 'agenda', 'booking', 'invoicing', 'pos', 'inventory', 'commissions', 'whatsapp', 'ai_engine', 'marketing', 'projects']
         )
         return [m for m in default_modules if self.is_module_allowed_by_business_type(m)]
 
@@ -172,6 +172,9 @@ class Business(TimeStampedModel):
             return self.is_real_estate
         if module_name == 'travel':
             return self.is_travel
+        # 5. Dependencia: el módulo de IA depende estrictamente del de WhatsApp
+        if module_name == 'ai_engine' and not self.is_module_enabled('whatsapp'):
+            return False
         if not self.enabled_modules:
             return True
         return module_name in self.enabled_modules
@@ -320,7 +323,7 @@ def ensure_default_profiles(business):
     
     role2_name = 'Recepción'
     role2_desc = 'Control de agenda, gestión de clientes y cobro en POS / Caja.'
-    role2_mods = [m for m in ['agenda', 'crm', 'pos', 'booking', 'invoicing', 'travel'] if m in allowed_plan_modules]
+    role2_mods = [m for m in ['agenda', 'crm', 'pos', 'booking', 'invoicing', 'travel', 'whatsapp'] if m in allowed_plan_modules]
     
     role3_name = 'Administrador'
     role3_desc = 'Acceso total a reportes, facturación, usuarios y configuración del negocio.'
@@ -396,6 +399,8 @@ class User(AbstractUser):
             return False
         if not self.business.is_module_enabled(module_code):
             return False
+        if module_code == 'ai_engine' and not self.has_module_access('whatsapp'):
+            return False
         if self.is_superuser or self.role == 'OWNER':
             return True
         if self.profile_role:
@@ -405,7 +410,7 @@ class User(AbstractUser):
         elif self.role == 'PROFESSIONAL':
             return module_code in ['agenda', 'commissions', 'crm', 'projects', 'properties', 'travel']
         elif self.role == 'RECEPTIONIST':
-            return module_code in ['agenda', 'crm', 'pos', 'booking', 'travel']
+            return module_code in ['agenda', 'crm', 'pos', 'booking', 'travel', 'whatsapp']
         return False
 
     def has_perm_flag(self, flag_name):

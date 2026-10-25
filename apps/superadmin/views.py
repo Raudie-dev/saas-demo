@@ -474,6 +474,8 @@ def plans_management_view(request):
             max_users = request.POST.get('max_users', 5)
             max_branches = request.POST.get('max_branches', 2)
             selected_modules = request.POST.getlist('included_modules')
+            if 'ai_engine' in selected_modules and 'whatsapp' not in selected_modules:
+                selected_modules.append('whatsapp')
             show_on_landing = request.POST.get('show_on_landing') in ['on', 'true', '1']
 
             if name and code:
@@ -524,6 +526,8 @@ def plans_management_view(request):
             max_branches_val = int(raw_branches) if raw_branches != '' else plan.max_branches
 
             selected_modules = request.POST.getlist('included_modules')
+            if 'ai_engine' in selected_modules and 'whatsapp' not in selected_modules:
+                selected_modules.append('whatsapp')
             show_on_landing = request.POST.get('show_on_landing') in ['on', 'true', '1']
             is_active = request.POST.get('is_active') in ['on', 'true', '1']
 
@@ -596,6 +600,7 @@ def plans_management_view(request):
         {'code': 'pos', 'name': 'Ventas POS & Caja'},
         {'code': 'inventory', 'name': 'Inventario & Stock'},
         {'code': 'commissions', 'name': 'Comisiones de Equipo'},
+        {'code': 'whatsapp', 'name': 'WhatsApp & Mensajería'},
         {'code': 'ai_engine', 'name': 'IA & Automatización'},
         {'code': 'marketing', 'name': 'Marketing & Promociones'},
         {'code': 'projects', 'name': 'Proyectos'},
@@ -1162,7 +1167,7 @@ def _ensure_default_plans():
             'annual_price': Decimal('180.00'),
             'max_users': 3,
             'max_branches': 1,
-            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory'],
+            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'whatsapp'],
         },
         {
             'code': 'PRO',
@@ -1171,7 +1176,7 @@ def _ensure_default_plans():
             'annual_price': Decimal('288.00'),
             'max_users': 10,
             'max_branches': 2,
-            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'projects'],
+            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'whatsapp', 'ai_engine', 'marketing', 'projects'],
         },
         {
             'code': 'ENTERPRISE',
@@ -1180,7 +1185,7 @@ def _ensure_default_plans():
             'annual_price': Decimal('560.00'),
             'max_users': 0,
             'max_branches': 0,
-            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'ai_engine', 'marketing', 'projects'],
+            'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'whatsapp', 'ai_engine', 'marketing', 'projects'],
         },
     ]
 

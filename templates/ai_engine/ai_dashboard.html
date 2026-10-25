@@ -74,6 +74,23 @@
         </div>
     </div>
 
+    {% if not modules_enabled.whatsapp %}
+    <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <p class="font-bold text-sm text-amber-950">Módulo de WhatsApp requerido</p>
+                <p class="text-[11px] text-amber-800 mt-0.5">El Bot de IA y las automatizaciones dependen del <strong>Módulo de WhatsApp</strong> para recibir y contestar mensajes a tus clientes.</p>
+            </div>
+        </div>
+        <a href="{% url 'subscription_billing' %}" class="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition shrink-0">
+            Ver Planes & Módulos
+        </a>
+    </div>
+    {% endif %}
+
     <!-- Main Grid: Configuration Form (Left) & Live Simulator (Right) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 

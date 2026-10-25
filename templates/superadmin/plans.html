@@ -548,6 +548,28 @@
                 if (e.target === this) closeCreateModal();
             });
         }
+        // Control de dependencia: IA & Automatización depende de WhatsApp
+        function setupModuleDependency(aiSelector, whatsappSelector) {
+            const aiCb = document.querySelector(aiSelector);
+            const waCb = document.querySelector(whatsappSelector);
+            if (aiCb && waCb) {
+                aiCb.addEventListener('change', function() {
+                    if (this.checked && !waCb.checked) {
+                        waCb.checked = true;
+                    }
+                });
+                waCb.addEventListener('change', function() {
+                    if (!this.checked && aiCb.checked) {
+                        aiCb.checked = false;
+                    }
+                });
+            }
+        }
+
+        // Configurar para modal de creación y de edición
+        setupModuleDependency('.create-module-checkbox[value="ai_engine"]', '.create-module-checkbox[value="whatsapp"]');
+        setupModuleDependency('#edit-mod-ai_engine', '#edit-mod-whatsapp');
+
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeEditModal();
