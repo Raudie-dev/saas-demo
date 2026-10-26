@@ -98,14 +98,23 @@ def get_access_token(region=None):
                     if token:
                         return token
 
-    # Fallback general
-    return os.getenv('MERCADOPAGO_ACCESS_TOKEN', '')
+    # Fallback general (permite usar MERCADOPAGO_ACCESS_TOKEN o TEST/PROD según lo configurado en .env)
+    return (
+        os.getenv('MERCADOPAGO_ACCESS_TOKEN', '') or
+        os.getenv('MERCADOPAGO_PROD_ACCESS_TOKEN', '') or
+        os.getenv('MERCADOPAGO_TEST_ACCESS_TOKEN', '')
+    )
 
 
 def get_public_key(region=None):
     use_prod = is_production()
     pk_var = 'MERCADOPAGO_PROD_PUBLIC_KEY' if use_prod else 'MERCADOPAGO_TEST_PUBLIC_KEY'
-    return os.getenv(pk_var) or os.getenv('MERCADOPAGO_PUBLIC_KEY', '')
+    return (
+        os.getenv(pk_var) or
+        os.getenv('MERCADOPAGO_PUBLIC_KEY', '') or
+        os.getenv('MERCADOPAGO_PROD_PUBLIC_KEY', '') or
+        os.getenv('MERCADOPAGO_TEST_PUBLIC_KEY', '')
+    )
 
 
 def is_configured(region=None):
@@ -116,6 +125,9 @@ def is_sandbox(region=None):
     sandbox_env = os.getenv('MERCADOPAGO_SANDBOX')
     if sandbox_env is not None:
         return sandbox_env.strip().lower() in ('true', '1', 'yes')
+    token = get_access_token(region)
+    if token and ('TEST-' in token or 'test' in token.lower()):
+        return True
     return not is_production()
 
 
