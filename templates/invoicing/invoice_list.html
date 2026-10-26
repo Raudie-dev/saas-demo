@@ -182,10 +182,18 @@
                             {% endif %}
                         </td>
                         <td class="p-4 text-right">
-                            <a href="{% url 'invoice_detail' inv.id %}" target="_blank" class="h-8 px-3 rounded-lg bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center transition shadow-2xs whitespace-nowrap">
-                                <i data-lucide="eye" class="w-3.5 h-3.5 mr-1"></i>
-                                Ver Factura
-                            </a>
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="{% url 'invoice_detail' inv.id %}" target="_blank" class="h-8 px-3 rounded-lg bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center transition shadow-2xs whitespace-nowrap">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5 mr-1"></i>
+                                    Ver Factura
+                                </a>
+                                <button type="button"
+                                        onclick="confirmDeleteInvoice('{{ inv.id }}', '{{ inv.invoice_number }}')"
+                                        title="Eliminar factura"
+                                        class="h-8 w-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 inline-flex items-center justify-center cursor-pointer transition shadow-2xs">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -255,4 +263,38 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Modal Confirmar Eliminación de Factura -->
+<div id="deleteInvoiceModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto">
+            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+        <div class="text-center space-y-1">
+            <h3 class="font-extrabold text-slate-900 text-base">¿Eliminar Factura?</h3>
+            <p class="text-xs text-slate-500">¿Estás seguro de que deseas eliminar la factura <strong id="deleteInvoiceNumber" class="text-slate-800"></strong>? Esta acción es irreversible.</p>
+        </div>
+        <form id="deleteInvoiceForm" method="POST" action="" class="flex items-center gap-2 pt-2">
+            {% csrf_token %}
+            <button type="button" onclick="closeDeleteInvoiceModal()" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer">
+                Cancelar
+            </button>
+            <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white shadow-xs transition cursor-pointer">
+                Sí, Eliminar
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function confirmDeleteInvoice(invId, invNumber) {
+        document.getElementById('deleteInvoiceNumber').textContent = '#' + invNumber;
+        document.getElementById('deleteInvoiceForm').action = `/facturacion/${invId}/eliminar/`;
+        document.getElementById('deleteInvoiceModal').classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+    function closeDeleteInvoiceModal() {
+        document.getElementById('deleteInvoiceModal').classList.add('hidden');
+    }
+</script>
 {% endblock %}

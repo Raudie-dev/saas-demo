@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from django.utils.text import slugify
 from apps.business.models import Business, User, StaffMember, Branch
 from apps.agenda.models import Appointment
@@ -350,6 +350,85 @@ def user_detail_view(request, business_id):
         'business_users': business_users,
         'all_regions': all_regions,
         'subscription_payments': subscription_payments,
+    })
+
+@superadmin_required
+@ensure_csrf_cookie
+def superadmin_payments_list_view(request):
+    """
+    Panel centralizado para auditar, monitorear, aprobar y rechazar
+    todos los comprobantes y pagos de suscripción de la plataforma
+    sin necesidad de entrar en la ficha individual de cada agencia.
+    """
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        payment_id = request.POST.get('payment_id')
+        payment = get_object_or_404(SubscriptionPayment.objects.select_related('business', 'plan'), id=payment_id)
+
+        if action == 'APPROVE_PAYMENT':
+            from apps.superadmin.mercadopago import apply_approved_payment
+            apply_approved_payment(
+                payment,
+                reviewer=request.superadmin_user,
+                actor_email=request.superadmin_user.email or request.superadmin_user.username
+            )
+            messages.success(request, f"¡Pago de '{payment.business.name}' por ${payment.amount} aprobado con éxito! La licencia fue renovada/activada.")
+            return redirect('superadmin_payments')
+
+        elif action == 'REJECT_PAYMENT':
+            reject_notes = request.POST.get('reject_notes', '').strip()
+            payment.status = 'REJECTED'
+            payment.notes = reject_notes
+            payment.reviewed_at = timezone.now()
+            payment.reviewed_by = request.superadmin_user
+            payment.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="PAGO_RECHAZADO",
+                details=f"Pago #{payment.id} de '{payment.business.name}' por ${payment.amount} marcado como rechazado. Motivo: {reject_notes or 'Sin motivo'}",
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            messages.warning(request, f"Pago de '{payment.business.name}' marcado como rechazado.")
+            return redirect('superadmin_payments')
+
+    status_filter = request.GET.get('status', 'ALL')
+    query = request.GET.get('q', '').strip()
+
+    payments_qs = SubscriptionPayment.objects.select_related(
+        'business', 'plan', 'region_payment_method', 'region_payment_method__payment_method', 'reviewed_by'
+    ).order_by('-created_at')
+
+    if status_filter != 'ALL':
+        payments_qs = payments_qs.filter(status=status_filter)
+
+    if query:
+        payments_qs = payments_qs.filter(
+            Q(business__name__icontains=query) |
+            Q(reference__icontains=query) |
+            Q(mp_payment_id__icontains=query) |
+            Q(plan__name__icontains=query)
+        )
+
+    all_payments = SubscriptionPayment.objects.all()
+    pending_count = all_payments.filter(status='PENDING').count()
+    approved_count = all_payments.filter(status='APPROVED').count()
+    rejected_count = all_payments.filter(status='REJECTED').count()
+    total_approved = all_payments.filter(status='APPROVED').aggregate(total=Sum('amount'))['total'] or 0
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(payments_qs, 20)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    return render(request, 'superadmin/payments.html', {
+        'payments': page_obj,
+        'page_obj': page_obj,
+        'status_filter': status_filter,
+        'query': query,
+        'pending_count': pending_count,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
+        'total_approved': total_approved,
     })
 
 @superadmin_required
