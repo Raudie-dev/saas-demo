@@ -26,6 +26,7 @@ urlpatterns = [
     path('configuracion/empresa/', views.business_config_view),
     path('config/cuenta/', views.user_profile_config_view, name='user_profile_config'),
     path('config/suscripcion/', views.subscription_billing_view, name='subscription_billing'),
+    path('config/suscripcion/comprobante/<uuid:payment_id>/', views.subscription_receipt_view, name='subscription_receipt'),
     path('config/suscripcion/mercadopago/retorno/', views.mercadopago_return_view, name='mercadopago_return'),
     path('webhooks/mercadopago/', views.mercadopago_webhook_view, name='mercadopago_webhook'),
     path('cambiar-sucursal/', views.switch_branch_view, name='switch_branch'),

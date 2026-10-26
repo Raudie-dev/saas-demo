@@ -901,6 +901,10 @@ def subscription_billing_view(request):
     from apps.superadmin.views import _ensure_default_plans
     _ensure_default_plans()
 
+    current_region = business.region
+    if not current_region:
+        current_region = Region.objects.filter(is_default=True).first() or Region.objects.first()
+
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -939,18 +943,36 @@ def subscription_billing_view(request):
             return redirect('subscription_billing')
 
         elif action == 'REPORT_PAYMENT':
+            from apps.superadmin.regional_payment_registry import get_payment_method_by_code
             amount = request.POST.get('amount')
             reference = request.POST.get('reference', '').strip()
             rpm_id = request.POST.get('region_payment_method_id')
             plan_id = request.POST.get('plan_id')
             billing_cycle = request.POST.get('billing_cycle', 'MONTHLY')
             receipt_file = request.FILES.get('receipt_file')
-            notes = request.POST.get('notes', '').strip()
+            user_notes = request.POST.get('notes', '').strip()
 
-            rpm = RegionPaymentMethod.objects.filter(id=rpm_id).first()
             plan = SubscriptionPlan.objects.filter(id=plan_id).first()
+            selected_method = get_payment_method_by_code(rpm_id, current_region)
 
-            if amount and rpm:
+            rpm = None
+            try:
+                rpm = RegionPaymentMethod.objects.filter(id=rpm_id).first()
+            except Exception:
+                rpm = None
+
+            if not rpm and selected_method:
+                rpm = RegionPaymentMethod.objects.filter(
+                    region=current_region,
+                    payment_method__code=selected_method.code
+                ).first()
+
+            method_name = selected_method.name if selected_method else (rpm.payment_method.name if rpm else "Transferencia / Alias")
+            payment_notes = f"Método: {method_name}"
+            if user_notes:
+                payment_notes = f"{payment_notes}\n{user_notes}"
+
+            if amount and (selected_method or rpm):
                 payment = SubscriptionPayment.objects.create(
                     business=business,
                     plan=plan,
@@ -959,20 +981,27 @@ def subscription_billing_view(request):
                     amount=amount,
                     reference=reference,
                     receipt_file=receipt_file,
-                    notes=notes
+                    status='PENDING',
+                    notes=payment_notes
                 )
                 SystemAuditLog.objects.create(
                     actor_email=request.user.email or request.user.username,
                     action="PAGO_REPORTADO",
-                    details=f"La agencia '{business.name}' informó un pago de {amount} mediante {rpm.payment_method.name} ({billing_cycle})."
+                    details=f"La agencia '{business.name}' informó un pago de {amount} mediante {method_name} ({billing_cycle}). Estado: Pendiente de revisión."
                 )
-                messages.success(request, "¡Tu pago ha sido informado con éxito! Un administrador lo revisará a la brevedad para verificar la acreditación y renovar tu suscripción.")
+                curr_sym = current_region.currency_symbol if current_region else "$"
+                messages.success(
+                    request,
+                    f"¡Pago de {curr_sym}{amount} ({method_name}) informado con éxito! "
+                    "Ha quedado en estado PENDIENTE. Un administrador verificará tu comprobante y confirmará el pago para activar o extender tu suscripción."
+                )
             else:
                 messages.error(request, "Por favor completa el método de pago y el importe para informar el pago.")
             return redirect('subscription_billing')
 
         elif action == 'PAY_GATEWAY':
             from apps.superadmin import payment_gateways as gateways
+            from apps.superadmin.regional_payment_registry import get_payment_method_by_code
             plan_id = request.POST.get('plan_id')
             billing_cycle = 'ANNUAL' if request.POST.get('billing_cycle') == 'ANNUAL' else 'MONTHLY'
             plan = SubscriptionPlan.objects.filter(id=plan_id, is_active=True).first()
@@ -980,15 +1009,25 @@ def subscription_billing_view(request):
                 messages.error(request, "Selecciona un plan válido para pagar.")
                 return redirect('subscription_billing')
 
-            # Solo se aceptan pasarelas habilitadas para la región de la empresa (o GLOBAL como fallback)
-            allowed_regions = [c for c in [getattr(business.region, 'code', None), 'GLOBAL'] if c]
-            rpm = RegionPaymentMethod.objects.filter(
-                id=request.POST.get('region_payment_method_id'),
-                region__code__in=allowed_regions, is_active=True, use_for_billing=True,
-                payment_method__is_active=True,
-            ).exclude(payment_method__provider='').select_related('payment_method').first()
-            provider = rpm.payment_method.provider if rpm else None
-            if not rpm or not gateways.is_available(provider, business.region):
+            target_code = request.POST.get('region_payment_method_id') or 'MERCADOPAGO'
+            code_method = get_payment_method_by_code(target_code, business.region)
+            provider = code_method.provider if code_method else target_code
+
+            rpm = None
+            try:
+                rpm = RegionPaymentMethod.objects.filter(id=target_code).select_related('payment_method').first()
+                if rpm and rpm.payment_method.provider:
+                    provider = rpm.payment_method.provider
+            except Exception:
+                rpm = None
+
+            if not rpm and provider:
+                rpm = RegionPaymentMethod.objects.filter(
+                    region=business.region,
+                    payment_method__provider=provider
+                ).select_related('payment_method').first()
+
+            if not provider or not gateways.is_available(provider, business.region):
                 messages.error(request, "Este método de pago no está disponible en tu región.")
                 return redirect('subscription_billing')
 
@@ -1005,13 +1044,13 @@ def subscription_billing_view(request):
             except Exception as e:
                 import logging
                 logging.getLogger(__name__).exception("Error iniciando pasarela %s", provider)
-                messages.error(request, f"No se pudo iniciar el pago con {rpm.payment_method.name}. Intenta nuevamente.")
+                messages.error(request, f"No se pudo iniciar el pago con {code_method.name if code_method else provider}. Intenta nuevamente.")
                 return redirect('subscription_billing')
 
             SystemAuditLog.objects.create(
                 actor_email=request.user.email or request.user.username,
                 action="PAGO_PASARELA_INICIADO",
-                details=f"La agencia '{business.name}' inició un pago de {amount} ({billing_cycle}) vía {rpm.payment_method.name}.",
+                details=f"La agencia '{business.name}' inició un pago de {amount} ({billing_cycle}) vía {code_method.name if code_method else provider}.",
             )
             return redirect(redirect_url)
 
@@ -1085,23 +1124,34 @@ def subscription_billing_view(request):
 
     available_plans.sort(key=lambda x: x.display_monthly)
 
-    billing_methods = []
-    if current_region:
-        billing_methods = RegionPaymentMethod.objects.filter(
-            region=current_region, 
-            is_active=True, 
-            use_for_billing=True
-        ).select_related('payment_method')
+    from apps.superadmin.regional_payment_registry import normalize_region_key
+    from apps.superadmin.bcv_service import get_bcv_info
 
-    # If the region has no billing methods configured, also check default or global region methods as fallback
-    if not billing_methods and current_region.code != 'GLOBAL':
-        global_region = Region.objects.filter(code='GLOBAL').first()
-        if global_region:
-            billing_methods = RegionPaymentMethod.objects.filter(
-                region=global_region,
-                is_active=True,
-                use_for_billing=True
-            ).select_related('payment_method')
+    is_venezuela = (normalize_region_key(current_region) == 'VE')
+    bcv_info = None
+
+    if is_venezuela:
+        try:
+            from decimal import ROUND_HALF_UP
+            bcv_info = get_bcv_info()
+            rate = bcv_info['rate']
+            for plan in available_plans:
+                bs_m = (plan.display_monthly * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                bs_a = (plan.display_annual * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                setattr(plan, 'bs_monthly', bs_m)
+                setattr(plan, 'bs_annual', bs_a)
+                setattr(plan, 'bs_monthly_formatted', f"{bs_m:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                setattr(plan, 'bs_annual_formatted', f"{bs_a:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("No se pudo obtener la tasa BCV: %s", e)
+
+    # Auto-sincronizar pagos pendientes de Mercado Pago
+    try:
+        from apps.superadmin import mercadopago as mp
+        mp.sync_pending_payments_for_business(business)
+    except Exception:
+        pass
 
     payment_history = SubscriptionPayment.objects.filter(business=business).select_related(
         'plan', 'region_payment_method', 'region_payment_method__payment_method'
@@ -1110,13 +1160,17 @@ def subscription_billing_view(request):
     current_users_count = business.users.count()
     current_branches_count = business.branches.count()
 
+    from apps.superadmin.regional_payment_registry import get_regional_payment_methods
     from apps.superadmin.payment_gateways import is_available, get_provider
+
+    # Los métodos de cobro de suscripción se obtienen del registro centralizado por código según la región
+    regional_code_methods = get_regional_payment_methods(current_region)
     gateway_methods, manual_methods = [], []
-    for rm in billing_methods:
-        provider = rm.payment_method.provider
-        if provider:
-            if rm.payment_method.is_active and is_available(provider, business.region):
-                rm.gateway = get_provider(provider)
+    for rm in regional_code_methods:
+        if rm.type == 'GATEWAY':
+            provider = rm.provider or 'MERCADOPAGO'
+            if is_available(provider, current_region):
+                rm.gateway = get_provider(provider) or rm.gateway
                 gateway_methods.append(rm)
         else:
             manual_methods.append(rm)
@@ -1134,6 +1188,8 @@ def subscription_billing_view(request):
         'payment_history': payment_history,
         'current_users_count': current_users_count,
         'current_branches_count': current_branches_count,
+        'is_venezuela': is_venezuela,
+        'bcv_info': bcv_info,
     })
 
 
@@ -1216,6 +1272,34 @@ def mercadopago_webhook_view(request):
     except mp.MercadoPagoError:
         return HttpResponse(status=500)  # MP reintentará
     return HttpResponse(status=200)
+
+
+@login_required(login_url='login')
+def subscription_receipt_view(request, payment_id):
+    """Comprobante oficial de suscripción para el cliente / agencia."""
+    from apps.superadmin.models import SubscriptionPayment
+    business = getattr(request, 'current_business', None) or getattr(request.user, 'business', None)
+    payment = get_object_or_404(
+        SubscriptionPayment.objects.select_related(
+            'business', 'business__region', 'business__subscription',
+            'plan', 'region_payment_method', 'region_payment_method__payment_method',
+            'reviewed_by'
+        ),
+        id=payment_id
+    )
+
+    # Validar que pertenezca a la empresa del usuario logueado o que sea superadmin
+    if not business or payment.business_id != business.id:
+        from apps.superadmin.views import get_current_superadmin
+        if not get_current_superadmin(request):
+            messages.error(request, "No tienes permiso para ver este comprobante.")
+            return redirect('subscription_billing')
+
+    return render(request, 'superadmin/subscription_receipt.html', {
+        'payment': payment,
+        'business': payment.business,
+        'is_superadmin': False,
+    })
 
 @login_required
 def staff_list_view(request):

@@ -318,7 +318,8 @@
                         <!-- Actions -->
                         <td class="py-3.5 px-4 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-1.5">
-                                <!-- Botón Ver Detalle (Abre el mismo modal de detalle) -->
+                                {% if inst.status != 'PAID' %}
+                                <!-- Botón Ver Detalle para cuotas pendientes -->
                                 <button type="button" 
                                         onclick="showInstallmentDetailFromTable('{{ inst.id }}')"
                                         class="h-8 w-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 inline-flex items-center justify-center transition shadow-2xs cursor-pointer"
@@ -326,7 +327,6 @@
                                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                 </button>
 
-                                {% if inst.status != 'PAID' %}
                                 <button type="button" 
                                         onclick="openChargeModal('{{ inst.id }}', '{{ inst.concept|escapejs }}', '{{ inst.balance|unlocalize }}', '{{ inst.client.full_name|escapejs }}')"
                                         class="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs cursor-pointer">
@@ -334,6 +334,7 @@
                                     <span>Cobrar</span>
                                 </button>
                                 {% else %}
+                                <!-- Botón único Ver Pago para cuota ya cobrada -->
                                 <button type="button" 
                                         onclick="showInstallmentDetailFromTable('{{ inst.id }}')"
                                         class="h-8 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[11px] inline-flex items-center gap-1 transition cursor-pointer"
@@ -341,6 +342,21 @@
                                     <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-600"></i>
                                     <span>Ver Pago</span>
                                 </button>
+                                {% if inst.invoice %}
+                                <a href="{% url 'invoice_detail' inst.invoice.id %}" target="_blank"
+                                   class="h-8 px-2.5 rounded-lg bg-slate-900 hover:bg-rose-900 text-white font-bold text-[11px] inline-flex items-center gap-1 transition shadow-2xs"
+                                   title="Ver Factura en PDF / Imprimir">
+                                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-300"></i>
+                                    <span>Factura</span>
+                                </a>
+                                {% elif inst.sale.invoice %}
+                                <a href="{% url 'invoice_detail' inst.sale.invoice.id %}" target="_blank"
+                                   class="h-8 px-2.5 rounded-lg bg-slate-900 hover:bg-rose-900 text-white font-bold text-[11px] inline-flex items-center gap-1 transition shadow-2xs"
+                                   title="Ver Factura en PDF / Imprimir">
+                                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-300"></i>
+                                    <span>Factura</span>
+                                </a>
+                                {% endif %}
                                 {% endif %}
 
                                 <form method="POST" action="{% url 'payment_installment_delete' inst.id %}" data-confirm="¿Estás seguro de que deseas eliminar esta cuota planificada?" data-confirm-title="Eliminar Cuota" data-confirm-btn="Sí, Eliminar" class="inline">
@@ -505,6 +521,10 @@
             <button type="button" onclick="closeInstallmentDetailModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
                 Cerrar
             </button>
+            <a id="detailModalInvoiceBtn" href="#" target="_blank" class="hidden px-4 py-2 rounded-xl bg-slate-950 hover:bg-rose-900 text-white text-xs font-bold transition shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="file-text" class="w-4 h-4 text-rose-300"></i>
+                <span>Ver Factura Emitida</span>
+            </a>
             <button type="button" id="detailModalActionBtn" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
                 <i data-lucide="dollar-sign" class="w-4 h-4"></i>
                 <span>Registrar Cobro</span>
@@ -1880,6 +1900,16 @@
     // ==========================================
     function openDirectChargeModal() {
         const modal = document.getElementById('directChargeModal');
+        const form = document.getElementById('directChargeForm');
+        if (form) {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                submitBtn.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4"></i><span>Confirmar y Cobrar</span>';
+            }
+        }
+
         modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
         setTimeout(() => document.getElementById('dc-client-search-input')?.focus(), 100);
@@ -1918,6 +1948,13 @@
         if (amountInput) {
             amountInput.value = formatted;
             amountInput.max = formatted;
+        }
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+            submitBtn.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4"></i><span>Confirmar Ingreso</span>';
         }
 
         modal.classList.remove('hidden');
@@ -2275,6 +2312,16 @@
             notesRow.classList.add('hidden');
         }
 
+        const invoiceBtn = document.getElementById('detailModalInvoiceBtn');
+        if (invoiceBtn) {
+            if (props.invoiceId) {
+                invoiceBtn.href = `/facturacion/${props.invoiceId}/`;
+                invoiceBtn.classList.remove('hidden');
+            } else {
+                invoiceBtn.classList.add('hidden');
+            }
+        }
+
         if (window.lucide) lucide.createIcons();
 
         modal.classList.remove('hidden');
@@ -2336,12 +2383,33 @@
         }
     }
 
-    // Restaurar vista previa al cargar la página si el usuario prefiere Calendario
+    // Restaurar vista previa al cargar la página y protección de doble clic
     document.addEventListener('DOMContentLoaded', function() {
         const savedView = localStorage.getItem('cobranzas_view_preference');
         if (savedView === 'calendar') {
             switchCobranzasView('calendar');
         }
+
+        const attachDoubleSubmitProtection = (formId, loadingText) => {
+            const form = document.getElementById(formId);
+            if (!form) return;
+            form.addEventListener('submit', function(e) {
+                const btn = form.querySelector('button[type="submit"]');
+                if (btn) {
+                    if (btn.disabled) {
+                        e.preventDefault();
+                        return false;
+                    }
+                    btn.disabled = true;
+                    btn.classList.add('opacity-75', 'cursor-not-allowed');
+                    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>${loadingText || 'Procesando...'}</span>`;
+                    if (window.lucide) lucide.createIcons();
+                }
+            });
+        };
+
+        attachDoubleSubmitProtection('chargeForm', 'Procesando cobro...');
+        attachDoubleSubmitProtection('directChargeForm', 'Registrando cobro...');
     });
 </script>
 {% endblock %}

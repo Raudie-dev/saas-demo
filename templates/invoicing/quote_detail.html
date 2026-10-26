@@ -185,19 +185,25 @@
                         </a>
                         {% endif %}
 
-                        <!-- Convert to Invoice -->
+                        <!-- Convert to Invoice or Cobrar -->
                         {% if quote.converted_to_invoice %}
                         <a href="{% url 'invoice_detail' quote.converted_to_invoice.id %}" class="flex items-center justify-between px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition">
                             <div class="flex items-center gap-2.5">
                                 <i data-lucide="file-check" class="w-4 h-4 text-emerald-600"></i>
                                 <span>Ver Factura</span>
                             </div>
-                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">Emitida</span>
+                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
+                                {% if quote.converted_to_invoice.status == 'PAID' %}Pagada{% else %}Emitida{% endif %}
+                            </span>
                         </a>
                         {% else %}
+                        <button type="button" onclick="closeQuoteDropdown(); openQuoteChargeModal()" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 transition text-left cursor-pointer">
+                            <i data-lucide="badge-dollar-sign" class="w-4 h-4 text-emerald-600"></i>
+                            <span>Cobrar y Facturar (100%)</span>
+                        </button>
                         <a href="{% url 'quote_convert_to_invoice' quote.id %}" data-confirm="¿Deseas generar la factura comercial a partir de este presupuesto aprobado?" data-confirm-title="Generar Factura" data-confirm-btn="Sí, Facturar" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-900 transition">
                             <i data-lucide="receipt" class="w-4 h-4 text-purple-600"></i>
-                            <span>Generar Factura</span>
+                            <span>Generar Factura Pendiente</span>
                         </a>
                         {% endif %}
 
@@ -325,17 +331,21 @@
                 {% endif %}
             </div>
 
-            <!-- 4. Derivar a Factura -->
+            <!-- 4. Derivar a Factura / Cobro -->
             <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between space-y-2">
                 <div>
                     <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">4. Facturación</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">4. Facturación & Cobro</span>
                         {% if quote.converted_to_invoice %}
-                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span class="w-2 h-2 rounded-full {% if quote.converted_to_invoice.status == 'PAID' %}bg-emerald-400{% else %}bg-amber-400{% endif %}"></span>
                         {% endif %}
                     </div>
                     <p class="text-xs font-bold text-slate-200 mt-0.5">
-                        {% if quote.converted_to_invoice %}Factura Emitida{% else %}Comprobante Fiscal{% endif %}
+                        {% if quote.converted_to_invoice %}
+                            {% if quote.converted_to_invoice.status == 'PAID' %}Factura Pagada{% else %}Factura Emitida{% endif %}
+                        {% else %}
+                            Comprobante & Cobro
+                        {% endif %}
                     </p>
                 </div>
                 {% if quote.converted_to_invoice %}
@@ -344,10 +354,16 @@
                     <span>Ver Factura</span>
                 </a>
                 {% else %}
-                <a href="{% url 'quote_convert_to_invoice' quote.id %}" data-confirm="¿Deseas generar la factura comercial a partir de este presupuesto aprobado?" data-confirm-title="Generar Factura" data-confirm-btn="Sí, Facturar" class="h-8 px-2.5 rounded-lg bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer">
-                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
-                    <span>Facturar</span>
-                </a>
+                <div class="grid grid-cols-2 gap-1.5">
+                    <button type="button" onclick="openQuoteChargeModal()" class="h-8 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1 transition cursor-pointer" title="Cobrar inmediatamente y generar factura pagada">
+                        <i data-lucide="dollar-sign" class="w-3.5 h-3.5"></i>
+                        <span>Cobrar</span>
+                    </button>
+                    <a href="{% url 'quote_convert_to_invoice' quote.id %}" data-confirm="¿Deseas generar la factura comercial a partir de este presupuesto aprobado?" data-confirm-title="Generar Factura" data-confirm-btn="Sí, Facturar" class="h-8 px-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold flex items-center justify-center gap-1 transition cursor-pointer" title="Generar factura pendiente">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                        <span>Facturar</span>
+                    </a>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -725,7 +741,119 @@
             closeQuoteDropdown();
             closeQuoteAppointmentModal();
             closeQuotePlanModal();
+            closeQuoteChargeModal();
+        }
+    });
+
+    function openQuoteChargeModal() {
+        const modal = document.getElementById('quoteChargeModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function closeQuoteChargeModal() {
+        const modal = document.getElementById('quoteChargeModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('quoteChargeForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const btn = form.querySelector('button[type="submit"]');
+                if (btn) {
+                    if (btn.disabled) {
+                        e.preventDefault();
+                        return false;
+                    }
+                    btn.disabled = true;
+                    btn.classList.add('opacity-75', 'cursor-not-allowed');
+                    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Confirmando cobro...</span>';
+                    if (window.lucide) lucide.createIcons();
+                }
+            });
         }
     });
 </script>
+
+<!-- MODAL: COBRAR COTIZACIÓN DIRECTAMENTE -->
+<div id="quoteChargeModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4 transition-all" onclick="if(event.target === this) closeQuoteChargeModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md p-6 space-y-5 relative animate-in fade-in zoom-in-95 duration-150" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold">
+                    <i data-lucide="badge-dollar-sign" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-base leading-tight">Cobrar Cotización</h3>
+                    <p class="text-xs text-slate-500">Presupuesto #{{ quote.quote_number }}</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeQuoteChargeModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST" id="quoteChargeForm" action="{% url 'quote_charge' quote.id %}" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cliente Aceptante</span>
+                <p class="font-extrabold text-slate-900 text-sm">{{ quote.client.full_name }}</p>
+                <div class="pt-2 flex justify-between items-center text-xs">
+                    <span class="text-slate-500 font-semibold">Total a Facturar & Cobrar:</span>
+                    <span class="text-base font-black text-emerald-800">{{ business.currency }}{{ quote.total_amount }}</span>
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="font-bold text-slate-700">Método de Cobro *</label>
+                <select name="payment_method" class="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden">
+                    <option value="Transferencia" selected>Transferencia Bancaria</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Tarjeta">Tarjeta de Débito / Crédito</option>
+                    <option value="Zelle">Zelle / Pago Digital</option>
+                    <option value="PagoMovil">Pago Móvil / QR</option>
+                    <option value="Otro">Otro Método</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1.5">
+                    <label class="font-bold text-slate-700">Fecha de Cobro *</label>
+                    <input type="date" name="paid_date" value="{% now 'Y-m-d' %}" class="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="font-bold text-slate-700">Nº de Referencia / Comprobante</label>
+                    <input type="text" name="reference" placeholder="Ej: TR-001294" class="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden">
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="font-bold text-slate-700">Observaciones del Cobro</label>
+                <textarea name="notes" rows="2" placeholder="Opcional: detalles del cobro total..." class="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden resize-none"></textarea>
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-[11px] text-emerald-800 flex items-start gap-2">
+                <i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5 text-emerald-600"></i>
+                <span>Al confirmar, la cotización se marcará como Aceptada, se generará la Factura Oficial Pagada y aparecerá de inmediato en la sección Facturación.</span>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeQuoteChargeModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs inline-flex items-center gap-1.5 transition shadow-sm cursor-pointer">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>Confirmar Cobro e Ingreso</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
