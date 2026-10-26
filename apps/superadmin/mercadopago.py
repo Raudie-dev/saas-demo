@@ -38,29 +38,85 @@ def _region_code(region):
     return region if isinstance(region, str) else (region.code or '')
 
 
+def get_current_environment():
+    """Detecta si el sistema opera en 'production' o en 'development'."""
+    # 1. Variable de entorno del sistema o .env (máxima prioridad)
+    env = (os.getenv('ENVIRONMENT') or '').strip().lower()
+    if env in ('production', 'prod'):
+        return 'production'
+    if env in ('development', 'develop', 'dev', 'local', 'test'):
+        return 'development'
+
+    # 2. Configuración en settings de Django
+    from django.conf import settings
+    setting_env = (getattr(settings, 'ENVIRONMENT', None) or '').strip().lower()
+    if setting_env in ('production', 'prod'):
+        return 'production'
+    if setting_env in ('development', 'develop', 'dev'):
+        return 'development'
+
+    # 3. Detección automática por la rama Git activa (master/main/production vs develop)
+    try:
+        from pathlib import Path
+        git_head = Path(settings.BASE_DIR) / '.git' / 'HEAD'
+        if git_head.exists():
+            ref = git_head.read_text().strip()
+            if any(b in ref for b in ('heads/master', 'heads/main', 'heads/production')):
+                return 'production'
+            if 'heads/develop' in ref:
+                return 'development'
+    except Exception:
+        pass
+
+    return 'development' if getattr(settings, 'DEBUG', True) else 'production'
+
+
+def is_production():
+    return get_current_environment() == 'production'
+
+
 def get_access_token(region=None):
+    use_prod = is_production()
+    token_var = 'MERCADOPAGO_PROD_ACCESS_TOKEN' if use_prod else 'MERCADOPAGO_TEST_ACCESS_TOKEN'
+
+    token = os.getenv(token_var)
+    if token:
+        return token
+
     if region:
-        # 1. Probar por código directo de región (ej: 54, AR, VE, etc.)
         code = _region_code(region).upper().replace('-', '_')
         if code:
-            token = os.getenv(f'MERCADOPAGO_ACCESS_TOKEN_{code}')
+            token = os.getenv(f'{token_var}_{code}') or os.getenv(f'MERCADOPAGO_ACCESS_TOKEN_{code}')
             if token:
                 return token
-        # 2. Si la región tiene códigos de país asignados (ej: AR, VE)
         country_codes = getattr(region, 'country_codes', '') or ''
         if country_codes:
             for c in country_codes.split(','):
                 c_clean = c.strip().upper().replace('-', '_')
                 if c_clean:
-                    token = os.getenv(f'MERCADOPAGO_ACCESS_TOKEN_{c_clean}')
+                    token = os.getenv(f'{token_var}_{c_clean}') or os.getenv(f'MERCADOPAGO_ACCESS_TOKEN_{c_clean}')
                     if token:
                         return token
-    # 3. Fallback al token global
+
+    # Fallback general
     return os.getenv('MERCADOPAGO_ACCESS_TOKEN', '')
+
+
+def get_public_key(region=None):
+    use_prod = is_production()
+    pk_var = 'MERCADOPAGO_PROD_PUBLIC_KEY' if use_prod else 'MERCADOPAGO_TEST_PUBLIC_KEY'
+    return os.getenv(pk_var) or os.getenv('MERCADOPAGO_PUBLIC_KEY', '')
 
 
 def is_configured(region=None):
     return bool(get_access_token(region))
+
+
+def is_sandbox(region=None):
+    sandbox_env = os.getenv('MERCADOPAGO_SANDBOX')
+    if sandbox_env is not None:
+        return sandbox_env.strip().lower() in ('true', '1', 'yes')
+    return not is_production()
 
 
 def get_currency(region=None):
@@ -81,6 +137,17 @@ def _webhook_url(base, region):
     return f"{url}?{urllib.parse.urlencode({'region': code})}" if code else url
 
 
+def _is_valid_notification_url(url):
+    """Valida que la URL de webhook sea pública (Mercado Pago rechaza localhost y 127.0.0.1)."""
+    if not url or not url.startswith(('http://', 'https://')):
+        return False
+    parsed = urllib.parse.urlparse(url)
+    hostname = (parsed.hostname or '').lower()
+    if not hostname or hostname in ('localhost', '127.0.0.1', '0.0.0.0', '::1') or hostname.endswith('.local'):
+        return False
+    return True
+
+
 def _request(method, path, payload=None, region=None):
     token = get_access_token(region)
     if not token:
@@ -96,7 +163,12 @@ def _request(method, path, payload=None, region=None):
     except urllib.error.HTTPError as e:
         body = e.read().decode('utf-8', errors='ignore')
         logger.error("Mercado Pago HTTP %s en %s: %s", e.code, path, body)
-        raise MercadoPagoError(f"Error de Mercado Pago ({e.code}).")
+        try:
+            body_json = json.loads(body)
+            err_msg = body_json.get('message') or body_json.get('error') or body
+        except Exception:
+            err_msg = body
+        raise MercadoPagoError(f"Error de Mercado Pago ({e.code}): {err_msg}")
     except urllib.error.URLError as e:
         logger.error("Mercado Pago sin conexión: %s", e)
         raise MercadoPagoError("No se pudo conectar con Mercado Pago.")
@@ -148,8 +220,11 @@ def start_checkout(request, business, plan, billing_cycle, amount, rpm=None):
     payment = SubscriptionPayment.objects.create(
         business=business, plan=plan, region_payment_method=rpm,
         billing_cycle=billing_cycle, amount=amount,
-        reference="MP-PENDIENTE", notes="Pago iniciado vía Mercado Pago Checkout Pro",
+        reference="PENDIENTE", notes="Pago iniciado vía Mercado Pago Checkout Pro",
     )
+    order_number = f"ORD-{payment.created_at.strftime('%Y%m%d')}-{str(payment.id)[:6].upper()}"
+    payment.reference = order_number
+    payment.save(update_fields=['reference'])
     base = site_url(request)
     return_url = base + reverse('mercadopago_return')
     cycle = payment.get_billing_cycle_display()
@@ -164,9 +239,12 @@ def start_checkout(request, business, plan, billing_cycle, amount, rpm=None):
         }],
         "external_reference": str(payment.id),
         "back_urls": {"success": return_url, "pending": return_url, "failure": return_url},
-        "notification_url": _webhook_url(base, region),
         "statement_descriptor": "SUSCRIPCION",
     }
+    webhook_url = _webhook_url(base, region)
+    if _is_valid_notification_url(webhook_url):
+        payload["notification_url"] = webhook_url
+
     if base.startswith('https://'):
         payload["auto_return"] = "approved"
 
@@ -180,29 +258,55 @@ def start_checkout(request, business, plan, billing_cycle, amount, rpm=None):
 
     payment.mp_preference_id = data.get('id')
     payment.save(update_fields=['mp_preference_id', 'updated_at'])
-    if get_access_token(region).startswith('TEST-') and data.get('sandbox_init_point'):
-        return data['sandbox_init_point']
     return data.get('init_point')
 
 
 def sync_payment_from_mp(mp_payment_id, region=None):
     """Consulta un pago de Checkout Pro en MP (fuente de verdad) y actualiza el SubscriptionPayment."""
     from apps.superadmin.models import SubscriptionPayment, SystemAuditLog
+    import uuid
 
     data = _request('GET', f'/v1/payments/{mp_payment_id}', region=region)
-    ext_ref = str(data.get('external_reference') or '')
-    if not ext_ref.isdigit():
-        return None  # no es un pago de Checkout Pro de este sistema
+    ext_ref = str(data.get('external_reference') or '').strip()
+    
+    payment = None
+    try:
+        payment_uuid = uuid.UUID(ext_ref)
+        payment = SubscriptionPayment.objects.select_for_update().filter(id=payment_uuid).first()
+    except (ValueError, TypeError, AttributeError):
+        if ext_ref.isdigit():
+            payment = SubscriptionPayment.objects.select_for_update().filter(id=int(ext_ref)).first()
+
+    if not payment:
+        return None
 
     with transaction.atomic():
-        payment = SubscriptionPayment.objects.select_for_update().filter(id=int(ext_ref)).first()
-        if not payment:
-            return None
         mp_status = data.get('status')
         payment.mp_payment_id = str(data.get('id'))
         payment.mp_status = mp_status
         payment.reference = f"MP-{data.get('id')}"
-        payment.save(update_fields=['mp_payment_id', 'mp_status', 'reference', 'updated_at'])
+        payment.paid_at = timezone.now()
+
+        # Extraer detalles técnicos de Mercado Pago para comprobante y auditoría
+        mp_method = (data.get('payment_method_id') or '').upper()
+        mp_type = (data.get('payment_type_id') or '').replace('_', ' ').capitalize()
+        fee_details = data.get('fee_details') or []
+        fee_amt = sum(float(f.get('amount', 0)) for f in fee_details)
+        net_amt = data.get('transaction_details', {}).get('net_received_amount')
+        if net_amt is None:
+            net_amt = float(payment.amount) - fee_amt
+        payer_email = data.get('payer', {}).get('email') or ''
+
+        detail_parts = [
+            f"ID MP: {data.get('id')}",
+            f"Medio: {mp_type} ({mp_method})" if mp_method else "",
+            f"Pagador: {payer_email}" if payer_email else "",
+            f"Bruto: ${float(payment.amount):.2f}",
+            f"Comisión MP: ${fee_amt:.2f}",
+            f"Neto: ${float(net_amt):.2f}",
+        ]
+        payment.notes = " | ".join([p for p in detail_parts if p])
+        payment.save(update_fields=['mp_payment_id', 'mp_status', 'reference', 'paid_at', 'notes', 'updated_at'])
 
         if mp_status == 'approved':
             paid = float(data.get('transaction_amount') or 0)
@@ -218,6 +322,31 @@ def sync_payment_from_mp(mp_payment_id, region=None):
             payment.notes = f"Mercado Pago: {mp_status} ({data.get('status_detail', '')})"
             payment.save(update_fields=['status', 'notes', 'updated_at'])
     return payment
+
+
+def sync_pending_payments_for_business(business):
+    """
+    Revisa si hay pagos pendientes recientes en Mercado Pago para esta empresa y los sincroniza.
+    Permite conciliar pagos incluso si el usuario cerró la pestaña antes del redireccionamiento.
+    """
+    if not business:
+        return
+    from apps.superadmin.models import SubscriptionPayment
+    pending_payments = SubscriptionPayment.objects.filter(
+        business=business,
+        status='PENDING',
+        mp_preference_id__isnull=False,
+    ).order_by('-created_at')[:5]
+
+    for payment in pending_payments:
+        try:
+            res = _request('GET', f'/v1/payments/search?external_reference={payment.id}', region=business.region)
+            results = res.get('results', [])
+            if results:
+                latest_mp = results[0]
+                sync_payment_from_mp(str(latest_mp['id']), region=business.region)
+        except Exception as e:
+            logger.debug("No se pudo auto-sincronizar pago pendiente %s: %s", payment.id, e)
 
 
 # ---------------------------------------------------------------- Preapproval (débito automático)
@@ -258,9 +387,11 @@ def start_subscription(request, business, plan, billing_cycle, amount, rpm=None)
             "currency_id": get_currency(region),
         },
         "back_url": base + reverse('mercadopago_return') + "?type=subscription",
-        "notification_url": _webhook_url(base, region),
         "status": "pending",
     }
+    webhook_url = _webhook_url(base, region)
+    if _is_valid_notification_url(webhook_url):
+        payload["notification_url"] = webhook_url
     data = _request('POST', '/preapproval', payload, region)
 
     if sub:
@@ -273,6 +404,8 @@ def start_subscription(request, business, plan, billing_cycle, amount, rpm=None)
         actor_email=request.user.email or request.user.username, action="SUSCRIPCION_MP_INICIADA",
         details=f"'{business.name}' inició débito automático {plan.name} ({billing_cycle}) por {amount}. Preapproval {data.get('id')}.",
     )
+    if is_sandbox(region) and data.get('sandbox_init_point'):
+        return data['sandbox_init_point']
     return data.get('init_point')
 
 

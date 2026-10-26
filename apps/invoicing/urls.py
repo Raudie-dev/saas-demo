@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path('', views.invoice_list_view, name='invoice_list'),
     path('<uuid:invoice_id>/', views.invoice_detail_view, name='invoice_detail'),
+    path('<uuid:invoice_id>/cobrar/', views.invoice_charge_view, name='invoice_charge'),
     path('gastos/', views.expense_list_view, name='expense_list'),
     path('gastos/crear/', views.expense_create_view, name='expense_create'),
     path('gastos/<uuid:expense_id>/editar/', views.expense_edit_view, name='expense_edit'),
@@ -14,6 +15,7 @@ urlpatterns = [
     path('cotizaciones/', views.quote_list_view, name='quote_list'),
     path('cotizaciones/crear/', views.quote_create_view, name='quote_create'),
     path('cotizaciones/<uuid:quote_id>/', views.quote_detail_view, name='quote_detail'),
+    path('cotizaciones/<uuid:quote_id>/cobrar/', views.quote_charge_view, name='quote_charge'),
     path('cotizaciones/<uuid:quote_id>/editar/', views.quote_edit_view, name='quote_edit'),
     path('cotizaciones/<uuid:quote_id>/estado/', views.quote_status_update_view, name='quote_status_update'),
     path('cotizaciones/<uuid:quote_id>/convertir-factura/', views.quote_convert_to_invoice_view, name='quote_convert_to_invoice'),
@@ -30,4 +32,3 @@ urlpatterns = [
     path('cobranzas/cuota/<uuid:installment_id>/eliminar/', views.payment_installment_delete_view, name='payment_installment_delete'),
     path('cobranzas/plan/<uuid:plan_id>/eliminar/', views.payment_plan_delete_view, name='payment_plan_delete'),
 ]
-

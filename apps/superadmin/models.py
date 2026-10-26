@@ -228,6 +228,21 @@ class SubscriptionPayment(TimeStampedModel):
 
     def __str__(self):
         return f"Pago {self.id} - {self.business.name} ({self.get_status_display()})"
+
+    @property
+    def payment_method_display_name(self):
+        if self.region_payment_method and self.region_payment_method.payment_method:
+            return self.region_payment_method.payment_method.name
+        if self.mp_payment_id or (self.notes and 'Mercado Pago' in self.notes):
+            return "Mercado Pago"
+        if self.notes and 'Método:' in self.notes:
+            try:
+                for line in self.notes.splitlines():
+                    if line.startswith('Método:'):
+                        return line.replace('Método:', '').strip()
+            except Exception:
+                pass
+        return "Transferencia / Alias"
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 
 class SuperAdminUserManager(BaseUserManager):

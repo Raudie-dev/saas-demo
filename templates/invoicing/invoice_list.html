@@ -14,47 +14,120 @@
                     <i data-lucide="file-text" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <h3 class="font-extrabold text-slate-900 text-lg sm:text-xl leading-tight">Facturas y Gastos</h3>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Emisión de comprobantes y egresos del negocio</p>
+                    <h3 class="font-extrabold text-slate-900 text-lg sm:text-xl leading-tight">Facturación & Gastos</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Control de facturación emitida y registro de gastos operativos del negocio.</p>
                 </div>
             </div>
 
-            <!-- Desktop Action Button (Compact on PC) -->
+            <!-- Desktop Action Buttons: Solo Gastos -->
             <div class="hidden sm:flex items-center gap-2 shrink-0">
-                <a href="{% url 'quote_list' %}" class="h-10 px-3.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-900 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
-                    <i data-lucide="calculator" class="w-4 h-4 text-rose-700"></i>
-                    <span>Ver Cotizaciones</span>
+                <a href="{% url 'expense_list' %}" class="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="list-ordered" class="w-4 h-4 text-slate-500"></i>
+                    <span>Ver Gastos</span>
                 </a>
-                <a href="{% url 'expense_list' %}" class="h-10 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-2xs transition">
+                <a href="{% url 'expense_create' %}" class="h-10 px-4 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-2xs transition">
                     <i data-lucide="minus-circle" class="w-4 h-4 text-rose-400"></i>
                     <span>Registrar Gastos</span>
                 </a>
             </div>
         </div>
         
-        <!-- Mobile Action Button (Full-width pill on mobile) -->
-        <div class="sm:hidden pt-1 border-t border-slate-100 grid grid-cols-2 gap-2">
-            <a href="{% url 'quote_list' %}" class="py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-900 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
-                <i data-lucide="calculator" class="w-4 h-4 text-rose-700"></i>
-                <span>Cotizaciones</span>
+        <!-- Mobile Action Buttons -->
+        <div class="sm:hidden pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
+            <a href="{% url 'expense_list' %}" class="py-2.5 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 transition text-center">
+                <i data-lucide="list-ordered" class="w-4 h-4 text-slate-500"></i>
+                <span>Ver Gastos</span>
             </a>
-            <a href="{% url 'expense_list' %}" class="py-2.5 px-3 rounded-xl bg-slate-950 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 transition">
+            <a href="{% url 'expense_create' %}" class="py-2.5 px-3 rounded-xl bg-slate-950 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 transition text-center">
                 <i data-lucide="minus-circle" class="w-4 h-4 text-rose-400"></i>
-                <span>Gastos</span>
+                <span>Registrar Gasto</span>
             </a>
         </div>
+
+        <!-- Metrics Row: Facturación y Gastos -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
+            <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/70">
+                <p class="text-[10px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
+                    <i data-lucide="trending-up" class="w-3 h-3 text-emerald-600"></i> Total Facturado
+                </p>
+                <p class="text-xl font-black text-emerald-900 mt-1">{{ business.currency }}{{ total_invoiced_amount|floatformat:2 }}</p>
+                <p class="text-[11px] text-emerald-700 mt-0.5">Facturación pagada</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                    <i data-lucide="clock" class="w-3 h-3 text-slate-400"></i> Facturas Pendientes
+                </p>
+                <p class="text-xl font-black text-slate-900 mt-1">{{ business.currency }}{{ total_pending_amount|floatformat:2 }}</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">Por liquidar</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/70">
+                <p class="text-[10px] font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1">
+                    <i data-lucide="minus-circle" class="w-3 h-3 text-rose-600"></i> Gastos Registrados
+                </p>
+                <p class="text-xl font-black text-rose-900 mt-1">{{ business.currency }}{{ total_expenses_amount|floatformat:2 }}</p>
+                <p class="text-[11px] text-rose-700 mt-0.5">Egresos operativos</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl {% if net_balance >= 0 %}bg-blue-50/70 border border-blue-200/70{% else %}bg-amber-50/70 border border-amber-200/70{% endif %}">
+                <p class="text-[10px] font-bold {% if net_balance >= 0 %}text-blue-800{% else %}text-amber-800{% endif %} uppercase tracking-wider flex items-center gap-1">
+                    <i data-lucide="wallet" class="w-3 h-3"></i> Balance Neto
+                </p>
+                <p class="text-xl font-black {% if net_balance >= 0 %}text-blue-950{% else %}text-amber-950{% endif %} mt-1">{{ business.currency }}{{ net_balance|floatformat:2 }}</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">Facturación menos gastos</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Search Bar -->
+    <div class="glass-card bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <!-- Status Tabs: Solo Facturas -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none text-xs">
+            <a href="{% url 'invoice_list' %}" class="px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap {% if status_filter == 'ALL' or not status_filter %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Todas las Facturas
+            </a>
+            <a href="{% url 'invoice_list' %}?status=PAID" class="px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap {% if status_filter == 'PAID' %}bg-emerald-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Pagadas
+            </a>
+            <a href="{% url 'invoice_list' %}?status=PENDING" class="px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap {% if status_filter == 'PENDING' %}bg-amber-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Pendientes
+            </a>
+        </div>
+
+        <!-- Search Form -->
+        <form method="GET" action="{% url 'invoice_list' %}" class="flex items-center gap-2">
+            {% if status_filter and status_filter != 'ALL' %}
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            {% endif %}
+            <div class="relative w-full sm:w-64">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Buscar factura por nº, cliente o detalle..." class="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-hidden">
+            </div>
+            {% if search_query or status_filter != 'ALL' %}
+            <a href="{% url 'invoice_list' %}" class="p-2 text-slate-400 hover:text-rose-600 transition" title="Limpiar filtros">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </a>
+            {% endif %}
+        </form>
     </div>
 
     <!-- Invoices Table -->
     <div class="glass-card bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-        <div class="p-4 sm:p-5 border-b border-slate-100 bg-white">
-            <h4 class="font-extrabold text-slate-900 text-lg leading-tight">Facturas Emitidas</h4>
+        <div class="p-4 sm:p-5 border-b border-slate-100 bg-white flex items-center justify-between">
+            <div>
+                <h4 class="font-extrabold text-slate-900 text-lg leading-tight">Facturas Emitidas</h4>
+                <p class="text-xs text-slate-500 mt-0.5">Comprobantes oficiales de facturación del negocio.</p>
+            </div>
+            <span class="text-xs font-bold text-slate-400">Total: {{ page_obj.paginator.count }} facturas</span>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm whitespace-nowrap">
                 <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-bold">
                     <tr>
-                        <th class="p-4">Fecha Emisión</th>
+                        <th class="p-4">Fecha Emisión / Nº</th>
+                        <th class="p-4">Cliente</th>
+                        <th class="p-4">Detalle / Concepto</th>
                         <th class="p-4">Total</th>
                         <th class="p-4">Estado</th>
                         <th class="p-4 text-right">Acción</th>
@@ -64,26 +137,70 @@
                     {% for inv in invoices %}
                     <tr class="hover:bg-slate-50/80 transition">
                         <td class="p-4 text-slate-900">
-                            <div class="font-bold text-slate-900">{{ inv.issue_date|date:"Y-m-d" }}</div>
+                            <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                                <i data-lucide="file-check-2" class="w-3.5 h-3.5 text-slate-400"></i>
+                                <span>{{ inv.issue_date|date:"Y-m-d" }}</span>
+                            </div>
                             <div class="text-xs text-slate-500 mt-0.5">
-                                {{ inv.client.full_name }} · <span class="font-mono text-rose-900 font-bold">#{{ inv.invoice_number }}</span>
+                                <span class="font-mono text-rose-900 font-extrabold">#{{ inv.invoice_number }}</span>
                             </div>
                         </td>
-                        <td class="p-4 font-black text-slate-900">{{ business.currency }}{{ inv.total_amount }}</td>
+                        <td class="p-4 text-slate-900">
+                            <div class="font-bold text-slate-800">
+                                {{ inv.client.full_name|default:"Consumidor Final" }}
+                            </div>
+                            {% if inv.client.phone %}
+                            <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                                <i data-lucide="phone" class="w-3 h-3"></i>
+                                <span>{{ inv.client.phone }}</span>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-slate-700 max-w-sm truncate text-xs">
+                            <span class="font-medium truncate block" title="{{ inv.notes }}">
+                                {{ inv.notes|default:"Servicios profesionales facturados" }}
+                            </span>
+                        </td>
+                        <td class="p-4 font-black text-slate-900 text-base">
+                            {{ business.currency }}{{ inv.total_amount }}
+                        </td>
                         <td class="p-4">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {% if inv.status == 'PAID' %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                                <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                <span>Pagada</span>
+                            </span>
+                            {% elif inv.status == 'ISSUED' %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1">
+                                <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600"></i>
+                                <span>Emitida / Pendiente</span>
+                            </span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
                                 {{ inv.get_status_display }}
                             </span>
+                            {% endif %}
                         </td>
                         <td class="p-4 text-right">
                             <a href="{% url 'invoice_detail' inv.id %}" target="_blank" class="h-8 px-3 rounded-lg bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center transition shadow-2xs whitespace-nowrap">
+                                <i data-lucide="eye" class="w-3.5 h-3.5 mr-1"></i>
                                 Ver Factura
                             </a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="p-8 text-center text-slate-500">No hay facturas registradas.</td>
+                        <td colspan="6" class="p-12 text-center text-slate-500">
+                            <div class="max-w-md mx-auto space-y-3">
+                                <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                                    <i data-lucide="receipt" class="w-6 h-6"></i>
+                                </div>
+                                <h5 class="font-extrabold text-slate-800 text-base">No hay facturas registradas</h5>
+                                <p class="text-xs text-slate-500">
+                                    Aquí aparecerán las facturas emitidas y comprobantes de tu negocio.
+                                </p>
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -98,7 +215,7 @@
             
             <div class="flex items-center gap-1.5">
                 {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}"
+                <a href="?page={{ page_obj.previous_page_number }}{% if status_filter != 'ALL' %}&status={{ status_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
                    class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
                     <i data-lucide="chevron-left" class="w-4 h-4 text-slate-500"></i> Anterior
                 </a>
@@ -115,7 +232,7 @@
                             {{ num }}
                         </span>
                         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                        <a href="?page={{ num }}"
+                        <a href="?page={{ num }}{% if status_filter != 'ALL' %}&status={{ status_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
                            class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold flex items-center justify-center transition text-xs shadow-2xs">
                             {{ num }}
                         </a>
@@ -124,7 +241,7 @@
                 </div>
 
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}"
+                <a href="?page={{ page_obj.next_page_number }}{% if status_filter != 'ALL' %}&status={{ status_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
                    class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition flex items-center gap-1 shadow-2xs">
                     Siguiente <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
                 </a>
@@ -139,4 +256,3 @@
     </div>
 </div>
 {% endblock %}
-

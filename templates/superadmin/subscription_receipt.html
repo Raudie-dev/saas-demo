@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-100 text-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprobante de Pago #{{ payment.id|slice:":8"|upper }} - RauDie OS</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            500: '#f43f5e',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                            950: '#4c0519',
+                        },
+                        mp: {
+                            50: '#e1f5fe',
+                            100: '#b3e5fc',
+                            500: '#009EE3',
+                            600: '#0087c4',
+                            700: '#006699',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; padding: 0 !important; }
+            .print-card { box-shadow: none !important; border: 1px solid #cbd5e1 !important; max-width: 100% !important; border-radius: 0 !important; }
+            @page { margin: 15mm; size: auto; }
+        }
+    </style>
+</head>
+<body class="min-h-full py-8 px-4 sm:px-6 lg:px-8 bg-slate-100 flex flex-col justify-center items-center">
+
+    <!-- Action Bar (hidden on print) -->
+    <div class="no-print w-full max-w-3xl mb-4 flex items-center justify-between gap-3">
+        <button onclick="window.history.back()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-slate-700 hover:bg-slate-50 font-bold text-xs border border-slate-200 shadow-sm transition cursor-pointer">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver
+        </button>
+        <div class="flex items-center gap-2">
+            {% if is_superadmin and payment.mp_payment_id %}
+            <a href="https://www.mercadopago.com.ar/activities?q={{ payment.mp_payment_id }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#009EE3] text-white hover:bg-[#0087c4] font-bold text-xs shadow-sm transition">
+                <i data-lucide="external-link" class="w-4 h-4"></i> Auditar en Mercado Pago
+            </a>
+            {% endif %}
+            <button onclick="window.print()" class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-bold text-xs shadow-sm transition cursor-pointer">
+                <i data-lucide="printer" class="w-4 h-4"></i> Imprimir / Guardar PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Receipt Card -->
+    <div class="print-card w-full max-w-3xl bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden p-8 sm:p-12 space-y-8">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-slate-200">
+            <div class="space-y-1">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-900 to-rose-700 flex items-center justify-center text-white shadow-sm font-display font-black text-lg">
+                        R
+                    </div>
+                    <div>
+                        <h1 class="font-display font-black text-xl text-slate-950 tracking-tight">RauDie OS</h1>
+                        <p class="text-xs text-slate-400 font-medium">Plataforma de Gestión y Suscripciones</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sm:text-right space-y-1">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wide uppercase
+                    {% if payment.status == 'APPROVED' %}
+                        bg-emerald-100 text-emerald-800 border border-emerald-300
+                    {% elif payment.status == 'REJECTED' %}
+                        bg-rose-100 text-rose-800 border border-rose-300
+                    {% else %}
+                        bg-amber-100 text-amber-800 border border-amber-300
+                    {% endif %}
+                ">
+                    {% if payment.status == 'APPROVED' %}
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Pago Aprobado
+                    {% elif payment.status == 'REJECTED' %}
+                    <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Pago Rechazado
+                    {% else %}
+                    <i data-lucide="clock" class="w-3.5 h-3.5"></i> Pendiente
+                    {% endif %}
+                </span>
+                <p class="font-mono text-xs text-slate-500 pt-1">
+                    Recibo N°: <span class="font-bold text-slate-900">REC-{{ payment.id|slice:":8"|upper }}</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Meta Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs">
+            <!-- Client Info -->
+            <div class="bg-slate-50/80 rounded-2xl p-5 border border-slate-100 space-y-2.5">
+                <p class="font-bold uppercase tracking-wider text-[10px] text-slate-400">Cliente / Agencia</p>
+                <p class="font-display font-black text-base text-slate-900">{{ business.name }}</p>
+                <div class="space-y-1 text-slate-600 font-sans">
+                    {% if business.email %}
+                    <p class="flex items-center gap-2"><i data-lucide="mail" class="w-3.5 h-3.5 text-slate-400"></i> {{ business.email }}</p>
+                    {% endif %}
+                    {% if business.phone %}
+                    <p class="flex items-center gap-2"><i data-lucide="phone" class="w-3.5 h-3.5 text-slate-400"></i> {{ business.phone }}</p>
+                    {% endif %}
+                    {% if business.tax_id %}
+                    <p class="flex items-center gap-2"><i data-lucide="file-badge" class="w-3.5 h-3.5 text-slate-400"></i> CUIT/RUT: {{ business.tax_id }}</p>
+                    {% endif %}
+                    <p class="flex items-center gap-2"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400"></i> {{ business.region.name|default:"Argentina" }}</p>
+                </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="bg-slate-50/80 rounded-2xl p-5 border border-slate-100 space-y-2.5">
+                <p class="font-bold uppercase tracking-wider text-[10px] text-slate-400">Detalles de la Transacción</p>
+                <div class="flex items-center gap-2">
+                    {% if payment.mp_payment_id or payment.region_payment_method.payment_method.provider == 'MERCADOPAGO' %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#009EE3]/10 text-[#009EE3] font-bold text-xs border border-[#009EE3]/20">
+                        <i data-lucide="credit-card" class="w-3.5 h-3.5"></i> Mercado Pago
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-200 text-slate-800 font-bold text-xs">
+                        {{ payment.region_payment_method.payment_method.name|default:"Transferencia" }}
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="space-y-1 text-slate-600 font-sans pt-1">
+                    <p><span class="font-semibold text-slate-700">Fecha y Hora:</span> {{ payment.paid_at|default:payment.created_at|date:"d/m/Y H:i:s" }} hs</p>
+                    <p class="font-mono"><span class="font-semibold text-slate-700 font-sans">N° de Orden:</span> <span class="font-bold text-slate-900 select-all">{{ payment.reference|default:payment.id }}</span></p>
+                    {% if payment.mp_payment_id %}
+                    <p class="font-mono"><span class="font-semibold text-slate-700 font-sans">ID Mercado Pago:</span> <span class="text-blue-900 font-bold select-all">{{ payment.mp_payment_id }}</span></p>
+                    {% else %}
+                    <p class="text-amber-700 font-semibold flex items-center gap-1 text-[11px] pt-0.5"><i data-lucide="clock" class="w-3 h-3"></i> Pendiente de confirmación en Mercado Pago</p>
+                    {% endif %}
+                    {% if payment.mp_preference_id %}
+                    <p class="font-mono text-[10px] text-slate-400 truncate pt-0.5" title="{{ payment.mp_preference_id }}"><span class="font-sans text-slate-500">Preferencia MP:</span> {{ payment.mp_preference_id }}</p>
+                    {% endif %}
+                    {% if payment.reviewed_by %}
+                    <p><span class="font-semibold text-slate-700">Auditado por:</span> {{ payment.reviewed_by.username }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b-2 border-slate-900 text-slate-900 font-black uppercase text-[10px] tracking-wider">
+                        <th class="py-3 px-2">Concepto / Servicio</th>
+                        <th class="py-3 px-2 text-center">Ciclo</th>
+                        <th class="py-3 px-2 text-center">Período de Cobertura</th>
+                        <th class="py-3 px-2 text-right">Importe</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr>
+                        <td class="py-4 px-2">
+                            <p class="font-display font-black text-sm text-slate-900">
+                                Licencia SaaS - {{ payment.plan.name|default:"Plan Estándar" }}
+                            </p>
+                            <p class="text-[11px] text-slate-500 font-medium">
+                                Acceso completo al sistema de gestión comercial, reservas y automatización.
+                            </p>
+                        </td>
+                        <td class="py-4 px-2 text-center font-bold text-slate-700">
+                            {{ payment.get_billing_cycle_display }}
+                        </td>
+                        <td class="py-4 px-2 text-center font-mono text-slate-600">
+                            {{ payment.paid_at|default:payment.created_at|date:"d/m/Y" }} - {{ business.subscription.expiration_date|date:"d/m/Y" }}
+                        </td>
+                        <td class="py-4 px-2 text-right font-display font-black text-base text-slate-900">
+                            ${{ payment.amount }} ARS
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="border-t-2 border-slate-900">
+                        <td colspan="3" class="py-4 px-2 text-right font-bold text-slate-600 text-xs uppercase">
+                            Total Pagado y Acreditado:
+                        </td>
+                        <td class="py-4 px-2 text-right font-display font-black text-xl text-emerald-700">
+                            ${{ payment.amount }} ARS
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Gateway Notes / Audit Details -->
+        {% if payment.notes %}
+        <div class="rounded-2xl p-4 bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs">
+            <div class="flex items-center gap-1.5 font-bold text-slate-700 text-[11px] uppercase tracking-wide">
+                <i data-lucide="info" class="w-3.5 h-3.5 text-blue-600"></i> Detalle Técnico de la Transacción
+            </div>
+            <p class="font-mono text-[11px] text-slate-600 leading-relaxed">{{ payment.notes }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Footer Stamp / Security Verification -->
+        <div class="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+                <div class="text-[11px] text-slate-500">
+                    <p class="font-bold text-slate-800">Transacción Segura Verificada</p>
+                    <p>Comprobante digital válido emitido por RauDie OS.</p>
+                </div>
+            </div>
+            <div class="text-slate-400 font-mono text-[10px]">
+                ID Único: {{ payment.id }}
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
