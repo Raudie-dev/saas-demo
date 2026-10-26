@@ -76,6 +76,21 @@ def invoice_detail_view(request, invoice_id):
     return render(request, 'invoicing/invoice_detail.html', {'business': business, 'invoice': invoice})
 
 @login_required
+def invoice_delete_view(request, invoice_id):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    invoice = get_object_or_404(Invoice, id=invoice_id, business=business)
+    inv_num = invoice.invoice_number
+
+    if request.method == 'POST':
+        invoice.delete()
+        messages.success(request, f"Factura #{inv_num} eliminada correctamente.")
+        return redirect('invoice_list')
+
+    return redirect('invoice_detail', invoice_id=invoice.id)
+
+@login_required
 def expense_list_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:

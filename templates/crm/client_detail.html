@@ -74,6 +74,10 @@
                     <i data-lucide="edit-3" class="w-4 h-4 shrink-0"></i>
                     <span>Editar</span>
                 </a>
+                <button type="button" onclick="confirmDeleteClient('{{ client.id }}', '{{ client.full_name|escapejs }}')" class="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer" title="Eliminar cliente">
+                    <i data-lucide="trash-2" class="w-4 h-4 shrink-0 text-rose-600"></i>
+                    <span class="hidden sm:inline">Eliminar</span>
+                </button>
             </div>
         </div>
 
@@ -1028,5 +1032,37 @@
             document.body.style.overflow = '';
         }
     }
+
+    function confirmDeleteClient(clientId, clientName) {
+        document.getElementById('deleteClientName').textContent = clientName;
+        document.getElementById('deleteClientForm').action = `/crm/clientes/${clientId}/eliminar/`;
+        document.getElementById('deleteClientModal').classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+    function closeDeleteClientModal() {
+        document.getElementById('deleteClientModal').classList.add('hidden');
+    }
 </script>
+
+<!-- Modal Confirmar Eliminación de Cliente -->
+<div id="deleteClientModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto">
+            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+        <div class="text-center space-y-1">
+            <h3 class="font-extrabold text-slate-900 text-base">¿Eliminar Cliente?</h3>
+            <p class="text-xs text-slate-500">¿Estás seguro de que deseas eliminar a <strong id="deleteClientName" class="text-slate-800"></strong>? Esta acción no se puede deshacer.</p>
+        </div>
+        <form id="deleteClientForm" method="POST" action="" class="flex items-center gap-2 pt-2">
+            {% csrf_token %}
+            <button type="button" onclick="closeDeleteClientModal()" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer">
+                Cancelar
+            </button>
+            <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white shadow-xs transition cursor-pointer">
+                Sí, Eliminar
+            </button>
+        </form>
+    </div>
+</div>
 {% endblock %}

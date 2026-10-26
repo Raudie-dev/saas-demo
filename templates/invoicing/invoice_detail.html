@@ -29,10 +29,18 @@
 
     <!-- Print button header -->
     <div class="no-print flex justify-between items-center mb-8 bg-slate-950 text-white p-4 rounded-2xl shadow-lg">
-        <span class="text-sm font-semibold">Previsualización de Factura Oficial</span>
-        <button onclick="window.print()" class="px-5 py-2 bg-rose-900 hover:bg-rose-950 rounded-xl text-xs font-bold text-white shadow transition">
-            Imprimir Factura / PDF
-        </button>
+        <span class="text-sm font-semibold">Previsualización de Factura Oficial #{{ invoice.invoice_number }}</span>
+        <div class="flex items-center gap-2">
+            <button onclick="window.print()" class="px-5 py-2 bg-rose-900 hover:bg-rose-950 rounded-xl text-xs font-bold text-white shadow transition cursor-pointer">
+                Imprimir Factura / PDF
+            </button>
+            <form method="POST" action="{% url 'invoice_delete' invoice.id %}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar permanentemente esta factura (#{{ invoice.invoice_number }})?');">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 bg-rose-950/80 hover:bg-rose-700 text-rose-200 hover:text-white border border-rose-800 rounded-xl text-xs font-bold shadow transition cursor-pointer">
+                    Eliminar
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="bg-white p-8 md:p-12 rounded-3xl border border-slate-200 shadow-xl space-y-8">

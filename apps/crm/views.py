@@ -155,6 +155,21 @@ def client_edit_view(request, client_id):
         'title': f'Editar Cliente: {client.full_name}'
     })
 
+@login_required
+def client_delete_view(request, client_id):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    client = get_object_or_404(Client, id=client_id, business=business)
+    client_name = client.full_name
+
+    if request.method == 'POST':
+        client.delete()
+        messages.success(request, f"Cliente '{client_name}' eliminado correctamente.")
+        return redirect('client_list')
+
+    return redirect('client_detail', client_id=client.id)
+
 from apps.crm.models import Client, ClientNote, Supplier, ServiceHistoryNote
 from django.contrib import messages
 
