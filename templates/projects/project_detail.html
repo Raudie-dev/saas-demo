@@ -610,34 +610,34 @@
     <!-- ============================================================== -->
     <!-- RECURSOS Y DELIMITACIONES DEL PROYECTO (VISIBLES Y MODIFICABLES) -->
     <!-- ============================================================== -->
-    <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
-            <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-900 border border-purple-200/60 flex items-center justify-center font-bold">
-                    <i data-lucide="layers" class="w-4 h-4 text-purple-800"></i>
+    <div class="glass-card bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 sm:space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
+            <div class="flex items-start gap-3 min-w-0">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-50 text-purple-900 border border-purple-200/60 flex items-center justify-center font-bold shrink-0 mt-0.5 sm:mt-0">
+                    <i data-lucide="layers" class="w-4 h-4 sm:w-5 sm:h-5 text-purple-800"></i>
                 </div>
-                <div>
-                    <h3 class="font-extrabold text-slate-900 text-base leading-tight">Recursos & Delimitaciones del Proyecto</h3>
-                    <p class="text-xs text-slate-500">Enlaces a carpetas, tableros y especificaciones / brief del cliente.</p>
+                <div class="min-w-0">
+                    <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-tight">Recursos & Delimitaciones del Proyecto</h3>
+                    <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 leading-relaxed">Enlaces a carpetas, tableros y especificaciones / brief del cliente.</p>
                 </div>
             </div>
 
-            <button type="button" onclick="openEditResourcesModal()" class="h-8.5 px-3 rounded-xl bg-slate-900 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-2xs">
+            <button type="button" onclick="openEditResourcesModal()" class="w-full sm:w-auto h-9 px-3.5 rounded-xl bg-slate-900 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 transition shadow-2xs shrink-0 cursor-pointer whitespace-nowrap">
                 <i data-lucide="edit-3" class="w-3.5 h-3.5 text-rose-300"></i>
                 <span>Editar Información</span>
             </button>
         </div>
 
         <!-- Resources Cards & Links -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
             <!-- Google Drive / Storage -->
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                        <i data-lucide="folder" class="w-4 h-4 text-blue-600"></i>
-                        <span>Carpeta de Recursos / Drive / Dropbox</span>
+            <div class="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                <div class="flex items-start sm:items-center justify-between gap-2">
+                    <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5 min-w-0">
+                        <i data-lucide="folder" class="w-4 h-4 text-blue-600 shrink-0"></i>
+                        <span class="truncate">Carpeta de Recursos / Drive</span>
                     </span>
-                    <span id="badgeDriveStatus" class="{% if project.drive_url %}text-blue-700 bg-blue-100/70 border-blue-200{% else %}text-slate-500 bg-slate-200/60 border-slate-300{% endif %} px-2 py-0.5 rounded text-[10px] font-bold border">
+                    <span id="badgeDriveStatus" class="{% if project.drive_url %}text-blue-700 bg-blue-100/70 border-blue-200{% else %}text-slate-500 bg-slate-200/60 border-slate-300{% endif %} px-2 py-0.5 rounded text-[10px] font-bold border shrink-0">
                         {% if project.drive_url %}Conectado{% else %}No configurado{% endif %}
                     </span>
                 </div>
@@ -654,13 +654,13 @@
             </div>
 
             <!-- Figma / Design Board -->
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                        <i data-lucide="layout" class="w-4 h-4 text-purple-600"></i>
-                        <span>Tablero de Diseño / Figma / Mockups</span>
+            <div class="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                <div class="flex items-start sm:items-center justify-between gap-2">
+                    <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5 min-w-0">
+                        <i data-lucide="layout" class="w-4 h-4 text-purple-600 shrink-0"></i>
+                        <span class="truncate">Tablero de Diseño / Figma</span>
                     </span>
-                    <span id="badgeFigmaStatus" class="{% if project.figma_url %}text-purple-700 bg-purple-100/70 border-purple-200{% else %}text-slate-500 bg-slate-200/60 border-slate-300{% endif %} px-2 py-0.5 rounded text-[10px] font-bold border">
+                    <span id="badgeFigmaStatus" class="{% if project.figma_url %}text-purple-700 bg-purple-100/70 border-purple-200{% else %}text-slate-500 bg-slate-200/60 border-slate-300{% endif %} px-2 py-0.5 rounded text-[10px] font-bold border shrink-0">
                         {% if project.figma_url %}Conectado{% else %}No configurado{% endif %}
                     </span>
                 </div>
@@ -678,17 +678,17 @@
         </div>
 
         <!-- Delimitations / Scope / Brief -->
-        <div class="space-y-2 pt-2">
-            <div class="flex items-center justify-between">
+        <div class="space-y-2 pt-2 border-t border-slate-100">
+            <div class="flex items-center justify-between gap-2">
                 <h4 class="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
                     <i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-500"></i>
-                    <span>Delimitaciones, Alcance & Brief del Proyecto</span>
+                    <span>Delimitaciones, Alcance & Brief</span>
                 </h4>
-                <button type="button" onclick="openEditResourcesModal()" class="text-[11px] font-bold text-rose-800 hover:text-rose-950 hover:underline">
+                <button type="button" onclick="openEditResourcesModal()" class="text-xs font-bold text-rose-800 hover:text-rose-950 hover:underline cursor-pointer">
                     Modificar
                 </button>
             </div>
-            <div id="descriptionDisplay" class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed whitespace-pre-line min-h-[70px]">
+            <div id="descriptionDisplay" class="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed whitespace-pre-line min-h-[70px]">
                 {% if project.description %}
                 {{ project.description }}
                 {% else %}
