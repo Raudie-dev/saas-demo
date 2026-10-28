@@ -154,6 +154,8 @@ REST_FRAMEWORK = {
 # CSRF Trusted Origins
 csrf_trusted_env = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 default_trusted_origins = [
+    'https://os.raudie.net',
+    'http://os.raudie.net',
     'https://demos.raudie.net',
     'http://demos.raudie.net',
     'https://*.raudie.net',
@@ -207,8 +209,13 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
-# WhatsApp Gateway Microservice URL
-WHATSAPP_GATEWAY_URL = os.getenv('WHATSAPP_GATEWAY_URL', 'http://127.0.0.1:3000').rstrip('/')
+# Dominio Principal y WhatsApp Gateway Microservice URL según entorno
+if ENVIRONMENT == 'production':
+    SITE_URL = os.getenv('SITE_URL', 'https://os.raudie.net').rstrip('/')
+    WHATSAPP_GATEWAY_URL = os.getenv('WHATSAPP_GATEWAY_URL', 'https://os.raudie.net/whatsapp').rstrip('/')
+else:
+    SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
+    WHATSAPP_GATEWAY_URL = os.getenv('WHATSAPP_GATEWAY_URL', 'http://127.0.0.1:3000').rstrip('/')
 
 # Email Configuration (for password recovery and notifications)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -222,7 +229,5 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 # Password Reset Timeout (Tiempo de vida del enlace de recuperación: 30 minutos = 1800 segundos)
 PASSWORD_RESET_TIMEOUT = 1800
 
-# WhatsApp Gateway Microservice
-WHATSAPP_GATEWAY_URL = os.getenv('WHATSAPP_GATEWAY_URL', 'http://127.0.0.1:3000').rstrip('/')
 
 

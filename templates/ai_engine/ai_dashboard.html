@@ -176,7 +176,7 @@
                                 <span>Documento de Información y Políticas del Negocio</span>
                             </span>
                             <span class="text-[10px] text-slate-500 font-medium bg-white px-2 py-0.5 rounded-full border border-slate-200">
-                                Solo PDF, Excel y Word
+                                Solo PDF, Excel y Word (Máx. 5 MB)
                             </span>
                         </div>
 
@@ -526,11 +526,18 @@ function validateKnowledgeFileInput(input) {
     const allowedExts = ['.pdf', '.xlsx', '.xls', '.docx', '.doc'];
     const lowerName = (file.name || '').toLowerCase();
     const isValid = allowedExts.some(ext => lowerName.endsWith(ext));
+    const maxBytes = 5 * 1024 * 1024; // 5 MB
 
     if (!isValid) {
         input.value = '';
         if (errEl) {
             errEl.textContent = 'Formato no válido. Solo se permiten archivos PDF (.pdf), Excel (.xlsx, .xls) y Word (.docx, .doc).';
+            errEl.classList.remove('hidden');
+        }
+    } else if (file.size > maxBytes) {
+        input.value = '';
+        if (errEl) {
+            errEl.textContent = 'El archivo supera el tamaño máximo permitido de 5 MB.';
             errEl.classList.remove('hidden');
         }
     } else if (errEl) {

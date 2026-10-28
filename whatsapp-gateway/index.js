@@ -13,13 +13,17 @@ import path from 'path';
 import { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
 
 const PORT = process.env.PORT || 3000;
-const PRIMARY_WEBHOOK = process.env.DJANGO_WEBHOOK || 'http://127.0.0.1:8000/ia/webhook/whatsapp/';
+const IS_PROD_ENV = process.env.NODE_ENV === 'production' || Boolean(process.env.PASSENGER_APP_ENV);
+const DEFAULT_WEBHOOK = IS_PROD_ENV
+  ? 'https://os.raudie.net/ia/webhook/whatsapp/'
+  : 'http://127.0.0.1:8000/ia/webhook/whatsapp/';
+const PRIMARY_WEBHOOK = process.env.DJANGO_WEBHOOK || DEFAULT_WEBHOOK;
 const FALLBACK_WEBHOOKS = [
   PRIMARY_WEBHOOK,
+  'https://os.raudie.net/ia/webhook/whatsapp/',
+  'http://os.raudie.net/ia/webhook/whatsapp/',
   'http://127.0.0.1:8000/ia/webhook/whatsapp/',
-  'http://127.0.0.1:5555/ia/webhook/whatsapp/',
-  'https://demos.raudie.net/ia/webhook/whatsapp/',
-  'http://demos.raudie.net/ia/webhook/whatsapp/'
+  'http://127.0.0.1:5555/ia/webhook/whatsapp/'
 ];
 
 // Mapas por sesión (clave: userId)
@@ -277,7 +281,18 @@ async function startSocketFor(sid = 'default_0') {
 // Servidor HTTP minimal con Express
 function startServer() {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '15mb' }));
+
+  // Normalizar prefijo /whatsapp cuando corre bajo cPanel Phusion Passenger (os.raudie.net/whatsapp)
+  app.use((req, res, next) => {
+    if (req.url.startsWith('/whatsapp/')) {
+      req.url = req.url.slice('/whatsapp'.length);
+    } else if (req.url === '/whatsapp') {
+      req.url = '/';
+    }
+    next();
+  });
+
   // Endpoint para que Django pida el QR (string) por usuario
   app.get('/qr', (req, res) => {
     const user = req.query.user || 'default';

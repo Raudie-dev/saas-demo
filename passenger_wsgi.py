@@ -45,7 +45,7 @@ def _ensure_cpanel_whatsapp_gateway():
         return
 
     env = os.environ.copy()
-    site_url = os.environ.get('SITE_URL', 'https://demos.raudie.net').rstrip('/')
+    site_url = os.environ.get('SITE_URL', 'https://os.raudie.net').rstrip('/')
     env.setdefault('DJANGO_WEBHOOK', f'{site_url}/ia/webhook/whatsapp/')
 
     try:

@@ -99,8 +99,8 @@ def build_agency_rag_context(business, sender_phone='', sender_name=''):
 
     import os
     from django.conf import settings
-    default_host = 'https://demos.raudie.net' if getattr(settings, 'ENVIRONMENT', 'develop') == 'production' else 'http://127.0.0.1:8000'
-    site_base = (os.getenv('SITE_URL') or default_host).rstrip('/')
+    default_host = 'https://os.raudie.net' if getattr(settings, 'ENVIRONMENT', 'develop') == 'production' else 'http://127.0.0.1:8000'
+    site_base = (getattr(settings, 'SITE_URL', None) or os.getenv('SITE_URL') or default_host).rstrip('/')
     booking_url = f"{site_base}/reservas/{business.slug}/" if getattr(business, 'slug', None) else ""
 
     # 1. Dirección y Sede
@@ -900,8 +900,8 @@ def detect_inactive_clients_and_draft_campaign(business):
 
     inactive_clients = Client.objects.filter(business=business).exclude(status='VIP')[:5]
 
-    default_host = 'https://demos.raudie.net' if getattr(settings, 'ENVIRONMENT', 'develop') == 'production' else 'http://127.0.0.1:8000'
-    site_base = (os.getenv('SITE_URL') or default_host).rstrip('/')
+    default_host = 'https://os.raudie.net' if getattr(settings, 'ENVIRONMENT', 'develop') == 'production' else 'http://127.0.0.1:8000'
+    site_base = (getattr(settings, 'SITE_URL', None) or os.getenv('SITE_URL') or default_host).rstrip('/')
 
     campaigns = []
     for client in inactive_clients:

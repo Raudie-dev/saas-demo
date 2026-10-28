@@ -26,10 +26,10 @@ def validate_knowledge_file(uploaded_file):
             ext
         )
 
-    # Límite razonable de tamaño (15 MB)
-    max_bytes = 15 * 1024 * 1024
+    # Límite máximo de tamaño (5 MB)
+    max_bytes = 5 * 1024 * 1024
     if getattr(uploaded_file, 'size', 0) > max_bytes:
-        return False, "El archivo supera el tamaño máximo permitido de 15 MB.", ext
+        return False, "El archivo supera el tamaño máximo permitido de 5 MB.", ext
 
     return True, "", ext
 
