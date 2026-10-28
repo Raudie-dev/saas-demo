@@ -19,6 +19,7 @@ class SubscriptionPlan(TimeStampedModel):
     max_users = models.IntegerField(default=5, verbose_name="Límite de Usuarios")
     max_branches = models.IntegerField(default=2, verbose_name="Límite de Sucursales")
     included_modules = models.JSONField(default=list, blank=True, verbose_name="Módulos Incluidos")
+    ai_platform_key_included = models.BooleanField(default=False, verbose_name="Incluye API Key de IA de la Plataforma")
     show_on_landing = models.BooleanField(default=True, verbose_name="Mostrar en Landing Page / Index")
     is_active = models.BooleanField(default=True, verbose_name="Plan Activo")
 
@@ -48,6 +49,7 @@ class SubscriptionPlan(TimeStampedModel):
             'max_branches': self.max_branches,
             'show_on_landing': self.show_on_landing,
             'is_active': self.is_active,
+            'ai_platform_key_included': bool(self.ai_platform_key_included),
             'included_modules': self.included_modules if isinstance(self.included_modules, list) else [],
             'region_prices': region_prices_dict
         }
@@ -301,6 +303,37 @@ class SuperAdminUser(AbstractBaseUser, PermissionsMixin):
     def full_name(self):
         full = f"{self.first_name} {self.last_name}".strip()
         return full or self.username or self.email
+
+
+class PlatformGlobalConfig(TimeStampedModel):
+    deepseek_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de DeepSeek (Global)")
+    deepseek_model = models.CharField(max_length=100, default="deepseek-chat", verbose_name="Modelo de DeepSeek")
+    openai_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de OpenAI (Fallback Global)")
+    default_system_prompt = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Instrucciones Globales de IA",
+        help_text="Directivas y prompt base que se aplican al bot de forma global."
+    )
+    is_deepseek_active = models.BooleanField(default=True, verbose_name="Habilitar DeepSeek Global")
+
+    class Meta:
+        verbose_name = "Configuración Global de Plataforma"
+        verbose_name_plural = "Configuraciones Globales de Plataforma"
+
+    def __str__(self):
+        status = "Configurada" if self.deepseek_api_key else "Sin API Key"
+        return f"Configuración Global DeepSeek ({status})"
+
+    @classmethod
+    def get_solo(cls):
+        obj = cls.objects.first()
+        if not obj:
+            obj = cls.objects.create(
+                deepseek_model="deepseek-chat",
+                is_deepseek_active=True
+            )
+        return obj
 
 
 

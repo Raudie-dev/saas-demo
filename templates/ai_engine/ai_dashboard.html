@@ -160,30 +160,126 @@
                             <span>Instrucciones & Personalidad del Bot (Prompt del Sistema)</span>
                             <span class="text-[11px] text-slate-400 font-normal">Directivas que guían las respuestas</span>
                         </label>
-                        <textarea name="system_prompt" rows="5" required
+                        <textarea name="system_prompt" rows="4" required
                                   placeholder="Define cómo debe contestar, qué tono emplear, información especial o políticas de cancelación..."
                                   class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-xs focus:outline-none focus:border-rose-600 focus:bg-white transition font-mono leading-relaxed">{{ bot_config.system_prompt }}</textarea>
                         <p class="text-[11px] text-slate-500 mt-1">
-                            El bot ya conoce automáticamente el catálogo de servicios de <strong>{{ business.name }}</strong>, sus precios, horarios comerciales, dirección y enlace de reservas.
+                            El bot conoce automáticamente el catálogo de servicios de <strong>{{ business.name }}</strong>, precios, horarios, dirección y enlaces de reserva.
                         </p>
                     </div>
 
-                    <!-- OpenAI Key (Optional) -->
+                    <!-- Custom Knowledge Base (RAG Context) -->
                     <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                        <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                            <i data-lucide="key" class="w-3.5 h-3.5 text-slate-500"></i>
-                            <span>OpenAI API Key (Opcional - GPT-4o-mini)</span>
+                        <label class="block text-xs font-bold text-slate-800 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <i data-lucide="book-open" class="w-4 h-4 text-rose-800"></i>
+                                <span>Base de Conocimientos Especializada de la Agencia (RAG)</span>
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-normal">FAQs, reglas y contexto</span>
                         </label>
-                        <input type="password" name="openai_api_key" value="{{ bot_config.openai_api_key|default:'' }}"
-                               placeholder="sk-..."
-                               class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:outline-none focus:border-rose-600 font-mono">
+                        <textarea name="custom_knowledge" rows="3"
+                                  placeholder="Ej: Políticas de cancelación (mínimo 24 hs antes), medios de pago aceptados en el local (Efectivo, Tarjetas, MercadoPago), cómo llegar, promociones vigentes..."
+                                  class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-xs focus:outline-none focus:border-rose-600 font-sans leading-relaxed">{{ bot_config.custom_knowledge|default:'' }}</textarea>
                         <p class="text-[10px] text-slate-500">
-                            Si no colocas una API Key, el bot funciona de manera 100% gratuita utilizando el motor semántico contextual del sistema con soporte de servicios, horarios y reservas.
+                            La IA recupera esta información dinámicamente en cada mensaje para responder con precisión preguntas frecuentes de tus clientes.
                         </p>
+                    </div>
+
+                    <!-- DeepSeek API & Plan Status Indicator -->
+                    <div class="space-y-3">
+                        {% if has_platform_key_access %}
+                            {% if global_cfg_ready %}
+                            <div class="p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-rose-50 to-emerald-50 border border-purple-200 text-xs space-y-1.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <h4 class="font-bold text-slate-900 text-xs font-display">¡Tu plan incluye el Motor de IA DeepSeek de la Plataforma!</h4>
+                                </div>
+                                <p class="text-[11px] text-slate-600 leading-relaxed">
+                                    No necesitas colocar ninguna clave. Tu bot ya está operando con la API Key de <strong>DeepSeek V3</strong> provista por la plataforma para atender consultas, recomendar servicios y agendar citas en tiempo real.
+                                </p>
+                            </div>
+                            {% else %}
+                            <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs space-y-1 text-amber-900">
+                                <p class="font-bold">IA de la Plataforma Incluida en tu Plan</p>
+                                <p class="text-[11px] text-amber-800">
+                                    Tu plan incluye el motor global, pero la administración aún no ha cargado la clave central. Puedes usar tu propia clave abajo temporalmente.
+                                </p>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs space-y-1 text-amber-900">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="key" class="w-4 h-4 text-amber-700"></i>
+                                    <p class="font-bold">Tu Plan Requiere API Key Propia de DeepSeek</p>
+                                </div>
+                                <p class="text-[11px] text-amber-800 leading-relaxed">
+                                    El plan contratado actualmente no incluye la clave de IA provista por la plataforma. Para activar el asistente inteligente autónomo de DeepSeek, ingresa tu clave API a continuación:
+                                </p>
+                            </div>
+                        {% endif %}
+
+                        <!-- DeepSeek Key Input Box -->
+                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                                    <span class="flex items-center gap-1.5">
+                                        <i data-lucide="cpu" class="w-3.5 h-3.5 text-rose-800"></i>
+                                        <span>DeepSeek API Key {% if has_platform_key_access %}(Opcional - Reemplazar Global){% else %}*{% endif %}</span>
+                                    </span>
+                                    <a href="https://platform.deepseek.com/api_keys" target="_blank" class="text-[10px] text-rose-800 hover:underline">Obtener clave en DeepSeek ↗</a>
+                                </label>
+                                <input type="password" name="deepseek_api_key" value="{{ bot_config.deepseek_api_key|default:'' }}"
+                                       placeholder="sk-..."
+                                       class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:outline-none focus:border-rose-600 font-mono">
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Modelo de DeepSeek</label>
+                                    <select name="deepseek_model" class="w-full bg-white border border-slate-300 text-slate-800 rounded-xl p-2 text-xs font-semibold focus:outline-none">
+                                        <option value="deepseek-chat" {% if bot_config.deepseek_model == 'deepseek-chat' %}selected{% endif %}>deepseek-chat (V3 - Rápido)</option>
+                                        <option value="deepseek-reasoner" {% if bot_config.deepseek_model == 'deepseek-reasoner' %}selected{% endif %}>deepseek-reasoner (R1 - Razonamiento)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Proveedor Activo</label>
+                                    <select name="ai_provider" class="w-full bg-white border border-slate-300 text-slate-800 rounded-xl p-2 text-xs font-semibold focus:outline-none">
+                                        <option value="deepseek" {% if bot_config.ai_provider == 'deepseek' %}selected{% endif %}>DeepSeek AI (Recomendado)</option>
+                                        <option value="openai" {% if bot_config.ai_provider == 'openai' %}selected{% endif %}>OpenAI (GPT-4o-mini)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Autonomous Automation Switches -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-xs text-slate-800 block">Auto-Registro en CRM</span>
+                                <span class="text-[10px] text-slate-500">Crea fichas de clientes nuevos</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="auto_register_clients" value="1" {% if bot_config.auto_register_clients %}checked{% endif %} class="sr-only peer">
+                                <div class="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-600"></div>
+                            </label>
+                        </div>
+
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-xs text-slate-800 block">Agendamiento Autónomo</span>
+                                <span class="text-[10px] text-slate-500">Agenda turnos en la agenda</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="auto_create_appointments" value="1" {% if bot_config.auto_create_appointments %}checked{% endif %} class="sr-only peer">
+                                <div class="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-rose-900"></div>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="pt-2 flex justify-end">
-                        <button type="submit" class="px-6 py-3 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-sm shadow-md transition flex items-center gap-2">
+                        <button type="submit" class="px-6 py-3 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-bold text-sm shadow-md transition flex items-center gap-2 cursor-pointer">
                             <i data-lucide="save" class="w-4 h-4"></i> Guardar Configuración del Bot
                         </button>
                     </div>
@@ -264,12 +360,17 @@
                                 <span>{{ bot_config.bot_name }}</span>
                                 <i data-lucide="badge-check" class="w-4 h-4 text-emerald-300"></i>
                             </div>
-                            <p class="text-[11px] text-emerald-100 flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> En línea (Simulador)
+                            <p class="text-[11px] text-emerald-100 flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                {% if effective_key %}
+                                <span>En línea (DeepSeek V3 Autónomo)</span>
+                                {% else %}
+                                <span>En línea (Motor Contextual)</span>
+                                {% endif %}
                             </p>
                         </div>
                     </div>
-                    <button type="button" onclick="clearSimulatorChat()" title="Limpiar conversación" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition">
+                    <button type="button" onclick="clearSimulatorChat()" title="Limpiar conversación" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition cursor-pointer">
                         <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -297,13 +398,16 @@
                     <button type="button" onclick="quickSend('Hola! ¿Cómo estás?')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
                         👋 Saludar
                     </button>
-                    <button type="button" onclick="quickSend('Quiero reservar un turno para mañana')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
-                        📅 Reservar turno
+                    <button type="button" onclick="quickSend('¿Qué servicios me recomiendas para consentirme hoy?')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
+                        💡 ¿Qué me recomiendas?
                     </button>
-                    <button type="button" onclick="quickSend('¿Cuáles son los precios y servicios?')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
+                    <button type="button" onclick="quickSend('¿Cuáles son sus precios y catálogo de servicios?')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
                         ✂️ Precios
                     </button>
-                    <button type="button" onclick="quickSend('¿Dónde están ubicados y qué horarios tienen?')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
+                    <button type="button" onclick="quickSend('¿Qué horarios y cupos tienen disponibles para mañana?')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
+                        ⏰ Disponibilidad
+                    </button>
+                    <button type="button" onclick="quickSend('¿Dónde están ubicados y cómo llegar?')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 rounded-full font-medium whitespace-nowrap transition cursor-pointer">
                         📍 Ubicación
                     </button>
                 </div>

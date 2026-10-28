@@ -12,11 +12,13 @@ from apps.agenda.models import Appointment
 from apps.pos.models import Sale
 from apps.invoicing.models import Expense
 from apps.ai_engine.models import AIAutomationLog, WhatsAppBotConfig
+from apps.superadmin.models import PlatformGlobalConfig
 from apps.ai_engine.services import (
     generate_executive_financial_insight,
     detect_inactive_clients_and_draft_campaign,
     generate_whatsapp_bot_reply,
-    get_or_create_bot_config
+    get_or_create_bot_config,
+    get_effective_ai_config
 )
 
 GATEWAY_BASE_URL = getattr(settings, 'WHATSAPP_GATEWAY_URL', None) or os.environ.get('WHATSAPP_GATEWAY_URL', 'http://127.0.0.1:3000').rstrip('/')
@@ -57,14 +59,25 @@ def ai_dashboard_view(request):
             bot_config.welcome_message = request.POST.get('welcome_message', bot_config.welcome_message).strip()
             bot_config.system_prompt = request.POST.get('system_prompt', bot_config.system_prompt).strip()
             bot_config.auto_booking_link = request.POST.get('auto_booking_link') in ['1', 'true', 'on', True]
+            bot_config.ai_provider = request.POST.get('ai_provider', 'deepseek')
+            bot_config.deepseek_api_key = request.POST.get('deepseek_api_key', '').strip() or None
+            bot_config.deepseek_model = request.POST.get('deepseek_model', 'deepseek-chat').strip() or 'deepseek-chat'
             bot_config.openai_api_key = request.POST.get('openai_api_key', '').strip() or None
+            bot_config.custom_knowledge = request.POST.get('custom_knowledge', '').strip() or None
+            bot_config.auto_register_clients = request.POST.get('auto_register_clients') in ['1', 'true', 'on', True]
+            bot_config.auto_create_appointments = request.POST.get('auto_create_appointments') in ['1', 'true', 'on', True]
             bot_config.save()
-            messages.success(request, "¡Configuración del Bot de WhatsApp guardada con éxito!")
+            messages.success(request, "¡Configuración del Bot y Motor DeepSeek guardada con éxito!")
             return redirect('ai_dashboard')
         elif action == 'run_financial_insight':
             financial_insight = generate_executive_financial_insight(business)
         elif action == 'run_whatsapp_campaign':
             whatsapp_campaigns = detect_inactive_clients_and_draft_campaign(business)
+
+    # Check effective AI access and config
+    effective_key, effective_model, effective_provider, source_status, source_desc = get_effective_ai_config(business)
+    has_platform_key_access = business.has_platform_ai_access()
+    global_cfg = PlatformGlobalConfig.get_solo()
 
     # Check WhatsApp connection status
     gw_status = {'online': False, 'status': 'offline'}
@@ -84,6 +97,12 @@ def ai_dashboard_view(request):
         'logs': logs,
         'financial_insight': financial_insight,
         'whatsapp_campaigns': whatsapp_campaigns,
+        'has_platform_key_access': has_platform_key_access,
+        'effective_key': effective_key,
+        'effective_model': effective_model,
+        'source_status': source_status,
+        'source_desc': source_desc,
+        'global_cfg_ready': bool(global_cfg.deepseek_api_key and global_cfg.is_deepseek_active),
     })
 
 @csrf_exempt
@@ -137,12 +156,13 @@ def ai_chat_api(request):
         
         mode = request.POST.get('mode', 'bot')
         if mode == 'bot':
-            # Simular respuesta exacta del Bot de WhatsApp
+            # Simular respuesta exacta del Bot de WhatsApp (incluso si está pausado para WhatsApp real)
             reply = generate_whatsapp_bot_reply(
                 business=business,
                 incoming_text=user_prompt,
                 sender_phone='SIMULADOR',
-                sender_name=request.user.first_name or 'Cliente Demo'
+                sender_name=request.user.first_name or 'Cliente Demo',
+                force_simulate=True
             )
             return JsonResponse({'status': 'ok', 'reply': reply})
 

@@ -47,7 +47,23 @@ class WhatsAppBotConfig(TimeStampedModel):
         verbose_name="Instrucciones del Sistema (Prompt de IA)"
     )
     auto_booking_link = models.BooleanField(default=True, verbose_name="Incluir link del portal de reservas al consultar citas")
+    ai_provider = models.CharField(
+        max_length=20,
+        choices=[('deepseek', 'DeepSeek AI'), ('openai', 'OpenAI')],
+        default='deepseek',
+        verbose_name="Proveedor de Inteligencia Artificial"
+    )
+    deepseek_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de DeepSeek (Propia)")
+    deepseek_model = models.CharField(max_length=50, default='deepseek-chat', verbose_name="Modelo DeepSeek")
     openai_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de OpenAI (Opcional)")
+    custom_knowledge = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Base de Conocimientos / Contexto de la Agencia",
+        help_text="Políticas, FAQs, promociones, reglas de atención o información especial que el bot consultará al responder."
+    )
+    auto_register_clients = models.BooleanField(default=True, verbose_name="Registrar clientes nuevos automáticamente en el CRM")
+    auto_create_appointments = models.BooleanField(default=True, verbose_name="Agendar citas automáticamente según disponibilidad de la agenda")
 
     class Meta:
         verbose_name = "Configuración del Bot WhatsApp"

@@ -1,0 +1,304 @@
+{% extends 'superadmin/base_superadmin.html' %}
+
+{% block title %}SuperAdmin - Motor IA DeepSeek{% endblock %}
+{% block header_title %}Motor de Inteligencia Artificial DeepSeek{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto pb-10">
+
+    <!-- Top Action & Info Bar -->
+    <div class="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-900 via-rose-800 to-slate-900 text-white flex items-center justify-center font-bold shadow-md shadow-rose-950/20 shrink-0">
+                <i data-lucide="bot" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <h2 class="text-xl font-bold font-display text-slate-900">Motor Global DeepSeek & IA Conversacional</h2>
+                    {% if config.deepseek_api_key %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Clave Configurada
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Sin Clave Global
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Configura tu API Key de DeepSeek central. Las agencias cuyos planes incluyan el motor de IA podrán utilizarla de forma transparente; en los planes donde no se incluya, cada cliente deberá ingresar su propia API Key.
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="testDeepSeekConnection()" id="btn-test-deepseek" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer">
+                <i data-lucide="zap" class="w-4 h-4 text-rose-400"></i>
+                <span id="test-btn-text">Probar Conexión con DeepSeek</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Box for Test Output (Hidden by default) -->
+    <div id="test-result-box" class="hidden p-4 rounded-2xl text-xs font-bold flex items-center justify-between gap-3 animate-in fade-in duration-200">
+        <div class="flex items-center gap-2.5">
+            <span id="test-result-icon"></span>
+            <span id="test-result-message"></span>
+        </div>
+        <button type="button" onclick="document.getElementById('test-result-box').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+            <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+    </div>
+
+    <!-- Main Two-Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Column 1: API Configuration Form (7 Cols) -->
+        <div class="lg:col-span-7 space-y-6">
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+                <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                            <i data-lucide="key" class="w-4 h-4 text-brand-900"></i>
+                            <span>Credenciales & Ajustes de DeepSeek</span>
+                        </h3>
+                        <p class="text-xs text-slate-500">Parámetros de conexión con la API de DeepSeek para toda la plataforma.</p>
+                    </div>
+                </div>
+
+                <form method="POST" action="{% url 'superadmin_ai_settings' %}" class="space-y-4" autocomplete="off">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_global_ai">
+
+                    <!-- DeepSeek API Key -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                            <span>DeepSeek API Key (Global) *</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Obtén tu clave en platform.deepseek.com</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="deepseek_api_key" name="deepseek_api_key"
+                                   value="{{ config.deepseek_api_key|default:'' }}"
+                                   placeholder="sk-..."
+                                   class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 pr-10 text-xs font-mono focus:outline-none focus:border-brand-900 focus:bg-white transition">
+                            <button type="button" onclick="togglePasswordVisibility('deepseek_api_key', 'eye-deepseek')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer">
+                                <i id="eye-deepseek" data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-slate-500 mt-1">
+                            Esta clave será compartida únicamente con los negocios cuyo plan de suscripción tenga activa la opción <strong>"Incluye API Key de IA"</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Model Selection & State Toggle -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Modelo de DeepSeek</label>
+                            <select name="deepseek_model" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-xs font-bold focus:outline-none focus:border-brand-900">
+                                <option value="deepseek-chat" {% if config.deepseek_model == 'deepseek-chat' %}selected{% endif %}>deepseek-chat (V3 - Recomendado / Rápido)</option>
+                                <option value="deepseek-reasoner" {% if config.deepseek_model == 'deepseek-reasoner' %}selected{% endif %}>deepseek-reasoner (R1 - Razonamiento Profundo)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Estado del Servicio Global</label>
+                            <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                                <span class="text-xs text-slate-700 font-semibold">Habilitar DeepSeek</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="is_deepseek_active" value="1" {% if config.is_deepseek_active %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Base System Directives -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                            <span>Directivas Globales del Sistema (Prompt Base)</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Se antepone al prompt de cada negocio</span>
+                        </label>
+                        <textarea name="default_system_prompt" rows="3"
+                                  placeholder="Ej: Eres un asistente profesional impulsado por RauDie OS. Siempre responde con cortesía, claridad y precisión..."
+                                  class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-xs focus:outline-none focus:border-brand-900 focus:bg-white transition font-mono leading-relaxed">{{ config.default_system_prompt|default:'' }}</textarea>
+                    </div>
+
+                    <!-- OpenAI Fallback Key (Optional) -->
+                    <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                        <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-slate-500"></i>
+                            <span>OpenAI API Key (Respaldo Opcional)</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="openai_api_key" name="openai_api_key"
+                                   value="{{ config.openai_api_key|default:'' }}"
+                                   placeholder="sk-..."
+                                   class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 pr-10 text-xs font-mono focus:outline-none focus:border-brand-900">
+                            <button type="button" onclick="togglePasswordVisibility('openai_api_key', 'eye-openai')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer">
+                                <i id="eye-openai" data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-slate-500">
+                            Utilizada únicamente si DeepSeek presenta interrupciones o si el negocio selecciona OpenAI explícitamente.
+                        </p>
+                    </div>
+
+                    <div class="pt-2 flex justify-end">
+                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
+                            <i data-lucide="save" class="w-4 h-4"></i> Guardar Ajustes de IA
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Column 2: Plans Policy & Architecture Guide (5 Cols) -->
+        <div class="lg:col-span-5 space-y-6">
+
+            <!-- Card 2.1: Plan Distribution Policy -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+                <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                            <i data-lucide="layers" class="w-4 h-4 text-brand-900"></i>
+                            <span>Acceso a IA según Plan SaaS</span>
+                        </h3>
+                        <p class="text-xs text-slate-500">Define qué planes incluyen la clave global o requieren clave propia.</p>
+                    </div>
+                    <a href="{% url 'superadmin_plans' %}" class="text-[11px] font-bold text-rose-800 hover:text-rose-950 transition">
+                        Ver Planes →
+                    </a>
+                </div>
+
+                <div class="space-y-3">
+                    {% for item in plans_summary %}
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 hover:bg-white hover:shadow-2xs transition">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-xs text-slate-900 truncate">{{ item.plan.name }}</h4>
+                                <span class="text-[10px] font-mono text-slate-400">({{ item.plan.code }})</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-[10px] text-slate-500 mt-1">
+                                <span>${{ item.plan.monthly_price }}/mes</span>
+                                <span>•</span>
+                                <span>{{ item.business_count }} negocio{{ item.business_count|pluralize:"s" }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0">
+                            <form method="POST" action="{% url 'superadmin_ai_settings' %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_plan_ai">
+                                <input type="hidden" name="plan_id" value="{{ item.plan.id }}">
+                                {% if item.ai_key_included %}
+                                <button type="submit" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-[10px] hover:bg-emerald-100 transition cursor-pointer flex items-center gap-1" title="Clic para deshabilitar inclusión de API global">
+                                    <i data-lucide="check" class="w-3 h-3 text-emerald-600"></i> IA Incluida
+                                </button>
+                                {% else %}
+                                <button type="submit" class="px-2.5 py-1 rounded-lg bg-slate-200 text-slate-700 border border-slate-300 font-bold text-[10px] hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 transition cursor-pointer flex items-center gap-1" title="Clic para habilitar inclusión de API global">
+                                    <i data-lucide="key" class="w-3 h-3 text-slate-500"></i> API Propia
+                                </button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-400 py-3 text-center">No hay planes registrados.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Card 2.2: Architecture Info Callout -->
+            <div class="bg-gradient-to-br from-slate-900 via-rose-950 to-slate-950 text-white p-6 rounded-3xl border border-rose-900/40 shadow-xs space-y-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-white/10 rounded-xl text-rose-300">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-white font-display">Arquitectura RAG & Bot Autónomo</h4>
+                        <span class="text-[10px] text-rose-200/80">Recuperación Contextual + CRM + Agenda</span>
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-rose-100/80 leading-relaxed">
+                    El motor de IA DeepSeek utiliza el contexto dinámico del negocio (catálogo de servicios, precios, horarios, sucursales y preguntas frecuentes) para responder con exactitud, recomendar servicios, capturar los datos del cliente y agendar turnos directamente en la agenda.
+                </p>
+
+                <div class="pt-2 border-t border-white/10 grid grid-cols-2 gap-2 text-[10px] text-rose-200/90 font-medium">
+                    <span class="flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-400"></i> CRM Autónomo</span>
+                    <span class="flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-400"></i> Cupos en Tiempo Real</span>
+                    <span class="flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-400"></i> WhatsApp Gateway</span>
+                    <span class="flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-400"></i> Simulador Web</span>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+function togglePasswordVisibility(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+    } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+function testDeepSeekConnection() {
+    const btn = document.getElementById('btn-test-deepseek');
+    const textSpan = document.getElementById('test-btn-text');
+    const keyInput = document.getElementById('deepseek_api_key');
+    const resultBox = document.getElementById('test-result-box');
+    const resultMsg = document.getElementById('test-result-message');
+    const resultIcon = document.getElementById('test-result-icon');
+
+    const key = keyInput ? keyInput.value.trim() : '';
+    btn.disabled = true;
+    textSpan.innerText = 'Probando conexión...';
+
+    const formData = new FormData();
+    formData.append('action', 'test_deepseek');
+    formData.append('test_key', key);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+    fetch('{% url "superadmin_ai_settings" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        textSpan.innerText = 'Probar Conexión con DeepSeek';
+        resultBox.classList.remove('hidden', 'bg-rose-50', 'text-rose-900', 'border-rose-200', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-200');
+
+        if (data.success) {
+            resultBox.classList.add('bg-emerald-50', 'text-emerald-900', 'border', 'border-emerald-200');
+            resultIcon.innerHTML = '<i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600"></i>';
+            resultMsg.innerText = data.message;
+        } else {
+            resultBox.classList.add('bg-rose-50', 'text-rose-900', 'border', 'border-rose-200');
+            resultIcon.innerHTML = '<i data-lucide="alert-circle" class="w-5 h-5 text-rose-600"></i>';
+            resultMsg.innerText = data.message;
+        }
+        if (window.lucide) lucide.createIcons();
+    })
+    .catch(err => {
+        btn.disabled = false;
+        textSpan.innerText = 'Probar Conexión con DeepSeek';
+        resultBox.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-200');
+        resultBox.classList.add('bg-rose-50', 'text-rose-900', 'border', 'border-rose-200');
+        resultIcon.innerHTML = '<i data-lucide="alert-circle" class="w-5 h-5 text-rose-600"></i>';
+        resultMsg.innerText = 'Error al enviar solicitud de prueba: ' + err;
+        if (window.lucide) lucide.createIcons();
+    });
+}
+</script>
+{% endblock %}
