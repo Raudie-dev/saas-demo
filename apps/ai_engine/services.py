@@ -97,7 +97,11 @@ def build_agency_rag_context(business, sender_phone='', sender_name=''):
     today_str = now.strftime('%Y-%m-%d')
     time_str = now.strftime('%H:%M')
 
-    booking_url = f"http://127.0.0.1:8000/reservas/{business.slug}/" if getattr(business, 'slug', None) else ""
+    import os
+    from django.conf import settings
+    default_host = 'https://demos.raudie.net' if getattr(settings, 'ENVIRONMENT', 'develop') == 'production' else 'http://127.0.0.1:8000'
+    site_base = (os.getenv('SITE_URL') or default_host).rstrip('/')
+    booking_url = f"{site_base}/reservas/{business.slug}/" if getattr(business, 'slug', None) else ""
 
     # 1. Dirección y Sede
     main_branch = business.branches.filter(is_main=True).first() or business.branches.first()
@@ -896,12 +900,15 @@ def detect_inactive_clients_and_draft_campaign(business):
 
     inactive_clients = Client.objects.filter(business=business).exclude(status='VIP')[:5]
 
+    default_host = 'https://demos.raudie.net' if getattr(settings, 'ENVIRONMENT', 'develop') == 'production' else 'http://127.0.0.1:8000'
+    site_base = (os.getenv('SITE_URL') or default_host).rstrip('/')
+
     campaigns = []
     for client in inactive_clients:
         msg = (
             f"¡Hola {client.first_name}! 👋 Hace tiempo que no nos visitas en *{business.name}*. "
             f"Tenemos una atención especial en tu próximo servicio si reservas esta semana. "
-            f"Link de reserva: http://127.0.0.1:8000/reservas/{business.slug}/?promo=REGRESA"
+            f"Link de reserva: {site_base}/reservas/{business.slug}/?promo=REGRESA"
         )
 
         clean_phone = re.sub(r'\D', '', str(client.phone or ''))

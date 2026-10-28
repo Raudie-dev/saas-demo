@@ -17,7 +17,9 @@ const PRIMARY_WEBHOOK = process.env.DJANGO_WEBHOOK || 'http://127.0.0.1:8000/ia/
 const FALLBACK_WEBHOOKS = [
   PRIMARY_WEBHOOK,
   'http://127.0.0.1:8000/ia/webhook/whatsapp/',
-  'http://127.0.0.1:5555/ia/webhook/whatsapp/'
+  'http://127.0.0.1:5555/ia/webhook/whatsapp/',
+  'https://demos.raudie.net/ia/webhook/whatsapp/',
+  'http://demos.raudie.net/ia/webhook/whatsapp/'
 ];
 
 // Mapas por sesión (clave: userId)
