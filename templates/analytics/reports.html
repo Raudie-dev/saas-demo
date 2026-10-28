@@ -575,16 +575,59 @@
             </div>
         </div>
 
-        <!-- Dynamic Pie Charts Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Dynamic Donut Charts Grid (Estilo Dashboard Siohioma) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            <!-- Pie Chart 1: Proyección por Servicio / Producto -->
+            {% if modules_enabled.invoicing %}
+            <!-- Donut 1: Proyección por Cuotas / Cobros Planificados -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                            <i data-lucide="receipt" class="w-4 h-4 text-rose-900"></i>
+                            <span>Cobros Programados (Cuotas)</span>
+                        </h4>
+                        <p class="text-xs text-slate-500">Estimación de recaudación por cuotas próximas a vencer (30 días)</p>
+                    </div>
+                    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-900 border border-rose-200">
+                        {{ installments_upcoming_30d_count }} Cuotas
+                    </span>
+                </div>
+                <div class="h-64 relative flex items-center justify-center">
+                    <canvas id="installmentsProjectionPieChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if modules_enabled.projects %}
+            <!-- Donut 2: Proyección por Cartera de Proyectos -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                            <i data-lucide="folder-kanban" class="w-4 h-4 text-rose-900"></i>
+                            <span>Cartera de Proyectos en Ejecución</span>
+                        </h4>
+                        <p class="text-xs text-slate-500">Presupuestos contratados por proyecto en curso</p>
+                    </div>
+                    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {{ active_projects_count }} Proyectos
+                    </span>
+                </div>
+                <div class="h-64 relative flex items-center justify-center">
+                    <canvas id="projectsProjectionPieChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if modules_enabled.agenda %}
+            <!-- Donut 3: Proyección por Servicio / Producto (Citas) -->
             <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div>
                         <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
                             <i data-lucide="scissors" class="w-4 h-4 text-rose-900"></i>
-                            <span>Ingresos Est. por Servicio / Producto</span>
+                            <span>Ingresos Est. por Servicio (Agenda)</span>
                         </h4>
                         <p class="text-xs text-slate-500">Distribución de facturación proyectada según citas registradas</p>
                     </div>
@@ -596,14 +639,15 @@
                     <canvas id="serviceProjectionPieChart"></canvas>
                 </div>
             </div>
+            {% endif %}
 
-            <!-- Pie Chart 2: Proyección por Profesional / Colaborador -->
+            <!-- Donut 4: Proyección por Profesional / Responsable -->
             <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div>
                         <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
                             <i data-lucide="user-check" class="w-4 h-4 text-rose-900"></i>
-                            <span>Ingresos Est. por Profesional</span>
+                            <span>Ingresos Est. por Responsable / Profesional</span>
                         </h4>
                         <p class="text-xs text-slate-500">Estimación de recaudación futura por integrante del equipo</p>
                     </div>
@@ -1308,7 +1352,88 @@
         });
     }
 
-    // Render Payment Methods Donut Chart (Tab 2)
+    // Register custom plugin for Donut Center Text (Dashboard style)
+    const donutCenterPlugin = {
+        id: 'donutCenterText',
+        beforeDraw: function(chart) {
+            const centerConfig = chart.config.options?.plugins?.donutCenterText;
+            if (!centerConfig || !centerConfig.display) return;
+            
+            const { ctx, chartArea } = chart;
+            if (!chartArea) return;
+            
+            const centerX = (chartArea.left + chartArea.right) / 2;
+            const centerY = (chartArea.top + chartArea.bottom) / 2;
+            
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const subtitle = centerConfig.subtitle || '';
+            const text = centerConfig.text || '';
+            const footer = centerConfig.footer || '';
+            
+            if (subtitle) {
+                ctx.font = '700 9px Inter, sans-serif';
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText(subtitle.toUpperCase(), centerX, centerY - (footer ? 14 : 10));
+            }
+            
+            if (text) {
+                ctx.font = '800 15px Inter, sans-serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.fillText(text, centerX, subtitle && footer ? centerY : (subtitle ? centerY + 5 : centerY));
+            }
+            
+            if (footer) {
+                ctx.font = '600 9px Inter, sans-serif';
+                ctx.fillStyle = '#64748b';
+                ctx.fillText(footer, centerX, centerY + 14);
+            }
+            
+            ctx.restore();
+        }
+    };
+    if (typeof Chart !== 'undefined') {
+        Chart.register(donutCenterPlugin);
+    }
+
+    // Default Doughnut Options Helper
+    function getDonutOptions(hasData, centerConfig, legendPos = 'bottom') {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+                donutCenterText: centerConfig,
+                legend: {
+                    position: legendPos,
+                    labels: {
+                        color: '#334155',
+                        font: { family: 'Inter', size: 11, weight: '500' },
+                        padding: 10,
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    enabled: hasData,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const dataset = context.dataset.data;
+                            const total = dataset.reduce((acc, val) => acc + (typeof val === 'number' ? val : 0), 0);
+                            const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return ` ${label}: {{ business.currency }}${value.toLocaleString('es-AR', {minimumFractionDigits: 2})} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        };
+    }
+
+    // 1. Render Payment Methods Donut Chart (Tab 2)
     const payEl = document.getElementById('financialPaymentChart');
     if (payEl) {
         const payLabels = {{ payment_methods_chart_labels|safe }};
@@ -1323,33 +1448,20 @@
                     data: hasPayData ? payData : [1],
                     backgroundColor: hasPayData ? payColors : ['#f1f5f9'],
                     borderWidth: 2,
-                    borderColor: '#ffffff'
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } },
-                    tooltip: {
-                        enabled: hasPayData,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed || 0;
-                                const dataset = context.dataset.data;
-                                const total = dataset.reduce((acc, val) => acc + val, 0);
-                                const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                return ` ${label}: {{ business.currency }}${value.toLocaleString('es-AR', {minimumFractionDigits: 2})} (${pct}%)`;
-                            }
-                        }
-                    }
-                }
-            }
+            options: getDonutOptions(hasPayData, {
+                display: true,
+                subtitle: 'Total',
+                text: '{{ business.currency }}{{ total_sales|floatformat:2 }}',
+                footer: 'Cobros'
+            }, 'bottom')
         });
     }
 
-    // Render KPI Tab Payment Methods Pie Chart (Tab 1)
+    // 2. Render KPI Tab Payment Methods Donut Chart (Tab 1)
     const kpiPayEl = document.getElementById('kpiPaymentPieChart');
     if (kpiPayEl) {
         const kpiLabels = {{ payment_methods_chart_labels|safe }};
@@ -1357,7 +1469,7 @@
         const kpiColors = {{ payment_methods_chart_colors|safe }};
         const hasKpiData = kpiData.length > 0 && kpiData.some(v => v > 0);
         new Chart(kpiPayEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
                 labels: hasKpiData ? kpiLabels : ['Sin cobros registrados'],
                 datasets: [{
@@ -1365,177 +1477,212 @@
                     backgroundColor: hasKpiData ? kpiColors : ['#f1f5f9'],
                     borderWidth: 2,
                     borderColor: '#ffffff',
-                    hoverOffset: 6
+                    borderRadius: 4,
+                    hoverOffset: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#334155',
-                            font: { family: 'Inter', size: 11, weight: '600' },
-                            padding: 12,
-                            usePointStyle: true,
-                            pointStyle: 'circle'
-                        }
-                    },
-                    tooltip: {
-                        enabled: hasKpiData,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed || 0;
-                                const dataset = context.dataset.data;
-                                const total = dataset.reduce((acc, val) => acc + val, 0);
-                                const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                return ` ${label}: {{ business.currency }}${value.toLocaleString('es-AR', {minimumFractionDigits: 2})} (${pct}%)`;
-                            }
-                        }
-                    }
-                }
-            }
+            options: getDonutOptions(hasKpiData, {
+                display: true,
+                subtitle: 'Total Cobros',
+                text: '{{ business.currency }}{{ total_sales|floatformat:2 }}',
+                footer: '{{ sales_count }} ventas'
+            }, 'bottom')
         });
     }
 
-    // Pie Chart 1: Proyección por Servicio / Producto
+    // 3. TAB 3: Donut 1 - Cobros Programados / Cuotas (si facturación activa)
+    const instProjEl = document.getElementById('installmentsProjectionPieChart');
+    if (instProjEl) {
+        const instLabels = {{ installment_proj_labels|safe }};
+        const instData = {{ installment_proj_data|safe }};
+        const hasInstData = instData.length > 0 && instData.some(v => v > 0);
+        new Chart(instProjEl.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: hasInstData ? instLabels : ['Sin cuotas en el período'],
+                datasets: [{
+                    data: hasInstData ? instData : [1],
+                    backgroundColor: hasInstData ? ['#881337', '#b91c1c', '#d97706', '#2563eb', '#059669', '#7c3aed'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
+                }]
+            },
+            options: getDonutOptions(hasInstData, {
+                display: true,
+                subtitle: 'Cuotas 30D',
+                text: '{{ business.currency }}{{ installment_proj_total|floatformat:2 }}',
+                footer: '{{ installments_upcoming_30d_count }} cuotas'
+            }, 'bottom')
+        });
+    }
+
+    // 4. TAB 3: Donut 2 - Cartera de Proyectos en Ejecución (si proyectos activos)
+    const projProjEl = document.getElementById('projectsProjectionPieChart');
+    if (projProjEl) {
+        const projLabels = {{ project_proj_labels|safe }};
+        const projData = {{ project_proj_data|safe }};
+        const hasProjData = projData.length > 0 && projData.some(v => v > 0);
+        new Chart(projProjEl.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: hasProjData ? projLabels : ['Sin proyectos activos'],
+                datasets: [{
+                    data: hasProjData ? projData : [1],
+                    backgroundColor: hasProjData ? ['#0f172a', '#059669', '#0284c7', '#881337', '#d97706', '#6366f1'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
+                }]
+            },
+            options: getDonutOptions(hasProjData, {
+                display: true,
+                subtitle: 'Presupuestos',
+                text: '{{ business.currency }}{{ project_proj_total|floatformat:2 }}',
+                footer: '{{ active_projects_count }} proyectos'
+            }, 'bottom')
+        });
+    }
+
+    // 5. TAB 3: Donut 3 - Proyección por Servicio / Citas (Agenda)
     const srvPieEl = document.getElementById('serviceProjectionPieChart');
     if (srvPieEl) {
         const srvLabels = {{ service_proj_labels|safe }};
         const srvData = {{ service_proj_data|safe }};
         const hasSrvData = srvData.length > 0 && srvData.some(v => v > 0);
         new Chart(srvPieEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
                 labels: hasSrvData ? srvLabels : ['Sin citas registradas'],
                 datasets: [{
                     data: hasSrvData ? srvData : [1],
-                    backgroundColor: hasSrvData ? ['#701a2b', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'] : ['#f1f5f9'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    backgroundColor: hasSrvData ? ['#881337', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } },
-                    tooltip: { enabled: hasSrvData }
-                }
-            }
+            options: getDonutOptions(hasSrvData, {
+                display: true,
+                subtitle: 'Citas / Turnos',
+                text: '{{ business.currency }}{{ service_proj_total|floatformat:2 }}',
+                footer: '{{ upcoming_appointments_count }} citas'
+            }, 'bottom')
         });
     }
 
-    // Pie Chart 2: Proyección por Profesional / Colaborador
+    // 6. TAB 3: Donut 4 - Proyección por Profesional / Responsable
     const stfPieEl = document.getElementById('staffProjectionPieChart');
     if (stfPieEl) {
         const stfLabels = {{ staff_proj_labels|safe }};
         const stfData = {{ staff_proj_data|safe }};
+        const hasStfData = stfData.length > 0 && stfData.some(v => v > 0);
         new Chart(stfPieEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: stfLabels.length ? stfLabels : ['Sin citas en rango'],
+                labels: hasStfData ? stfLabels : ['Sin asignaciones en rango'],
                 datasets: [{
-                    data: stfData.length ? stfData : [0],
-                    backgroundColor: ['#0f172a', '#701a2b', '#10b981', '#f59e0b', '#6366f1', '#14b8a6'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    data: hasStfData ? stfData : [1],
+                    backgroundColor: hasStfData ? ['#0f172a', '#881337', '#10b981', '#f59e0b', '#6366f1', '#14b8a6'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } }
-                }
-            }
+            options: getDonutOptions(hasStfData, {
+                display: true,
+                subtitle: 'Por Equipo',
+                text: '{{ business.currency }}{{ staff_proj_total|floatformat:2 }}',
+                footer: 'Proyectado'
+            }, 'bottom')
         });
     }
 
-    // Pie Chart Top 1: Servicios Más Vendidos
+    // 7. TAB 5: Top 1 - Servicios Más Vendidos
     const topSrvPieEl = document.getElementById('topServicesPieChart');
     if (topSrvPieEl) {
         const topSrvLabels = {{ top_services_labels|safe }};
         const topSrvData = {{ top_services_data|safe }};
+        const hasTopSrv = topSrvData.length > 0 && topSrvData.some(v => v > 0);
         new Chart(topSrvPieEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: topSrvLabels.length ? topSrvLabels : ['Sin datos'],
+                labels: hasTopSrv ? topSrvLabels : ['Sin datos'],
                 datasets: [{
-                    data: topSrvData.length ? topSrvData : [0],
-                    backgroundColor: ['#701a2b', '#e11d48', '#f43f5e', '#fb7185', '#fda4af'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    data: hasTopSrv ? topSrvData : [1],
+                    backgroundColor: hasTopSrv ? ['#881337', '#be123c', '#e11d48', '#f43f5e', '#fb7185'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 10 } } }
-                }
-            }
+            options: getDonutOptions(hasTopSrv, {
+                display: true,
+                subtitle: 'Top',
+                text: 'Servicios',
+                footer: 'Facturación'
+            }, 'bottom')
         });
     }
 
-    // Pie Chart Top 2: Productos Más Vendidos
+    // 8. TAB 5: Top 2 - Productos Más Vendidos
     const topProdPieEl = document.getElementById('topProductsPieChart');
     if (topProdPieEl) {
         const topProdLabels = {{ top_products_labels|safe }};
         const topProdData = {{ top_products_data|safe }};
+        const hasTopProd = topProdData.length > 0 && topProdData.some(v => v > 0);
         new Chart(topProdPieEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: topProdLabels.length ? topProdLabels : ['Sin datos'],
+                labels: hasTopProd ? topProdLabels : ['Sin datos'],
                 datasets: [{
-                    data: topProdData.length ? topProdData : [0],
-                    backgroundColor: ['#d97706', '#f59e0b', '#fbbf24', '#fde047', '#fef08a'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    data: hasTopProd ? topProdData : [1],
+                    backgroundColor: hasTopProd ? ['#b45309', '#d97706', '#f59e0b', '#fbbf24', '#fde047'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 10 } } }
-                }
-            }
+            options: getDonutOptions(hasTopProd, {
+                display: true,
+                subtitle: 'Top',
+                text: 'Productos',
+                footer: 'Facturación'
+            }, 'bottom')
         });
     }
 
-    // Pie Chart Top 3: Profesionales que Más Venden
+    // 9. TAB 5: Top 3 - Profesionales que Más Venden
     const topStaffPieEl = document.getElementById('topStaffPieChart');
     if (topStaffPieEl) {
         const topStaffLabels = {{ top_staff_labels|safe }};
         const topStaffData = {{ top_staff_data|safe }};
+        const hasTopStaff = topStaffData.length > 0 && topStaffData.some(v => v > 0);
         new Chart(topStaffPieEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: topStaffLabels.length ? topStaffLabels : ['Sin datos'],
+                labels: hasTopStaff ? topStaffLabels : ['Sin datos'],
                 datasets: [{
-                    data: topStaffData.length ? topStaffData : [0],
-                    backgroundColor: ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    data: hasTopStaff ? topStaffData : [1],
+                    backgroundColor: hasTopStaff ? ['#047857', '#059669', '#10b981', '#34d399', '#6ee7b7'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 10 } } }
-                }
-            }
+            options: getDonutOptions(hasTopStaff, {
+                display: true,
+                subtitle: 'Top',
+                text: 'Ventas',
+                footer: 'Equipo'
+            }, 'bottom')
         });
     }
 
     // Auto-restore active tab after GET filter submission
     const urlParams = new URLSearchParams(window.location.search);
     const activeTabParam = urlParams.get('active_tab');
-    if (activeTabParam && ['kpis', 'charts', 'projections', 'top', 'staff'].includes(activeTabParam)) {
+    if (activeTabParam && ['kpis', 'charts', 'projections', 'installments', 'projects', 'top', 'staff'].includes(activeTabParam)) {
         switchFinanceTab(activeTabParam);
     }
 

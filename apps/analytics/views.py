@@ -440,11 +440,47 @@ def get_filtered_analytics_data(business, request):
     services_proj_qs = upcoming_appointments_qs.values('service__name').annotate(total_est=Sum('total_price'), count=Count('id')).order_by('-total_est')
     service_proj_labels = [item['service__name'] or 'Servicio General' for item in services_proj_qs]
     service_proj_data = [float(item['total_est'] or 0) for item in services_proj_qs]
+    service_proj_total = sum(service_proj_data)
 
-    # Pie Chart 2: Proyección por Profesional (Estimación de Ingresos a Generar)
+    # Pie Chart 2: Proyección por Profesional (Estimación de Ingresos a Generar, Citas + Proyectos)
     staff_proj_qs = upcoming_appointments_qs.values('staff__first_name', 'staff__last_name').annotate(total_est=Sum('total_price'), count=Count('id')).order_by('-total_est')
-    staff_proj_labels = [f"{item['staff__first_name'] or ''} {item['staff__last_name'] or ''}".strip() or 'Sin Asignar' for item in staff_proj_qs]
-    staff_proj_data = [float(item['total_est'] or 0) for item in staff_proj_qs]
+    staff_proj_dict = defaultdict(float)
+    for item in staff_proj_qs:
+        name = f"{item['staff__first_name'] or ''} {item['staff__last_name'] or ''}".strip() or 'Sin Asignar'
+        staff_proj_dict[name] += float(item['total_est'] or 0)
+    for p in active_projects_qs:
+        if p.responsible and p.budget > 0:
+            r_name = p.responsible.full_name
+            staff_proj_dict[r_name] += float(p.budget)
+    staff_proj_labels = list(staff_proj_dict.keys())
+    staff_proj_data = list(staff_proj_dict.values())
+    staff_proj_total = sum(staff_proj_data)
+
+    # Pie/Donut Chart 3: Proyección por Cartera de Proyectos Activos (Presupuestos Contratados)
+    project_proj_labels = []
+    project_proj_data = []
+    for p in active_projects_qs:
+        project_proj_labels.append(p.name)
+        project_proj_data.append(float(p.budget or 0))
+    project_proj_total = sum(project_proj_data)
+
+    # Pie/Donut Chart 4: Proyección por Cuotas / Cobros Planificados
+    installment_proj_labels = []
+    installment_proj_data = []
+    for inst in installments_upcoming_30d_qs:
+        lbl = f"Cuota #{inst.installment_number} - {inst.concept}"
+        if inst.client:
+            lbl += f" ({inst.client.full_name})"
+        installment_proj_labels.append(lbl)
+        installment_proj_data.append(float(inst.balance))
+    if not installment_proj_data and installments_pending_qs.exists():
+        for inst in installments_pending_qs[:6]:
+            lbl = f"Cuota #{inst.installment_number} - {inst.concept}"
+            if inst.client:
+                lbl += f" ({inst.client.full_name})"
+            installment_proj_labels.append(lbl)
+            installment_proj_data.append(float(inst.balance))
+    installment_proj_total = sum(installment_proj_data)
 
     # SECCIÓN MÁS VENDIDOS POR RANGO DE FECHAS (Productos, Servicios y Profesionales)
     completed_sales_ids = completed_sales.values_list('id', flat=True)
@@ -550,8 +586,16 @@ def get_filtered_analytics_data(business, request):
         # Pie Chart Projections Data
         'service_proj_labels': service_proj_labels,
         'service_proj_data': service_proj_data,
+        'service_proj_total': service_proj_total,
         'staff_proj_labels': staff_proj_labels,
         'staff_proj_data': staff_proj_data,
+        'staff_proj_total': staff_proj_total,
+        'project_proj_labels': project_proj_labels,
+        'project_proj_data': project_proj_data,
+        'project_proj_total': project_proj_total,
+        'installment_proj_labels': installment_proj_labels,
+        'installment_proj_data': installment_proj_data,
+        'installment_proj_total': installment_proj_total,
         # Top Performers per Date Range
         'top_services': top_services,
         'top_products': top_products,
