@@ -236,8 +236,8 @@
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Modelo de DeepSeek</label>
                                 <select name="deepseek_model" class="w-full bg-white border border-slate-300 text-slate-800 rounded-xl p-2.5 text-xs font-semibold focus:outline-none">
-                                    <option value="deepseek-chat" {% if bot_config.deepseek_model == 'deepseek-chat' %}selected{% endif %}>deepseek-chat (V3 - Recomendado para Chat y RAG)</option>
-                                    <option value="deepseek-reasoner" {% if bot_config.deepseek_model == 'deepseek-reasoner' %}selected{% endif %}>deepseek-reasoner (R1 - Razonamiento Profundo)</option>
+                                    <option value="deepseek-chat" {% if bot_config.deepseek_model == 'deepseek-chat' %}selected{% endif %}>deepseek-chat</option>
+                                    <option value="deepseek-reasoner" {% if bot_config.deepseek_model == 'deepseek-reasoner' %}selected{% endif %}>deepseek-reasoner</option>
                                 </select>
                             </div>
                         </div>
