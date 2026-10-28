@@ -107,7 +107,7 @@
                     </div>
                 </div>
 
-                <form method="POST" class="space-y-5" autocomplete="off">
+                <form method="POST" enctype="multipart/form-data" class="space-y-5" autocomplete="off">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="save_bot_config">
 
@@ -168,20 +168,45 @@
                         </p>
                     </div>
 
-                    <!-- Custom Knowledge Base (RAG Context) -->
-                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                        <label class="block text-xs font-bold text-slate-800 flex items-center justify-between">
-                            <span class="flex items-center gap-1.5">
-                                <i data-lucide="book-open" class="w-4 h-4 text-rose-800"></i>
-                                <span>Base de Conocimientos Especializada de la Agencia (RAG)</span>
+                    <!-- Documento de Contexto del Negocio (PDF, Excel, Word) -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <i data-lucide="file-text" class="w-4 h-4 text-rose-800"></i>
+                                <span>Documento de Información y Políticas del Negocio</span>
                             </span>
-                            <span class="text-[10px] text-slate-400 font-normal">FAQs, reglas y contexto</span>
-                        </label>
-                        <textarea name="custom_knowledge" rows="3"
-                                  placeholder="Ej: Políticas de cancelación (mínimo 24 hs antes), medios de pago aceptados en el local (Efectivo, Tarjetas, MercadoPago), cómo llegar, promociones vigentes..."
-                                  class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-xs focus:outline-none focus:border-rose-600 font-sans leading-relaxed">{{ bot_config.custom_knowledge|default:'' }}</textarea>
+                            <span class="text-[10px] text-slate-500 font-medium bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                                Solo PDF, Excel y Word
+                            </span>
+                        </div>
+
+                        {% if bot_config.knowledge_filename %}
+                        <div class="flex items-center justify-between gap-3 p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                <span class="text-emerald-950 font-semibold truncate" title="{{ bot_config.knowledge_filename }}">
+                                    Archivo activo: {{ bot_config.knowledge_filename }}
+                                </span>
+                            </div>
+                            <label class="inline-flex items-center gap-1.5 text-[11px] text-rose-700 hover:text-rose-900 font-bold cursor-pointer shrink-0">
+                                <input type="checkbox" name="remove_knowledge_file" value="1" class="rounded border-rose-300 text-rose-700 focus:ring-rose-600">
+                                <span>Quitar archivo</span>
+                            </label>
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <input type="file"
+                                   id="knowledge_file_input"
+                                   name="knowledge_file"
+                                   accept=".pdf,.xlsx,.xls,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
+                                   onchange="validateKnowledgeFileInput(this)"
+                                   class="block w-full text-xs text-slate-600 bg-white border border-slate-300 rounded-xl p-2 cursor-pointer file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-rose-900 file:text-white hover:file:bg-rose-950 focus:outline-none focus:border-rose-600">
+                            <p id="knowledge_file_error" class="hidden text-[11px] text-rose-700 font-semibold mt-1.5"></p>
+                        </div>
+
                         <p class="text-[10px] text-slate-500">
-                            La IA recupera esta información dinámicamente en cada mensaje para responder con precisión preguntas frecuentes de tus clientes.
+                            Sube un documento <strong>PDF (.pdf)</strong>, <strong>Excel (.xlsx, .xls)</strong> o <strong>Word (.docx, .doc)</strong> con tus preguntas frecuentes, políticas, promociones o catálogo adicional para que el asistente responda con esa información.
                         </p>
                     </div>
 
@@ -491,6 +516,28 @@
 </div>
 
 <script>
+function validateKnowledgeFileInput(input) {
+    const errEl = document.getElementById('knowledge_file_error');
+    if (!input.files || !input.files.length) {
+        if (errEl) errEl.classList.add('hidden');
+        return;
+    }
+    const file = input.files[0];
+    const allowedExts = ['.pdf', '.xlsx', '.xls', '.docx', '.doc'];
+    const lowerName = (file.name || '').toLowerCase();
+    const isValid = allowedExts.some(ext => lowerName.endsWith(ext));
+
+    if (!isValid) {
+        input.value = '';
+        if (errEl) {
+            errEl.textContent = 'Formato no válido. Solo se permiten archivos PDF (.pdf), Excel (.xlsx, .xls) y Word (.docx, .doc).';
+            errEl.classList.remove('hidden');
+        }
+    } else if (errEl) {
+        errEl.classList.add('hidden');
+    }
+}
+
 function sendCampaignWhatsapp(phone, message, btn) {
     const originalHTML = btn.innerHTML;
     btn.disabled = true;

@@ -62,9 +62,29 @@ def ai_dashboard_view(request):
             bot_config.ai_provider = request.POST.get('ai_provider', 'deepseek')
             bot_config.deepseek_api_key = request.POST.get('deepseek_api_key', '').strip() or None
             bot_config.deepseek_model = request.POST.get('deepseek_model', 'deepseek-chat').strip() or 'deepseek-chat'
-            bot_config.custom_knowledge = request.POST.get('custom_knowledge', '').strip() or None
             bot_config.auto_register_clients = request.POST.get('auto_register_clients') in ['1', 'true', 'on', True]
             bot_config.auto_create_appointments = request.POST.get('auto_create_appointments') in ['1', 'true', 'on', True]
+
+            # Gestión de archivo de contexto (PDF, Excel, Word)
+            if request.POST.get('remove_knowledge_file') == '1':
+                if bot_config.knowledge_file:
+                    bot_config.knowledge_file.delete(save=False)
+                bot_config.knowledge_file = None
+                bot_config.knowledge_filename = None
+                bot_config.custom_knowledge = None
+
+            uploaded_doc = request.FILES.get('knowledge_file')
+            if uploaded_doc:
+                from apps.ai_engine.document_parser import validate_knowledge_file, extract_text_from_knowledge_file
+                is_valid, err_msg, _ = validate_knowledge_file(uploaded_doc)
+                if not is_valid:
+                    messages.error(request, err_msg)
+                    return redirect('ai_dashboard')
+                extracted_text = extract_text_from_knowledge_file(uploaded_doc)
+                bot_config.knowledge_file = uploaded_doc
+                bot_config.knowledge_filename = uploaded_doc.name
+                bot_config.custom_knowledge = extracted_text or f"Archivo adjunto: {uploaded_doc.name}"
+
             bot_config.save()
             messages.success(request, "¡Configuración del Bot y Motor DeepSeek guardada con éxito!")
             return redirect('ai_dashboard')

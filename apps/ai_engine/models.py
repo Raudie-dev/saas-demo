@@ -58,11 +58,23 @@ class WhatsAppBotConfig(TimeStampedModel):
     )
     deepseek_api_key = models.CharField(max_length=500, blank=True, null=True, verbose_name="API Key de DeepSeek (Propia Cifrada)")
     deepseek_model = models.CharField(max_length=50, default='deepseek-chat', verbose_name="Modelo DeepSeek")
+    knowledge_file = models.FileField(
+        upload_to='bot_knowledge/',
+        blank=True,
+        null=True,
+        verbose_name="Archivo de Información del Negocio (PDF, Excel, Word)"
+    )
+    knowledge_filename = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Nombre del Archivo Cargado"
+    )
     custom_knowledge = models.TextField(
         blank=True,
         null=True,
-        verbose_name="Base de Conocimientos / Contexto de la Agencia",
-        help_text="Políticas, FAQs, promociones, reglas de atención o información especial que el bot consultará al responder."
+        verbose_name="Contenido Extraído del Documento",
+        help_text="Texto extraído automáticamente del archivo PDF, Excel o Word cargado."
     )
     auto_register_clients = models.BooleanField(default=True, verbose_name="Registrar clientes nuevos automáticamente en el CRM")
     auto_create_appointments = models.BooleanField(default=True, verbose_name="Agendar citas automáticamente según disponibilidad de la agenda")
