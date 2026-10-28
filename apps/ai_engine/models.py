@@ -49,13 +49,11 @@ class WhatsAppBotConfig(TimeStampedModel):
     auto_booking_link = models.BooleanField(default=True, verbose_name="Incluir link del portal de reservas al consultar citas")
     ai_provider = models.CharField(
         max_length=20,
-        choices=[('deepseek', 'DeepSeek AI'), ('openai', 'OpenAI')],
         default='deepseek',
         verbose_name="Proveedor de Inteligencia Artificial"
     )
     deepseek_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de DeepSeek (Propia)")
     deepseek_model = models.CharField(max_length=50, default='deepseek-chat', verbose_name="Modelo DeepSeek")
-    openai_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de OpenAI (Opcional)")
     custom_knowledge = models.TextField(
         blank=True,
         null=True,

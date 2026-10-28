@@ -308,7 +308,6 @@ class SuperAdminUser(AbstractBaseUser, PermissionsMixin):
 class PlatformGlobalConfig(TimeStampedModel):
     deepseek_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de DeepSeek (Global)")
     deepseek_model = models.CharField(max_length=100, default="deepseek-chat", verbose_name="Modelo de DeepSeek")
-    openai_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de OpenAI (Fallback Global)")
     default_system_prompt = models.TextField(
         blank=True,
         null=True,

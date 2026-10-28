@@ -640,7 +640,6 @@ def ai_settings_view(request):
         if action == 'save_global_ai':
             config.deepseek_api_key = request.POST.get('deepseek_api_key', '').strip() or None
             config.deepseek_model = request.POST.get('deepseek_model', 'deepseek-chat').strip() or 'deepseek-chat'
-            config.openai_api_key = request.POST.get('openai_api_key', '').strip() or None
             config.default_system_prompt = request.POST.get('default_system_prompt', '').strip() or None
             config.is_deepseek_active = request.POST.get('is_deepseek_active') in ['1', 'true', 'on', True]
             config.save()

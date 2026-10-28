@@ -62,7 +62,6 @@ def ai_dashboard_view(request):
             bot_config.ai_provider = request.POST.get('ai_provider', 'deepseek')
             bot_config.deepseek_api_key = request.POST.get('deepseek_api_key', '').strip() or None
             bot_config.deepseek_model = request.POST.get('deepseek_model', 'deepseek-chat').strip() or 'deepseek-chat'
-            bot_config.openai_api_key = request.POST.get('openai_api_key', '').strip() or None
             bot_config.custom_knowledge = request.POST.get('custom_knowledge', '').strip() or None
             bot_config.auto_register_clients = request.POST.get('auto_register_clients') in ['1', 'true', 'on', True]
             bot_config.auto_create_appointments = request.POST.get('auto_create_appointments') in ['1', 'true', 'on', True]

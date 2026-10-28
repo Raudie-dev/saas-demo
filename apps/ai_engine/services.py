@@ -65,17 +65,7 @@ def get_effective_ai_config(business):
                 'Tu plan incluye IA, pero la plataforma aún no tiene una clave global activa configurada.'
             )
 
-    # 3. Fallback de OpenAI si tiene clave propia
-    if bot_config.openai_api_key and bot_config.openai_api_key.strip():
-        return (
-            bot_config.openai_api_key.strip(),
-            'gpt-4o-mini',
-            'openai',
-            'custom_openai',
-            'Clave propia de OpenAI configurada.'
-        )
-
-    # 4. Plan no incluye clave de plataforma
+    # 3. Plan no incluye clave de plataforma
     return (
         None,
         'deepseek-chat',
@@ -388,7 +378,7 @@ def execute_tool_agendar_cita(business, servicio_name, fecha_str, hora_str, nomb
 
 def call_deepseek_with_tools(api_key, model, messages_list, business):
     """
-    Ejecuta la llamada a la API de DeepSeek compatible con OpenAI Tools y procesa
+    Ejecuta la llamada a la API de DeepSeek con soporte para Tool Calling y procesa
     llamadas a funciones autónomas (Disponibilidad, Registro CRM y Agendamiento).
     """
     tools = [

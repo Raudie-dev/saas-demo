@@ -233,22 +233,12 @@
                                        class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:outline-none focus:border-rose-600 font-mono">
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Modelo de DeepSeek</label>
-                                    <select name="deepseek_model" class="w-full bg-white border border-slate-300 text-slate-800 rounded-xl p-2 text-xs font-semibold focus:outline-none">
-                                        <option value="deepseek-chat" {% if bot_config.deepseek_model == 'deepseek-chat' %}selected{% endif %}>deepseek-chat (V3 - Rápido)</option>
-                                        <option value="deepseek-reasoner" {% if bot_config.deepseek_model == 'deepseek-reasoner' %}selected{% endif %}>deepseek-reasoner (R1 - Razonamiento)</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Proveedor Activo</label>
-                                    <select name="ai_provider" class="w-full bg-white border border-slate-300 text-slate-800 rounded-xl p-2 text-xs font-semibold focus:outline-none">
-                                        <option value="deepseek" {% if bot_config.ai_provider == 'deepseek' %}selected{% endif %}>DeepSeek AI (Recomendado)</option>
-                                        <option value="openai" {% if bot_config.ai_provider == 'openai' %}selected{% endif %}>OpenAI (GPT-4o-mini)</option>
-                                    </select>
-                                </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Modelo de DeepSeek</label>
+                                <select name="deepseek_model" class="w-full bg-white border border-slate-300 text-slate-800 rounded-xl p-2.5 text-xs font-semibold focus:outline-none">
+                                    <option value="deepseek-chat" {% if bot_config.deepseek_model == 'deepseek-chat' %}selected{% endif %}>deepseek-chat (V3 - Recomendado para Chat y RAG)</option>
+                                    <option value="deepseek-reasoner" {% if bot_config.deepseek_model == 'deepseek-reasoner' %}selected{% endif %}>deepseek-reasoner (R1 - Razonamiento Profundo)</option>
+                                </select>
                             </div>
                         </div>
                     </div>
