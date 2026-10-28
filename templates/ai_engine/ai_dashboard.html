@@ -325,11 +325,25 @@
                         </button>
                     </form>
                     {% if whatsapp_campaigns %}
-                    <div class="space-y-2 max-h-48 overflow-y-auto">
+                    <div class="space-y-2 max-h-56 overflow-y-auto">
                         {% for camp in whatsapp_campaigns %}
-                        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px]">
-                            <strong class="text-slate-900">{{ camp.client_name }}</strong>
-                            <p class="text-slate-700 mt-1 font-mono text-[10px]">{{ camp.message }}</p>
+                        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] space-y-1.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <strong class="text-slate-900">{{ camp.client_name }}</strong>
+                                {% if camp.sent_direct %}
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">✓ Enviado</span>
+                                {% else %}
+                                <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">Borrador</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-slate-700 font-mono text-[10px]">{{ camp.message }}</p>
+                            {% if camp.clean_phone %}
+                            <button type="button"
+                                    onclick="sendCampaignWhatsapp('{{ camp.clean_phone|escapejs }}', '{{ camp.message|escapejs }}', this)"
+                                    class="w-full py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] transition flex items-center justify-center gap-1 cursor-pointer">
+                                <i data-lucide="send" class="w-3 h-3"></i> Enviar por WhatsApp ({{ camp.phone }})
+                            </button>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
@@ -452,11 +466,11 @@
                                 </span>
                             {% endif %}
                         </td>
-                        <td class="p-3.5 text-slate-600 max-w-xs truncate" title="{{ log.prompt_trigger }}">
-                            {{ log.prompt_trigger|default:"N/A" }}
+                        <td class="p-3.5 text-slate-600 max-w-xs truncate" title="{{ log.prompt_used }}">
+                            {{ log.prompt_used|default:"N/A" }}
                         </td>
-                        <td class="p-3.5 text-slate-800 font-mono text-[11px] max-w-md truncate" title="{{ log.result_summary }}">
-                            {{ log.result_summary }}
+                        <td class="p-3.5 text-slate-800 font-mono text-[11px] max-w-md truncate" title="{{ log.response_generated }}">
+                            {{ log.response_generated }}
                         </td>
                         <td class="p-3.5 text-slate-500 whitespace-nowrap font-mono">
                             {{ log.created_at|date:"d/m/Y H:i:s" }}
@@ -477,6 +491,47 @@
 </div>
 
 <script>
+function sendCampaignWhatsapp(phone, message, btn) {
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Enviando...';
+    if (window.lucide) lucide.createIcons();
+
+    const formData = new FormData();
+    formData.append('phone', phone);
+    formData.append('message', message);
+
+    fetch('{% url "whatsapp_gateway_send_reminder" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && data.sent_direct) {
+            btn.className = 'w-full py-1.5 px-2.5 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center justify-center gap-1';
+            btn.innerHTML = '✓ Enviado por WhatsApp';
+        } else if (data.fallback_url) {
+            window.open(data.fallback_url, '_blank');
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            if (window.lucide) lucide.createIcons();
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            if (window.lucide) lucide.createIcons();
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        if (window.lucide) lucide.createIcons();
+    });
+}
+
 function quickSend(text) {
     const input = document.getElementById('sim-prompt-input');
     input.value = text;

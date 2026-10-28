@@ -119,6 +119,7 @@ def whatsapp_webhook_api(request):
         body = request.POST
 
     remote_jid = body.get('remoteJid', '')
+    sender_pn = body.get('senderPn', '') or remote_jid
     push_name = body.get('pushName', '')
     message_text = body.get('messageText', '')
     owner_id = body.get('owner') or body.get('session', '').split('_')[0]
@@ -134,11 +135,18 @@ def whatsapp_webhook_api(request):
     if not business:
         return JsonResponse({'status': 'error', 'reply': None, 'message': 'Negocio no encontrado'})
 
+    clean_sender = (
+        str(sender_pn)
+        .replace('@s.whatsapp.net', '')
+        .replace('@lid', '')
+        .split(':')[0]
+    )
+
     # Generar respuesta usando la configuración del bot del negocio
     reply = generate_whatsapp_bot_reply(
         business=business,
         incoming_text=message_text,
-        sender_phone=remote_jid.replace('@s.whatsapp.net', ''),
+        sender_phone=clean_sender,
         sender_name=push_name
     )
 

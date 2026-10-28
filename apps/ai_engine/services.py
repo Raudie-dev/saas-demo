@@ -790,26 +790,65 @@ def generate_executive_financial_insight(business):
 
 
 def detect_inactive_clients_and_draft_campaign(business):
-    """Detecta clientes inactivos e incita la reactivación vía WhatsApp."""
-    sixty_days_ago = timezone.now() - datetime.timedelta(days=60)
+    """Detecta clientes inactivos y envía/redacta la reactivación vía WhatsApp."""
+    import os
+    from django.conf import settings
+    gateway_base = getattr(settings, 'WHATSAPP_GATEWAY_URL', None) or os.environ.get('WHATSAPP_GATEWAY_URL', 'http://127.0.0.1:3000').rstrip('/')
+    session_user = str(business.id)
+
+    gw_connected = False
+    try:
+        st_resp = requests.get(f"{gateway_base}/status", params={'user': session_user}, timeout=2)
+        if st_resp.status_code == 200 and st_resp.json().get('status') == 'connected':
+            gw_connected = True
+    except Exception:
+        gw_connected = False
+
     inactive_clients = Client.objects.filter(business=business).exclude(status='VIP')[:5]
 
     campaigns = []
     for client in inactive_clients:
-        msg = f"¡Hola {client.first_name}! Hace tiempo que no nos visitas en {business.name}. Tenemos una atención especial en tu próximo servicio si reservas esta semana. Link de reserva: http://localhost:8000/reservas/{business.slug}/?promo=REGRESA"
+        msg = (
+            f"¡Hola {client.first_name}! 👋 Hace tiempo que no nos visitas en *{business.name}*. "
+            f"Tenemos una atención especial en tu próximo servicio si reservas esta semana. "
+            f"Link de reserva: http://127.0.0.1:8000/reservas/{business.slug}/?promo=REGRESA"
+        )
+
+        clean_phone = re.sub(r'\D', '', str(client.phone or ''))
+        sent_direct = False
+        log_status = 'SIMULATED'
+
+        if gw_connected and clean_phone:
+            try:
+                send_resp = requests.post(
+                    f"{gateway_base}/send",
+                    params={'user': session_user},
+                    json={'number': clean_phone, 'message': msg},
+                    timeout=6
+                )
+                if send_resp.status_code == 200 and send_resp.json().get('ok'):
+                    sent_direct = True
+                    log_status = 'SENT'
+            except Exception:
+                pass
 
         log = AIAutomationLog.objects.create(
             business=business,
             target_client=client,
+            sender_phone=clean_phone or None,
+            sender_name=client.full_name,
             action_type='REACTIVATION_CAMPAIGN',
             prompt_used=f"Reactivar cliente inactivo: {client.full_name}",
             response_generated=msg,
-            status='SIMULATED'
+            status=log_status
         )
         campaigns.append({
             'client_name': client.full_name,
-            'phone': client.phone,
+            'client_first_name': client.first_name,
+            'phone': client.phone or '',
+            'clean_phone': clean_phone,
             'message': msg,
+            'sent_direct': sent_direct,
             'log_id': str(log.id)
         })
 

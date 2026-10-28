@@ -13,13 +13,29 @@ import path from 'path';
 import { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
 
 const PORT = process.env.PORT || 3000;
-const DJANGO_WEBHOOK = process.env.DJANGO_WEBHOOK || 'http://127.0.0.1:5555/ia/webhook/whatsapp/';
+const PRIMARY_WEBHOOK = process.env.DJANGO_WEBHOOK || 'http://127.0.0.1:8000/ia/webhook/whatsapp/';
+const FALLBACK_WEBHOOKS = [
+  PRIMARY_WEBHOOK,
+  'http://127.0.0.1:8000/ia/webhook/whatsapp/',
+  'http://127.0.0.1:5555/ia/webhook/whatsapp/'
+];
 
 // Mapas por sesión (clave: userId)
 const sockets = new Map();
 const latestQrs = new Map();
 const statuses = new Map();
 const backoffMap = new Map();
+// Registro de IDs de mensajes enviados por el propio bot/sistema para evitar bucles infinitos
+const sentByBotIds = new Set();
+
+function rememberBotMessageId(sentMsg) {
+  const msgId = sentMsg?.key?.id;
+  if (msgId) {
+    sentByBotIds.add(msgId);
+    // Limpiar después de 5 minutos para no crecer en memoria
+    setTimeout(() => sentByBotIds.delete(msgId), 5 * 60 * 1000);
+  }
+}
 
 function sessionId(user, slot) {
   const s = slot === undefined || slot === null ? '0' : String(slot);
@@ -27,27 +43,95 @@ function sessionId(user, slot) {
   return `${u}_${s}`;
 }
 
-// Extrae texto del mensaje en los distintos tipos soportados
+function normalizeBareJid(jid) {
+  if (!jid) return '';
+  return String(jid).split('@')[0].split(':')[0];
+}
+
+// Extrae texto del mensaje en los distintos tipos soportados (incluyendo chats con mensajes temporales)
 function extractMessageText(message) {
   if (!message) return '';
-  if (message.conversation) return message.conversation;
-  if (message.extendedTextMessage && message.extendedTextMessage.text) return message.extendedTextMessage.text;
-  if (message.imageMessage && message.imageMessage.caption) return message.imageMessage.caption;
-  if (message.videoMessage && message.videoMessage.caption) return message.videoMessage.caption;
-  if (message.buttonsResponseMessage && message.buttonsResponseMessage.selectedButtonId) return message.buttonsResponseMessage.selectedButtonId;
-  if (message.templateButtonReplyMessage && message.templateButtonReplyMessage.selectedId) return message.templateButtonReplyMessage.selectedId;
-  // fallback: stringify (útil para tipos nuevos o debugging)
-  try { return JSON.stringify(message); } catch (e) { return '' }
+  const inner =
+    message.ephemeralMessage?.message ||
+    message.viewOnceMessage?.message ||
+    message.viewOnceMessageV2?.message ||
+    message.documentWithCaptionMessage?.message ||
+    message;
+
+  // Ignorar mensajes internos de protocolo, reacciones o sincronización de historial
+  if (
+    inner.protocolMessage ||
+    inner.senderKeyDistributionMessage ||
+    inner.reactionMessage ||
+    inner.keepInChatMessage ||
+    inner.pollUpdateMessage
+  ) {
+    return '';
+  }
+
+  if (inner.conversation) return inner.conversation;
+  if (inner.extendedTextMessage && inner.extendedTextMessage.text) return inner.extendedTextMessage.text;
+  if (inner.imageMessage && inner.imageMessage.caption) return inner.imageMessage.caption;
+  if (inner.videoMessage && inner.videoMessage.caption) return inner.videoMessage.caption;
+  if (inner.buttonsResponseMessage && inner.buttonsResponseMessage.selectedButtonId) return inner.buttonsResponseMessage.selectedButtonId;
+  if (inner.templateButtonReplyMessage && inner.templateButtonReplyMessage.selectedId) return inner.templateButtonReplyMessage.selectedId;
+  if (inner.listResponseMessage?.singleSelectReply?.selectedRowId) return inner.listResponseMessage.singleSelectReply.selectedRowId;
+  return '';
+}
+
+async function postToDjangoWebhook(payload) {
+  const uniqueUrls = [...new Set(FALLBACK_WEBHOOKS)];
+  let lastErr = null;
+  for (const url of uniqueUrls) {
+    try {
+      const resp = await axios.post(url, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Secret': process.env.WEBHOOK_SECRET || 'pon-aqui-un-token-largo-y-aleatorio-32chars'
+        },
+        timeout: 25000
+      });
+      return resp;
+    } catch (err) {
+      lastErr = err;
+      // Si es error de conexión rechazada (puerto distinto), probar el siguiente puerto
+      if (err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET') {
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
+async function resolveWhatsAppJid(sock, rawNumberOrJid) {
+  const input = String(rawNumberOrJid || '').trim();
+  if (!input) return '';
+  if (input.includes('@')) {
+    return input;
+  }
+  const cleanDigits = input.replace(/\D/g, '');
+  if (!cleanDigits) return '';
+  const candidateJid = `${cleanDigits}@s.whatsapp.net`;
+  try {
+    if (typeof sock.onWhatsApp === 'function') {
+      const results = await sock.onWhatsApp(candidateJid);
+      if (Array.isArray(results) && results[0]?.exists && results[0]?.jid) {
+        return results[0].jid;
+      }
+    }
+  } catch (e) {
+    // Continuar con candidateJid
+  }
+  return candidateJid;
 }
 
 // Inicia el socket de Baileys con persistencia en ./auth_info
-async function startSocketFor(sid = 'default:0') {
+async function startSocketFor(sid = 'default_0') {
   try {
     const dir = `./auth_info/${sid}`;
     const { state, saveCreds } = await useMultiFileAuthState(dir);
     const { version } = await fetchLatestBaileysVersion();
-    // If there is already a socket for this session id, close the websocket instead of calling logout()
-    // to avoid Intentional Logout which invalidates credentials on WhatsApp side.
     const existing = sockets.get(sid);
     if (existing) {
       try {
@@ -61,7 +145,6 @@ async function startSocketFor(sid = 'default:0') {
     // initialize socket for this session id
     const sock = makeWASocket({ auth: state, version });
     sockets.set(sid, sock);
-    // clear previous QR and set initializing
     latestQrs.set(sid, null);
     statuses.set(sid, 'initializing');
 
@@ -80,12 +163,12 @@ async function startSocketFor(sid = 'default:0') {
       if (connection === 'open') {
         latestQrs.set(sid, null); // autenticado, no hay QR activo
         statuses.set(sid, 'connected');
+        backoffMap.set(sid, 0);
         console.log(`Conexión abierta con WhatsApp (session=${sid})`);
       }
 
       if (connection === 'close') {
         statuses.set(sid, 'disconnected');
-        // Detectar logout intencional (credenciales invalidas)
         let isIntentional = false;
         try {
           const err = lastDisconnect?.error;
@@ -107,7 +190,6 @@ async function startSocketFor(sid = 'default:0') {
         }
 
         console.error(`Conexión cerrada para session=${sid}, intentando reconectar...`, lastDisconnect?.error || 'sin error');
-        // reintentos con backoff exponencial para evitar bucles agresivos
         const prev = backoffMap.get(sid) || 0;
         const attempts = Math.min(prev + 1, 6);
         backoffMap.set(sid, attempts);
@@ -121,36 +203,54 @@ async function startSocketFor(sid = 'default:0') {
     // Escucha mensajes entrantes, los reenvía al webhook de Django y responde al usuario
     sock.ev.on('messages.upsert', async (m) => {
       try {
+        // Ignorar volcados antiguos de historial al reconectar
+        if (m.type && m.type !== 'notify') return;
+
         const messages = m.messages || [];
         for (const msg of messages) {
-          if (!msg.message || msg.key?.fromMe) continue;
-          if (msg.key.remoteJid.endsWith('@g.us')) continue;
-          if (msg.key.remoteJid === 'status@broadcast') continue;
+          if (!msg.message) continue;
+          if (msg.key?.id && sentByBotIds.has(msg.key.id)) continue;
 
-          const remoteJid = msg.key.remoteJid || '';
-          const pushName = msg.pushName || msg.contact?.name || '';
+          const remoteJid = msg.key?.remoteJid || '';
+          if (!remoteJid || remoteJid.endsWith('@g.us') || remoteJid === 'status@broadcast') continue;
+
+          // Si el mensaje fue enviado desde este mismo teléfono (fromMe: true),
+          // solo permitir si el usuario se está escribiendo a su propio chat ("Tú") para probar el bot.
+          if (msg.key?.fromMe) {
+            const myPhone = normalizeBareJid(sock.user?.id);
+            const myLid = normalizeBareJid(sock.user?.lid);
+            const targetBare = normalizeBareJid(remoteJid);
+            const isSelfChat = (myPhone && targetBare === myPhone) || (myLid && targetBare === myLid);
+            if (!isSelfChat) continue;
+          }
+
           const messageText = extractMessageText(msg.message);
-          
+          if (!messageText || !messageText.trim()) continue;
+
+          const pushName = msg.pushName || msg.contact?.name || '';
+          const senderPn = msg.key?.senderPn || msg.key?.participant || remoteJid;
+
           console.log(`\n[RECIBIDO] Mensaje de ${remoteJid} (${pushName}): ${messageText}`);
 
           // Enviar al webhook de Django y reenviar la respuesta al usuario
           try {
             const owner = String(sid).split('_')[0];
-            const resp = await axios.post(
-                DJANGO_WEBHOOK,
-                { remoteJid, pushName, messageText, session: sid, owner },
-                { headers: {
-                    'Content-Type': 'application/json',
-                    'X-Webhook-Secret': process.env.WEBHOOK_SECRET || 'pon-aqui-un-token-largo-y-aleatorio-32chars'
-                }}
-            );
-            
+            const resp = await postToDjangoWebhook({
+              remoteJid,
+              senderPn,
+              pushName,
+              messageText,
+              session: sid,
+              owner
+            });
+
             console.log(`[WEBHOOK] Django respondió con HTTP ${resp.status}`);
             console.log(`[WEBHOOK] Datos recibidos:`, resp.data);
 
             if (resp && resp.data && resp.data.reply && resp.data.reply.trim() !== '') {
               console.log(`[ENVIANDO] Respondiendo a ${remoteJid}: ${resp.data.reply}`);
-              await sock.sendMessage(remoteJid, { text: resp.data.reply });
+              const sentMsg = await sock.sendMessage(remoteJid, { text: resp.data.reply });
+              rememberBotMessageId(sentMsg);
               console.log(`[ENVIADO] Respuesta enviada con éxito.`);
             } else {
               console.log(`[IGNORADO] Django no proporcionó una respuesta para este mensaje.`);
@@ -163,7 +263,7 @@ async function startSocketFor(sid = 'default:0') {
         console.error('Error procesando messages.upsert:', err);
       }
     });
-   
+
     console.log(`Socket inicializado para session=${sid}`);
     return sock;
   } catch (err) {
@@ -194,7 +294,6 @@ function startServer() {
     const slot = req.query.slot || '0';
     const sid = sessionId(user, slot);
     try {
-      // Si ya esta conectado, no hacer nada
       if (statuses.get(sid) === 'connected') {
         return res.json({ ok: true, message: 'Ya conectado', qr: null });
       }
@@ -202,11 +301,8 @@ function startServer() {
       if (fs.existsSync(dir)) {
         fs.rmSync(dir, { recursive: true, force: true });
       }
-      // (re)inicia socket para esa sesión
-      // startSocketFor establecerá statuses.set(sid, 'initializing') y publicará el QR en latestQrs cuando esté listo
       await startSocketFor(sid);
 
-      // Esperar hasta X ms para que aparezca el QR en latestQrs (polling suave)
       const maxWait = 10000; // 10s
       const interval = 500;
       let waited = 0;
@@ -233,7 +329,6 @@ function startServer() {
     try {
       const sock = sockets.get(sid);
       if (sock) {
-        // Cerrar websocket y eliminar listeners en lugar de logout()
         try {
           if (sock?.ws && typeof sock.ws.close === 'function') sock.ws.close();
         } catch (e) {
@@ -259,17 +354,19 @@ function startServer() {
     const user = req.query.user || req.body.user || 'default';
     const slot = req.query.slot || req.body.slot || '0';
     const sid = sessionId(user, slot);
-    if (!number || !message) return res.status(400).json({ error: 'Faltan campos: number y message' });
+    if (!number || !message) return res.status(400).json({ ok: false, success: false, error: 'Faltan campos: number y message' });
     const sock = sockets.get(sid);
-    if (!sock) return res.status(503).json({ error: `Socket no inicializado para session=${sid}` });
+    if (!sock) return res.status(503).json({ ok: false, success: false, error: `Socket no inicializado para session=${sid}` });
 
     try {
-      const jid = number.includes('@') ? number : `${number}@s.whatsapp.net`;
-      await sock.sendMessage(jid, { text: message });
-      return res.json({ ok: true });
+      const jid = await resolveWhatsAppJid(sock, number);
+      if (!jid) return res.status(400).json({ ok: false, success: false, error: 'Número inválido' });
+      const sentMsg = await sock.sendMessage(jid, { text: message });
+      rememberBotMessageId(sentMsg);
+      return res.json({ ok: true, success: true, jid });
     } catch (err) {
       console.error('Error enviando mensaje:', err?.message || err);
-      return res.status(500).json({ error: 'Error enviando mensaje', details: err?.message || String(err) });
+      return res.status(500).json({ ok: false, success: false, error: 'Error enviando mensaje', details: err?.message || String(err) });
     }
   });
 
@@ -288,40 +385,67 @@ function startServer() {
     const slot = req.query.slot || req.body.slot || '0';
     const sid = sessionId(user, slot);
 
-    if (!number || !filedata) return res.status(400).json({ error: 'Faltan campos: number y filedata' });
+    if (!number || !filedata) return res.status(400).json({ ok: false, success: false, error: 'Faltan campos: number y filedata' });
 
     const sock = sockets.get(sid);
-    if (!sock) return res.status(503).json({ error: `Socket no inicializado para session=${sid}` });
+    if (!sock) return res.status(503).json({ ok: false, success: false, error: `Socket no inicializado para session=${sid}` });
 
     try {
-      const jid = number.includes('@') ? number : `${number}@s.whatsapp.net`;
+      const jid = await resolveWhatsAppJid(sock, number);
       const buffer = Buffer.from(filedata, 'base64');
 
       if (message) {
-        await sock.sendMessage(jid, { text: message });
+        const sentTxt = await sock.sendMessage(jid, { text: message });
+        rememberBotMessageId(sentTxt);
       }
 
-      await sock.sendMessage(jid, {
+      const sentDoc = await sock.sendMessage(jid, {
         document: buffer,
         mimetype: 'application/pdf',
         fileName: filename || 'consulta.pdf'
       });
+      rememberBotMessageId(sentDoc);
 
-      return res.json({ ok: true });
+      return res.json({ ok: true, success: true, jid });
     } catch (err) {
       console.error('Error enviando documento:', err?.message || err);
-      return res.status(500).json({ error: 'Error enviando documento', details: err?.message || String(err) });
+      return res.status(500).json({ ok: false, success: false, error: 'Error enviando documento', details: err?.message || String(err) });
     }
   });
 
-  app.listen(PORT, () => console.log(`WhatsApp gateway escuchando en http://localhost:${PORT}`));
+  return new Promise((resolve, reject) => {
+    let retries = 0;
+    const maxRetries = 8;
+
+    const tryListen = () => {
+      const srv = app.listen(PORT, () => {
+        console.log(`WhatsApp gateway escuchando en http://localhost:${PORT} (Webhook -> ${PRIMARY_WEBHOOK})`);
+        resolve(srv);
+      });
+      srv.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          retries += 1;
+          if (retries <= maxRetries) {
+            setTimeout(tryListen, 400);
+          } else {
+            console.log(`Puerto ${PORT} ya está en uso por otra instancia activa de WhatsApp Gateway. Saliendo sin duplicar sesión.`);
+            process.exit(0);
+          }
+        } else {
+          reject(err);
+        }
+      });
+    };
+
+    tryListen();
+  });
 }
 
 
 (async () => {
   try {
-    // Iniciar servidor HTTP
-    startServer();
+    // Iniciar servidor HTTP primero (evita conflictos de sesión si ya hay otra instancia activa)
+    await startServer();
 
     // Auto-iniciar sesiones existentes
     const authDir = path.resolve('./auth_info');
