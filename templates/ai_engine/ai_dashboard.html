@@ -225,10 +225,13 @@
                                     <span class="flex items-center gap-1.5">
                                         <i data-lucide="cpu" class="w-3.5 h-3.5 text-rose-800"></i>
                                         <span>DeepSeek API Key {% if has_platform_key_access %}(Opcional - Reemplazar Global){% else %}*{% endif %}</span>
+                                        <span class="inline-flex items-center gap-0.5 text-[9px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200 font-semibold">
+                                            <i data-lucide="shield-check" class="w-2.5 h-2.5 text-emerald-600"></i> Cifrada
+                                        </span>
                                     </span>
                                     <a href="https://platform.deepseek.com/api_keys" target="_blank" class="text-[10px] text-rose-800 hover:underline">Obtener clave en DeepSeek ↗</a>
                                 </label>
-                                <input type="password" name="deepseek_api_key" value="{{ bot_config.deepseek_api_key|default:'' }}"
+                                <input type="password" name="deepseek_api_key" value="{{ bot_config.decrypted_deepseek_api_key|default:'' }}"
                                        placeholder="sk-..."
                                        class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:outline-none focus:border-rose-600 font-mono">
                             </div>

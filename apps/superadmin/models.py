@@ -306,7 +306,7 @@ class SuperAdminUser(AbstractBaseUser, PermissionsMixin):
 
 
 class PlatformGlobalConfig(TimeStampedModel):
-    deepseek_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de DeepSeek (Global)")
+    deepseek_api_key = models.CharField(max_length=500, blank=True, null=True, verbose_name="API Key de DeepSeek (Global Cifrada)")
     deepseek_model = models.CharField(max_length=100, default="deepseek-chat", verbose_name="Modelo de DeepSeek")
     default_system_prompt = models.TextField(
         blank=True,
@@ -323,6 +323,26 @@ class PlatformGlobalConfig(TimeStampedModel):
     def __str__(self):
         status = "Configurada" if self.deepseek_api_key else "Sin API Key"
         return f"Configuración Global DeepSeek ({status})"
+
+    @property
+    def decrypted_deepseek_api_key(self):
+        if not self.deepseek_api_key:
+            return ""
+        from apps.core.crypto import decrypt_secret
+        return decrypt_secret(self.deepseek_api_key)
+
+    @property
+    def masked_deepseek_api_key(self):
+        if not self.deepseek_api_key:
+            return ""
+        from apps.core.crypto import mask_secret
+        return mask_secret(self.deepseek_api_key)
+
+    def save(self, *args, **kwargs):
+        if self.deepseek_api_key:
+            from apps.core.crypto import encrypt_secret
+            self.deepseek_api_key = encrypt_secret(self.deepseek_api_key)
+        super().save(*args, **kwargs)
 
     @classmethod
     def get_solo(cls):

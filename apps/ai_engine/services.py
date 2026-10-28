@@ -35,8 +35,9 @@ def get_effective_ai_config(business):
 
     # 1. Clave propia del negocio
     if bot_config.deepseek_api_key and bot_config.deepseek_api_key.strip():
+        decrypted_key = bot_config.decrypted_deepseek_api_key.strip()
         return (
-            bot_config.deepseek_api_key.strip(),
+            decrypted_key,
             bot_config.deepseek_model or 'deepseek-chat',
             'deepseek',
             'custom',
@@ -49,8 +50,9 @@ def get_effective_ai_config(business):
 
     if has_access:
         if global_cfg.deepseek_api_key and global_cfg.deepseek_api_key.strip() and global_cfg.is_deepseek_active:
+            decrypted_global = global_cfg.decrypted_deepseek_api_key.strip()
             return (
-                global_cfg.deepseek_api_key.strip(),
+                decrypted_global,
                 global_cfg.deepseek_model or 'deepseek-chat',
                 'deepseek',
                 'platform',

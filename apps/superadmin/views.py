@@ -656,7 +656,7 @@ def ai_settings_view(request):
             return redirect('superadmin_ai_settings')
 
         elif action == 'test_deepseek':
-            api_key = request.POST.get('test_key', '').strip() or config.deepseek_api_key
+            api_key = request.POST.get('test_key', '').strip() or config.decrypted_deepseek_api_key
             if not api_key:
                 return JsonResponse({'success': False, 'message': 'No hay ninguna API Key de DeepSeek configurada para probar.'}, status=400)
             

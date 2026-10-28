@@ -52,7 +52,7 @@ class WhatsAppBotConfig(TimeStampedModel):
         default='deepseek',
         verbose_name="Proveedor de Inteligencia Artificial"
     )
-    deepseek_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de DeepSeek (Propia)")
+    deepseek_api_key = models.CharField(max_length=500, blank=True, null=True, verbose_name="API Key de DeepSeek (Propia Cifrada)")
     deepseek_model = models.CharField(max_length=50, default='deepseek-chat', verbose_name="Modelo DeepSeek")
     custom_knowledge = models.TextField(
         blank=True,
@@ -69,6 +69,26 @@ class WhatsAppBotConfig(TimeStampedModel):
 
     def __str__(self):
         return f"Bot WhatsApp - {self.business.name} ({'Activo' if self.is_active else 'Inactivo'})"
+
+    @property
+    def decrypted_deepseek_api_key(self):
+        if not self.deepseek_api_key:
+            return ""
+        from apps.core.crypto import decrypt_secret
+        return decrypt_secret(self.deepseek_api_key)
+
+    @property
+    def masked_deepseek_api_key(self):
+        if not self.deepseek_api_key:
+            return ""
+        from apps.core.crypto import mask_secret
+        return mask_secret(self.deepseek_api_key)
+
+    def save(self, *args, **kwargs):
+        if self.deepseek_api_key:
+            from apps.core.crypto import encrypt_secret
+            self.deepseek_api_key = encrypt_secret(self.deepseek_api_key)
+        super().save(*args, **kwargs)
 
     @classmethod
     def get_for_business(cls, business):
