@@ -136,16 +136,19 @@
 
     <!-- Sidebar Navigation (Sleek Black & Vinotinto Sidebar) -->
 
-    <aside class="w-64 h-full bg-slate-950 border-r border-slate-800 flex flex-col justify-between hidden md:flex shrink-0 overflow-hidden">
+    <aside id="main-sidebar" class="w-64 h-full bg-slate-950 border-r border-slate-800 flex flex-col justify-between hidden md:flex shrink-0 overflow-hidden transition-all duration-300 ease-in-out">
         <div class="flex flex-col flex-1 min-h-0">
             <!-- Brand Logo -->
-            <div class="h-16 flex items-center px-6 border-b border-slate-800 justify-between shrink-0">
-                <div class="flex items-center gap-3">
+            <div class="h-16 flex items-center px-5 border-b border-slate-800 justify-between shrink-0">
+                <div class="flex items-center gap-3 min-w-0">
                     <img src="/static/images/logo.png" alt="RauDie OS Logo" class="w-9 h-9 shadow-lg shadow-rose-950/50 object-contain shrink-0">
-                    <div>
-                        <h1 class="font-display font-bold text-lg text-white leading-none">RauDie OS</h1>
+                    <div class="truncate">
+                        <h1 class="font-display font-bold text-lg text-white leading-none truncate">RauDie OS</h1>
                     </div>
                 </div>
+                <button id="sidebar-collapse-inside-btn" type="button" class="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" title="Ocultar menú lateral">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
             </div>
 
             <!-- Active Company Banner & Booking Portal Quick Access -->
@@ -597,6 +600,9 @@
                 <button id="mobile-menu-toggle-btn" class="md:hidden p-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition shrink-0">
                     <i data-lucide="menu" class="w-6 h-6"></i>
                 </button>
+                <button id="desktop-sidebar-toggle-btn" type="button" class="hidden md:inline-flex items-center justify-center p-2 text-slate-600 hover:text-rose-900 hover:bg-rose-50/80 rounded-xl transition shrink-0 border border-slate-200/80 cursor-pointer shadow-2xs" title="Mostrar / Ocultar menú lateral">
+                    <i data-lucide="panel-left-close" id="sidebar-toggle-icon" class="w-5 h-5 text-rose-900"></i>
+                </button>
                 <h2 class="text-xs sm:text-base font-bold text-slate-900 font-display truncate">{% block header_title %}Panel Principal{% endblock %}</h2>
             </div>
 
@@ -851,6 +857,48 @@
         mobileMenuToggleBtn?.addEventListener('click', toggleMobileSidebar);
         mobileSidebarBackdrop?.addEventListener('click', toggleMobileSidebar);
         mobileSidebarCloseBtn?.addEventListener('click', toggleMobileSidebar);
+
+        // Desktop Collapsible Sidebar Controller
+        const desktopSidebarToggleBtn = document.getElementById('desktop-sidebar-toggle-btn');
+        const sidebarCollapseInsideBtn = document.getElementById('sidebar-collapse-inside-btn');
+        const mainSidebar = document.getElementById('main-sidebar');
+        const sidebarToggleIcon = document.getElementById('sidebar-toggle-icon');
+
+        function setSidebarState(collapsed) {
+            if (!mainSidebar) return;
+            if (collapsed) {
+                mainSidebar.classList.add('-ml-64');
+                mainSidebar.classList.add('opacity-0');
+                mainSidebar.classList.add('pointer-events-none');
+                localStorage.setItem('sidebar_collapsed', 'true');
+                if (sidebarToggleIcon) {
+                    sidebarToggleIcon.setAttribute('data-lucide', 'panel-left-open');
+                }
+            } else {
+                mainSidebar.classList.remove('-ml-64');
+                mainSidebar.classList.remove('opacity-0');
+                mainSidebar.classList.remove('pointer-events-none');
+                localStorage.setItem('sidebar_collapsed', 'false');
+                if (sidebarToggleIcon) {
+                    sidebarToggleIcon.setAttribute('data-lucide', 'panel-left-close');
+                }
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // Initialize state on load
+        if (localStorage.getItem('sidebar_collapsed') === 'true') {
+            setSidebarState(true);
+        }
+
+        desktopSidebarToggleBtn?.addEventListener('click', () => {
+            const isCurrentlyCollapsed = mainSidebar?.classList.contains('-ml-64');
+            setSidebarState(!isCurrentlyCollapsed);
+        });
+
+        sidebarCollapseInsideBtn?.addEventListener('click', () => {
+            setSidebarState(true);
+        });
 
         // Session Inactivity Timeout (Cierre de sesión por inactividad)
         let inactivityTimeout;

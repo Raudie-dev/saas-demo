@@ -77,14 +77,90 @@ def dashboard_view(request):
     # Proyectos activos si el módulo está habilitado
     active_projects = []
     active_projects_count = 0
+    pending_tasks_count = 0
+    completed_projects_count = 0
     if business.is_module_enabled('projects'):
         try:
-            from apps.projects.models import Project
+            from apps.projects.models import Project, ProjectTask
             active_projects_qs = Project.objects.filter(business=business).exclude(status__in=['COMPLETED', 'CANCELLED'])
             active_projects_count = active_projects_qs.count()
-            active_projects = list(active_projects_qs.select_related('client').order_by('-updated_at')[:5])
+            active_projects = list(active_projects_qs.select_related('client', 'responsible').order_by('-updated_at')[:5])
+            pending_tasks_count = ProjectTask.objects.filter(project__business=business).exclude(status='DONE').count()
+            completed_projects_count = Project.objects.filter(business=business, status='COMPLETED').count()
         except Exception:
             pass
+
+    # Gráfico semanal de Ingresos y Citas (Últimos 7 días)
+    chart_days = []
+    sales_values = []
+    app_values = []
+    week_sales_total = Decimal('0.00')
+    day_abbrs = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    
+    for i in range(6, -1, -1):
+        d = today - datetime.timedelta(days=i)
+        d_sales = Sale.objects.filter(business=business, status='COMPLETED', created_at__date=d).aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
+        d_apps = Appointment.objects.filter(business=business, date=d).count()
+        week_sales_total += d_sales
+        sales_values.append(float(d_sales))
+        app_values.append(d_apps)
+        chart_days.append({
+            'day': day_abbrs[d.weekday()],
+            'date': d.strftime('%d/%m'),
+            'sales': float(d_sales),
+            'appointments': d_apps,
+        })
+    
+    max_sales = max(sales_values) if sales_values and max(sales_values) > 0 else 1.0
+    max_apps = max(app_values) if app_values and max(app_values) > 0 else 1.0
+    for item in chart_days:
+        item['sales_pct'] = max(12, int((item['sales'] / max_sales) * 85)) if item['sales'] > 0 else 12
+        item['apps_pct'] = max(15, int((item['appointments'] / max_apps) * 95)) if item['appointments'] > 0 else 15
+
+    # Actividad / Transacciones Recientes (combinando citas y ventas)
+    recent_transactions = []
+    for a in Appointment.objects.filter(business=business).select_related('client', 'service', 'staff').order_by('-date', '-start_time')[:5]:
+        recent_transactions.append({
+            'type': 'appointment',
+            'title': a.client.full_name if a.client else 'Cliente General',
+            'subtitle': f"{a.service.name if a.service else 'Cita'} • {a.staff.full_name if a.staff else 'Staff'}",
+            'status': a.status,
+            'status_label': a.get_status_display() or 'Confirmada',
+            'status_color': 'emerald' if a.status == 'COMPLETED' else ('blue' if a.status in ['CONFIRMED', 'PENDING'] else 'rose'),
+            'amount': a.total_price or Decimal('0.00'),
+            'date': a.date,
+            'time': a.start_time.strftime('%H:%M') if a.start_time else '',
+            'icon': 'calendar',
+            'icon_bg': 'bg-rose-50 text-rose-900 border-rose-200',
+        })
+    for s in Sale.objects.filter(business=business).select_related('client').order_by('-created_at')[:5]:
+        recent_transactions.append({
+            'type': 'sale',
+            'title': s.client.full_name if s.client else 'Venta Mostrador POS',
+            'subtitle': f"Recibo #{s.id} • {s.get_payment_method_display() if hasattr(s, 'get_payment_method_display') else 'Caja'}",
+            'status': s.status,
+            'status_label': 'Completada' if s.status == 'COMPLETED' else s.status,
+            'status_color': 'emerald' if s.status == 'COMPLETED' else 'amber',
+            'amount': s.total_amount or Decimal('0.00'),
+            'date': s.created_at.date() if s.created_at else today,
+            'time': s.created_at.strftime('%H:%M') if s.created_at else '',
+            'icon': 'shopping-bag',
+            'icon_bg': 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        })
+    recent_transactions.sort(key=lambda x: (x['date'], x['time']), reverse=True)
+    recent_transactions = recent_transactions[:6]
+
+    # Donut Performance Data
+    month_start = today.replace(day=1)
+    month_appointments_total = Appointment.objects.filter(business=business, date__gte=month_start).count()
+    month_sales_total = Sale.objects.filter(business=business, created_at__date__gte=month_start).count()
+    total_perf = month_appointments_total + month_sales_total + (active_projects_count if business.is_module_enabled('projects') else total_clients)
+    if total_perf == 0:
+        total_perf = 1
+    donut_citas_pct = int((month_appointments_total / total_perf) * 100) if month_appointments_total > 0 else 35
+    donut_sales_pct = int((month_sales_total / total_perf) * 100) if month_sales_total > 0 else 40
+    donut_other_pct = max(10, 100 - (donut_citas_pct + donut_sales_pct))
+    total_perf_count = month_appointments_total + month_sales_total + active_projects_count
 
     # Propiedades activas si es inmobiliaria
     active_properties = []
@@ -108,6 +184,7 @@ def dashboard_view(request):
         'is_professional_dashboard': False,
         'today_sales': today_sales,
         'today_sales_count': today_sales_count,
+        'week_sales_total': week_sales_total,
         'today_appointments': today_appointments,
         'today_appointments_count': today_appointments.count(),
         'recent_appointments': upcoming_appointments,
@@ -116,11 +193,18 @@ def dashboard_view(request):
         'low_stock_products': low_stock_products,
         'active_projects': active_projects,
         'active_projects_count': active_projects_count,
+        'pending_tasks_count': pending_tasks_count,
+        'completed_projects_count': completed_projects_count,
         'active_properties': active_properties,
         'active_properties_count': active_properties_count,
         'agenda_occupancy_pct': agenda_occupancy_pct,
+        'chart_days': chart_days,
+        'recent_transactions': recent_transactions,
+        'donut_citas_pct': donut_citas_pct,
+        'donut_sales_pct': donut_sales_pct,
+        'donut_other_pct': donut_other_pct,
+        'total_perf_count': total_perf_count,
     }
-    
     return render(request, 'analytics/dashboard.html', context)
 
 import calendar
