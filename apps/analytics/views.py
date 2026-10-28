@@ -8,7 +8,8 @@ from django.utils import timezone
 from django.db.models import Sum, Count, Avg
 from apps.business.models import Business, StaffMember
 from apps.pos.models import Sale, SaleItem
-from apps.invoicing.models import Expense, Invoice, AccountReceivable
+from apps.invoicing.models import Expense, Invoice, AccountReceivable, PaymentPlan, PaymentInstallment
+from apps.projects.models import Project, ProjectTask
 from apps.crm.models import Client
 from apps.agenda.models import Appointment
 from apps.inventory.models import Product
@@ -277,6 +278,69 @@ def get_filtered_analytics_data(business, request):
     accounts_receivable = AccountReceivable.objects.filter(business=business, status='PENDING').aggregate(total=Sum('amount_due'))['total'] or Decimal('0.00')
     accounts_payable = Expense.objects.filter(business=business, status='PENDING').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
+    # Integración con el Módulo de Cobranzas / Cuotas (PaymentInstallment & PaymentPlan)
+    installments_all = PaymentInstallment.objects.filter(business=business)
+    
+    # Cuotas cobradas en el período filtrado
+    installments_paid_qs = installments_all.filter(status='PAID')
+    if start_date and end_date:
+        installments_paid_qs = installments_paid_qs.filter(paid_date__gte=start_date, paid_date__lte=end_date)
+    installments_collected_period = installments_paid_qs.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+    installments_paid_count = installments_paid_qs.count()
+
+    # Cuentas por cobrar en Cuotas (Pendientes o Parciales activas)
+    installments_pending_qs = installments_all.exclude(status__in=['PAID', 'CANCELLED'])
+    installments_receivable = sum((i.balance for i in installments_pending_qs), Decimal('0.00'))
+    installments_pending_count = installments_pending_qs.count()
+
+    # Si hay cuotas activas, enriquecer las cuentas por cobrar totales
+    if installments_receivable > Decimal('0.00'):
+        accounts_receivable = accounts_receivable + installments_receivable
+
+    # Cuotas Vencidas / En Mora
+    installments_overdue_qs = installments_all.filter(status__in=['PENDING', 'PARTIAL'], due_date__lt=today)
+    installments_overdue_amount = sum((i.balance for i in installments_overdue_qs), Decimal('0.00'))
+    installments_overdue_count = installments_overdue_qs.count()
+
+    # Próximas cuotas a vencer (Próximos 7 y 30 días)
+    installments_7d_qs = installments_all.filter(status__in=['PENDING', 'PARTIAL'], due_date__gte=today, due_date__lte=today + datetime.timedelta(days=7))
+    installments_7d_amount = sum((i.balance for i in installments_7d_qs), Decimal('0.00'))
+    installments_7d_count = installments_7d_qs.count()
+
+    installments_upcoming_30d_qs = installments_all.filter(
+        status__in=['PENDING', 'PARTIAL'],
+        due_date__gte=today,
+        due_date__lte=today + datetime.timedelta(days=30)
+    ).select_related('client', 'project', 'plan').order_by('due_date')
+    installments_upcoming_30d_amount = sum((i.balance for i in installments_upcoming_30d_qs), Decimal('0.00'))
+    installments_upcoming_30d_count = installments_upcoming_30d_qs.count()
+
+    # Planes de cobro activos
+    payment_plans_active = PaymentPlan.objects.filter(business=business, status='ACTIVE').select_related('client', 'project').prefetch_related('installments')
+    payment_plans_active_count = payment_plans_active.count()
+    payment_plans_total_amount = payment_plans_active.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    payment_plans_collected = sum((p.amount_paid for p in payment_plans_active), Decimal('0.00'))
+    payment_plans_pending = sum((p.balance_pending for p in payment_plans_active), Decimal('0.00'))
+
+    upcoming_installments_list = list(installments_upcoming_30d_qs[:10])
+
+    # Integración con el Módulo de Proyectos
+    projects_all = Project.objects.filter(business=business)
+    active_projects_qs = projects_all.filter(status__in=['PLANNING', 'IN_PROGRESS', 'REVIEW']).select_related('client', 'responsible')
+    active_projects_count = active_projects_qs.count()
+    active_projects_budget = active_projects_qs.aggregate(total=Sum('budget'))['total'] or Decimal('0.00')
+    completed_projects_count = projects_all.filter(status='COMPLETED').count()
+
+    # Cobrado en proyectos vs saldo pendiente
+    project_installments = installments_all.filter(project__isnull=False)
+    project_installments_collected = project_installments.filter(status='PAID').aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+    project_installments_pending = sum((i.balance for i in project_installments.exclude(status__in=['PAID', 'CANCELLED'])), Decimal('0.00'))
+
+    # Top Proyectos por Presupuesto
+    top_projects = list(projects_all.order_by('-budget')[:5])
+    top_projects_labels = [p.name for p in top_projects]
+    top_projects_data = [float(p.budget) for p in top_projects]
+
     # Dynamic Payment Methods breakdown based on real sales and SalePayment records
     pm_totals = defaultdict(Decimal)
     completed_sales_with_payments = completed_sales.prefetch_related('payments')
@@ -339,10 +403,14 @@ def get_filtered_analytics_data(business, request):
     if staff_id:
         staff_reports = staff_reports.filter(id=staff_id)
     
-    staff_reports = staff_reports.annotate(
+    staff_reports = list(staff_reports.annotate(
         total_sales_amount=Sum('sales__total_amount'),
         appointments_completed=Count('appointments')
-    )
+    ))
+
+    for st in staff_reports:
+        st.managed_projects_count = st.managed_projects.filter(status__in=['PLANNING', 'IN_PROGRESS', 'REVIEW']).count()
+        st.managed_projects_budget = st.managed_projects.filter(status__in=['PLANNING', 'IN_PROGRESS', 'REVIEW']).aggregate(total=Sum('budget'))['total'] or Decimal('0.00')
 
     # CRM Client Counts
     clients_active = Client.objects.filter(business=business, status='ACTIVE').count()
@@ -495,6 +563,34 @@ def get_filtered_analytics_data(business, request):
         'top_products_data': top_products_data,
         'top_staff_labels': top_staff_labels,
         'top_staff_data': top_staff_data,
+        # Cuotas & Cobranzas
+        'installments_collected_period': installments_collected_period,
+        'installments_paid_count': installments_paid_count,
+        'installments_receivable': installments_receivable,
+        'installments_pending_count': installments_pending_count,
+        'installments_overdue_amount': installments_overdue_amount,
+        'installments_overdue_count': installments_overdue_count,
+        'installments_upcoming_30d_amount': installments_upcoming_30d_amount,
+        'installments_upcoming_30d_count': installments_upcoming_30d_count,
+        'installments_7d_amount': installments_7d_amount,
+        'installments_7d_count': installments_7d_count,
+        'upcoming_installments_list': upcoming_installments_list,
+        'payment_plans_active_count': payment_plans_active_count,
+        'payment_plans_total_amount': payment_plans_total_amount,
+        'payment_plans_collected': payment_plans_collected,
+        'payment_plans_pending': payment_plans_pending,
+        'payment_plans_active': payment_plans_active,
+        # Proyectos
+        'active_projects_count': active_projects_count,
+        'active_projects_budget': active_projects_budget,
+        'completed_projects_count': completed_projects_count,
+        'project_installments_collected': project_installments_collected,
+        'project_installments_pending': project_installments_pending,
+        'top_projects': top_projects,
+        'top_projects_labels': top_projects_labels,
+        'top_projects_data': top_projects_data,
+        'total_projected_7d': (upcoming_appointments_revenue + installments_7d_amount),
+        'total_projected_30d': (upcoming_appointments_revenue + installments_upcoming_30d_amount),
     }
 
 
@@ -540,13 +636,30 @@ def export_analytics_excel(request):
     writer.writerow(['Cuentas por Cobrar Total', f"{business.currency}{data['accounts_receivable']:.2f}"])
     writer.writerow([])
 
+    if business.is_module_enabled('invoicing'):
+        writer.writerow(['CARTERA DE COBRANZAS Y CUOTAS PLANIFICADAS', ''])
+        writer.writerow(['Cobrado en Cuotas (Período)', f"{business.currency}{data['installments_collected_period']:.2f}"])
+        writer.writerow(['Cuotas Cobradas (Cant.)', data['installments_paid_count']])
+        writer.writerow(['Cuotas Pendientes / Por Cobrar', f"{business.currency}{data['installments_receivable']:.2f}"])
+        writer.writerow(['Cuotas Vencidas / En Mora', f"{business.currency}{data['installments_overdue_amount']:.2f}"])
+        writer.writerow(['Próximos Vencimientos (30 Días)', f"{business.currency}{data['installments_upcoming_30d_amount']:.2f}"])
+        writer.writerow([])
+
+    if business.is_module_enabled('projects'):
+        writer.writerow(['CARTERA FINANCIERA DE PROYECTOS', ''])
+        writer.writerow(['Presupuesto Total Proyectos Activos', f"{business.currency}{data['active_projects_budget']:.2f}"])
+        writer.writerow(['Proyectos en Curso (Cant.)', data['active_projects_count']])
+        writer.writerow(['Total Cobrado por Hitos de Proyectos', f"{business.currency}{data['project_installments_collected']:.2f}"])
+        writer.writerow(['Saldo Pendiente en Proyectos', f"{business.currency}{data['project_installments_pending']:.2f}"])
+        writer.writerow([])
+
     writer.writerow(['PROYECCIONES FINANCIERAS Y RESERVAS FUTURAS', ''])
-    writer.writerow(['Citas Agendadas Próximos 7 Días', data['upcoming_7d_count']])
-    writer.writerow(['Ingresos Proyectados (7 Días)', f"{business.currency}{data['upcoming_7d_revenue']:.2f}"])
-    writer.writerow(['Citas Agendadas Próximos 30 Días', data['upcoming_30d_count']])
-    writer.writerow(['Ingresos Proyectados (30 Días)', f"{business.currency}{data['upcoming_30d_revenue']:.2f}"])
-    writer.writerow(['Venta Diaria Promedio (Mes Actual)', f"{business.currency}{data['daily_avg_sales']:.2f}"])
-    writer.writerow(['Proyección Cierre de Mes (Run-Rate)', f"{business.currency}{data['projected_monthly_sales']:.2f}"])
+    writer.writerow(['Citas Agendadas Próximo Período', data.get('upcoming_appointments_count', 0)])
+    writer.writerow(['Ingresos Proyectados por Citas', f"{business.currency}{data.get('upcoming_appointments_revenue', Decimal('0.00')):.2f}"])
+    writer.writerow(['Cuotas Proyectadas (30 Días)', f"{business.currency}{data.get('installments_upcoming_30d_amount', Decimal('0.00')):.2f}"])
+    writer.writerow(['Total Flujo Proyectado (30 Días)', f"{business.currency}{data.get('total_projected_30d', Decimal('0.00')):.2f}"])
+    writer.writerow(['Venta Diaria Promedio', f"{business.currency}{data['daily_avg_sales']:.2f}"])
+    writer.writerow(['Proyección Run-Rate Período', f"{business.currency}{data['projected_period_sales']:.2f}"])
     writer.writerow([])
     
     writer.writerow(['DESEMPEÑO Y VENTAS POR COLABORADOR', '', '', ''])
