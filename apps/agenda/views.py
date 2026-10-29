@@ -29,19 +29,44 @@ def agenda_view(request):
 
     expire_overdue_pending_appointments(business)
 
-    selected_date_str = request.GET.get('date', datetime.date.today().isoformat())
-    selected_staff_id = request.GET.get('staff', '')
-    
-    try:
-        selected_date = datetime.date.fromisoformat(selected_date_str)
-    except ValueError:
-        selected_date = datetime.date.today()
-        
+    date_param = request.GET.get('date', '').strip()
+    selected_staff_id = request.GET.get('staff', '').strip()
+    status_filter = request.GET.get('status', '').strip().upper()
+    client_id = request.GET.get('client_id', '').strip()
+
+    selected_date = None
+    is_all_dates = True
+    is_today = False
+    today = datetime.date.today()
+
+    if date_param and date_param.lower() != 'all':
+        if date_param.lower() == 'today':
+            selected_date = today
+            is_all_dates = False
+            is_today = True
+        else:
+            try:
+                selected_date = datetime.date.fromisoformat(date_param)
+                is_all_dates = False
+                is_today = (selected_date == today)
+            except ValueError:
+                selected_date = None
+                is_all_dates = True
+
     staff_members = StaffMember.objects.filter(business=business, is_active=True) if business else []
     services = Service.objects.filter(business=business, is_active=True) if business else []
     clients = Client.objects.filter(business=business) if business else []
-    
-    appointments = Appointment.objects.filter(business=business, date=selected_date).select_related('client', 'staff', 'service').prefetch_related('appointment_services__service')
+
+    appointments = Appointment.objects.filter(business=business).select_related('client', 'staff', 'service').prefetch_related('appointment_services__service')
+
+    if selected_date:
+        appointments = appointments.filter(date=selected_date)
+
+    if client_id:
+        appointments = appointments.filter(client_id=client_id)
+
+    if status_filter in ('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'):
+        appointments = appointments.filter(status=status_filter)
 
     # Aislamiento para Profesionales (Solo sus propias citas)
     user_scope = getattr(request.user, 'appointment_scope', 'ALL')
@@ -58,6 +83,12 @@ def agenda_view(request):
     elif selected_staff_id:
         appointments = appointments.filter(staff_id=selected_staff_id)
 
+    # Ordenamiento: en vista general de todas las citas ordenar cronológicamente
+    if is_all_dates:
+        appointments = appointments.order_by('-date', 'start_time')
+    else:
+        appointments = appointments.order_by('date', 'start_time')
+
     wa_templates = list(business.whatsapp_templates.filter(category__in=['APPOINTMENT', 'GENERAL']).values('id', 'title', 'content', 'is_default')) if business else []
     for t in wa_templates:
         t['id'] = str(t['id'])
@@ -66,6 +97,11 @@ def agenda_view(request):
     return render(request, 'agenda/agenda.html', {
         'business': business,
         'selected_date': selected_date,
+        'is_all_dates': is_all_dates,
+        'is_today': is_today,
+        'date_param': date_param,
+        'status_filter': status_filter,
+        'client_id': client_id,
         'staff_members': staff_members,
         'services': services,
         'clients': clients,
@@ -790,5 +826,7 @@ def appointment_quick_status_view(request, appointment_id):
         else:
             messages.success(request, f"Estado de la cita actualizado a {appointment.get_status_display()}.")
 
-    return redirect(f"/agenda/?date={next_date}")
+    if next_date and next_date != 'all':
+        return redirect(f"/agenda/?date={next_date}")
+    return redirect('agenda')
 

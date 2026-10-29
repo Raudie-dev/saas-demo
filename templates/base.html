@@ -382,208 +382,151 @@
         </div>
     </aside>
 
-    <!-- Mobile Sidebar Drawer Backdrop & Aside -->
-    <div id="mobile-sidebar-drawer" class="fixed inset-0 z-50 flex md:hidden hidden">
-        <!-- Backdrop -->
-        <div id="mobile-sidebar-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"></div>
-        
-        <!-- Drawer Panel -->
-        <div class="relative flex-1 flex flex-col max-w-xs w-full bg-slate-950 text-white z-10 shadow-2xl">
-            <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800">
-                <div class="flex items-center gap-3">
-                    <img src="/static/images/logo.png" alt="RauDie OS Logo" class="w-8 h-8 object-contain shrink-0">
-                    <span class="font-display font-bold text-base text-white">RauDie OS</span>
-                </div>
-                <button id="mobile-sidebar-close-btn" class="p-2 text-slate-400 hover:text-white rounded-lg">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
+    <!-- Mobile Bottom Floating Popover Menu Backdrop -->
+    <div id="mobile-menu-backdrop" class="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs hidden opacity-0 transition-opacity duration-200 md:hidden"></div>
 
-            {% if current_business %}
-            <div class="p-3 mx-3 my-2 rounded-xl bg-rose-950/40 border border-rose-900/40 flex flex-col gap-2">
-                <div class="flex items-center justify-between">
-                    <div class="truncate">
-                        <p class="text-[10px] font-bold text-rose-400 uppercase tracking-wider truncate">{{ business_type_display }}</p>
-                        <p class="text-xs font-bold text-white truncate mt-0.5">{{ current_business.name }}</p>
-                    </div>
-                    {% if modules_enabled.booking %}
-                    <a href="{% url 'public_booking' current_business.slug %}" target="_blank" title="Abrir Portal" class="p-1.5 text-slate-400 hover:text-white rounded-lg">
-                        <i data-lucide="external-link" class="w-4 h-4"></i>
-                    </a>
-                    {% endif %}
-                </div>
-                <a href="{% url 'booking_portal_config' %}" class="flex items-center justify-between px-2 py-1 rounded-lg bg-black/40 border border-slate-800 text-[11px]">
-                    <span class="flex items-center gap-1.5 font-medium {% if current_business.is_booking_enabled %}text-emerald-400{% else %}text-slate-400{% endif %}">
-                        <span class="w-1.5 h-1.5 rounded-full {% if current_business.is_booking_enabled %}bg-emerald-400 animate-pulse{% else %}bg-slate-500{% endif %}"></span>
-                        {% if current_business.is_booking_enabled %}Enlace Activo{% else %}Enlace Pausado{% endif %}
-                    </span>
-                    <span class="text-[10px] text-slate-400">Configurar →</span>
-                </a>
-            </div>
+    <!-- Mobile Bottom Floating Popover Menu (Matching User Reference) -->
+    <div id="mobile-floating-menu" class="fixed bottom-20 right-3.5 z-50 w-64 max-w-[85vw] bg-slate-950/98 backdrop-blur-2xl border border-slate-800/90 rounded-3xl p-2.5 shadow-2xl shadow-black/90 hidden opacity-0 scale-95 transition-all duration-200 origin-bottom-right md:hidden">
+        {% if current_business %}
+        <div class="px-3.5 py-2.5 mb-1.5 rounded-2xl bg-rose-950/30 border border-rose-900/30">
+            <p class="text-[10px] font-bold text-rose-400 uppercase tracking-wider truncate">{{ business_type_display }}</p>
+            <p class="text-xs font-bold text-white truncate mt-0.5">{{ current_business.name }}</p>
+        </div>
+        {% endif %}
+
+        <div class="space-y-1 max-h-[60vh] overflow-y-auto custom-scrollbar pr-0.5">
+            {% if current_business and modules_enabled.booking %}
+            <a href="{% url 'booking_portal_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="globe" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                <span class="truncate">Portal de Reservas</span>
+            </a>
             {% endif %}
-            
-            <!-- Navigation Links in Drawer -->
-            <nav class="px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar py-3">
-                <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'dashboard' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                    <span>Panel Principal</span>
-                </a>
-                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Gestionar</div>
 
-                {% if current_business and modules_enabled.booking %}
-                <a href="{% url 'booking_portal_config' %}" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'booking_portal_config' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <div class="flex items-center gap-3">
-                        <i data-lucide="globe" class="w-5 h-5"></i>
-                        <span>Portal de Reservas</span>
-                    </div>
-                    {% if current_business.is_booking_enabled %}
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Activo</span>
-                    {% else %}
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Pausado</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-                {% if modules_enabled.agenda %}
-                <a href="{% url 'agenda' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'agenda' or 'appointment' in request.resolver_match.url_name %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="calendar" class="w-5 h-5"></i>
-                    <span>Agenda & Citas</span>
-                </a>
-                {% endif %}
-                {% if modules_enabled.crm %}
-                <a href="{% url 'client_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'crm' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="users" class="w-5 h-5"></i>
-                    <span>CRM & {{ client_label_plural|default:'Clientes' }}</span>
-                </a>
-                {% endif %}
-                {% if modules_enabled.projects and not user_is_professional %}
-                <a href="{% url 'project_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'proyectos' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
-                    <span>Proyectos</span>
-                </a>
-                {% endif %}
-                {% if modules_enabled.inventory and not user_is_professional %}
-                <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'inventario' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="package" class="w-5 h-5"></i>
-                    <span>Inventario & Stock</span>
-                </a>
-                {% endif %}
-                {% if modules_enabled.ai_engine and not user_is_professional %}
-                <a href="{% url 'ai_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'ia' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="sparkles" class="w-5 h-5 text-emerald-400"></i>
-                    <span>IA & Automatizaciones</span>
-                </a>
-                {% endif %}
+            {% if modules_enabled.inventory and not user_is_professional %}
+            <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="package" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span class="truncate">Inventario & Stock</span>
+            </a>
+            {% endif %}
 
-                {% if modules_enabled.whatsapp and not user_is_professional %}
-                <a href="{% url 'whatsapp_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'whatsapp' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="message-square" class="w-5 h-5 text-emerald-500"></i>
-                    <span>WhatsApp</span>
-                </a>
-                {% endif %}
-                {% if not user_is_professional %}
-                <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'service' in request.resolver_match.url_name %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="scissors" class="w-5 h-5"></i>
-                    <span>Servicios & Tarifas</span>
-                </a>
-                {% endif %}
+            {% if modules_enabled.projects and not user_is_professional %}
+            <a href="{% url 'project_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="folder-kanban" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                <span class="truncate">Proyectos</span>
+            </a>
+            {% endif %}
 
-                {% if user_can_manage_settings %}
-                <a href="{% url 'staff_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'equipo' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="user-check" class="w-5 h-5"></i>
-                    <span>Equipo & Profesionales</span>
-                </a>
-                {% endif %}
+            {% if modules_enabled.ai_engine and not user_is_professional %}
+            <a href="{% url 'ai_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                <span class="truncate">IA & Automatizaciones</span>
+            </a>
+            {% endif %}
 
-                {% if modules_enabled.pos or modules_enabled.invoicing or modules_enabled.commissions %}
-                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Administrar</div>
+            {% if modules_enabled.whatsapp and not user_is_professional %}
+            <a href="{% url 'whatsapp_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="message-square" class="w-4 h-4 text-emerald-500 shrink-0"></i>
+                <span class="truncate">WhatsApp</span>
+            </a>
+            {% endif %}
 
-                {% if modules_enabled.pos and user_can_charge_pos %}
-                <a href="{% url 'pos_terminal' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'pos_terminal' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-                    <span>Ventas POS & Caja</span>
-                </a>
-                {% endif %}
+            {% if not user_is_professional %}
+            <a href="{% url 'service_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="scissors" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                <span class="truncate">Servicios & Tarifas</span>
+            </a>
+            {% endif %}
 
-                {% if modules_enabled.invoicing and not user_is_professional %}
-                <a href="{% url 'quote_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'cotizaciones' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="calculator" class="w-5 h-5"></i>
-                    <span>Cotizaciones</span>
-                </a>
+            {% if user_can_manage_settings %}
+            <a href="{% url 'staff_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="user-check" class="w-4 h-4 text-indigo-400 shrink-0"></i>
+                <span class="truncate">Equipo & Profesionales</span>
+            </a>
+            {% endif %}
 
-                <a href="{% url 'invoice_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'facturacion' in request.path and 'cotizaciones' not in request.path and 'cobranzas' not in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="file-text" class="w-5 h-5"></i>
-                    <span>Facturación & Gastos</span>
-                </a>
+            {% if modules_enabled.invoicing and not user_is_professional %}
+            <a href="{% url 'invoice_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="file-text" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                <span class="truncate">Facturación & Gastos</span>
+            </a>
 
-                <a href="{% url 'payment_plan_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'cobranzas' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="hand-coins" class="w-5 h-5"></i>
-                    <span>Cobranzas & Cuotas</span>
-                </a>
-                {% endif %}
+            <a href="{% url 'payment_plan_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="hand-coins" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span class="truncate">Cobranzas & Cuotas</span>
+            </a>
+            {% endif %}
 
-                {% if modules_enabled.commissions and user_commission_scope != 'NONE' %}
-                <a href="{% url 'commission_report' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'commission_report' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="dollar-sign" class="w-5 h-5"></i>
-                    <span>{% if user_is_professional %}Mis Comisiones{% else %}Comisiones{% endif %}</span>
-                </a>
-                {% endif %}
-                {% endif %}
+            {% if user_can_view_financial_reports %}
+            <a href="{% url 'reports' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="wallet" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                <span class="truncate">Finanzas</span>
+            </a>
+            {% endif %}
 
-                {% if modules_enabled.marketing or user_can_view_financial_reports %}
-                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Finanzas & Crecimiento</div>
+            {% if user_can_manage_settings %}
+            <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="settings" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                <span class="truncate">Configuración</span>
+            </a>
+            {% endif %}
 
-                {% if modules_enabled.marketing and not user_is_professional %}
-                <a href="{% url 'marketing_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'marketing' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="tag" class="w-5 h-5"></i>
-                    <span>Marketing & Promociones</span>
-                </a>
-                {% endif %}
+            <a href="{% url 'user_profile_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900/90 transition">
+                <i data-lucide="shield-check" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                <span class="truncate">Mi Cuenta</span>
+            </a>
 
-                {% if user_can_view_financial_reports %}
-                <a href="{% url 'reports' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'reportes' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="wallet" class="w-5 h-5"></i>
-                    <span>Finanzas</span>
-                </a>
-                {% endif %}
-                {% endif %}
+            <div class="border-t border-slate-800/90 my-1.5 pt-1"></div>
 
-                <div class="pt-3 pb-1 px-3 text-[11px] font-bold text-rose-400/80 uppercase tracking-wider">Configuración</div>
-
-                {% if user_can_manage_settings %}
-                <a href="{% url 'business_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'business_config' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="building-2" class="w-5 h-5"></i>
-                    <span>Empresa & Sucursales</span>
-                </a>
-
-                <a href="{% url 'user_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'usuarios' in request.path or 'perfiles' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="users-2" class="w-5 h-5"></i>
-                    <span>Usuarios & Perfiles</span>
-                </a>
-                {% endif %}
-
-                <a href="{% url 'user_profile_config' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'user_profile_config' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="shield-check" class="w-5 h-5"></i>
-                    <span>Mi Cuenta & Seguridad</span>
-                </a>
-
-                {% if user_can_manage_settings %}
-                <a href="{% url 'subscription_billing' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'subscription_billing' %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="credit-card" class="w-5 h-5"></i>
-                    <span>Suscripción & Pagos</span>
-                </a>
-                {% endif %}
-            </nav>
-            
-            <div class="p-4 border-t border-slate-800">
-                {% if request.user.is_authenticated %}
-                <a href="{% url 'logout' %}" class="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-rose-950 text-rose-400 font-bold text-xs text-center flex items-center justify-center gap-2 border border-slate-800 transition">
-                    <i data-lucide="log-out" class="w-4 h-4"></i>
-                    <span>Cerrar Sesión</span>
-                </a>
-                {% endif %}
-            </div>
+            {% if request.user.is_authenticated %}
+            <a href="{% url 'logout' %}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 transition">
+                <i data-lucide="log-out" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                <span>Cerrar sesión</span>
+            </a>
+            {% endif %}
         </div>
     </div>
+
+    <!-- Mobile Bottom Navigation Bar (Dock) -->
+    <nav id="mobile-bottom-bar" class="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-slate-950/95 backdrop-blur-md border-t border-slate-800/90 px-2 py-1 shadow-2xl shadow-black/80" style="padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);">
+        <div class="grid grid-cols-5 items-center justify-around text-center">
+            <!-- Tab 1: Inicio -->
+            <a href="{% url 'dashboard' %}" class="flex flex-col items-center justify-center py-1 transition active:scale-95 {% if request.resolver_match.url_name == 'dashboard' %}text-rose-400 font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
+                <i data-lucide="home" class="w-5 h-5 mb-0.5"></i>
+                <span class="text-[10px] leading-tight">Inicio</span>
+            </a>
+
+            <!-- Tab 2: Agenda -->
+            <a href="{% url 'agenda' %}" class="flex flex-col items-center justify-center py-1 transition active:scale-95 {% if 'agenda' in request.path or 'appointment' in request.resolver_match.url_name %}text-rose-400 font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
+                <i data-lucide="calendar" class="w-5 h-5 mb-0.5"></i>
+                <span class="text-[10px] leading-tight">Agenda</span>
+            </a>
+
+            <!-- Tab 3: Ventas POS (o Inventario) -->
+            {% if modules_enabled.pos %}
+            <a href="{% url 'pos_terminal' %}" class="flex flex-col items-center justify-center py-1 transition active:scale-95 {% if request.resolver_match.url_name == 'pos_terminal' %}text-rose-400 font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
+                <i data-lucide="shopping-bag" class="w-5 h-5 mb-0.5"></i>
+                <span class="text-[10px] leading-tight">Ventas POS</span>
+            </a>
+            {% else %}
+            <a href="{% url 'inventory_list' %}" class="flex flex-col items-center justify-center py-1 transition active:scale-95 {% if 'inventario' in request.path %}text-rose-400 font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
+                <i data-lucide="package" class="w-5 h-5 mb-0.5"></i>
+                <span class="text-[10px] leading-tight">Stock</span>
+            </a>
+            {% endif %}
+
+            <!-- Tab 4: Clientes -->
+            <a href="{% url 'client_list' %}" class="flex flex-col items-center justify-center py-1 transition active:scale-95 {% if 'crm' in request.path %}text-rose-400 font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
+                <i data-lucide="users" class="w-5 h-5 mb-0.5"></i>
+                <span class="text-[10px] leading-tight">Clientes</span>
+            </a>
+
+            <!-- Tab 5: Menú (Abre el popup flotante) -->
+            <button type="button" id="mobile-menu-trigger-btn" class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-white transition active:scale-95 cursor-pointer">
+                <i data-lucide="menu" id="mobile-menu-trigger-icon" class="w-5 h-5 mb-0.5"></i>
+                <span class="text-[10px] leading-tight font-medium">Menú</span>
+            </button>
+        </div>
+    </nav>
 
     <!-- Main Content Area (Light Slate Background) -->
     <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
@@ -696,7 +639,7 @@
         </div>
 
         <!-- Page Content Area (Light Base) -->
-        <main class="flex-1 overflow-y-auto min-h-0 p-3.5 sm:p-6 custom-scrollbar bg-slate-50">
+        <main class="flex-1 overflow-y-auto min-h-0 p-3.5 sm:p-6 custom-scrollbar bg-slate-50 pb-24 md:pb-6">
             {% block content %}{% endblock %}
         </main>
     </div>
@@ -835,21 +778,50 @@
             initToastAutoDismiss(toast, duration);
         };
 
-        // Mobile Sidebar Drawer Controller
+        // Mobile Floating Menu & Bottom Bar Controller
+        const mobileMenuTriggerBtn = document.getElementById('mobile-menu-trigger-btn');
+        const mobileFloatingMenu = document.getElementById('mobile-floating-menu');
+        const mobileMenuBackdrop = document.getElementById('mobile-menu-backdrop');
         const mobileMenuToggleBtn = document.getElementById('mobile-menu-toggle-btn');
-        const mobileSidebarDrawer = document.getElementById('mobile-sidebar-drawer');
-        const mobileSidebarBackdrop = document.getElementById('mobile-sidebar-backdrop');
-        const mobileSidebarCloseBtn = document.getElementById('mobile-sidebar-close-btn');
 
-        function toggleMobileSidebar() {
-            if (mobileSidebarDrawer) {
-                mobileSidebarDrawer.classList.toggle('hidden');
+        function openMobileFloatingMenu() {
+            if (!mobileFloatingMenu || !mobileMenuBackdrop) return;
+            mobileMenuBackdrop.classList.remove('hidden');
+            mobileFloatingMenu.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                mobileMenuBackdrop.classList.remove('opacity-0');
+                mobileMenuBackdrop.classList.add('opacity-100');
+                mobileFloatingMenu.classList.remove('scale-95', 'opacity-0');
+                mobileFloatingMenu.classList.add('scale-100', 'opacity-100');
+            });
+            if (window.lucide && typeof lucide.createIcons === 'function') {
+                lucide.createIcons();
             }
         }
 
-        mobileMenuToggleBtn?.addEventListener('click', toggleMobileSidebar);
-        mobileSidebarBackdrop?.addEventListener('click', toggleMobileSidebar);
-        mobileSidebarCloseBtn?.addEventListener('click', toggleMobileSidebar);
+        function closeMobileFloatingMenu() {
+            if (!mobileFloatingMenu || !mobileMenuBackdrop) return;
+            mobileFloatingMenu.classList.remove('scale-100', 'opacity-100');
+            mobileFloatingMenu.classList.add('scale-95', 'opacity-0');
+            mobileMenuBackdrop.classList.remove('opacity-100');
+            mobileMenuBackdrop.classList.add('opacity-0');
+            setTimeout(() => {
+                mobileFloatingMenu.classList.add('hidden');
+                mobileMenuBackdrop.classList.add('hidden');
+            }, 200);
+        }
+
+        function toggleMobileFloatingMenu() {
+            if (mobileFloatingMenu && mobileFloatingMenu.classList.contains('hidden')) {
+                openMobileFloatingMenu();
+            } else {
+                closeMobileFloatingMenu();
+            }
+        }
+
+        mobileMenuTriggerBtn?.addEventListener('click', toggleMobileFloatingMenu);
+        mobileMenuToggleBtn?.addEventListener('click', toggleMobileFloatingMenu);
+        mobileMenuBackdrop?.addEventListener('click', closeMobileFloatingMenu);
 
         // Desktop Collapsible Sidebar Controller
         const desktopSidebarToggleBtn = document.getElementById('desktop-sidebar-toggle-btn');
