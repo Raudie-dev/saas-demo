@@ -26,6 +26,26 @@ def _start_whatsapp_gateway():
 
     node_bin = os.environ.get('NODE_PATH_BIN') or 'node'
 
+    # Detectar puerto de runserver (por defecto 8000)
+    django_port = '8000'
+    for arg in sys.argv[2:]:
+        if not arg.startswith('-'):
+            if ':' in arg:
+                django_port = arg.split(':')[-1]
+            elif arg.isdigit():
+                django_port = arg
+            break
+
+    # Verificar si ya está corriendo en el puerto 3000 para no duplicar sockets de Baileys en recargas de Django
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        if s.connect_ex(('127.0.0.1', 3000)) == 0:
+            return None
+
+    env = os.environ.copy()
+    env.setdefault('DJANGO_WEBHOOK', f'http://127.0.0.1:{django_port}/ia/webhook/whatsapp/')
+
     sys.stdout.write("\033[92m🚀 [WhatsApp Gateway] Iniciando microservicio Node.js en segundo plano (http://127.0.0.1:3000)...\033[0m\n")
     sys.stdout.flush()
 
@@ -33,6 +53,7 @@ def _start_whatsapp_gateway():
         proc = subprocess.Popen(
             [node_bin, 'index.js'],
             cwd=gw_dir,
+            env=env,
             stdout=sys.stdout,
             stderr=sys.stderr
         )

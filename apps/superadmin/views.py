@@ -2,7 +2,9 @@ import json
 import datetime
 import uuid
 from decimal import Decimal
+import requests
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
@@ -11,7 +13,11 @@ from django.utils.text import slugify
 from apps.business.models import Business, User, StaffMember, Branch
 from apps.agenda.models import Appointment
 from apps.invoicing.models import Invoice
-from apps.superadmin.models import SubscriptionPlan, BusinessSubscription, SystemAuditLog, SuperAdminUser, GlobalPaymentMethod, Region, RegionPaymentMethod, SubscriptionPayment, PlanRegionPricing
+from apps.superadmin.models import (
+    SubscriptionPlan, BusinessSubscription, SystemAuditLog, SuperAdminUser,
+    GlobalPaymentMethod, Region, RegionPaymentMethod, SubscriptionPayment,
+    PlanRegionPricing, PlatformGlobalConfig
+)
 
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth import authenticate, login, logout
@@ -582,6 +588,7 @@ def plans_management_view(request):
             if 'ai_engine' in selected_modules and 'whatsapp' not in selected_modules:
                 selected_modules.append('whatsapp')
             show_on_landing = request.POST.get('show_on_landing') in ['on', 'true', '1']
+            ai_platform_key_included = request.POST.get('ai_platform_key_included') in ['on', 'true', '1', True]
 
             if name and code:
                 code_clean = slugify(code).replace('-', '_').upper()
@@ -593,6 +600,7 @@ def plans_management_view(request):
                     max_users=int(max_users),
                     max_branches=int(max_branches),
                     included_modules=selected_modules if selected_modules else ['crm', 'agenda', 'booking', 'invoicing'],
+                    ai_platform_key_included=ai_platform_key_included,
                     show_on_landing=show_on_landing,
                     is_active=True
                 )
@@ -635,6 +643,7 @@ def plans_management_view(request):
                 selected_modules.append('whatsapp')
             show_on_landing = request.POST.get('show_on_landing') in ['on', 'true', '1']
             is_active = request.POST.get('is_active') in ['on', 'true', '1']
+            ai_platform_key_included = request.POST.get('ai_platform_key_included') in ['on', 'true', '1', True]
 
             old_modules = set(plan.included_modules or [])
             added_modules = [m for m in selected_modules if m not in old_modules]
@@ -647,6 +656,7 @@ def plans_management_view(request):
             plan.included_modules = selected_modules
             plan.show_on_landing = show_on_landing
             plan.is_active = is_active
+            plan.ai_platform_key_included = ai_platform_key_included
             plan.save()
 
             # Sync enabled_modules for businesses on this plan so added/removed modules reflect immediately
@@ -728,6 +738,80 @@ DEVELOPED_PAYMENT_METHOD_CODES = [
     'TRANSFERENCIA_INTL',
     'TRANSFERENCIA',
 ]
+
+@superadmin_required
+@ensure_csrf_cookie
+def ai_settings_view(request):
+    """
+    Gestión de Configuración Global del Motor de Inteligencia Artificial DeepSeek.
+    Permite al SuperAdmin cargar la API Key global, elegir el modelo por defecto y probar la conectividad.
+    """
+    config = PlatformGlobalConfig.get_solo()
+    plans = SubscriptionPlan.objects.all().order_by('monthly_price')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'save_global_ai':
+            config.deepseek_api_key = request.POST.get('deepseek_api_key', '').strip() or None
+            config.deepseek_model = request.POST.get('deepseek_model', 'deepseek-chat').strip() or 'deepseek-chat'
+            config.default_system_prompt = request.POST.get('default_system_prompt', '').strip() or None
+            config.is_deepseek_active = request.POST.get('is_deepseek_active') in ['1', 'true', 'on', True]
+            config.save()
+            messages.success(request, "¡Configuración global de IA DeepSeek guardada correctamente!")
+            return redirect('superadmin_ai_settings')
+
+        elif action == 'toggle_plan_ai':
+            plan_id = request.POST.get('plan_id')
+            plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+            plan.ai_platform_key_included = not plan.ai_platform_key_included
+            plan.save()
+            status_txt = "ahora incluye la API de IA global de la plataforma" if plan.ai_platform_key_included else "requerirá que las agencias configuren su propia clave"
+            messages.success(request, f"Plan '{plan.name}' actualizado: {status_txt}.")
+            return redirect('superadmin_ai_settings')
+
+        elif action == 'test_deepseek':
+            api_key = request.POST.get('test_key', '').strip() or config.decrypted_deepseek_api_key
+            if not api_key:
+                return JsonResponse({'success': False, 'message': 'No hay ninguna API Key de DeepSeek configurada para probar.'}, status=400)
+            
+            try:
+                headers = {
+                    'Authorization': f'Bearer {api_key}',
+                    'Content-Type': 'application/json'
+                }
+                payload = {
+                    'model': config.deepseek_model or 'deepseek-chat',
+                    'messages': [
+                        {'role': 'system', 'content': 'Eres un verificador de conexion. Responde unicamente: OK - DeepSeek Conectado con Exito.'},
+                        {'role': 'user', 'content': 'ping'}
+                    ],
+                    'max_tokens': 30
+                }
+                resp = requests.post('https://api.deepseek.com/chat/completions', json=payload, headers=headers, timeout=12)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    bot_text = data['choices'][0]['message']['content'].strip()
+                    return JsonResponse({'success': True, 'message': f'¡Conexión exitosa con DeepSeek! Respuesta: "{bot_text}"'})
+                else:
+                    return JsonResponse({'success': False, 'message': f'Error de DeepSeek ({resp.status_code}): {resp.text}'}, status=resp.status_code)
+            except Exception as e:
+                return JsonResponse({'success': False, 'message': f'Fallo de conexión o timeout: {str(e)}'}, status=500)
+
+    plans_summary = []
+    for p in plans:
+        biz_count = BusinessSubscription.objects.filter(plan=p, status__in=['ACTIVE', 'TRIAL']).count()
+        plans_summary.append({
+            'plan': p,
+            'business_count': biz_count,
+            'has_ai_module': 'ai_engine' in (p.included_modules or []),
+            'ai_key_included': p.ai_platform_key_included
+        })
+
+    return render(request, 'superadmin/ai_settings.html', {
+        'config': config,
+        'plans_summary': plans_summary,
+    })
 
 @superadmin_required
 @ensure_csrf_cookie
@@ -1450,6 +1534,7 @@ def _ensure_default_plans():
             'max_users': 3,
             'max_branches': 1,
             'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'whatsapp'],
+            'ai_platform_key_included': False,
         },
         {
             'code': 'PRO',
@@ -1459,6 +1544,7 @@ def _ensure_default_plans():
             'max_users': 10,
             'max_branches': 2,
             'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'whatsapp', 'ai_engine', 'marketing', 'projects'],
+            'ai_platform_key_included': True,
         },
         {
             'code': 'ENTERPRISE',
@@ -1468,6 +1554,7 @@ def _ensure_default_plans():
             'max_users': 0,
             'max_branches': 0,
             'included_modules': ['crm', 'agenda', 'booking', 'pos', 'invoicing', 'inventory', 'commissions', 'whatsapp', 'ai_engine', 'marketing', 'projects'],
+            'ai_platform_key_included': True,
         },
     ]
 
@@ -1490,6 +1577,7 @@ def _ensure_default_plans():
                     'max_users': tier['max_users'],
                     'max_branches': tier['max_branches'],
                     'included_modules': tier['included_modules'],
+                    'ai_platform_key_included': tier['ai_platform_key_included'],
                     'show_on_landing': True,
                     'is_active': True,
                 }

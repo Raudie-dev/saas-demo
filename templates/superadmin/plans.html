@@ -42,6 +42,16 @@
                                 <i data-lucide="eye-off" class="w-3 h-3"></i> Oculto / Privado
                             </span>
                             {% endif %}
+
+                            {% if plan.ai_platform_key_included %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200 flex items-center gap-1" title="Incluye API Key de IA provista por la plataforma">
+                                <i data-lucide="sparkles" class="w-3 h-3 text-purple-600"></i> IA Global Incluida
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1" title="Los clientes con este plan deben ingresar su propia clave API">
+                                <i data-lucide="key" class="w-3 h-3 text-slate-400"></i> API Propia
+                            </span>
+                            {% endif %}
                         </div>
                         <h3 class="font-bold text-slate-900 text-xl font-display mt-2">{{ plan.name }}</h3>
                     </div>
@@ -191,6 +201,17 @@
                     </label>
                 </div>
 
+                <!-- AI Platform Key Included Toggle -->
+                <div class="p-3.5 bg-purple-50/60 border border-purple-200/80 rounded-2xl">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="ai_platform_key_included" class="accent-brand-900 w-4 h-4 rounded">
+                        <div>
+                            <span class="font-bold text-slate-900 text-xs block">Incluir Motor de IA DeepSeek de la Plataforma</span>
+                            <span class="text-[11px] text-slate-500">Si está marcado, las agencias con este plan podrán usar el bot de IA con la API Key global cargada por el SuperAdmin sin necesidad de colocar su propia clave.</span>
+                        </div>
+                    </label>
+                </div>
+
                 <!-- Included Modules Grid -->
                 <div class="space-y-2">
                     <div class="flex flex-wrap items-center justify-between gap-2">
@@ -312,6 +333,16 @@
                             <div>
                                 <span class="font-bold text-slate-900 text-xs block">Plan Habilitado / Activo</span>
                                 <span class="text-[10px] text-slate-500">Permite ser contratado o asignado</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="p-3.5 bg-purple-50/60 border border-purple-200/80 rounded-2xl md:col-span-2">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" name="ai_platform_key_included" id="edit-ai-platform-key-included" class="accent-brand-900 w-4 h-4 rounded">
+                            <div>
+                                <span class="font-bold text-slate-900 text-xs block">Incluir Motor de IA DeepSeek de la Plataforma</span>
+                                <span class="text-[10px] text-slate-500">Permite a los usuarios de este plan utilizar la API Key de DeepSeek provista por el SuperAdmin sin requerir clave propia.</span>
                             </div>
                         </label>
                     </div>
@@ -495,6 +526,8 @@
         
         document.getElementById('edit-show-on-landing').checked = !!plan.show_on_landing;
         document.getElementById('edit-is-active').checked = !!plan.is_active;
+        const editAiKeyCb = document.getElementById('edit-ai-platform-key-included');
+        if (editAiKeyCb) editAiKeyCb.checked = !!plan.ai_platform_key_included;
 
         // Uncheck all module checkboxes
         document.querySelectorAll('.edit-module-checkbox').forEach(cb => cb.checked = false);

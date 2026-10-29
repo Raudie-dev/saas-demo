@@ -146,6 +146,11 @@
                 <span>Planes & Tarifas SaaS</span>
             </a>
 
+            <a href="{% url 'superadmin_ai_settings' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_ai_settings' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                <i data-lucide="bot" class="w-4 h-4 text-rose-400"></i>
+                <span>Motor IA DeepSeek</span>
+            </a>
+
             <a href="{% url 'superadmin_payment_methods' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_payment_methods' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i data-lucide="credit-card" class="w-4 h-4 text-rose-400"></i>
                 <span>Métodos de Pago Globales</span>
@@ -207,6 +212,10 @@
                 <a href="{% url 'superadmin_plans' %}" onclick="toggleSuperadminMobileMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_plans' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="layers" class="w-4 h-4 text-rose-400"></i>
                     <span>Planes & Tarifas SaaS</span>
+                </a>
+                <a href="{% url 'superadmin_ai_settings' %}" onclick="toggleSuperadminMobileMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_ai_settings' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="bot" class="w-4 h-4 text-rose-400"></i>
+                    <span>Motor IA DeepSeek</span>
                 </a>
                 <a href="{% url 'superadmin_payment_methods' %}" onclick="toggleSuperadminMobileMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_payment_methods' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="credit-card" class="w-4 h-4 text-rose-400"></i>

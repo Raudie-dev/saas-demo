@@ -338,10 +338,23 @@ def calculate_available_slots(business, booking_date, staff, duration_minutes=45
         try:
             booking_date = datetime.datetime.strptime(booking_date, "%Y-%m-%d").date()
         except ValueError:
-            booking_date = datetime.date.today()
+            booking_date = timezone.localdate()
+
+    now_local = timezone.localtime()
+    today_local = now_local.date()
+    staff_name = staff.full_name if staff else "el profesional"
+
+    if not exclude_appointment_id and booking_date < today_local:
+        return {
+            'is_open': False,
+            'staff_name': staff_name,
+            'date': booking_date.isoformat(),
+            'duration_minutes': duration_minutes,
+            'message': f'No se pueden agendar citas en fechas pasadas ({booking_date.strftime("%d/%m/%Y")}). Hoy es {today_local.strftime("%d/%m/%Y")}.',
+            'slots': []
+        }
 
     weekday = booking_date.weekday()
-    staff_name = staff.full_name if staff else "el profesional"
 
     schedule = None
     if staff:

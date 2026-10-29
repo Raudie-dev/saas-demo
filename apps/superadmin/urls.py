@@ -14,6 +14,7 @@ urlpatterns = [
     path('pagos/', views.superadmin_payments_list_view, name='superadmin_payments'),
     path('pagos/<uuid:payment_id>/comprobante/', views.superadmin_payment_receipt_view, name='superadmin_payment_receipt'),
     path('planes/', views.plans_management_view, name='superadmin_plans'),
+    path('ia-deepseek/', views.ai_settings_view, name='superadmin_ai_settings'),
     path('metodos-pago/', views.payment_methods_management_view, name='superadmin_payment_methods'),
     path('regiones/', views.regions_management_view, name='superadmin_regions'),
 ]

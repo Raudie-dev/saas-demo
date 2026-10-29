@@ -8,7 +8,8 @@ from django.utils import timezone
 from django.db.models import Sum, Count, Avg
 from apps.business.models import Business, StaffMember
 from apps.pos.models import Sale, SaleItem
-from apps.invoicing.models import Expense, Invoice, AccountReceivable
+from apps.invoicing.models import Expense, Invoice, AccountReceivable, PaymentPlan, PaymentInstallment
+from apps.projects.models import Project, ProjectTask
 from apps.crm.models import Client
 from apps.agenda.models import Appointment
 from apps.inventory.models import Product
@@ -77,14 +78,90 @@ def dashboard_view(request):
     # Proyectos activos si el módulo está habilitado
     active_projects = []
     active_projects_count = 0
+    pending_tasks_count = 0
+    completed_projects_count = 0
     if business.is_module_enabled('projects'):
         try:
-            from apps.projects.models import Project
+            from apps.projects.models import Project, ProjectTask
             active_projects_qs = Project.objects.filter(business=business).exclude(status__in=['COMPLETED', 'CANCELLED'])
             active_projects_count = active_projects_qs.count()
-            active_projects = list(active_projects_qs.select_related('client').order_by('-updated_at')[:5])
+            active_projects = list(active_projects_qs.select_related('client', 'responsible').order_by('-updated_at')[:5])
+            pending_tasks_count = ProjectTask.objects.filter(project__business=business).exclude(status='DONE').count()
+            completed_projects_count = Project.objects.filter(business=business, status='COMPLETED').count()
         except Exception:
             pass
+
+    # Gráfico semanal de Ingresos y Citas (Últimos 7 días)
+    chart_days = []
+    sales_values = []
+    app_values = []
+    week_sales_total = Decimal('0.00')
+    day_abbrs = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    
+    for i in range(6, -1, -1):
+        d = today - datetime.timedelta(days=i)
+        d_sales = Sale.objects.filter(business=business, status='COMPLETED', created_at__date=d).aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
+        d_apps = Appointment.objects.filter(business=business, date=d).count()
+        week_sales_total += d_sales
+        sales_values.append(float(d_sales))
+        app_values.append(d_apps)
+        chart_days.append({
+            'day': day_abbrs[d.weekday()],
+            'date': d.strftime('%d/%m'),
+            'sales': float(d_sales),
+            'appointments': d_apps,
+        })
+    
+    max_sales = max(sales_values) if sales_values and max(sales_values) > 0 else 1.0
+    max_apps = max(app_values) if app_values and max(app_values) > 0 else 1.0
+    for item in chart_days:
+        item['sales_pct'] = max(12, int((item['sales'] / max_sales) * 85)) if item['sales'] > 0 else 12
+        item['apps_pct'] = max(15, int((item['appointments'] / max_apps) * 95)) if item['appointments'] > 0 else 15
+
+    # Actividad / Transacciones Recientes (combinando citas y ventas)
+    recent_transactions = []
+    for a in Appointment.objects.filter(business=business).select_related('client', 'service', 'staff').order_by('-date', '-start_time')[:5]:
+        recent_transactions.append({
+            'type': 'appointment',
+            'title': a.client.full_name if a.client else 'Cliente General',
+            'subtitle': f"{a.service.name if a.service else 'Cita'} • {a.staff.full_name if a.staff else 'Staff'}",
+            'status': a.status,
+            'status_label': a.get_status_display() or 'Confirmada',
+            'status_color': 'emerald' if a.status == 'COMPLETED' else ('blue' if a.status in ['CONFIRMED', 'PENDING'] else 'rose'),
+            'amount': a.total_price or Decimal('0.00'),
+            'date': a.date,
+            'time': a.start_time.strftime('%H:%M') if a.start_time else '',
+            'icon': 'calendar',
+            'icon_bg': 'bg-rose-50 text-rose-900 border-rose-200',
+        })
+    for s in Sale.objects.filter(business=business).select_related('client').order_by('-created_at')[:5]:
+        recent_transactions.append({
+            'type': 'sale',
+            'title': s.client.full_name if s.client else 'Venta Mostrador POS',
+            'subtitle': f"Recibo #{s.id} • {s.get_payment_method_display() if hasattr(s, 'get_payment_method_display') else 'Caja'}",
+            'status': s.status,
+            'status_label': 'Completada' if s.status == 'COMPLETED' else s.status,
+            'status_color': 'emerald' if s.status == 'COMPLETED' else 'amber',
+            'amount': s.total_amount or Decimal('0.00'),
+            'date': s.created_at.date() if s.created_at else today,
+            'time': s.created_at.strftime('%H:%M') if s.created_at else '',
+            'icon': 'shopping-bag',
+            'icon_bg': 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        })
+    recent_transactions.sort(key=lambda x: (x['date'], x['time']), reverse=True)
+    recent_transactions = recent_transactions[:6]
+
+    # Donut Performance Data
+    month_start = today.replace(day=1)
+    month_appointments_total = Appointment.objects.filter(business=business, date__gte=month_start).count()
+    month_sales_total = Sale.objects.filter(business=business, created_at__date__gte=month_start).count()
+    total_perf = month_appointments_total + month_sales_total + (active_projects_count if business.is_module_enabled('projects') else total_clients)
+    if total_perf == 0:
+        total_perf = 1
+    donut_citas_pct = int((month_appointments_total / total_perf) * 100) if month_appointments_total > 0 else 35
+    donut_sales_pct = int((month_sales_total / total_perf) * 100) if month_sales_total > 0 else 40
+    donut_other_pct = max(10, 100 - (donut_citas_pct + donut_sales_pct))
+    total_perf_count = month_appointments_total + month_sales_total + active_projects_count
 
     # Propiedades activas si es inmobiliaria
     active_properties = []
@@ -108,6 +185,7 @@ def dashboard_view(request):
         'is_professional_dashboard': False,
         'today_sales': today_sales,
         'today_sales_count': today_sales_count,
+        'week_sales_total': week_sales_total,
         'today_appointments': today_appointments,
         'today_appointments_count': today_appointments.count(),
         'recent_appointments': upcoming_appointments,
@@ -116,11 +194,18 @@ def dashboard_view(request):
         'low_stock_products': low_stock_products,
         'active_projects': active_projects,
         'active_projects_count': active_projects_count,
+        'pending_tasks_count': pending_tasks_count,
+        'completed_projects_count': completed_projects_count,
         'active_properties': active_properties,
         'active_properties_count': active_properties_count,
         'agenda_occupancy_pct': agenda_occupancy_pct,
+        'chart_days': chart_days,
+        'recent_transactions': recent_transactions,
+        'donut_citas_pct': donut_citas_pct,
+        'donut_sales_pct': donut_sales_pct,
+        'donut_other_pct': donut_other_pct,
+        'total_perf_count': total_perf_count,
     }
-    
     return render(request, 'analytics/dashboard.html', context)
 
 import calendar
@@ -193,6 +278,69 @@ def get_filtered_analytics_data(business, request):
     accounts_receivable = AccountReceivable.objects.filter(business=business, status='PENDING').aggregate(total=Sum('amount_due'))['total'] or Decimal('0.00')
     accounts_payable = Expense.objects.filter(business=business, status='PENDING').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
+    # Integración con el Módulo de Cobranzas / Cuotas (PaymentInstallment & PaymentPlan)
+    installments_all = PaymentInstallment.objects.filter(business=business)
+    
+    # Cuotas cobradas en el período filtrado
+    installments_paid_qs = installments_all.filter(status='PAID')
+    if start_date and end_date:
+        installments_paid_qs = installments_paid_qs.filter(paid_date__gte=start_date, paid_date__lte=end_date)
+    installments_collected_period = installments_paid_qs.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+    installments_paid_count = installments_paid_qs.count()
+
+    # Cuentas por cobrar en Cuotas (Pendientes o Parciales activas)
+    installments_pending_qs = installments_all.exclude(status__in=['PAID', 'CANCELLED'])
+    installments_receivable = sum((i.balance for i in installments_pending_qs), Decimal('0.00'))
+    installments_pending_count = installments_pending_qs.count()
+
+    # Si hay cuotas activas, enriquecer las cuentas por cobrar totales
+    if installments_receivable > Decimal('0.00'):
+        accounts_receivable = accounts_receivable + installments_receivable
+
+    # Cuotas Vencidas / En Mora
+    installments_overdue_qs = installments_all.filter(status__in=['PENDING', 'PARTIAL'], due_date__lt=today)
+    installments_overdue_amount = sum((i.balance for i in installments_overdue_qs), Decimal('0.00'))
+    installments_overdue_count = installments_overdue_qs.count()
+
+    # Próximas cuotas a vencer (Próximos 7 y 30 días)
+    installments_7d_qs = installments_all.filter(status__in=['PENDING', 'PARTIAL'], due_date__gte=today, due_date__lte=today + datetime.timedelta(days=7))
+    installments_7d_amount = sum((i.balance for i in installments_7d_qs), Decimal('0.00'))
+    installments_7d_count = installments_7d_qs.count()
+
+    installments_upcoming_30d_qs = installments_all.filter(
+        status__in=['PENDING', 'PARTIAL'],
+        due_date__gte=today,
+        due_date__lte=today + datetime.timedelta(days=30)
+    ).select_related('client', 'project', 'plan').order_by('due_date')
+    installments_upcoming_30d_amount = sum((i.balance for i in installments_upcoming_30d_qs), Decimal('0.00'))
+    installments_upcoming_30d_count = installments_upcoming_30d_qs.count()
+
+    # Planes de cobro activos
+    payment_plans_active = PaymentPlan.objects.filter(business=business, status='ACTIVE').select_related('client', 'project').prefetch_related('installments')
+    payment_plans_active_count = payment_plans_active.count()
+    payment_plans_total_amount = payment_plans_active.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    payment_plans_collected = sum((p.amount_paid for p in payment_plans_active), Decimal('0.00'))
+    payment_plans_pending = sum((p.balance_pending for p in payment_plans_active), Decimal('0.00'))
+
+    upcoming_installments_list = list(installments_upcoming_30d_qs[:10])
+
+    # Integración con el Módulo de Proyectos
+    projects_all = Project.objects.filter(business=business)
+    active_projects_qs = projects_all.filter(status__in=['PLANNING', 'IN_PROGRESS', 'REVIEW']).select_related('client', 'responsible')
+    active_projects_count = active_projects_qs.count()
+    active_projects_budget = active_projects_qs.aggregate(total=Sum('budget'))['total'] or Decimal('0.00')
+    completed_projects_count = projects_all.filter(status='COMPLETED').count()
+
+    # Cobrado en proyectos vs saldo pendiente
+    project_installments = installments_all.filter(project__isnull=False)
+    project_installments_collected = project_installments.filter(status='PAID').aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+    project_installments_pending = sum((i.balance for i in project_installments.exclude(status__in=['PAID', 'CANCELLED'])), Decimal('0.00'))
+
+    # Top Proyectos por Presupuesto
+    top_projects = list(projects_all.order_by('-budget')[:5])
+    top_projects_labels = [p.name for p in top_projects]
+    top_projects_data = [float(p.budget) for p in top_projects]
+
     # Dynamic Payment Methods breakdown based on real sales and SalePayment records
     pm_totals = defaultdict(Decimal)
     completed_sales_with_payments = completed_sales.prefetch_related('payments')
@@ -255,10 +403,14 @@ def get_filtered_analytics_data(business, request):
     if staff_id:
         staff_reports = staff_reports.filter(id=staff_id)
     
-    staff_reports = staff_reports.annotate(
+    staff_reports = list(staff_reports.annotate(
         total_sales_amount=Sum('sales__total_amount'),
         appointments_completed=Count('appointments')
-    )
+    ))
+
+    for st in staff_reports:
+        st.managed_projects_count = st.managed_projects.filter(status__in=['PLANNING', 'IN_PROGRESS', 'REVIEW']).count()
+        st.managed_projects_budget = st.managed_projects.filter(status__in=['PLANNING', 'IN_PROGRESS', 'REVIEW']).aggregate(total=Sum('budget'))['total'] or Decimal('0.00')
 
     # CRM Client Counts
     clients_active = Client.objects.filter(business=business, status='ACTIVE').count()
@@ -288,11 +440,47 @@ def get_filtered_analytics_data(business, request):
     services_proj_qs = upcoming_appointments_qs.values('service__name').annotate(total_est=Sum('total_price'), count=Count('id')).order_by('-total_est')
     service_proj_labels = [item['service__name'] or 'Servicio General' for item in services_proj_qs]
     service_proj_data = [float(item['total_est'] or 0) for item in services_proj_qs]
+    service_proj_total = sum(service_proj_data)
 
-    # Pie Chart 2: Proyección por Profesional (Estimación de Ingresos a Generar)
+    # Pie Chart 2: Proyección por Profesional (Estimación de Ingresos a Generar, Citas + Proyectos)
     staff_proj_qs = upcoming_appointments_qs.values('staff__first_name', 'staff__last_name').annotate(total_est=Sum('total_price'), count=Count('id')).order_by('-total_est')
-    staff_proj_labels = [f"{item['staff__first_name'] or ''} {item['staff__last_name'] or ''}".strip() or 'Sin Asignar' for item in staff_proj_qs]
-    staff_proj_data = [float(item['total_est'] or 0) for item in staff_proj_qs]
+    staff_proj_dict = defaultdict(float)
+    for item in staff_proj_qs:
+        name = f"{item['staff__first_name'] or ''} {item['staff__last_name'] or ''}".strip() or 'Sin Asignar'
+        staff_proj_dict[name] += float(item['total_est'] or 0)
+    for p in active_projects_qs:
+        if p.responsible and p.budget > 0:
+            r_name = p.responsible.full_name
+            staff_proj_dict[r_name] += float(p.budget)
+    staff_proj_labels = list(staff_proj_dict.keys())
+    staff_proj_data = list(staff_proj_dict.values())
+    staff_proj_total = sum(staff_proj_data)
+
+    # Pie/Donut Chart 3: Proyección por Cartera de Proyectos Activos (Presupuestos Contratados)
+    project_proj_labels = []
+    project_proj_data = []
+    for p in active_projects_qs:
+        project_proj_labels.append(p.name)
+        project_proj_data.append(float(p.budget or 0))
+    project_proj_total = sum(project_proj_data)
+
+    # Pie/Donut Chart 4: Proyección por Cuotas / Cobros Planificados
+    installment_proj_labels = []
+    installment_proj_data = []
+    for inst in installments_upcoming_30d_qs:
+        lbl = f"Cuota #{inst.installment_number} - {inst.concept}"
+        if inst.client:
+            lbl += f" ({inst.client.full_name})"
+        installment_proj_labels.append(lbl)
+        installment_proj_data.append(float(inst.balance))
+    if not installment_proj_data and installments_pending_qs.exists():
+        for inst in installments_pending_qs[:6]:
+            lbl = f"Cuota #{inst.installment_number} - {inst.concept}"
+            if inst.client:
+                lbl += f" ({inst.client.full_name})"
+            installment_proj_labels.append(lbl)
+            installment_proj_data.append(float(inst.balance))
+    installment_proj_total = sum(installment_proj_data)
 
     # SECCIÓN MÁS VENDIDOS POR RANGO DE FECHAS (Productos, Servicios y Profesionales)
     completed_sales_ids = completed_sales.values_list('id', flat=True)
@@ -398,8 +586,16 @@ def get_filtered_analytics_data(business, request):
         # Pie Chart Projections Data
         'service_proj_labels': service_proj_labels,
         'service_proj_data': service_proj_data,
+        'service_proj_total': service_proj_total,
         'staff_proj_labels': staff_proj_labels,
         'staff_proj_data': staff_proj_data,
+        'staff_proj_total': staff_proj_total,
+        'project_proj_labels': project_proj_labels,
+        'project_proj_data': project_proj_data,
+        'project_proj_total': project_proj_total,
+        'installment_proj_labels': installment_proj_labels,
+        'installment_proj_data': installment_proj_data,
+        'installment_proj_total': installment_proj_total,
         # Top Performers per Date Range
         'top_services': top_services,
         'top_products': top_products,
@@ -411,6 +607,34 @@ def get_filtered_analytics_data(business, request):
         'top_products_data': top_products_data,
         'top_staff_labels': top_staff_labels,
         'top_staff_data': top_staff_data,
+        # Cuotas & Cobranzas
+        'installments_collected_period': installments_collected_period,
+        'installments_paid_count': installments_paid_count,
+        'installments_receivable': installments_receivable,
+        'installments_pending_count': installments_pending_count,
+        'installments_overdue_amount': installments_overdue_amount,
+        'installments_overdue_count': installments_overdue_count,
+        'installments_upcoming_30d_amount': installments_upcoming_30d_amount,
+        'installments_upcoming_30d_count': installments_upcoming_30d_count,
+        'installments_7d_amount': installments_7d_amount,
+        'installments_7d_count': installments_7d_count,
+        'upcoming_installments_list': upcoming_installments_list,
+        'payment_plans_active_count': payment_plans_active_count,
+        'payment_plans_total_amount': payment_plans_total_amount,
+        'payment_plans_collected': payment_plans_collected,
+        'payment_plans_pending': payment_plans_pending,
+        'payment_plans_active': payment_plans_active,
+        # Proyectos
+        'active_projects_count': active_projects_count,
+        'active_projects_budget': active_projects_budget,
+        'completed_projects_count': completed_projects_count,
+        'project_installments_collected': project_installments_collected,
+        'project_installments_pending': project_installments_pending,
+        'top_projects': top_projects,
+        'top_projects_labels': top_projects_labels,
+        'top_projects_data': top_projects_data,
+        'total_projected_7d': (upcoming_appointments_revenue + installments_7d_amount),
+        'total_projected_30d': (upcoming_appointments_revenue + installments_upcoming_30d_amount),
     }
 
 
@@ -456,13 +680,30 @@ def export_analytics_excel(request):
     writer.writerow(['Cuentas por Cobrar Total', f"{business.currency}{data['accounts_receivable']:.2f}"])
     writer.writerow([])
 
+    if business.is_module_enabled('invoicing'):
+        writer.writerow(['CARTERA DE COBRANZAS Y CUOTAS PLANIFICADAS', ''])
+        writer.writerow(['Cobrado en Cuotas (Período)', f"{business.currency}{data['installments_collected_period']:.2f}"])
+        writer.writerow(['Cuotas Cobradas (Cant.)', data['installments_paid_count']])
+        writer.writerow(['Cuotas Pendientes / Por Cobrar', f"{business.currency}{data['installments_receivable']:.2f}"])
+        writer.writerow(['Cuotas Vencidas / En Mora', f"{business.currency}{data['installments_overdue_amount']:.2f}"])
+        writer.writerow(['Próximos Vencimientos (30 Días)', f"{business.currency}{data['installments_upcoming_30d_amount']:.2f}"])
+        writer.writerow([])
+
+    if business.is_module_enabled('projects'):
+        writer.writerow(['CARTERA FINANCIERA DE PROYECTOS', ''])
+        writer.writerow(['Presupuesto Total Proyectos Activos', f"{business.currency}{data['active_projects_budget']:.2f}"])
+        writer.writerow(['Proyectos en Curso (Cant.)', data['active_projects_count']])
+        writer.writerow(['Total Cobrado por Hitos de Proyectos', f"{business.currency}{data['project_installments_collected']:.2f}"])
+        writer.writerow(['Saldo Pendiente en Proyectos', f"{business.currency}{data['project_installments_pending']:.2f}"])
+        writer.writerow([])
+
     writer.writerow(['PROYECCIONES FINANCIERAS Y RESERVAS FUTURAS', ''])
-    writer.writerow(['Citas Agendadas Próximos 7 Días', data['upcoming_7d_count']])
-    writer.writerow(['Ingresos Proyectados (7 Días)', f"{business.currency}{data['upcoming_7d_revenue']:.2f}"])
-    writer.writerow(['Citas Agendadas Próximos 30 Días', data['upcoming_30d_count']])
-    writer.writerow(['Ingresos Proyectados (30 Días)', f"{business.currency}{data['upcoming_30d_revenue']:.2f}"])
-    writer.writerow(['Venta Diaria Promedio (Mes Actual)', f"{business.currency}{data['daily_avg_sales']:.2f}"])
-    writer.writerow(['Proyección Cierre de Mes (Run-Rate)', f"{business.currency}{data['projected_monthly_sales']:.2f}"])
+    writer.writerow(['Citas Agendadas Próximo Período', data.get('upcoming_appointments_count', 0)])
+    writer.writerow(['Ingresos Proyectados por Citas', f"{business.currency}{data.get('upcoming_appointments_revenue', Decimal('0.00')):.2f}"])
+    writer.writerow(['Cuotas Proyectadas (30 Días)', f"{business.currency}{data.get('installments_upcoming_30d_amount', Decimal('0.00')):.2f}"])
+    writer.writerow(['Total Flujo Proyectado (30 Días)', f"{business.currency}{data.get('total_projected_30d', Decimal('0.00')):.2f}"])
+    writer.writerow(['Venta Diaria Promedio', f"{business.currency}{data['daily_avg_sales']:.2f}"])
+    writer.writerow(['Proyección Run-Rate Período', f"{business.currency}{data['projected_period_sales']:.2f}"])
     writer.writerow([])
     
     writer.writerow(['DESEMPEÑO Y VENTAS POR COLABORADOR', '', '', ''])

@@ -179,6 +179,13 @@ class Business(TimeStampedModel):
             return True
         return module_name in self.enabled_modules
 
+    def has_platform_ai_access(self):
+        """Valida si el plan de suscripción del negocio incluye la API Key de IA de la plataforma."""
+        sub = getattr(self, 'subscription', None)
+        if sub and sub.plan:
+            return bool(getattr(sub.plan, 'ai_platform_key_included', False))
+        return False
+
     def sync_modules_with_plan(self):
         """
         Sincroniza los módulos habilitados del negocio con los permitidos por su plan.

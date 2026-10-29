@@ -66,6 +66,20 @@
                 <i data-lucide="users" class="w-4 h-4"></i>
                 <span>Desempeño Equipo & Retención CRM</span>
             </button>
+
+            {% if modules_enabled.invoicing %}
+            <button type="button" onclick="switchFinanceTab('installments')" id="finance-tab-installments" class="finance-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="receipt" class="w-4 h-4"></i>
+                <span>Cuotas & Cobranzas</span>
+            </button>
+            {% endif %}
+
+            {% if modules_enabled.projects %}
+            <button type="button" onclick="switchFinanceTab('projects')" id="finance-tab-projects" class="finance-tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition flex items-center gap-2 border border-slate-200 bg-slate-50 shrink-0 cursor-pointer">
+                <i data-lucide="folder-kanban" class="w-4 h-4"></i>
+                <span>Finanzas de Proyectos</span>
+            </button>
+            {% endif %}
         </div>
     </div>
 
@@ -206,11 +220,160 @@
             </div>
             <p class="text-2xl font-black text-slate-900 font-display">{{ business.currency }}{{ accounts_receivable|floatformat:2 }}</p>
             <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                {% if modules_enabled.invoicing and installments_pending_count > 0 %}
+                <span>{{ installments_pending_count }} Cuota{{ installments_pending_count|pluralize:"s" }} Pend.</span>
+                {% if installments_overdue_count > 0 %}
+                <span class="font-bold text-rose-700">Mora: {{ business.currency }}{{ installments_overdue_amount|floatformat:0 }}</span>
+                {% else %}
+                <span class="font-bold text-emerald-700">Al día</span>
+                {% endif %}
+                {% else %}
                 <span>Facturas Pendientes:</span>
                 <span class="font-bold text-amber-700">{{ business.currency }}{{ invoices_issued|floatformat:2 }}</span>
+                {% endif %}
             </div>
         </div>
         </div>
+
+        {% if modules_enabled.invoicing or modules_enabled.projects %}
+        <!-- ============================================================== -->
+        <!-- KPIs ESPECIALIZADOS DE COBRANZAS, CUOTAS & CARTERA DE PROYECTOS -->
+        <!-- ============================================================== -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {% if modules_enabled.invoicing %}
+            <!-- KPI Cuotas Cobradas en el Período -->
+            <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-1 hover:border-emerald-500/40 transition">
+                <div class="flex items-center justify-between text-[11px] text-slate-500 font-bold uppercase">
+                    <span>Cobrado en Cuotas</span>
+                    <div class="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200/80">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                    </div>
+                </div>
+                <p class="text-xl font-black text-emerald-700 font-display">{{ business.currency }}{{ installments_collected_period|floatformat:2 }}</p>
+                <p class="text-[10px] text-slate-400 font-medium">{{ installments_paid_count }} cuota{{ installments_paid_count|pluralize:"s" }} cobrada{{ installments_paid_count|pluralize:"s" }} en el período</p>
+            </div>
+
+            <!-- KPI Vencimientos Próximos (30 Días) -->
+            <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-1 hover:border-rose-900/30 transition">
+                <div class="flex items-center justify-between text-[11px] text-slate-500 font-bold uppercase">
+                    <span>Vencimientos (30 Días)</span>
+                    <div class="p-1.5 bg-rose-50 text-rose-900 rounded-lg border border-rose-200/80">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                    </div>
+                </div>
+                <p class="text-xl font-black text-slate-900 font-display">{{ business.currency }}{{ installments_upcoming_30d_amount|floatformat:2 }}</p>
+                <div class="flex items-center justify-between text-[10px]">
+                    <span class="text-slate-400">{{ installments_upcoming_30d_count }} cuotas a vencer</span>
+                    {% if installments_overdue_count > 0 %}
+                    <span class="font-bold text-rose-700">{{ installments_overdue_count }} vencida{{ installments_overdue_count|pluralize:"s" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if modules_enabled.projects %}
+            <!-- KPI Cartera de Proyectos Activos -->
+            <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-1 hover:border-rose-900/30 transition">
+                <div class="flex items-center justify-between text-[11px] text-slate-500 font-bold uppercase">
+                    <span>Cartera de Proyectos</span>
+                    <div class="p-1.5 bg-rose-50 text-rose-900 rounded-lg border border-rose-200/80">
+                        <i data-lucide="folder-kanban" class="w-3.5 h-3.5"></i>
+                    </div>
+                </div>
+                <p class="text-xl font-black text-slate-900 font-display">{{ business.currency }}{{ active_projects_budget|floatformat:2 }}</p>
+                <p class="text-[10px] text-slate-400 font-medium">{{ active_projects_count }} proyecto{{ active_projects_count|pluralize:"s" }} en ejecución</p>
+            </div>
+
+            <!-- KPI Recaudado por Hitos de Proyecto -->
+            <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-1 hover:border-blue-500/40 transition">
+                <div class="flex items-center justify-between text-[11px] text-slate-500 font-bold uppercase">
+                    <span>Cobrado en Proyectos</span>
+                    <div class="p-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-200/80">
+                        <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
+                    </div>
+                </div>
+                <p class="text-xl font-black text-slate-900 font-display">{{ business.currency }}{{ project_installments_collected|floatformat:2 }}</p>
+                <p class="text-[10px] text-slate-400 font-medium">Saldo por cobrar: <span class="font-bold text-slate-600">{{ business.currency }}{{ project_installments_pending|floatformat:2 }}</span></p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if modules_enabled.invoicing and upcoming_installments_list %}
+        <!-- Próximos Vencimientos de Cuotas y Cobranzas -->
+        <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-1.5 bg-rose-50 text-rose-900 rounded-lg border border-rose-200/80">
+                        <i data-lucide="receipt" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-sm font-display">Próximos Cobros de Cuotas e Hitos</h3>
+                        <p class="text-[11px] text-slate-500">Cuotas programadas para los próximos 30 días</p>
+                    </div>
+                </div>
+                <a href="{% url 'payment_plan_list' %}" class="text-xs font-bold text-rose-900 hover:text-rose-950 inline-flex items-center gap-1">
+                    Ver Módulo de Cobranzas <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider font-bold text-[10px]">
+                        <tr>
+                            <th class="p-2.5 rounded-l-xl">Concepto / Cuota</th>
+                            <th class="p-2.5">Cliente</th>
+                            {% if modules_enabled.projects %}<th class="p-2.5">Proyecto</th>{% endif %}
+                            <th class="p-2.5">Vencimiento</th>
+                            <th class="p-2.5 text-right">Saldo</th>
+                            <th class="p-2.5 text-center">Estado</th>
+                            <th class="p-2.5 text-right rounded-r-xl">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for inst in upcoming_installments_list %}
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="p-2.5 font-bold text-slate-900">
+                                <span>{{ inst.concept }}</span>
+                                <span class="text-[10px] text-slate-400 block font-normal">Cuota #{{ inst.installment_number }}</span>
+                            </td>
+                            <td class="p-2.5 font-semibold text-slate-700">
+                                {{ inst.client.full_name|default:"Cliente General" }}
+                            </td>
+                            {% if modules_enabled.projects %}
+                            <td class="p-2.5 text-slate-600">
+                                {{ inst.project.name|default:"-" }}
+                            </td>
+                            {% endif %}
+                            <td class="p-2.5">
+                                <span class="font-bold {% if inst.is_overdue %}text-rose-700{% else %}text-slate-800{% endif %}">
+                                    {{ inst.due_date|date:"d/m/Y" }}
+                                </span>
+                            </td>
+                            <td class="p-2.5 text-right font-black text-slate-900">
+                                {{ business.currency }}{{ inst.balance|floatformat:2 }}
+                            </td>
+                            <td class="p-2.5 text-center">
+                                {% if inst.status == 'PAID' %}
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">Pagada</span>
+                                {% elif inst.is_overdue %}
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">Vencida</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">Pendiente</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-2.5 text-right">
+                                <a href="{% url 'payment_installment_charge' inst.id %}" class="px-2.5 py-1 bg-rose-900 hover:bg-rose-950 text-white font-bold text-[10px] rounded-lg transition inline-flex items-center gap-1 shadow-2xs">
+                                    <i data-lucide="check" class="w-3 h-3"></i> Cobrar
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Gráfica Tipo Pastel y Desglose Porcentual de Métodos de Pago -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -379,33 +542,92 @@
             <div>
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold mb-1">
                     <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i>
-                    <span>Motor Predictivo de Agenda</span>
+                    <span>{% if modules_enabled.invoicing or modules_enabled.projects %}Motor Predictivo de Cobros & Agenda{% else %}Motor Predictivo de Agenda{% endif %}</span>
                 </div>
-                <h3 class="text-xl font-extrabold text-slate-900 font-display">Proyección de Ingresos por Servicio y Profesional</h3>
-                <p class="text-xs text-slate-500">Distribución estimada según citas agendadas y estimación de venta diaria del período</p>
+                <h3 class="text-xl font-extrabold text-slate-900 font-display">
+                    {% if modules_enabled.invoicing %}Proyección de Ingresos: Cuotas, Proyectos & Turnos{% else %}Proyección de Ingresos por Servicio y Profesional{% endif %}
+                </h3>
+                <p class="text-xs text-slate-500">Distribución estimada según cuotas programadas, citas agendadas y estimación de venta diaria</p>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-right">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Proyectado Citas</span>
-                    <span class="text-lg font-black text-rose-900 font-display">{{ business.currency }}{{ upcoming_appointments_revenue|floatformat:2 }}</span>
+            <div class="flex flex-wrap items-center gap-2.5">
+                {% if modules_enabled.invoicing %}
+                <div class="p-2.5 px-3 bg-slate-50 border border-slate-200 rounded-2xl text-right">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase block">Cuotas Próx. 30 Días</span>
+                    <span class="text-base font-black text-rose-900 font-display">{{ business.currency }}{{ installments_upcoming_30d_amount|floatformat:2 }}</span>
                 </div>
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-right">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Run-Rate Est. Período</span>
-                    <span class="text-lg font-black text-emerald-700 font-display">{{ business.currency }}{{ projected_period_sales|floatformat:2 }}</span>
+                {% endif %}
+                {% if modules_enabled.agenda %}
+                <div class="p-2.5 px-3 bg-slate-50 border border-slate-200 rounded-2xl text-right">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase block">Citas Próx. Período</span>
+                    <span class="text-base font-black text-blue-700 font-display">{{ business.currency }}{{ upcoming_appointments_revenue|floatformat:2 }}</span>
                 </div>
+                {% endif %}
+                <div class="p-2.5 px-3 bg-slate-50 border border-slate-200 rounded-2xl text-right">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase block">Run-Rate Período</span>
+                    <span class="text-base font-black text-emerald-700 font-display">{{ business.currency }}{{ projected_period_sales|floatformat:2 }}</span>
+                </div>
+                {% if modules_enabled.invoicing and modules_enabled.agenda %}
+                <div class="p-2.5 px-3 bg-gradient-to-br from-rose-900 to-slate-950 text-white rounded-2xl text-right shadow-2xs">
+                    <span class="text-[9px] font-bold text-rose-200 uppercase block">Flujo Total 30D</span>
+                    <span class="text-base font-black text-white font-display">{{ business.currency }}{{ total_projected_30d|floatformat:2 }}</span>
+                </div>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Dynamic Pie Charts Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Dynamic Donut Charts Grid (Estilo Dashboard Siohioma) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            <!-- Pie Chart 1: Proyección por Servicio / Producto -->
+            {% if modules_enabled.invoicing %}
+            <!-- Donut 1: Proyección por Cuotas / Cobros Planificados -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                            <i data-lucide="receipt" class="w-4 h-4 text-rose-900"></i>
+                            <span>Cobros Programados (Cuotas)</span>
+                        </h4>
+                        <p class="text-xs text-slate-500">Estimación de recaudación por cuotas próximas a vencer (30 días)</p>
+                    </div>
+                    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-900 border border-rose-200">
+                        {{ installments_upcoming_30d_count }} Cuotas
+                    </span>
+                </div>
+                <div class="h-64 relative flex items-center justify-center">
+                    <canvas id="installmentsProjectionPieChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if modules_enabled.projects %}
+            <!-- Donut 2: Proyección por Cartera de Proyectos -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
+                            <i data-lucide="folder-kanban" class="w-4 h-4 text-rose-900"></i>
+                            <span>Cartera de Proyectos en Ejecución</span>
+                        </h4>
+                        <p class="text-xs text-slate-500">Presupuestos contratados por proyecto en curso</p>
+                    </div>
+                    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {{ active_projects_count }} Proyectos
+                    </span>
+                </div>
+                <div class="h-64 relative flex items-center justify-center">
+                    <canvas id="projectsProjectionPieChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if modules_enabled.agenda %}
+            <!-- Donut 3: Proyección por Servicio / Producto (Citas) -->
             <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div>
                         <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
                             <i data-lucide="scissors" class="w-4 h-4 text-rose-900"></i>
-                            <span>Ingresos Est. por Servicio / Producto</span>
+                            <span>Ingresos Est. por Servicio (Agenda)</span>
                         </h4>
                         <p class="text-xs text-slate-500">Distribución de facturación proyectada según citas registradas</p>
                     </div>
@@ -417,14 +639,15 @@
                     <canvas id="serviceProjectionPieChart"></canvas>
                 </div>
             </div>
+            {% endif %}
 
-            <!-- Pie Chart 2: Proyección por Profesional / Colaborador -->
+            <!-- Donut 4: Proyección por Profesional / Responsable -->
             <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div>
                         <h4 class="font-bold text-slate-900 text-base font-display flex items-center gap-2">
                             <i data-lucide="user-check" class="w-4 h-4 text-rose-900"></i>
-                            <span>Ingresos Est. por Profesional</span>
+                            <span>Ingresos Est. por Responsable / Profesional</span>
                         </h4>
                         <p class="text-xs text-slate-500">Estimación de recaudación futura por integrante del equipo</p>
                     </div>
@@ -438,6 +661,47 @@
             </div>
 
         </div>
+
+        {% if modules_enabled.invoicing and upcoming_installments_list %}
+        <!-- Calendario Predictivo de Cobro de Cuotas (Próximos 30 Días) -->
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-rose-50 text-rose-900 rounded-xl border border-rose-200/80">
+                        <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-sm font-display">Flujo Predictivo de Cuotas e Hitos (Próximos 30 Días)</h4>
+                        <p class="text-xs text-slate-500">Cobros planificados que ingresarán al negocio por fecha límite</p>
+                    </div>
+                </div>
+                <span class="text-xs font-black text-rose-900 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+                    Total: {{ business.currency }}{{ installments_upcoming_30d_amount|floatformat:2 }}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {% for inst in upcoming_installments_list|slice:":8" %}
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 hover:bg-white hover:shadow-2xs transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Cuota #{{ inst.installment_number }}</span>
+                        <span class="text-[10px] font-bold {% if inst.is_overdue %}text-rose-700{% else %}text-slate-600{% endif %}">
+                            {{ inst.due_date|date:"d M Y" }}
+                        </span>
+                    </div>
+                    <p class="text-xs font-bold text-slate-900 truncate">{{ inst.concept }}</p>
+                    <p class="text-[11px] text-slate-500 truncate">{{ inst.client.full_name|default:"Cliente General" }}</p>
+                    <div class="pt-2 border-t border-slate-200 flex items-center justify-between">
+                        <span class="text-xs font-black text-slate-900">{{ business.currency }}{{ inst.balance|floatformat:2 }}</span>
+                        <a href="{% url 'payment_installment_charge' inst.id %}" class="px-2 py-0.5 rounded-md bg-rose-900 text-white font-bold text-[9px] hover:bg-rose-950 transition">
+                            Cobrar
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
     </div>
 
@@ -486,6 +750,7 @@
                             <th class="p-4">Profesional</th>
                             <th class="p-4">Rol / Especialidad</th>
                             <th class="p-4 text-center">Citas Atendidas</th>
+                            {% if modules_enabled.projects %}<th class="p-4 text-center">Proyectos Asignados</th>{% endif %}
                             <th class="p-4 text-right">Ventas Generadas</th>
                         </tr>
                     </thead>
@@ -500,11 +765,17 @@
                             </td>
                             <td class="p-4 text-rose-900 font-semibold">{{ st.role_title }}</td>
                             <td class="p-4 text-center font-bold text-slate-700">{{ st.appointments_completed }}</td>
+                            {% if modules_enabled.projects %}
+                            <td class="p-4 text-center">
+                                <span class="font-bold text-slate-900">{{ st.managed_projects_count }}</span>
+                                <span class="text-[11px] text-slate-400 block">{{ business.currency }}{{ st.managed_projects_budget|floatformat:0 }}</span>
+                            </td>
+                            {% endif %}
                             <td class="p-4 text-right font-black text-emerald-700">{{ business.currency }}{{ st.total_sales_amount|default:"0.00" }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="p-8 text-center text-slate-500">No se encontraron registros de colaboradores para este filtro.</td>
+                            <td colspan="{% if modules_enabled.projects %}5{% else %}4{% endif %}" class="p-8 text-center text-slate-500">No se encontraron registros de colaboradores para este filtro.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -531,7 +802,7 @@
             </span>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 {% if modules_enabled.projects %}lg:grid-cols-4{% else %}lg:grid-cols-3{% endif %} gap-6">
 
             <!-- 1. Top Servicios Más Vendidos -->
             <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
@@ -647,7 +918,307 @@
                 </div>
             </div>
 
+            {% if modules_enabled.projects %}
+            <!-- 4. Top Proyectos Más Valiosos / Contratados -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h4 class="font-bold text-slate-900 text-sm font-display flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-rose-100 text-rose-900 flex items-center justify-center font-bold text-xs">
+                            <i data-lucide="folder-kanban" class="w-4 h-4"></i>
+                        </div>
+                        <span>Top Proyectos (Presupuesto)</span>
+                    </h4>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    {% for proj in top_projects %}
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 hover:bg-white hover:shadow-2xs transition">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="truncate">
+                                <span class="text-xs font-bold text-slate-900 block truncate">{{ proj.name }}</span>
+                                <span class="text-[10px] text-slate-500 block truncate">{{ proj.client.full_name|default:"Interno" }}</span>
+                            </div>
+                            <span class="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200 shrink-0">
+                                {{ business.currency }}{{ proj.budget|floatformat:0 }}
+                            </span>
+                        </div>
+                        <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-rose-900 h-full rounded-full" style="width: {{ proj.progress_percent }}%;"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] text-slate-400">
+                            <span>Avance: <strong class="text-slate-700">{{ proj.progress_percent }}%</strong></span>
+                            <span>{{ proj.due_date|date:"d M Y"|default:"S/D" }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="py-4 text-center text-xs text-slate-400">No hay proyectos activos registrados.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
         </div>
+
+    </div>
+
+    {% if modules_enabled.invoicing %}
+    <!-- ============================================================== -->
+    <!-- TAB CONTENT: CUOTAS & COBRANZAS PLANIFICADAS                   -->
+    <!-- ============================================================== -->
+    <div id="finance-content-installments" class="finance-tab-content hidden space-y-6">
+
+        <!-- Top Header for Installments -->
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 text-rose-900 border border-rose-200 text-xs font-bold mb-1">
+                    <i data-lucide="receipt" class="w-3.5 h-3.5 text-rose-900"></i>
+                    <span>Gestión de Cobranzas & Cartera</span>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900 font-display">Planes de Cobro & Cuotas Programadas</h3>
+                <p class="text-xs text-slate-500">Supervisión integral de cuotas emitidas, cobranzas liquidadas y seguimiento de mora</p>
+            </div>
+            <a href="{% url 'payment_plan_list' %}" class="px-4 py-2.5 bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-2 transition">
+                <i data-lucide="external-link" class="w-4 h-4"></i> Ir al Gestor de Cobranzas
+            </a>
+        </div>
+
+        <!-- 4 KPI Cards for Installments -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase">
+                    <span>Cartera por Cobrar</span>
+                    <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-black text-slate-900 font-display">{{ business.currency }}{{ installments_receivable|floatformat:2 }}</p>
+                <p class="text-[11px] text-slate-500">{{ installments_pending_count }} cuotas por liquidar</p>
+            </div>
+
+            <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase">
+                    <span>Cobrado en Período</span>
+                    <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-black text-emerald-700 font-display">{{ business.currency }}{{ installments_collected_period|floatformat:2 }}</p>
+                <p class="text-[11px] text-emerald-700 font-medium">{{ installments_paid_count }} cuotas cobradas</p>
+            </div>
+
+            <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase">
+                    <span>Cartera Vencida / Mora</span>
+                    <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-black text-rose-700 font-display">{{ business.currency }}{{ installments_overdue_amount|floatformat:2 }}</p>
+                <p class="text-[11px] text-rose-600 font-semibold">{{ installments_overdue_count }} cuotas fuera de plazo</p>
+            </div>
+
+            <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase">
+                    <span>Planes Activos</span>
+                    <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-black text-slate-900 font-display">{{ payment_plans_active_count }}</p>
+                <p class="text-[11px] text-slate-500">Monto: {{ business.currency }}{{ payment_plans_total_amount|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        <!-- Planes de Cobro Activos -->
+        <div class="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
+            <div class="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold text-slate-900 text-base font-display">Planes de Cobro en Curso</h4>
+                    <p class="text-xs text-slate-500">Contratos, presupuestos y acuerdos comerciales divididos en cuotas</p>
+                </div>
+                <span class="text-xs font-bold text-rose-900 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+                    {{ payment_plans_active_count }} Planes
+                </span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-700 uppercase tracking-wider font-bold text-[10px]">
+                        <tr>
+                            <th class="p-3.5">Título del Plan</th>
+                            <th class="p-3.5">Cliente</th>
+                            {% if modules_enabled.projects %}<th class="p-3.5">Proyecto Vinculado</th>{% endif %}
+                            <th class="p-3.5 text-center">Progreso de Cobro</th>
+                            <th class="p-3.5 text-right">Monto Total</th>
+                            <th class="p-3.5 text-right">Cobrado</th>
+                            <th class="p-3.5 text-right">Saldo Pendiente</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for plan in payment_plans_active %}
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="p-3.5 font-bold text-slate-900">{{ plan.title }}</td>
+                            <td class="p-3.5 text-slate-700 font-medium">{{ plan.client.full_name|default:"General" }}</td>
+                            {% if modules_enabled.projects %}
+                            <td class="p-3.5 text-slate-600 font-medium">{{ plan.project.name|default:"-" }}</td>
+                            {% endif %}
+                            <td class="p-3.5 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <div class="w-20 bg-slate-200 h-2 rounded-full overflow-hidden">
+                                        <div class="bg-emerald-600 h-full rounded-full" style="width: {{ plan.progress_percent }}%;"></div>
+                                    </div>
+                                    <span class="font-black text-slate-800 text-[11px]">{{ plan.progress_percent }}%</span>
+                                </div>
+                            </td>
+                            <td class="p-3.5 text-right font-black text-slate-900">{{ business.currency }}{{ plan.total_amount|floatformat:2 }}</td>
+                            <td class="p-3.5 text-right font-bold text-emerald-700">{{ business.currency }}{{ plan.amount_paid|floatformat:2 }}</td>
+                            <td class="p-3.5 text-right font-extrabold text-amber-700">{{ business.currency }}{{ plan.balance_pending|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{% if modules_enabled.projects %}7{% else %}6{% endif %}" class="p-8 text-center text-slate-400">
+                                No hay planes de cobro activos registrados en el sistema.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
+    {% if modules_enabled.projects %}
+    <!-- ============================================================== -->
+    <!-- TAB CONTENT: FINANZAS DE PROYECTOS & ENTREGABLES               -->
+    <!-- ============================================================== -->
+    <div id="finance-content-projects" class="finance-tab-content hidden space-y-6">
+
+        <!-- Top Header for Projects Finance -->
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 text-rose-900 border border-rose-200 text-xs font-bold mb-1">
+                    <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-rose-900"></i>
+                    <span>Inteligencia de Proyectos</span>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900 font-display">Finanzas, Presupuestos & Hitos de Proyectos</h3>
+                <p class="text-xs text-slate-500">Control presupuestario de entregables, avance financiero y cobros por hitos certificados</p>
+            </div>
+            <a href="{% url 'project_list' %}" class="px-4 py-2.5 bg-rose-900 hover:bg-rose-950 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-2 transition">
+                <i data-lucide="external-link" class="w-4 h-4"></i> Ir al Módulo de Proyectos
+            </a>
+        </div>
+
+        <!-- 4 KPI Cards for Projects Finance -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase">
+                    <span>Presupuesto Cartera Activa</span>
+                    <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-900 flex items-center justify-center font-bold">
+                        <i data-lucide="folder-kanban" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-black text-slate-900 font-display">{{ business.currency }}{{ active_projects_budget|floatformat:2 }}</p>
+                <p class="text-[11px] text-slate-500">{{ active_projects_count }} proyectos en ejecución</p>
+            </div>
+
+            <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase">
+                    <span>Cobrado por Hitos</span>
+                    <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-black text-emerald-700 font-display">{{ business.currency }}{{ project_installments_collected|floatformat:2 }}</p>
+                <p class="text-[11px] text-emerald-700 font-medium">Liquidado en cuentas del negocio</p>
+            </div>
+
+            <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase">
+                    <span>Saldo por Cobrar</span>
+                    <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-black text-amber-700 font-display">{{ business.currency }}{{ project_installments_pending|floatformat:2 }}</p>
+                <p class="text-[11px] text-slate-500">Pendiente de facturación/hito</p>
+            </div>
+
+            <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase">
+                    <span>Proyectos Concluidos</span>
+                    <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                        <i data-lucide="trophy" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-black text-slate-900 font-display">{{ completed_projects_count }}</p>
+                <p class="text-[11px] text-slate-500">Entregados satisfactoriamente</p>
+            </div>
+        </div>
+
+        <!-- Proyectos Activos Detalle Financiero -->
+        <div class="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
+            <div class="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold text-slate-900 text-base font-display">Estado Financiero por Proyecto</h4>
+                    <p class="text-xs text-slate-500">Presupuestos contratados, avance de entregables y fechas límites</p>
+                </div>
+                <span class="text-xs font-bold text-rose-900 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+                    {{ active_projects_count }} En Curso
+                </span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-700 uppercase tracking-wider font-bold text-[10px]">
+                        <tr>
+                            <th class="p-3.5">Proyecto</th>
+                            <th class="p-3.5">Cliente</th>
+                            <th class="p-3.5">Responsable</th>
+                            <th class="p-3.5 text-center">Avance</th>
+                            <th class="p-3.5 text-right">Presupuesto</th>
+                            <th class="p-3.5 text-center">Entrega</th>
+                            <th class="p-3.5 text-right">Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for proj in top_projects %}
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="p-3.5 font-bold text-slate-900">
+                                <span>{{ proj.name }}</span>
+                                <span class="text-[10px] text-slate-400 block font-normal">{{ proj.display_type }}</span>
+                            </td>
+                            <td class="p-3.5 text-slate-700 font-medium">{{ proj.client.full_name|default:"Interno" }}</td>
+                            <td class="p-3.5 text-slate-600 font-medium">{{ proj.responsible.full_name|default:"Sin Asignar" }}</td>
+                            <td class="p-3.5 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <div class="w-16 bg-slate-200 h-2 rounded-full overflow-hidden">
+                                        <div class="bg-rose-900 h-full rounded-full" style="width: {{ proj.progress_percent }}%;"></div>
+                                    </div>
+                                    <span class="font-bold text-slate-800 text-[11px]">{{ proj.progress_percent }}%</span>
+                                </div>
+                            </td>
+                            <td class="p-3.5 text-right font-black text-slate-900">{{ business.currency }}{{ proj.budget|floatformat:2 }}</td>
+                            <td class="p-3.5 text-center text-slate-600 font-medium">{{ proj.due_date|date:"d/m/Y"|default:"Por definir" }}</td>
+                            <td class="p-3.5 text-right">
+                                <a href="{% url 'project_detail' proj.id %}" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[10px] rounded-lg transition inline-flex items-center gap-1">
+                                    Ver <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="p-8 text-center text-slate-400">
+                                No hay proyectos registrados en este momento.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
 
     </div>
 
@@ -709,6 +1280,14 @@
                 filterTitle.innerHTML = `<i data-lucide="filter" class="w-4 h-4 text-rose-900"></i><span>Filtros de Rendimiento de Equipo & Retención CRM</span>`;
                 if (staffBox) staffBox.classList.remove('hidden');
                 if (statusBox) statusBox.classList.remove('hidden');
+            } else if (tabId === 'installments') {
+                filterTitle.innerHTML = `<i data-lucide="receipt" class="w-4 h-4 text-rose-900"></i><span>Filtros para Cobranzas & Cuotas Planificadas</span>`;
+                if (staffBox) staffBox.classList.add('hidden');
+                if (statusBox) statusBox.classList.remove('hidden');
+            } else if (tabId === 'projects') {
+                filterTitle.innerHTML = `<i data-lucide="folder-kanban" class="w-4 h-4 text-rose-900"></i><span>Filtros para Finanzas de Proyectos & Entregables</span>`;
+                if (staffBox) staffBox.classList.remove('hidden');
+                if (statusBox) statusBox.classList.add('hidden');
             }
             if (window.lucide) lucide.createIcons();
         }
@@ -773,7 +1352,88 @@
         });
     }
 
-    // Render Payment Methods Donut Chart (Tab 2)
+    // Register custom plugin for Donut Center Text (Dashboard style)
+    const donutCenterPlugin = {
+        id: 'donutCenterText',
+        beforeDraw: function(chart) {
+            const centerConfig = chart.config.options?.plugins?.donutCenterText;
+            if (!centerConfig || !centerConfig.display) return;
+            
+            const { ctx, chartArea } = chart;
+            if (!chartArea) return;
+            
+            const centerX = (chartArea.left + chartArea.right) / 2;
+            const centerY = (chartArea.top + chartArea.bottom) / 2;
+            
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const subtitle = centerConfig.subtitle || '';
+            const text = centerConfig.text || '';
+            const footer = centerConfig.footer || '';
+            
+            if (subtitle) {
+                ctx.font = '700 9px Inter, sans-serif';
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText(subtitle.toUpperCase(), centerX, centerY - (footer ? 14 : 10));
+            }
+            
+            if (text) {
+                ctx.font = '800 15px Inter, sans-serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.fillText(text, centerX, subtitle && footer ? centerY : (subtitle ? centerY + 5 : centerY));
+            }
+            
+            if (footer) {
+                ctx.font = '600 9px Inter, sans-serif';
+                ctx.fillStyle = '#64748b';
+                ctx.fillText(footer, centerX, centerY + 14);
+            }
+            
+            ctx.restore();
+        }
+    };
+    if (typeof Chart !== 'undefined') {
+        Chart.register(donutCenterPlugin);
+    }
+
+    // Default Doughnut Options Helper
+    function getDonutOptions(hasData, centerConfig, legendPos = 'bottom') {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+                donutCenterText: centerConfig,
+                legend: {
+                    position: legendPos,
+                    labels: {
+                        color: '#334155',
+                        font: { family: 'Inter', size: 11, weight: '500' },
+                        padding: 10,
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    enabled: hasData,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const dataset = context.dataset.data;
+                            const total = dataset.reduce((acc, val) => acc + (typeof val === 'number' ? val : 0), 0);
+                            const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return ` ${label}: {{ business.currency }}${value.toLocaleString('es-AR', {minimumFractionDigits: 2})} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        };
+    }
+
+    // 1. Render Payment Methods Donut Chart (Tab 2)
     const payEl = document.getElementById('financialPaymentChart');
     if (payEl) {
         const payLabels = {{ payment_methods_chart_labels|safe }};
@@ -788,33 +1448,20 @@
                     data: hasPayData ? payData : [1],
                     backgroundColor: hasPayData ? payColors : ['#f1f5f9'],
                     borderWidth: 2,
-                    borderColor: '#ffffff'
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } },
-                    tooltip: {
-                        enabled: hasPayData,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed || 0;
-                                const dataset = context.dataset.data;
-                                const total = dataset.reduce((acc, val) => acc + val, 0);
-                                const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                return ` ${label}: {{ business.currency }}${value.toLocaleString('es-AR', {minimumFractionDigits: 2})} (${pct}%)`;
-                            }
-                        }
-                    }
-                }
-            }
+            options: getDonutOptions(hasPayData, {
+                display: true,
+                subtitle: 'Total',
+                text: '{{ business.currency }}{{ total_sales|floatformat:2 }}',
+                footer: 'Cobros'
+            }, 'bottom')
         });
     }
 
-    // Render KPI Tab Payment Methods Pie Chart (Tab 1)
+    // 2. Render KPI Tab Payment Methods Donut Chart (Tab 1)
     const kpiPayEl = document.getElementById('kpiPaymentPieChart');
     if (kpiPayEl) {
         const kpiLabels = {{ payment_methods_chart_labels|safe }};
@@ -822,7 +1469,7 @@
         const kpiColors = {{ payment_methods_chart_colors|safe }};
         const hasKpiData = kpiData.length > 0 && kpiData.some(v => v > 0);
         new Chart(kpiPayEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
                 labels: hasKpiData ? kpiLabels : ['Sin cobros registrados'],
                 datasets: [{
@@ -830,177 +1477,212 @@
                     backgroundColor: hasKpiData ? kpiColors : ['#f1f5f9'],
                     borderWidth: 2,
                     borderColor: '#ffffff',
-                    hoverOffset: 6
+                    borderRadius: 4,
+                    hoverOffset: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#334155',
-                            font: { family: 'Inter', size: 11, weight: '600' },
-                            padding: 12,
-                            usePointStyle: true,
-                            pointStyle: 'circle'
-                        }
-                    },
-                    tooltip: {
-                        enabled: hasKpiData,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed || 0;
-                                const dataset = context.dataset.data;
-                                const total = dataset.reduce((acc, val) => acc + val, 0);
-                                const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                return ` ${label}: {{ business.currency }}${value.toLocaleString('es-AR', {minimumFractionDigits: 2})} (${pct}%)`;
-                            }
-                        }
-                    }
-                }
-            }
+            options: getDonutOptions(hasKpiData, {
+                display: true,
+                subtitle: 'Total Cobros',
+                text: '{{ business.currency }}{{ total_sales|floatformat:2 }}',
+                footer: '{{ sales_count }} ventas'
+            }, 'bottom')
         });
     }
 
-    // Pie Chart 1: Proyección por Servicio / Producto
+    // 3. TAB 3: Donut 1 - Cobros Programados / Cuotas (si facturación activa)
+    const instProjEl = document.getElementById('installmentsProjectionPieChart');
+    if (instProjEl) {
+        const instLabels = {{ installment_proj_labels|safe }};
+        const instData = {{ installment_proj_data|safe }};
+        const hasInstData = instData.length > 0 && instData.some(v => v > 0);
+        new Chart(instProjEl.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: hasInstData ? instLabels : ['Sin cuotas en el período'],
+                datasets: [{
+                    data: hasInstData ? instData : [1],
+                    backgroundColor: hasInstData ? ['#881337', '#b91c1c', '#d97706', '#2563eb', '#059669', '#7c3aed'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
+                }]
+            },
+            options: getDonutOptions(hasInstData, {
+                display: true,
+                subtitle: 'Cuotas 30D',
+                text: '{{ business.currency }}{{ installment_proj_total|floatformat:2 }}',
+                footer: '{{ installments_upcoming_30d_count }} cuotas'
+            }, 'bottom')
+        });
+    }
+
+    // 4. TAB 3: Donut 2 - Cartera de Proyectos en Ejecución (si proyectos activos)
+    const projProjEl = document.getElementById('projectsProjectionPieChart');
+    if (projProjEl) {
+        const projLabels = {{ project_proj_labels|safe }};
+        const projData = {{ project_proj_data|safe }};
+        const hasProjData = projData.length > 0 && projData.some(v => v > 0);
+        new Chart(projProjEl.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: hasProjData ? projLabels : ['Sin proyectos activos'],
+                datasets: [{
+                    data: hasProjData ? projData : [1],
+                    backgroundColor: hasProjData ? ['#0f172a', '#059669', '#0284c7', '#881337', '#d97706', '#6366f1'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
+                }]
+            },
+            options: getDonutOptions(hasProjData, {
+                display: true,
+                subtitle: 'Presupuestos',
+                text: '{{ business.currency }}{{ project_proj_total|floatformat:2 }}',
+                footer: '{{ active_projects_count }} proyectos'
+            }, 'bottom')
+        });
+    }
+
+    // 5. TAB 3: Donut 3 - Proyección por Servicio / Citas (Agenda)
     const srvPieEl = document.getElementById('serviceProjectionPieChart');
     if (srvPieEl) {
         const srvLabels = {{ service_proj_labels|safe }};
         const srvData = {{ service_proj_data|safe }};
         const hasSrvData = srvData.length > 0 && srvData.some(v => v > 0);
         new Chart(srvPieEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
                 labels: hasSrvData ? srvLabels : ['Sin citas registradas'],
                 datasets: [{
                     data: hasSrvData ? srvData : [1],
-                    backgroundColor: hasSrvData ? ['#701a2b', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'] : ['#f1f5f9'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    backgroundColor: hasSrvData ? ['#881337', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } },
-                    tooltip: { enabled: hasSrvData }
-                }
-            }
+            options: getDonutOptions(hasSrvData, {
+                display: true,
+                subtitle: 'Citas / Turnos',
+                text: '{{ business.currency }}{{ service_proj_total|floatformat:2 }}',
+                footer: '{{ upcoming_appointments_count }} citas'
+            }, 'bottom')
         });
     }
 
-    // Pie Chart 2: Proyección por Profesional / Colaborador
+    // 6. TAB 3: Donut 4 - Proyección por Profesional / Responsable
     const stfPieEl = document.getElementById('staffProjectionPieChart');
     if (stfPieEl) {
         const stfLabels = {{ staff_proj_labels|safe }};
         const stfData = {{ staff_proj_data|safe }};
+        const hasStfData = stfData.length > 0 && stfData.some(v => v > 0);
         new Chart(stfPieEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: stfLabels.length ? stfLabels : ['Sin citas en rango'],
+                labels: hasStfData ? stfLabels : ['Sin asignaciones en rango'],
                 datasets: [{
-                    data: stfData.length ? stfData : [0],
-                    backgroundColor: ['#0f172a', '#701a2b', '#10b981', '#f59e0b', '#6366f1', '#14b8a6'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    data: hasStfData ? stfData : [1],
+                    backgroundColor: hasStfData ? ['#0f172a', '#881337', '#10b981', '#f59e0b', '#6366f1', '#14b8a6'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { color: '#334155', font: { family: 'Inter', size: 11 } } }
-                }
-            }
+            options: getDonutOptions(hasStfData, {
+                display: true,
+                subtitle: 'Por Equipo',
+                text: '{{ business.currency }}{{ staff_proj_total|floatformat:2 }}',
+                footer: 'Proyectado'
+            }, 'bottom')
         });
     }
 
-    // Pie Chart Top 1: Servicios Más Vendidos
+    // 7. TAB 5: Top 1 - Servicios Más Vendidos
     const topSrvPieEl = document.getElementById('topServicesPieChart');
     if (topSrvPieEl) {
         const topSrvLabels = {{ top_services_labels|safe }};
         const topSrvData = {{ top_services_data|safe }};
+        const hasTopSrv = topSrvData.length > 0 && topSrvData.some(v => v > 0);
         new Chart(topSrvPieEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: topSrvLabels.length ? topSrvLabels : ['Sin datos'],
+                labels: hasTopSrv ? topSrvLabels : ['Sin datos'],
                 datasets: [{
-                    data: topSrvData.length ? topSrvData : [0],
-                    backgroundColor: ['#701a2b', '#e11d48', '#f43f5e', '#fb7185', '#fda4af'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    data: hasTopSrv ? topSrvData : [1],
+                    backgroundColor: hasTopSrv ? ['#881337', '#be123c', '#e11d48', '#f43f5e', '#fb7185'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 10 } } }
-                }
-            }
+            options: getDonutOptions(hasTopSrv, {
+                display: true,
+                subtitle: 'Top',
+                text: 'Servicios',
+                footer: 'Facturación'
+            }, 'bottom')
         });
     }
 
-    // Pie Chart Top 2: Productos Más Vendidos
+    // 8. TAB 5: Top 2 - Productos Más Vendidos
     const topProdPieEl = document.getElementById('topProductsPieChart');
     if (topProdPieEl) {
         const topProdLabels = {{ top_products_labels|safe }};
         const topProdData = {{ top_products_data|safe }};
+        const hasTopProd = topProdData.length > 0 && topProdData.some(v => v > 0);
         new Chart(topProdPieEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: topProdLabels.length ? topProdLabels : ['Sin datos'],
+                labels: hasTopProd ? topProdLabels : ['Sin datos'],
                 datasets: [{
-                    data: topProdData.length ? topProdData : [0],
-                    backgroundColor: ['#d97706', '#f59e0b', '#fbbf24', '#fde047', '#fef08a'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    data: hasTopProd ? topProdData : [1],
+                    backgroundColor: hasTopProd ? ['#b45309', '#d97706', '#f59e0b', '#fbbf24', '#fde047'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 10 } } }
-                }
-            }
+            options: getDonutOptions(hasTopProd, {
+                display: true,
+                subtitle: 'Top',
+                text: 'Productos',
+                footer: 'Facturación'
+            }, 'bottom')
         });
     }
 
-    // Pie Chart Top 3: Profesionales que Más Venden
+    // 9. TAB 5: Top 3 - Profesionales que Más Venden
     const topStaffPieEl = document.getElementById('topStaffPieChart');
     if (topStaffPieEl) {
         const topStaffLabels = {{ top_staff_labels|safe }};
         const topStaffData = {{ top_staff_data|safe }};
+        const hasTopStaff = topStaffData.length > 0 && topStaffData.some(v => v > 0);
         new Chart(topStaffPieEl.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: topStaffLabels.length ? topStaffLabels : ['Sin datos'],
+                labels: hasTopStaff ? topStaffLabels : ['Sin datos'],
                 datasets: [{
-                    data: topStaffData.length ? topStaffData : [0],
-                    backgroundColor: ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    data: hasTopStaff ? topStaffData : [1],
+                    backgroundColor: hasTopStaff ? ['#047857', '#059669', '#10b981', '#34d399', '#6ee7b7'] : ['#f1f5f9'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    borderRadius: 4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#334155', font: { family: 'Inter', size: 10 } } }
-                }
-            }
+            options: getDonutOptions(hasTopStaff, {
+                display: true,
+                subtitle: 'Top',
+                text: 'Ventas',
+                footer: 'Equipo'
+            }, 'bottom')
         });
     }
 
     // Auto-restore active tab after GET filter submission
     const urlParams = new URLSearchParams(window.location.search);
     const activeTabParam = urlParams.get('active_tab');
-    if (activeTabParam && ['kpis', 'charts', 'projections', 'top', 'staff'].includes(activeTabParam)) {
+    if (activeTabParam && ['kpis', 'charts', 'projections', 'installments', 'projects', 'top', 'staff'].includes(activeTabParam)) {
         switchFinanceTab(activeTabParam);
     }
 
