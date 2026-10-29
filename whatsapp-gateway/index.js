@@ -10,10 +10,15 @@ import axios from 'axios';
 import qrcode from 'qrcode-terminal';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
 
+// Ruta absoluta de credenciales (en cPanel/Passenger el cwd puede no ser la carpeta del proyecto)
+const __dirname_gw = path.dirname(fileURLToPath(import.meta.url));
+const AUTH_ROOT = path.join(__dirname_gw, 'auth_info');
+
 const PORT = process.env.PORT || 3000;
-const IS_PROD_ENV = process.env.NODE_ENV === 'production' || Boolean(process.env.PASSENGER_APP_ENV);
+const IS_PROD_ENV = process.env.NODE_ENV === 'production' || Boolean(process.env.PASSENGER_APP_ENV) || Boolean(process.env.PASSENGER_BASE_URI);
 const DEFAULT_WEBHOOK = IS_PROD_ENV
   ? 'https://os.raudie.net/ia/webhook/whatsapp/'
   : 'http://127.0.0.1:8000/ia/webhook/whatsapp/';
@@ -101,7 +106,7 @@ async function postToDjangoWebhook(payload) {
     } catch (err) {
       lastErr = err;
       // Si es error de conexión rechazada (puerto distinto), probar el siguiente puerto
-      if (err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET') {
+      if (['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNABORTED'].includes(err.code) || (err.response && err.response.status >= 404)) {
         continue;
       }
       throw err;
@@ -135,7 +140,7 @@ async function resolveWhatsAppJid(sock, rawNumberOrJid) {
 // Inicia el socket de Baileys con persistencia en ./auth_info
 async function startSocketFor(sid = 'default_0') {
   try {
-    const dir = `./auth_info/${sid}`;
+    const dir = path.join(AUTH_ROOT, sid);
     const { state, saveCreds } = await useMultiFileAuthState(dir);
     const { version } = await fetchLatestBaileysVersion();
     const existing = sockets.get(sid);
@@ -262,7 +267,7 @@ async function startSocketFor(sid = 'default_0') {
               console.log(`[IGNORADO] Django no proporcionó una respuesta para este mensaje.`);
             }
           } catch (err) {
-            console.error('Error enviando webhook a Django o reenviando mensaje:', err.message || err);
+            console.error('Error enviando webhook a Django o reenviando mensaje:', err.code || '', err.response?.status || '', err.message || err);
           }
         }
       } catch (err) {
@@ -314,7 +319,7 @@ function startServer() {
       if (statuses.get(sid) === 'connected') {
         return res.json({ ok: true, message: 'Ya conectado', qr: null });
       }
-      const dir = path.resolve(`./auth_info/${sid}`);
+      const dir = path.join(AUTH_ROOT, sid);
       if (fs.existsSync(dir)) {
         fs.rmSync(dir, { recursive: true, force: true });
       }
@@ -353,7 +358,7 @@ function startServer() {
         }
         sockets.delete(sid);
       }
-      const dir = path.resolve(`./auth_info/${sid}`);
+      const dir = path.join(AUTH_ROOT, sid);
       if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
       latestQrs.delete(sid);
       statuses.set(sid, 'unlinked');
@@ -373,7 +378,7 @@ function startServer() {
     const sid = sessionId(user, slot);
     if (!number || !message) return res.status(400).json({ ok: false, success: false, error: 'Faltan campos: number y message' });
     const sock = sockets.get(sid);
-    if (!sock) return res.status(503).json({ ok: false, success: false, error: `Socket no inicializado para session=${sid}` });
+    if (!sock || statuses.get(sid) !== 'connected') return res.status(503).json({ ok: false, success: false, error: `WhatsApp no vinculado para session=${sid}` });
 
     try {
       const jid = await resolveWhatsAppJid(sock, number);
@@ -465,7 +470,7 @@ function startServer() {
     await startServer();
 
     // Auto-iniciar sesiones existentes
-    const authDir = path.resolve('./auth_info');
+    const authDir = AUTH_ROOT;
     if (fs.existsSync(authDir)) {
       const sessions = fs.readdirSync(authDir);
       for (const sid of sessions) {

@@ -103,7 +103,7 @@ def ai_dashboard_view(request):
     try:
         url = f"{GATEWAY_BASE_URL}/status?user={business.id}"
         req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
-        with urllib.request.urlopen(req, timeout=2) as resp:
+        with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read().decode('utf-8'))
             gw_status = {'online': True, 'status': data.get('status', 'disconnected')}
     except Exception:

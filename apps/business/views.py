@@ -706,7 +706,7 @@ def business_config_view(request):
     try:
         url = f"{GATEWAY_BASE_URL}/status?user={session_user}"
         req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
-        with urllib.request.urlopen(req, timeout=2) as resp:
+        with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read().decode('utf-8'))
             gw_status = {'online': True, 'status': data.get('status', 'disconnected')}
     except Exception:
@@ -1619,7 +1619,7 @@ def whatsapp_config_view(request):
     try:
         url = f"{GATEWAY_BASE_URL}/status?user={session_user}"
         req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
-        with urllib.request.urlopen(req, timeout=2) as resp:
+        with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read().decode('utf-8'))
             gw_status = {'online': True, 'status': data.get('status', 'disconnected')}
     except Exception:
@@ -1642,7 +1642,7 @@ def whatsapp_gateway_status_api(request):
     try:
         url = f"{GATEWAY_BASE_URL}/status?user={session_user}"
         req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
-        with urllib.request.urlopen(req, timeout=3) as resp:
+        with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read().decode('utf-8'))
             return JsonResponse({'online': True, 'status': data.get('status', 'disconnected')})
     except Exception as e:
@@ -1658,7 +1658,7 @@ def whatsapp_gateway_qr_api(request):
     try:
         url = f"{GATEWAY_BASE_URL}/qr?user={session_user}"
         req = urllib.request.Request(url, headers={'User-Agent': 'Django-RauDieOS'})
-        with urllib.request.urlopen(req, timeout=3) as resp:
+        with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read().decode('utf-8'))
             return JsonResponse({'online': True, 'qr': data.get('qr'), 'status': data.get('status', 'disconnected')})
     except Exception as e:
@@ -1727,7 +1727,7 @@ def whatsapp_gateway_send_reminder_api(request):
     try:
         status_url = f"{GATEWAY_BASE_URL}/status?user={session_user}"
         st_req = urllib.request.Request(status_url, headers={'User-Agent': 'Django-RauDieOS'})
-        with urllib.request.urlopen(st_req, timeout=2) as st_resp:
+        with urllib.request.urlopen(st_req, timeout=6) as st_resp:
             st_data = json.loads(st_resp.read().decode('utf-8'))
             if st_data.get('status') == 'connected':
                 send_url = f"{GATEWAY_BASE_URL}/send?user={session_user}"

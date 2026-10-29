@@ -67,7 +67,10 @@ def _ensure_cpanel_whatsapp_gateway():
         pass
 
 
-_ensure_cpanel_whatsapp_gateway()
+# En producción el gateway corre como aplicación Node.js independiente en cPanel (os.raudie.net/whatsapp).
+# Solo autoarrancarlo desde Django si se habilita explícitamente WHATSAPP_AUTOSTART=1.
+if os.environ.get('WHATSAPP_AUTOSTART') == '1':
+    _ensure_cpanel_whatsapp_gateway()
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
