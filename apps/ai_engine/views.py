@@ -144,9 +144,17 @@ def whatsapp_webhook_api(request):
     message_text = body.get('messageText', '')
     owner_id = body.get('owner') or body.get('session', '').split('_')[0]
 
+    import uuid
+    import logging
+    import traceback
+    logger = logging.getLogger(__name__)
+
     business = None
     if owner_id and owner_id != 'default':
-        business = Business.objects.filter(id=owner_id).first()
+        try:
+            business = Business.objects.filter(id=uuid.UUID(str(owner_id))).first()
+        except (ValueError, TypeError):
+            business = None
 
     if not business:
         # Fallback al primer negocio activo
@@ -162,13 +170,29 @@ def whatsapp_webhook_api(request):
         .split(':')[0]
     )
 
-    # Generar respuesta usando la configuración del bot del negocio
-    reply = generate_whatsapp_bot_reply(
-        business=business,
-        incoming_text=message_text,
-        sender_phone=clean_sender,
-        sender_name=push_name
-    )
+    # Generar respuesta usando la configuración del bot del negocio (nunca devolver 500 al gateway)
+    try:
+        reply = generate_whatsapp_bot_reply(
+            business=business,
+            incoming_text=message_text,
+            sender_phone=clean_sender,
+            sender_name=push_name
+        )
+    except Exception as exc:
+        tb = traceback.format_exc()
+        logger.error(f"[WhatsApp Webhook] Error generando respuesta IA: {tb}")
+        print(f"[WhatsApp Webhook] Error generando respuesta IA: {tb}")
+        try:
+            log_path = os.path.join(settings.BASE_DIR, 'whatsapp_webhook_errors.log')
+            with open(log_path, 'a', encoding='utf-8') as fh:
+                fh.write(f"\n=== {business.id} ===\n{tb}\n")
+        except Exception:
+            pass
+        payload = {'status': 'error', 'reply': None}
+        expected_secret = os.environ.get('WEBHOOK_SECRET', 'pon-aqui-un-token-largo-y-aleatorio-32chars')
+        if request.headers.get('X-Webhook-Secret') == expected_secret:
+            payload['error'] = f"{type(exc).__name__}: {str(exc)[:500]}"
+        return JsonResponse(payload)
 
     return JsonResponse({'status': 'ok', 'reply': reply})
 

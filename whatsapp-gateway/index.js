@@ -100,7 +100,7 @@ async function postToDjangoWebhook(payload) {
           'Content-Type': 'application/json',
           'X-Webhook-Secret': process.env.WEBHOOK_SECRET || 'pon-aqui-un-token-largo-y-aleatorio-32chars'
         },
-        timeout: 25000
+        timeout: 60000
       });
       return resp;
     } catch (err) {
