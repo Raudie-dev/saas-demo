@@ -18,18 +18,53 @@ def invoice_list_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    invoices = Invoice.objects.filter(business=business).order_by('-issue_date') if business else []
-    quotes = Quote.objects.filter(business=business).order_by('-valid_until') if business else []
+
+    from django.db.models import Q
+    from decimal import Decimal
+
+    status_filter = request.GET.get('status', 'ALL')
+    search_query = request.GET.get('q', '').strip()
+
+    base_invoices = Invoice.objects.filter(business=business).select_related(
+        'client', 'sale', 'payment_plan', 'installment', 'quote'
+    ).order_by('-issue_date', '-created_at')
+
+    # Métricas enfocadas en Facturación & Gastos
+    total_invoiced_amount = sum((inv.total_amount for inv in base_invoices.filter(status='PAID')), Decimal('0.00'))
+    total_pending_amount = sum((inv.total_amount for inv in base_invoices.filter(status__in=['ISSUED', 'DRAFT', 'PARTIAL'])), Decimal('0.00'))
     
+    expenses_qs = Expense.objects.filter(business=business, status='PAID')
+    total_expenses_amount = sum((exp.amount for exp in expenses_qs), Decimal('0.00'))
+    net_balance = total_invoiced_amount - total_expenses_amount
+
+    # Filtrado
+    filtered_qs = base_invoices
+    if search_query:
+        filtered_qs = filtered_qs.filter(
+            Q(invoice_number__icontains=search_query) |
+            Q(client__full_name__icontains=search_query) |
+            Q(notes__icontains=search_query)
+        )
+
+    if status_filter == 'PAID':
+        filtered_qs = filtered_qs.filter(status='PAID')
+    elif status_filter == 'PENDING':
+        filtered_qs = filtered_qs.filter(status__in=['ISSUED', 'DRAFT', 'PARTIAL'])
+
     from django.core.paginator import Paginator
-    inv_paginator = Paginator(invoices, 10)
+    inv_paginator = Paginator(filtered_qs, 15)
     invoices_page_obj = inv_paginator.get_page(request.GET.get('page', 1))
 
     return render(request, 'invoicing/invoice_list.html', {
         'business': business,
         'invoices': invoices_page_obj,
         'page_obj': invoices_page_obj,
-        'quotes': quotes,
+        'total_invoiced_amount': total_invoiced_amount,
+        'total_pending_amount': total_pending_amount,
+        'total_expenses_amount': total_expenses_amount,
+        'net_balance': net_balance,
+        'status_filter': status_filter,
+        'search_query': search_query,
     })
 
 @login_required
@@ -39,6 +74,21 @@ def invoice_detail_view(request, invoice_id):
         return redirect('onboarding')
     invoice = get_object_or_404(Invoice, id=invoice_id, business=business)
     return render(request, 'invoicing/invoice_detail.html', {'business': business, 'invoice': invoice})
+
+@login_required
+def invoice_delete_view(request, invoice_id):
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+    invoice = get_object_or_404(Invoice, id=invoice_id, business=business)
+    inv_num = invoice.invoice_number
+
+    if request.method == 'POST':
+        invoice.delete()
+        messages.success(request, f"Factura #{inv_num} eliminada correctamente.")
+        return redirect('invoice_list')
+
+    return redirect('invoice_detail', invoice_id=invoice.id)
 
 @login_required
 def expense_list_view(request):
@@ -545,6 +595,7 @@ def quote_convert_to_invoice_view(request, quote_id):
         invoice = Invoice.objects.create(
             business=business,
             client=quote.client,
+            quote=quote,
             invoice_number=invoice_number,
             issue_date=timezone.now().date(),
             due_date=timezone.now().date() + timezone.timedelta(days=10),
@@ -573,6 +624,63 @@ def quote_convert_to_invoice_view(request, quote_id):
         return redirect('invoice_detail', invoice_id=invoice.id)
 
     return redirect('invoice_detail', invoice_id=quote.converted_to_invoice.id)
+
+
+@login_required
+def quote_charge_view(request, quote_id):
+    """Registra el cobro completo de una cotización y genera su factura pagada e ingresos oficiales."""
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+
+    quote = get_object_or_404(Quote, id=quote_id, business=business)
+    if request.method == 'POST':
+        from apps.invoicing.services import charge_and_invoice_quote
+        payment_method = request.POST.get('payment_method', 'Transferencia')
+        reference = request.POST.get('reference', '').strip()
+        paid_date = request.POST.get('paid_date') or timezone.now().date()
+        notes = request.POST.get('notes', '').strip()
+
+        invoice = charge_and_invoice_quote(
+            quote=quote,
+            payment_method=payment_method,
+            reference=reference,
+            paid_date=paid_date,
+            notes=notes
+        )
+        return redirect('invoice_detail', invoice_id=invoice.id)
+
+    return redirect('quote_detail', quote_id=quote.id)
+
+
+@login_required
+def invoice_charge_view(request, invoice_id):
+    """Permite registrar el cobro de una factura emitida o pendiente, marcándola como Pagada."""
+    business = getattr(request, 'current_business', None) or request.user.business
+    if not business:
+        return redirect('onboarding')
+
+    invoice = get_object_or_404(Invoice, id=invoice_id, business=business)
+    if request.method == 'POST':
+        from apps.invoicing.services import mark_invoice_as_paid
+        payment_method = request.POST.get('payment_method', 'Transferencia')
+        reference = request.POST.get('reference', '').strip()
+        paid_date = request.POST.get('paid_date') or timezone.now().date()
+        notes = request.POST.get('notes', '').strip()
+
+        mark_invoice_as_paid(
+            invoice=invoice,
+            payment_method=payment_method,
+            reference=reference,
+            paid_date=paid_date,
+            notes=notes
+        )
+        next_url = request.POST.get('next')
+        if next_url:
+            return redirect(next_url)
+        return redirect('invoice_list')
+
+    return redirect('invoice_detail', invoice_id=invoice.id)
 
 
 @login_required
@@ -798,7 +906,7 @@ def payment_plan_list_view(request):
     start_of_month = today.replace(day=1)
 
     # Cuotas base
-    installments_qs = PaymentInstallment.objects.filter(business=business).select_related('client', 'project', 'plan', 'quote')
+    installments_qs = PaymentInstallment.objects.filter(business=business).select_related('client', 'project', 'plan', 'quote', 'invoice', 'sale__invoice')
 
     if status_filter == 'PENDING':
         installments_qs = installments_qs.filter(status='PENDING', due_date__gte=today)
@@ -903,6 +1011,7 @@ def payment_plan_list_view(request):
                     'projectId': str(inst.project.id) if inst.project else '',
                     'quoteNumber': str(inst.quote.quote_number) if inst.quote else '',
                     'quoteId': str(inst.quote.id) if inst.quote else '',
+                    'invoiceId': str(inst.invoice.id) if inst.invoice else (str(inst.sale.invoice.id) if (inst.sale and hasattr(inst.sale, 'invoice') and inst.sale.invoice) else ''),
                     'isPaid': inst.status == 'PAID',
                     'isOverdue': is_overdue
                 }
@@ -1015,7 +1124,7 @@ def payment_direct_charge_view(request):
                 notes=notes or f"Cobro directo al instante registrado el {paid_date}"
             )
 
-            PaymentInstallment.objects.create(
+            installment = PaymentInstallment.objects.create(
                 plan=plan,
                 business=business,
                 client=client,
@@ -1030,6 +1139,17 @@ def payment_direct_charge_view(request):
                 payment_method=payment_method,
                 reference=reference,
                 sale=sale,
+                notes=notes
+            )
+
+            # 5. Generar Factura Oficial pagada para que figure en la sección Facturación
+            from apps.invoicing.services import create_invoice_for_installment
+            create_invoice_for_installment(
+                installment=installment,
+                charge_amount=amount,
+                payment_method=payment_method,
+                paid_date=paid_date,
+                reference=reference,
                 notes=notes
             )
 
@@ -1119,10 +1239,26 @@ def payment_installment_charge_view(request, installment_id):
         return redirect('onboarding')
 
     installment = get_object_or_404(PaymentInstallment, id=installment_id, business=business)
+    next_url = request.POST.get('next')
 
     if request.method == 'POST':
+        # Protección contra cobro duplicado o doble clic:
+        if installment.status == 'PAID' or installment.balance <= Decimal('0.00'):
+            if next_url:
+                return redirect(next_url)
+            if installment.project:
+                return redirect('project_detail', project_id=installment.project.id)
+            return redirect('payment_plan_list')
+
         from apps.pos.models import Sale, SalePayment, SaleItem
-        charge_amount = parse_decimal(request.POST.get('charge_amount'), str(installment.balance))
+        raw_amount = parse_decimal(request.POST.get('charge_amount'), str(installment.balance))
+        charge_amount = min(raw_amount, installment.balance)
+
+        if charge_amount <= Decimal('0.00'):
+            if next_url:
+                return redirect(next_url)
+            return redirect('payment_plan_list')
+
         payment_method = request.POST.get('payment_method', 'Transferencia')
         reference = request.POST.get('reference', '').strip()
         paid_date = request.POST.get('paid_date') or timezone.now().date()
@@ -1157,14 +1293,17 @@ def payment_installment_charge_view(request, installment_id):
                 total_price=charge_amount
             )
 
-            # 2. Actualizar cuota
-            installment.amount_paid += charge_amount
+            # 2. Actualizar cuota asegurando que el total pagado nunca exceda el valor de la cuota
+            installment.amount_paid = min(installment.amount, installment.amount_paid + charge_amount)
             installment.paid_date = paid_date
             installment.payment_method = payment_method
             installment.reference = reference
             installment.sale = sale
             if notes:
-                installment.notes = f"{installment.notes or ''}\n{notes}".strip()
+                if not installment.notes:
+                    installment.notes = notes
+                elif notes not in installment.notes:
+                    installment.notes = f"{installment.notes}\n{notes}".strip()
 
             if installment.amount_paid >= installment.amount:
                 installment.status = 'PAID'
@@ -1175,6 +1314,17 @@ def payment_installment_charge_view(request, installment_id):
 
             # 3. Actualizar estado del plan
             installment.plan.update_status()
+
+            # 4. Generar Factura Oficial pagada para que figure inmediatamente en Facturación
+            from apps.invoicing.services import create_invoice_for_installment
+            create_invoice_for_installment(
+                installment=installment,
+                charge_amount=charge_amount,
+                payment_method=payment_method,
+                paid_date=paid_date,
+                reference=reference,
+                notes=notes
+            )
 
     next_url = request.POST.get('next')
     if next_url:

@@ -9,27 +9,27 @@
 
     <!-- Top Module Header Card -->
     <div class="glass-card bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-start gap-3.5 min-w-0">
-                <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center shrink-0 font-bold">
-                    <i data-lucide="hand-coins" class="w-6 h-6"></i>
+                <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-center shrink-0 font-bold shadow-2xs">
+                    <i data-lucide="hand-coins" class="w-5 h-5 sm:w-6 sm:h-6"></i>
                 </div>
                 <div class="min-w-0">
                     <h3 class="font-extrabold text-slate-900 text-lg sm:text-2xl font-display tracking-tight">Cobranzas & Cuotas</h3>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">Planifica y gestiona cobros futuros, cuotas por hito o entregas vinculadas a proyectos y servicios.</p>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5 leading-relaxed">Planifica y gestiona cobros futuros, cuotas por hito o entregas vinculadas a proyectos y servicios.</p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap">
-                <button type="button" onclick="openDirectChargeModal()" class="h-8.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer">
+            <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                <button type="button" onclick="openDirectChargeModal()" class="flex-1 sm:flex-none h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer">
                     <i data-lucide="zap" class="w-3.5 h-3.5"></i>
                     <span>+ Cobro Directo</span>
                 </button>
-                <button type="button" onclick="openNewPlanModal()" class="h-8.5 px-3 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer">
+                <button type="button" onclick="openNewPlanModal()" class="flex-1 sm:flex-none h-9 px-3.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer">
                     <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-rose-400"></i>
                     <span>Planificar Cuotas</span>
                 </button>
-                <a href="{% url 'quote_list' %}" class="h-8.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs inline-flex items-center justify-center gap-1.5 transition shadow-2xs">
+                <a href="{% url 'quote_list' %}" class="w-full sm:w-auto h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs inline-flex items-center justify-center gap-1.5 transition shadow-2xs">
                     <i data-lucide="calculator" class="w-3.5 h-3.5 text-slate-500"></i>
                     <span>Cotizaciones</span>
                 </a>
@@ -69,7 +69,7 @@
     <div class="glass-card bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
         
         <!-- Status Tabs Row -->
-        <div class="flex items-center justify-between gap-3 overflow-x-auto no-scrollbar pb-0.5">
+        <div class="flex items-center justify-between gap-3 -mx-3.5 px-3.5 sm:mx-0 sm:px-0 overflow-x-auto no-scrollbar scroll-smooth pb-0.5">
             <div class="flex items-center gap-1.5 shrink-0">
                 <a href="{% url 'payment_plan_list' %}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if status_filter == 'ALL' or not status_filter %}bg-rose-900 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
                     Todas las Cuotas
@@ -196,13 +196,13 @@
             </div>
 
             <!-- View Switcher (Tabla vs Calendario) -->
-            <div class="flex items-center gap-2 shrink-0">
-                <div class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/80">
-                    <button type="button" onclick="switchCobranzasView('table')" id="btnViewTable" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-slate-900 shadow-2xs cursor-pointer">
+            <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                <div class="w-full sm:w-auto grid grid-cols-2 sm:flex p-1 rounded-xl bg-slate-100 border border-slate-200/80">
+                    <button type="button" onclick="switchCobranzasView('table')" id="btnViewTable" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-2xs cursor-pointer">
                         <i data-lucide="list" class="w-3.5 h-3.5 text-rose-900"></i>
                         <span>Tabla</span>
                     </button>
-                    <button type="button" onclick="switchCobranzasView('calendar')" id="btnViewCalendar" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 cursor-pointer">
+                    <button type="button" onclick="switchCobranzasView('calendar')" id="btnViewCalendar" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 cursor-pointer">
                         <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
                         <span>Calendario</span>
                     </button>
@@ -318,7 +318,8 @@
                         <!-- Actions -->
                         <td class="py-3.5 px-4 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-1.5">
-                                <!-- Botón Ver Detalle (Abre el mismo modal de detalle) -->
+                                {% if inst.status != 'PAID' %}
+                                <!-- Botón Ver Detalle para cuotas pendientes -->
                                 <button type="button" 
                                         onclick="showInstallmentDetailFromTable('{{ inst.id }}')"
                                         class="h-8 w-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 inline-flex items-center justify-center transition shadow-2xs cursor-pointer"
@@ -326,7 +327,6 @@
                                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                 </button>
 
-                                {% if inst.status != 'PAID' %}
                                 <button type="button" 
                                         onclick="openChargeModal('{{ inst.id }}', '{{ inst.concept|escapejs }}', '{{ inst.balance|unlocalize }}', '{{ inst.client.full_name|escapejs }}')"
                                         class="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs cursor-pointer">
@@ -334,6 +334,7 @@
                                     <span>Cobrar</span>
                                 </button>
                                 {% else %}
+                                <!-- Botón único Ver Pago para cuota ya cobrada -->
                                 <button type="button" 
                                         onclick="showInstallmentDetailFromTable('{{ inst.id }}')"
                                         class="h-8 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[11px] inline-flex items-center gap-1 transition cursor-pointer"
@@ -341,6 +342,21 @@
                                     <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-600"></i>
                                     <span>Ver Pago</span>
                                 </button>
+                                {% if inst.invoice %}
+                                <a href="{% url 'invoice_detail' inst.invoice.id %}" target="_blank"
+                                   class="h-8 px-2.5 rounded-lg bg-slate-900 hover:bg-rose-900 text-white font-bold text-[11px] inline-flex items-center gap-1 transition shadow-2xs"
+                                   title="Ver Factura en PDF / Imprimir">
+                                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-300"></i>
+                                    <span>Factura</span>
+                                </a>
+                                {% elif inst.sale.invoice %}
+                                <a href="{% url 'invoice_detail' inst.sale.invoice.id %}" target="_blank"
+                                   class="h-8 px-2.5 rounded-lg bg-slate-900 hover:bg-rose-900 text-white font-bold text-[11px] inline-flex items-center gap-1 transition shadow-2xs"
+                                   title="Ver Factura en PDF / Imprimir">
+                                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-300"></i>
+                                    <span>Factura</span>
+                                </a>
+                                {% endif %}
                                 {% endif %}
 
                                 <form method="POST" action="{% url 'payment_installment_delete' inst.id %}" data-confirm="¿Estás seguro de que deseas eliminar esta cuota planificada?" data-confirm-title="Eliminar Cuota" data-confirm-btn="Sí, Eliminar" class="inline">
@@ -371,25 +387,25 @@
         <!-- 2. VISTA CALENDARIO DE PRÓXIMAS CUOTAS -->
         <div id="installmentsCalendarView" class="hidden p-4 sm:p-6 space-y-4">
             <!-- Barra de Leyenda & Ayuda -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
-                <div class="flex items-center gap-3.5 flex-wrap">
-                    <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Estado de Cuotas:</span>
-                    <span class="flex items-center gap-1.5 text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Pagada
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5 sm:pb-0 sm:flex-wrap">
+                    <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0">Estado:</span>
+                    <span class="inline-flex items-center gap-1.5 text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 text-[11px] shrink-0">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Pagada
                     </span>
-                    <span class="flex items-center gap-1.5 text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                        <span class="w-2 h-2 rounded-full bg-amber-500"></span> Próxima por Cobrar
+                    <span class="inline-flex items-center gap-1.5 text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 text-[11px] shrink-0">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Por Cobrar
                     </span>
-                    <span class="flex items-center gap-1.5 text-rose-800 font-bold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
-                        <span class="w-2 h-2 rounded-full bg-rose-500"></span> Vencida
+                    <span class="inline-flex items-center gap-1.5 text-rose-800 font-bold bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200 text-[11px] shrink-0">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Vencida
                     </span>
-                    <span class="flex items-center gap-1.5 text-blue-800 font-bold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                        <span class="w-2 h-2 rounded-full bg-blue-500"></span> Cobro Parcial
+                    <span class="inline-flex items-center gap-1.5 text-blue-800 font-bold bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200 text-[11px] shrink-0">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Parcial
                     </span>
                 </div>
                 <div class="text-[11px] text-slate-500 flex items-center gap-1.5 shrink-0">
                     <i data-lucide="info" class="w-3.5 h-3.5 text-rose-800 shrink-0"></i>
-                    <span>Haz clic en cualquier cuota del calendario para cobrarla al instante.</span>
+                    <span>Toca cualquier cuota para ver detalles o registrar cobro.</span>
                 </div>
             </div>
 
@@ -505,6 +521,10 @@
             <button type="button" onclick="closeInstallmentDetailModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
                 Cerrar
             </button>
+            <a id="detailModalInvoiceBtn" href="#" target="_blank" class="hidden px-4 py-2 rounded-xl bg-slate-950 hover:bg-rose-900 text-white text-xs font-bold transition shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="file-text" class="w-4 h-4 text-rose-300"></i>
+                <span>Ver Factura Emitida</span>
+            </a>
             <button type="button" id="detailModalActionBtn" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
                 <i data-lucide="dollar-sign" class="w-4 h-4"></i>
                 <span>Registrar Cobro</span>
@@ -975,10 +995,7 @@
                         </div>
                     </div>
 
-                    <div id="plan-selected-client-badge" class="hidden items-center justify-between p-2 rounded-xl bg-rose-50 border border-rose-200 text-xs">
-                        <div class="truncate font-bold text-slate-900" id="plan-selected-client-name">Cliente</div>
-                        <button type="button" onclick="clearPlanClientSelection(event)" class="text-rose-800 hover:text-rose-950 p-1 text-[11px] font-bold">Cambiar</button>
-                    </div>
+
                 </div>
 
                 <!-- Proyecto Combobox Interactivo -->
@@ -1017,10 +1034,7 @@
                         </div>
                     </div>
 
-                    <div id="plan-selected-project-badge" class="hidden items-center justify-between p-2 rounded-xl bg-purple-50 border border-purple-200 text-xs">
-                        <div class="truncate font-bold text-purple-900" id="plan-selected-project-name">Proyecto</div>
-                        <button type="button" onclick="clearPlanProjectSelection(event)" class="text-purple-800 hover:text-purple-950 p-1 text-[11px] font-bold">Cambiar</button>
-                    </div>
+
                 </div>
             </div>
 
@@ -1055,12 +1069,15 @@
                     <!-- Filas dinámicas generadas vía JS -->
                 </div>
 
-                <div class="pt-2 flex items-center justify-between">
-                    <button type="button" onclick="addInstallmentRow()" class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold inline-flex items-center gap-1.5 transition">
+                <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <button type="button" onclick="addInstallmentRow()" class="w-full sm:w-auto px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold inline-flex items-center justify-center gap-1.5 transition shadow-2xs cursor-pointer">
                         <i data-lucide="plus" class="w-3.5 h-3.5 text-rose-900"></i>
                         <span>Añadir Cuota Manual</span>
                     </button>
-                    <span class="text-[11px] font-bold text-slate-500" id="installmentsSumStatus">Suma de cuotas: {{ business.currency }}0.00</span>
+                    <div class="text-xs font-bold text-slate-600 flex items-center justify-between sm:justify-end gap-2 bg-slate-100/70 sm:bg-transparent p-2 sm:p-0 rounded-xl">
+                        <span class="sm:hidden text-slate-400 text-[11px] font-normal">Total calculado:</span>
+                        <span id="installmentsSumStatus">Suma de cuotas: {{ business.currency }}0.00</span>
+                    </div>
                 </div>
             </div>
 
@@ -1212,6 +1229,64 @@
     .fc-event:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Mobile Enhancements for FullCalendar */
+    @media (max-width: 640px) {
+        .fc .fc-toolbar {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 0.25rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+        .fc .fc-toolbar-chunk {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.25rem !important;
+        }
+        .fc .fc-toolbar-title {
+            font-size: 0.8rem !important;
+            padding: 0.3rem 0.5rem !important;
+            border-radius: 0.5rem !important;
+            text-align: center !important;
+            line-height: 1.2 !important;
+        }
+        .fc .fc-button {
+            padding: 0.3rem 0.5rem !important;
+            font-size: 0.7rem !important;
+            border-radius: 0.5rem !important;
+        }
+        .fc .fc-col-header-cell {
+            padding: 0.35rem 0 !important;
+            font-size: 0.7rem !important;
+        }
+        .fc .fc-col-header-cell-cushion {
+            padding: 0 !important;
+        }
+        .fc .fc-daygrid-day-top {
+            padding: 2px 3px 0 3px !important;
+        }
+        .fc .fc-daygrid-day-number {
+            font-size: 0.72rem !important;
+            padding: 0 !important;
+        }
+        .fc-event {
+            font-size: 0.65rem !important;
+            padding: 1.5px 3px !important;
+            border-radius: 0.35rem !important;
+            line-height: 1.15 !important;
+            margin: 1px 0 !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            max-width: 100% !important;
+        }
+        .fc .fc-daygrid-more-link {
+            font-size: 0.65rem !important;
+            font-weight: 800 !important;
+            padding: 1px 2px !important;
+        }
     }
 </style>
 
@@ -1880,6 +1955,16 @@
     // ==========================================
     function openDirectChargeModal() {
         const modal = document.getElementById('directChargeModal');
+        const form = document.getElementById('directChargeForm');
+        if (form) {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                submitBtn.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4"></i><span>Confirmar y Cobrar</span>';
+            }
+        }
+
         modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
         setTimeout(() => document.getElementById('dc-client-search-input')?.focus(), 100);
@@ -1918,6 +2003,13 @@
         if (amountInput) {
             amountInput.value = formatted;
             amountInput.max = formatted;
+        }
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+            submitBtn.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4"></i><span>Confirmar Ingreso</span>';
         }
 
         modal.classList.remove('hidden');
@@ -2057,20 +2149,28 @@
     function addInstallmentRow(concept = '', amount = '', dueDate = '') {
         const container = document.getElementById('installmentsRowsContainer');
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-12 gap-2 items-center installment-row';
+        row.className = 'p-2.5 sm:p-0 rounded-2xl sm:rounded-none bg-slate-50 sm:bg-transparent border sm:border-0 border-slate-200/80 space-y-2 sm:space-y-0 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center installment-row';
         
         row.innerHTML = `
-            <div class="col-span-5">
-                <input type="text" name="concept[]" required value="${concept}" placeholder="Ej: Anticipo 50% / Entrega Diseños" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 font-medium">
+            <div class="sm:col-span-5 flex items-center justify-between gap-1.5">
+                <input type="text" name="concept[]" required value="${concept}" placeholder="Concepto (ej: Anticipo 50%)" class="w-full px-3 py-2 rounded-xl sm:rounded-lg border border-slate-200 bg-white sm:bg-slate-50/50 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-rose-800 focus:border-rose-800">
+                <button type="button" onclick="this.closest('.installment-row').remove(); updateInstallmentsSum();" class="sm:hidden p-2 text-slate-400 hover:text-rose-600 transition shrink-0 cursor-pointer" title="Eliminar cuota">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
             </div>
-            <div class="col-span-3">
-                <input type="number" step="0.01" min="0.01" name="amount[]" required value="${amount}" oninput="updateInstallmentsSum()" placeholder="Monto" class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-900">
+            <div class="grid grid-cols-2 gap-2 sm:contents">
+                <div class="sm:col-span-3">
+                    <div class="relative">
+                        <span class="sm:hidden absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">${currencySymbol}</span>
+                        <input type="number" step="0.01" min="0.01" name="amount[]" required value="${amount}" oninput="updateInstallmentsSum()" placeholder="Monto" class="w-full pl-6 sm:pl-3 pr-2.5 py-2 rounded-xl sm:rounded-lg border border-slate-200 bg-white sm:bg-slate-50/50 text-xs font-black text-slate-900 focus:ring-1 focus:ring-rose-800 focus:border-rose-800">
+                    </div>
+                </div>
+                <div class="sm:col-span-3">
+                    <input type="date" name="due_date[]" required value="${dueDate}" class="w-full px-2.5 py-2 rounded-xl sm:rounded-lg border border-slate-200 bg-white sm:bg-slate-50/50 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-rose-800 focus:border-rose-800">
+                </div>
             </div>
-            <div class="col-span-3">
-                <input type="date" name="due_date[]" required value="${dueDate}" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800">
-            </div>
-            <div class="col-span-1 text-center">
-                <button type="button" onclick="this.closest('.installment-row').remove(); updateInstallmentsSum();" class="p-1 text-slate-400 hover:text-rose-600 transition">
+            <div class="hidden sm:block sm:col-span-1 text-center">
+                <button type="button" onclick="this.closest('.installment-row').remove(); updateInstallmentsSum();" class="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer" title="Eliminar cuota">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
@@ -2141,10 +2241,15 @@
         const calendarEl = document.getElementById('cobranzasCalendar');
         if (!calendarEl || cobranzasCalendar) return;
 
+        const isMobile = window.innerWidth < 640;
         cobranzasCalendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             locale: 'es',
-            headerToolbar: {
+            headerToolbar: isMobile ? {
+                left: 'prev,next',
+                center: 'title',
+                right: 'today'
+            } : {
                 left: 'prev,next today',
                 center: 'title',
                 right: ''
@@ -2152,9 +2257,11 @@
             buttonText: {
                 today: 'Hoy'
             },
+            dayHeaderFormat: isMobile ? { weekday: 'narrow' } : { weekday: 'short' },
             events: rawCalendarEvents,
             height: 'auto',
-            dayMaxEvents: 3,
+            dayMaxEvents: isMobile ? 2 : 3,
+            moreLinkText: function(n) { return `+${n}`; },
             eventTimeFormat: {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -2275,6 +2382,16 @@
             notesRow.classList.add('hidden');
         }
 
+        const invoiceBtn = document.getElementById('detailModalInvoiceBtn');
+        if (invoiceBtn) {
+            if (props.invoiceId) {
+                invoiceBtn.href = `/facturacion/${props.invoiceId}/`;
+                invoiceBtn.classList.remove('hidden');
+            } else {
+                invoiceBtn.classList.add('hidden');
+            }
+        }
+
         if (window.lucide) lucide.createIcons();
 
         modal.classList.remove('hidden');
@@ -2336,12 +2453,33 @@
         }
     }
 
-    // Restaurar vista previa al cargar la página si el usuario prefiere Calendario
+    // Restaurar vista previa al cargar la página y protección de doble clic
     document.addEventListener('DOMContentLoaded', function() {
         const savedView = localStorage.getItem('cobranzas_view_preference');
         if (savedView === 'calendar') {
             switchCobranzasView('calendar');
         }
+
+        const attachDoubleSubmitProtection = (formId, loadingText) => {
+            const form = document.getElementById(formId);
+            if (!form) return;
+            form.addEventListener('submit', function(e) {
+                const btn = form.querySelector('button[type="submit"]');
+                if (btn) {
+                    if (btn.disabled) {
+                        e.preventDefault();
+                        return false;
+                    }
+                    btn.disabled = true;
+                    btn.classList.add('opacity-75', 'cursor-not-allowed');
+                    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>${loadingText || 'Procesando...'}</span>`;
+                    if (window.lucide) lucide.createIcons();
+                }
+            });
+        };
+
+        attachDoubleSubmitProtection('chargeForm', 'Procesando cobro...');
+        attachDoubleSubmitProtection('directChargeForm', 'Registrando cobro...');
     });
 </script>
 {% endblock %}

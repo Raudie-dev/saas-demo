@@ -539,13 +539,6 @@
                 </a>
                 {% endif %}
 
-                {% if modules_enabled.marketing and not user_is_professional %}
-                <a href="{% url 'marketing_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'marketing' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
-                    <i data-lucide="tag" class="w-5 h-5"></i>
-                    <span>Marketing & Promociones</span>
-                </a>
-                {% endif %}
-
                 {% if user_can_view_financial_reports %}
                 <a href="{% url 'reports' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition {% if 'reportes' in request.path %}bg-rose-900 text-white font-semibold shadow-md{% else %}text-slate-300 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="wallet" class="w-5 h-5"></i>

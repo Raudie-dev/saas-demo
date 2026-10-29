@@ -173,67 +173,78 @@
                         <h4 class="font-extrabold text-slate-900 text-sm">Detalle de Conceptos / Horas / Metas</h4>
                         <p class="text-xs text-slate-500">Agrega entregables, servicios del catálogo, productos de inventario o hitos de desempeño.</p>
                     </div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <button type="button" onclick="addNewItemRow('HOURLY')" class="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs inline-flex items-center gap-1 border border-blue-200 transition cursor-pointer">
-                            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-                            <span>+ Horas</span>
+                    <div class="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+                        <button type="button" onclick="addNewItemRow('HOURLY')" class="px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-[11px] sm:text-xs inline-flex items-center justify-center gap-1.5 border border-blue-200/80 transition cursor-pointer shadow-2xs">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 text-blue-600 shrink-0"></i>
+                            <span class="whitespace-nowrap">+ Horas</span>
                         </button>
-                        <button type="button" onclick="addNewItemRow('PERFORMANCE')" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs inline-flex items-center gap-1 border border-emerald-200 transition cursor-pointer">
-                            <i data-lucide="target" class="w-3.5 h-3.5"></i>
-                            <span>+ Desempeño</span>
+                        <button type="button" onclick="addNewItemRow('PERFORMANCE')" class="px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] sm:text-xs inline-flex items-center justify-center gap-1.5 border border-emerald-200/80 transition cursor-pointer shadow-2xs">
+                            <i data-lucide="target" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                            <span class="whitespace-nowrap">+ Desempeño</span>
                         </button>
-                        <button type="button" onclick="addNewItemRow('FIXED')" class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-xs inline-flex items-center gap-1.5 transition shadow-xs cursor-pointer">
-                            <i data-lucide="plus" class="w-3.5 h-3.5 text-rose-400"></i>
-                            <span>+ Ítem Fijo</span>
+                        <button type="button" onclick="addNewItemRow('FIXED')" class="px-2 sm:px-3.5 py-2 sm:py-1.5 rounded-xl bg-slate-950 hover:bg-rose-900 text-white font-bold text-[11px] sm:text-xs inline-flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer">
+                            <i data-lucide="plus" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
+                            <span class="whitespace-nowrap">+ Ítem Fijo</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Barra Dinámica de Búsqueda y Selección de Catálogo (Servicios y Productos) -->
-                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col md:flex-row items-stretch md:items-center gap-3 relative" id="catalog-combobox-wrapper">
-                    <div class="flex items-center gap-2 shrink-0">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs">
-                            <i data-lucide="package-search" class="w-3.5 h-3.5 text-rose-800"></i>
-                            <span>Catálogo Registrado</span>
-                        </span>
+                <div class="p-3 sm:p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/70 border border-slate-200/90 shadow-2xs space-y-2.5 relative" id="catalog-combobox-wrapper">
+                    <!-- Fila Superior: Título Integrado y Ayuda -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-rose-50 text-rose-800 border border-rose-200/60 shrink-0">
+                                <i data-lucide="package-search" class="w-3.5 h-3.5"></i>
+                            </span>
+                            <span class="text-xs font-bold text-slate-800 tracking-tight">Catálogo Registrado</span>
+                        </div>
+                        <span class="text-[11px] font-medium text-slate-400 hidden xs:inline">Servicios y productos listos para cotizar</span>
                     </div>
 
-                    <div class="relative flex-1">
-                        <div class="relative flex items-center">
-                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
-                            <input type="text"
-                                   id="catalogSearchInput"
-                                   autocomplete="off"
-                                   placeholder="Buscar servicio o producto registrado para agregar al instante..."
-                                   class="w-full bg-white border border-slate-200 text-slate-900 rounded-xl pl-10 pr-10 py-2 text-xs font-medium focus:ring-2 focus:ring-rose-800 focus:border-rose-800 transition shadow-2xs placeholder:text-slate-400"
-                                   onfocus="openCatalogDropdown()"
-                                   oninput="filterCatalog(this.value)">
+                    <!-- Fila Principal: Buscador + Segmented Tabs -->
+                    <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2">
+                        <div class="relative flex-1">
+                            <div class="relative flex items-center">
+                                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none"></i>
+                                <input type="text"
+                                       id="catalogSearchInput"
+                                       autocomplete="off"
+                                       placeholder="Buscar servicio o producto en catálogo..."
+                                       class="w-full bg-white border border-slate-200 text-slate-900 rounded-xl pl-10 pr-9 py-2 text-xs font-medium focus:ring-2 focus:ring-rose-800 focus:border-rose-800 transition shadow-2xs placeholder:text-slate-400"
+                                       onfocus="openCatalogDropdown()"
+                                       oninput="filterCatalog(this.value)">
 
-                            <button type="button" 
-                                    onclick="toggleCatalogDropdown(event)" 
-                                    class="absolute right-2 p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer">
-                                <i data-lucide="chevron-down" id="catalog-chevron" class="w-4 h-4 transition-transform duration-200"></i>
+                                <button type="button" 
+                                        onclick="toggleCatalogDropdown(event)" 
+                                        class="absolute right-2 p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                                        title="Desplegar catálogo">
+                                    <i data-lucide="chevron-down" id="catalog-chevron" class="w-4 h-4 transition-transform duration-200"></i>
+                                </button>
+                            </div>
+
+                            <!-- Dropdown Flotante con Servicios y Productos -->
+                            <div id="catalog-dropdown-results" 
+                                 class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-72 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                            </div>
+                        </div>
+
+                        <!-- Pestañas Filtros de Catálogo Segmentadas -->
+                        <div class="grid grid-cols-3 md:flex md:items-center gap-1 p-1 bg-slate-200/70 rounded-xl shrink-0">
+                            <button type="button" onclick="showCatalogTab('ALL')" id="catalogTabAll" class="catalog-filter-btn px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap flex items-center justify-center gap-1 transition bg-white text-slate-900 shadow-2xs border border-slate-200/80 cursor-pointer">
+                                <span>Todos</span>
+                            </button>
+                            <button type="button" onclick="showCatalogTab('SERVICE')" id="catalogTabServices" class="catalog-filter-btn px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap flex items-center justify-center gap-1 transition text-slate-600 hover:text-slate-900 border border-transparent cursor-pointer">
+                                <i data-lucide="scissors" class="w-3 h-3 text-purple-600 shrink-0"></i>
+                                <span>Servicios</span>
+                                <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800 font-extrabold">{{ services|length }}</span>
+                            </button>
+                            <button type="button" onclick="showCatalogTab('PRODUCT')" id="catalogTabProducts" class="catalog-filter-btn px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold whitespace-nowrap flex items-center justify-center gap-1 transition text-slate-600 hover:text-slate-900 border border-transparent cursor-pointer">
+                                <i data-lucide="package" class="w-3 h-3 text-amber-600 shrink-0"></i>
+                                <span>Productos</span>
+                                <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 font-extrabold">{{ products|length }}</span>
                             </button>
                         </div>
-
-                        <!-- Dropdown Flotante con Servicios y Productos -->
-                        <div id="catalog-dropdown-results" 
-                             class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 max-h-72 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-1.5 shrink-0">
-                        <button type="button" onclick="showCatalogTab('ALL')" id="catalogTabAll" class="catalog-filter-btn px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white font-bold text-[11px] text-slate-700 hover:bg-slate-100 transition cursor-pointer">
-                            Todos
-                        </button>
-                        <button type="button" onclick="showCatalogTab('SERVICE')" id="catalogTabServices" class="catalog-filter-btn px-2.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50 font-bold text-[11px] text-purple-900 hover:bg-purple-100 transition flex items-center gap-1 cursor-pointer">
-                            <i data-lucide="scissors" class="w-3 h-3 text-purple-600"></i>
-                            <span>Servicios ({{ services|length }})</span>
-                        </button>
-                        <button type="button" onclick="showCatalogTab('PRODUCT')" id="catalogTabProducts" class="catalog-filter-btn px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 font-bold text-[11px] text-amber-900 hover:bg-amber-100 transition flex items-center gap-1 cursor-pointer">
-                            <i data-lucide="package" class="w-3 h-3 text-amber-600"></i>
-                            <span>Productos ({{ products|length }})</span>
-                        </button>
                     </div>
                 </div>
 
@@ -709,11 +720,16 @@ Revisiones: Incluye rondas de ajustes especificadas en el alcance.{% endif %}</t
     function showCatalogTab(tab) {
         currentCatalogFilter = tab;
         document.querySelectorAll('.catalog-filter-btn').forEach(btn => {
-            btn.classList.remove('ring-2', 'ring-rose-800', 'font-black');
+            btn.classList.remove('bg-white', 'text-slate-900', 'shadow-2xs', 'border-slate-200/80', 'font-bold');
+            btn.classList.add('text-slate-600', 'font-semibold', 'border-transparent');
         });
-        if (tab === 'ALL') document.getElementById('catalogTabAll')?.classList.add('ring-2', 'ring-rose-800');
-        if (tab === 'SERVICE') document.getElementById('catalogTabServices')?.classList.add('ring-2', 'ring-rose-800');
-        if (tab === 'PRODUCT') document.getElementById('catalogTabProducts')?.classList.add('ring-2', 'ring-rose-800');
+        const activeBtn = tab === 'ALL' ? document.getElementById('catalogTabAll') :
+                          tab === 'SERVICE' ? document.getElementById('catalogTabServices') :
+                          document.getElementById('catalogTabProducts');
+        if (activeBtn) {
+            activeBtn.classList.remove('text-slate-600', 'font-semibold', 'border-transparent');
+            activeBtn.classList.add('bg-white', 'text-slate-900', 'shadow-2xs', 'border-slate-200/80', 'font-bold');
+        }
         openCatalogDropdown();
         filterCatalog(document.getElementById('catalogSearchInput').value);
     }

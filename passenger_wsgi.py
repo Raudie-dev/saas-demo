@@ -5,8 +5,13 @@ import socket
 import subprocess
 import sys
 
-sys.path.insert(0, '/home/raudajly/saas_demo')
-sys.path.insert(1, '/home/raudajly/saas_demo/config')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+config_dir = os.path.join(BASE_DIR, 'config')
+if config_dir not in sys.path:
+    sys.path.insert(1, config_dir)
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
 
@@ -23,8 +28,7 @@ def _ensure_cpanel_whatsapp_gateway():
     except Exception:
         pass
 
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    gw_dir = os.path.join(base_dir, 'whatsapp-gateway')
+    gw_dir = os.path.join(BASE_DIR, 'whatsapp-gateway')
     if not os.path.exists(gw_dir):
         return
 

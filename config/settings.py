@@ -8,7 +8,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Cargar variables de entorno desde el archivo .env
 load_dotenv(BASE_DIR / '.env')
 
-ENVIRONMENT = 'develop'
+# Determinar entorno automáticamente (por variable o rama Git activa)
+ENVIRONMENT = os.getenv('ENVIRONMENT')
+if not ENVIRONMENT:
+    try:
+        git_head = BASE_DIR / '.git' / 'HEAD'
+        if git_head.exists():
+            ref = git_head.read_text().strip()
+            if any(b in ref for b in ('heads/master', 'heads/main', 'heads/production')):
+                ENVIRONMENT = 'production'
+            else:
+                ENVIRONMENT = 'develop'
+        else:
+            ENVIRONMENT = 'develop'
+    except Exception:
+        ENVIRONMENT = 'develop'
 
 
 SECRET_KEY = os.getenv('SECRET_KEY')

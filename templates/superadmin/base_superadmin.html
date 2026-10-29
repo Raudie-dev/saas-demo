@@ -136,6 +136,11 @@
                 <span>Usuarios / Agencias</span>
             </a>
 
+            <a href="{% url 'superadmin_payments' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_payments' or request.resolver_match.url_name == 'superadmin_payment_receipt' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                <i data-lucide="receipt" class="w-4 h-4 text-rose-400"></i>
+                <span>Registro de Pagos</span>
+            </a>
+
             <a href="{% url 'superadmin_plans' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_plans' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                 <i data-lucide="layers" class="w-4 h-4 text-rose-400"></i>
                 <span>Planes & Tarifas SaaS</span>
@@ -199,6 +204,10 @@
                 <a href="{% url 'superadmin_users' %}" onclick="toggleSuperadminMobileMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_users' or request.resolver_match.url_name == 'superadmin_user_detail' or request.resolver_match.url_name == 'superadmin_businesses' or request.resolver_match.url_name == 'superadmin_subscriptions' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="users" class="w-4 h-4 text-rose-400"></i>
                     <span>Usuarios / Agencias</span>
+                </a>
+                <a href="{% url 'superadmin_payments' %}" onclick="toggleSuperadminMobileMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_payments' or request.resolver_match.url_name == 'superadmin_payment_receipt' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
+                    <i data-lucide="receipt" class="w-4 h-4 text-rose-400"></i>
+                    <span>Registro de Pagos</span>
                 </a>
                 <a href="{% url 'superadmin_plans' %}" onclick="toggleSuperadminMobileMenu()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition {% if request.resolver_match.url_name == 'superadmin_plans' %}bg-brand-900 text-white shadow-md shadow-brand-900/30{% else %}text-slate-400 hover:text-white hover:bg-slate-900{% endif %}">
                     <i data-lucide="layers" class="w-4 h-4 text-rose-400"></i>

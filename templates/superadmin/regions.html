@@ -4,7 +4,7 @@
 {% block header_title %}Catálogo de Regiones y Métodos de Pago{% endblock %}
 
 {% block content %}
-<div class="space-y-6 max-w-7xl mx-auto pb-10">
+<div class="space-y-6 max-w-full pb-10">
 
     <!-- Top Action & Info Bar -->
     <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -13,16 +13,22 @@
             <p class="text-xs text-slate-500 mt-1 leading-relaxed">Administra las regiones disponibles para las agencias y asigna qué métodos de pago aplican para cada una, tanto para ventas en el POS como para el cobro de la suscripción SaaS.</p>
         </div>
 
-        <button type="button" onclick="openCreateRegionModal()" class="shrink-0 whitespace-nowrap px-5 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition cursor-pointer inline-flex items-center justify-center gap-2 shadow-sm">
-            <i data-lucide="plus-circle" class="w-4 h-4 shrink-0"></i>
-            <span>Nueva Región</span>
-        </button>
+        <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <button type="button" onclick="openAnchorMultiRegionModal()" class="whitespace-nowrap px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition cursor-pointer inline-flex items-center justify-center gap-2 shadow-xs">
+                <i data-lucide="link-2" class="w-4 h-4 shrink-0"></i>
+                <span>Anclar Método a Multi-Regiones</span>
+            </button>
+            <button type="button" onclick="openCreateRegionModal()" class="shrink-0 whitespace-nowrap px-4 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-bold hover:bg-brand-800 transition cursor-pointer inline-flex items-center justify-center gap-2 shadow-sm">
+                <i data-lucide="plus-circle" class="w-4 h-4 shrink-0"></i>
+                <span>Nueva Región</span>
+            </button>
+        </div>
     </div>
 
     <!-- Regions Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
         {% for data in regions_data %}
-        <div class="glass-card bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-5">
+        <div class="glass-card bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
             
             <!-- Region Header -->
             <div class="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
@@ -57,158 +63,141 @@
                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border {% if data.region.is_active %}bg-emerald-50 text-emerald-700 border-emerald-200{% else %}bg-slate-100 text-slate-500 border-slate-300{% endif %}">
                         {% if data.region.is_active %}Activa{% else %}Inactiva{% endif %}
                     </span>
-                    <button type="button" onclick="openEditRegionModal('{{ data.region.id }}', '{{ data.region.name|escapejs }}', '{{ data.region.code|escapejs }}', '{{ data.region.currency_symbol|escapejs }}', '{{ data.region.country_codes|default:''|escapejs }}', {% if data.region.is_active %}true{% else %}false{% endif %}, '{{ data.region.currency_code|default:''|escapejs }}')" class="text-[11px] font-bold text-brand-700 hover:text-brand-900 transition inline-flex items-center gap-1 cursor-pointer whitespace-nowrap">
-                        <i data-lucide="edit-2" class="w-3 h-3"></i> Editar Región
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="openEditRegionModal('{{ data.region.id }}', '{{ data.region.name|escapejs }}', '{{ data.region.code|escapejs }}', '{{ data.region.currency_symbol|escapejs }}', '{{ data.region.country_codes|default:''|escapejs }}', {% if data.region.is_active %}true{% else %}false{% endif %}, '{{ data.region.currency_code|default:''|escapejs }}')" class="text-[11px] font-bold text-brand-700 hover:text-brand-900 transition inline-flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                            <i data-lucide="edit-2" class="w-3 h-3"></i> Editar
+                        </button>
+                        {% if not data.region.is_default %}
+                        <form method="POST" action="{% url 'superadmin_regions' %}" class="inline" onsubmit="return confirm('¿Desactivar la región {{ data.region.name }}? No se mostrará en este panel ni a las agencias hasta que la vuelvas a habilitar.');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="DEACTIVATE_REGION">
+                            <input type="hidden" name="region_id" value="{{ data.region.id }}">
+                            <button type="submit" title="Desactivar región" class="text-[11px] font-semibold text-slate-400 hover:text-rose-600 transition inline-flex items-center gap-0.5 cursor-pointer">
+                                <i data-lucide="power" class="w-3 h-3"></i> Desactivar
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
             <!-- Payment Methods Configuration -->
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <h4 class="text-xs font-bold text-slate-700">Métodos para Cobro de Suscripción SaaS (Agencias te pagan a ti):</h4>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <i data-lucide="wallet" class="w-3.5 h-3.5 text-rose-800"></i>
+                            <span>Métodos de Pago Habilitados</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                {{ data.total_configured }}
+                            </span>
+                        </h4>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Canales autorizados para que las agencias de {{ data.region.name }} paguen su suscripción</p>
+                    </div>
+
+                    {% if data.available_to_add %}
+                    <button type="button"
+                            onclick='openAddRegionMethodModal("{{ data.region.id }}", "{{ data.region.name|escapejs }}", {{ data.available_json|safe }})'
+                            class="px-3 py-1.5 rounded-xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-[11px] transition shadow-2xs flex items-center gap-1 cursor-pointer shrink-0">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        <span>Agregar Método</span>
+                    </button>
+                    {% endif %}
                 </div>
-                <form method="POST" action="{% url 'superadmin_regions' %}" class="space-y-3">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="UPDATE_PAYMENT_METHODS">
-                    <input type="hidden" name="region_id" value="{{ data.region.id }}">
 
-                    <div class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
-                        {% for method_data in data.methods %}
-                        {% with is_checked=method_data.region_config.use_for_billing %}
-                        <div class="method-card rounded-xl border transition-all duration-150 {% if is_checked %}border-brand-200 bg-brand-50/25 shadow-2xs{% else %}border-slate-200/80 bg-slate-50/60 hover:border-slate-300{% endif %}"
-                             id="card_{{ data.region.id }}_{{ method_data.global_method.id }}">
-                            
-                            <!-- Header row (clickable label) -->
-                            <div class="px-3.5 py-2.5 flex items-center justify-between gap-2">
-                                <label for="m_{{ data.region.id }}_{{ method_data.global_method.id }}_active" class="flex items-center gap-2 cursor-pointer select-none min-w-0 flex-1">
-                                    <input type="checkbox"
-                                           id="m_{{ data.region.id }}_{{ method_data.global_method.id }}_active"
-                                           name="method_{{ method_data.global_method.id }}_active"
-                                           class="w-4 h-4 rounded text-brand-900 focus:ring-brand-900 cursor-pointer shrink-0"
-                                           onchange="toggleRegionMethodCard('{{ data.region.id }}', '{{ method_data.global_method.id }}', this.checked)"
-                                           {% if is_checked %}checked{% endif %}>
-                                    <span class="font-bold text-xs text-slate-800 truncate">
-                                        {{ method_data.global_method.name }}
-                                    </span>
-                                    {% if method_data.global_method.is_integrated %}
-                                    <span class="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-bold shrink-0">
-                                        Pasarela online
-                                    </span>
-                                    {% elif method_data.region_config and method_data.region_config.use_for_sales %}
-                                    <span class="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[9px] font-bold shrink-0">
-                                        POS Activo
-                                    </span>
-                                    {% endif %}
-                                </label>
-                                <span class="text-[10px] font-mono font-bold text-slate-400 bg-white px-2 py-0.5 border border-slate-200 rounded-md shrink-0">
-                                    {{ method_data.global_method.code }}
+                <!-- List of Configured Methods -->
+                {% if data.configured_methods %}
+                <div class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
+                    {% for item in data.configured_methods %}
+                    <div class="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-3.5 space-y-2.5 hover:border-brand-200 hover:bg-brand-50/10 transition">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="font-bold text-xs text-slate-900 truncate">
+                                    {{ item.global_method.name }}
                                 </span>
-                            </div>
-
-                            <!-- Collapsible body: visible when checked -->
-                            <div id="body_{{ data.region.id }}_{{ method_data.global_method.id }}"
-                                 class="px-3.5 pb-3 pt-1 border-t border-slate-200/60 {% if not is_checked %}hidden{% endif %}">
-                                {% if method_data.global_method.is_integrated %}
-                                <div class="flex items-center gap-2 text-[11px] font-semibold">
-                                    {% if method_data.credentials_ok %}
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 w-full">
-                                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
-                                        <span>Credenciales configuradas y listas para cobrar</span>
-                                    </span>
-                                    {% else %}
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200/80 w-full leading-snug">
-                                        <i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
-                                        <span>Configura <code class="font-mono font-bold text-[10px] bg-white/80 px-1 py-0.5 rounded border border-amber-200">MERCADOPAGO_ACCESS_TOKEN</code> o <code class="font-mono font-bold text-[10px] bg-white/80 px-1 py-0.5 rounded border border-amber-200">MERCADOPAGO_ACCESS_TOKEN_{{ data.region.code }}</code> en <code class="font-mono">.env</code></span>
-                                    </span>
-                                    {% endif %}
-                                </div>
+                                {% if item.global_method.is_integrated %}
+                                <span class="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-bold shrink-0">
+                                    Pasarela online
+                                </span>
                                 {% else %}
-                                <div class="space-y-2 pt-1">
-                                    <div>
-                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Instrucciones para la agencia</label>
-                                        <textarea name="method_{{ method_data.global_method.id }}_instructions" rows="2" placeholder="Instrucciones (ej: CBU / Alias para esta región, CUIT, datos bancarios...)" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-[11px] text-slate-700 focus:outline-none focus:border-brand-500 transition">{% if method_data.region_config %}{{ method_data.region_config.instructions|default:'' }}{% else %}{{ method_data.global_method.description|default:'' }}{% endif %}</textarea>
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Link de pago directo (opcional)</label>
-                                        <input type="url" name="method_{{ method_data.global_method.id }}_payment_url" value="{% if method_data.region_config %}{{ method_data.region_config.payment_url|default:'' }}{% endif %}" placeholder="Ej: https://mpago.la/... o link de Stripe" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-700 focus:outline-none focus:border-brand-500 transition">
-                                    </div>
-                                </div>
+                                <span class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold shrink-0">
+                                    Pago Manual
+                                </span>
                                 {% endif %}
                             </div>
 
-                        </div>
-                        {% endwith %}
-                        {% endfor %}
-
-                        {% if data.other_methods %}
-                        <details class="pt-1 group">
-                            <summary class="text-[11px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer select-none py-1.5 px-2 rounded-lg hover:bg-slate-50 transition flex items-center justify-between">
-                                <span>+ Ver métodos de otras regiones ({{ data.other_methods|length }})</span>
-                                <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform group-open:rotate-180"></i>
-                            </summary>
-                            <div class="space-y-2 mt-2 pt-2 border-t border-dashed border-slate-200">
-                                {% for method_data in data.other_methods %}
-                                {% with is_checked=method_data.region_config.use_for_billing %}
-                                <div class="method-card rounded-xl border transition-all duration-150 {% if is_checked %}border-brand-200 bg-brand-50/25 shadow-2xs{% else %}border-slate-200/80 bg-slate-50/60 hover:border-slate-300{% endif %}"
-                                     id="card_{{ data.region.id }}_{{ method_data.global_method.id }}">
-                                    <div class="px-3.5 py-2.5 flex items-center justify-between gap-2">
-                                        <label for="m_{{ data.region.id }}_{{ method_data.global_method.id }}_active" class="flex items-center gap-2 cursor-pointer select-none min-w-0 flex-1">
-                                            <input type="checkbox"
-                                                   id="m_{{ data.region.id }}_{{ method_data.global_method.id }}_active"
-                                                   name="method_{{ method_data.global_method.id }}_active"
-                                                   class="w-4 h-4 rounded text-brand-900 focus:ring-brand-900 cursor-pointer shrink-0"
-                                                   onchange="toggleRegionMethodCard('{{ data.region.id }}', '{{ method_data.global_method.id }}', this.checked)"
-                                                   {% if is_checked %}checked{% endif %}>
-                                            <span class="font-bold text-xs text-slate-700 truncate">
-                                                {{ method_data.global_method.name }}
-                                            </span>
-                                        </label>
-                                        <span class="text-[10px] font-mono font-bold text-slate-400 bg-white px-2 py-0.5 border border-slate-200 rounded-md shrink-0">
-                                            {{ method_data.global_method.code }}
-                                        </span>
-                                    </div>
-                                    <div id="body_{{ data.region.id }}_{{ method_data.global_method.id }}"
-                                         class="px-3.5 pb-3 pt-1 border-t border-slate-200/60 {% if not is_checked %}hidden{% endif %}">
-                                        {% if method_data.global_method.is_integrated %}
-                                        <div class="flex items-center gap-2 text-[11px] font-semibold">
-                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200/80 w-full leading-snug">
-                                                <i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
-                                                <span>Configura <code class="font-mono font-bold text-[10px]">MERCADOPAGO_ACCESS_TOKEN_{{ data.region.code }}</code> en <code class="font-mono">.env</code></span>
-                                            </span>
-                                        </div>
-                                        {% else %}
-                                        <div class="space-y-2 pt-1">
-                                            <div>
-                                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Instrucciones para la agencia</label>
-                                                <textarea name="method_{{ method_data.global_method.id }}_instructions" rows="2" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-[11px] text-slate-700 focus:outline-none focus:border-brand-500 transition">{% if method_data.region_config %}{{ method_data.region_config.instructions|default:'' }}{% else %}{{ method_data.global_method.description|default:'' }}{% endif %}</textarea>
-                                            </div>
-                                            <div>
-                                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Link de pago directo (opcional)</label>
-                                                <input type="url" name="method_{{ method_data.global_method.id }}_payment_url" value="{% if method_data.region_config %}{{ method_data.region_config.payment_url|default:'' }}{% endif %}" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-700 focus:outline-none focus:border-brand-500 transition">
-                                            </div>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                {% endwith %}
-                                {% endfor %}
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] font-mono font-bold text-slate-400 bg-white px-2 py-0.5 border border-slate-200 rounded-md">
+                                    {{ item.global_method.code }}
+                                </span>
+                                <button type="button"
+                                        onclick="openEditRegionMethodModal('{{ item.rpm.id }}', '{{ data.region.name|escapejs }}', '{{ item.global_method.name|escapejs }}', '{{ item.rpm.instructions|default:''|escapejs }}', '{{ item.rpm.payment_url|default:''|escapejs }}')"
+                                        class="p-1.5 rounded-lg hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer" title="Editar instrucciones / datos">
+                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <form method="POST" action="{% url 'superadmin_regions' %}" class="inline" onsubmit="return confirm('¿Quitar el método {{ item.global_method.name|escapejs }} de la región {{ data.region.name|escapejs }}?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="REMOVE_REGION_PAYMENT_METHOD">
+                                    <input type="hidden" name="region_payment_method_id" value="{{ item.rpm.id }}">
+                                    <button type="submit" class="p-1.5 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-700 transition cursor-pointer" title="Quitar de esta región">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </form>
                             </div>
-                        </details>
+                        </div>
+
+                        {% if item.global_method.is_integrated %}
+                        <div class="flex items-center gap-2 text-[11px] font-semibold">
+                            {% if item.credentials_ok %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 w-full text-[10px]">
+                                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                                <span>Credenciales configuradas y listas para cobrar</span>
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200/80 w-full text-[10px] leading-snug">
+                                <i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
+                                <span>Configura credenciales en .env para esta región</span>
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if item.rpm.instructions %}
+                        <div class="bg-white p-2.5 rounded-xl border border-slate-200 text-[11px] text-slate-700 whitespace-pre-line leading-relaxed font-mono select-all">
+                            {{ item.rpm.instructions }}
+                        </div>
+                        {% endif %}
+
+                        {% if item.rpm.payment_url %}
+                        <div class="text-[10px] font-mono text-slate-500 truncate flex items-center gap-1">
+                            <span class="font-bold text-slate-400">Checkout Link:</span>
+                            <a href="{{ item.rpm.payment_url }}" target="_blank" class="text-brand-700 underline truncate hover:text-brand-900">{{ item.rpm.payment_url }}</a>
+                        </div>
                         {% endif %}
                     </div>
-
-                    <div class="pt-2 border-t border-slate-100 flex justify-end">
-                        <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
-                            <i data-lucide="save" class="w-3.5 h-3.5"></i> Guardar Configuración
-                        </button>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-6 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                    <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                        <i data-lucide="wallet" class="w-4 h-4"></i>
                     </div>
-                </form>
+                    <p class="text-xs text-slate-500 font-medium">No hay métodos de pago agregados para esta región.</p>
+                    {% if data.available_to_add %}
+                    <button type="button"
+                            onclick='openAddRegionMethodModal("{{ data.region.id }}", "{{ data.region.name|escapejs }}", {{ data.available_json|safe }})'
+                            class="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs transition inline-flex items-center gap-1.5 cursor-pointer shadow-2xs">
+                        <i data-lucide="plus" class="w-3.5 h-3.5 text-brand-900"></i>
+                        <span>Agregar primer método</span>
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
 
         </div>
         {% empty %}
-        <div class="col-span-1 lg:col-span-2 p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 italic">
+        <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 italic">
             No hay regiones creadas en la plataforma.
         </div>
         {% endfor %}
@@ -216,109 +205,396 @@
 
 </div>
 
-<!-- Modal para Crear / Editar Región -->
-<div id="regionModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transition-all transform scale-100">
-        <!-- Modal Header -->
-        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <i data-lucide="globe" class="w-5 h-5 text-rose-400"></i>
-                <h3 id="modalTitle" class="text-base font-bold font-display">Nueva Región</h3>
+
+{% endblock %}
+
+{% block modals %}
+<!-- Modal para Agregar Método a una Región -->
+<div id="addRegionMethodModal" class="hidden fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden" onclick="if(event.target === this) closeAddRegionMethodModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full flex flex-col max-h-[90vh] overflow-hidden relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        <!-- Header (Pinned) -->
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0">
+                    <h3 id="addMethodModalTitle" class="text-sm sm:text-base font-bold font-display truncate">Agregar Método de Pago</h3>
+                    <p id="addMethodModalSub" class="text-[11px] text-slate-400 truncate">Habilitar canal de cobro para la región</p>
+                </div>
             </div>
-            <button type="button" onclick="closeRegionModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
-                <i data-lucide="x" class="w-5 h-5"></i>
+            <button type="button" onclick="closeAddRegionMethodModal()" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition cursor-pointer shrink-0">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Form (Scrollable body & pinned footer) -->
+        <form method="POST" action="{% url 'superadmin_regions' %}" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="ADD_REGION_PAYMENT_METHOD">
+            <input type="hidden" id="add_method_region_id" name="region_id" value="">
+
+            <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1.5">Seleccionar Método de Pago Global *</label>
+                    <select id="add_payment_method_id" name="payment_method_id" required onchange="handleSelectAddMethod(this)" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900 cursor-pointer">
+                        <option value="">-- Seleccionar Método --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Instrucciones / Datos Bancarios para la Región</label>
+                    <textarea id="add_method_instructions" name="instructions" rows="4" placeholder="Ej: Banco, N° de Cuenta, CBU/Alias, Cédula o RIF, Titular..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-mono text-xs focus:outline-none focus:border-brand-900"></textarea>
+                    <p class="text-[10px] text-slate-400 mt-1">Estos datos se mostrarán a los usuarios de esta región cuando seleccionen este método para pagar su suscripción.</p>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Link de Pago Directo (Opcional)</label>
+                    <input type="url" id="add_method_payment_url" name="payment_url" placeholder="Ej: https://mpago.la/... o enlace de checkout" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900">
+                </div>
+
+                <!-- Opción para habilitar en múltiples regiones simultáneamente -->
+                <div class="pt-3 border-t border-slate-200">
+                    <label class="flex items-center gap-2 font-bold text-slate-800 cursor-pointer select-none" onclick="toggleAddExtraRegions(this)">
+                        <input type="checkbox" id="enable_extra_regions" class="w-4 h-4 rounded text-brand-900 focus:ring-brand-900">
+                        <span class="text-xs">¿Habilitar también en otras regiones simultáneamente?</span>
+                    </label>
+                    <div id="extra_regions_container" class="hidden mt-2 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between text-[10px] text-slate-500 font-bold px-1">
+                            <span>Selecciona las regiones adicionales:</span>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="selectAllExtraRegions(true)" class="text-brand-800 hover:underline cursor-pointer">Todas</button>
+                                <span>•</span>
+                                <button type="button" onclick="selectAllExtraRegions(false)" class="text-slate-400 hover:underline cursor-pointer">Ninguna</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
+                            {% for reg in all_regions %}
+                            <label class="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 bg-white hover:border-brand-300 transition cursor-pointer">
+                                <input type="checkbox" name="additional_region_ids" value="{{ reg.id }}" class="extra-region-cb w-3.5 h-3.5 rounded text-brand-900">
+                                <span class="text-[11px] font-semibold text-slate-800 truncate">{{ reg.name }} ({{ reg.code }})</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer (Pinned) -->
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
+                <button type="button" onclick="closeAddRegionMethodModal()" class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold rounded-xl transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 bg-brand-900 hover:bg-brand-950 text-white font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Agregar a la Región</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para Editar Método de una Región -->
+<div id="editRegionMethodModal" class="hidden fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden" onclick="if(event.target === this) closeEditRegionMethodModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full flex flex-col max-h-[90vh] overflow-hidden relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        <!-- Header (Pinned) -->
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                <div class="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30 shrink-0">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0">
+                    <h3 id="editMethodModalTitle" class="text-sm sm:text-base font-bold font-display truncate">Editar Método de Pago</h3>
+                    <p id="editMethodModalSub" class="text-[11px] text-slate-400 truncate">Actualizar datos bancarios e instrucciones</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeEditRegionMethodModal()" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition cursor-pointer shrink-0">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Form (Scrollable body & pinned footer) -->
+        <form method="POST" action="{% url 'superadmin_regions' %}" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="UPDATE_REGION_PAYMENT_METHOD">
+            <input type="hidden" id="edit_region_payment_method_id" name="region_payment_method_id" value="">
+
+            <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Instrucciones / Datos Bancarios para la Región</label>
+                    <textarea id="edit_method_instructions" name="instructions" rows="5" placeholder="Ej: Banco, N° de Cuenta, CBU/Alias, Cédula o RIF, Titular..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-mono text-xs focus:outline-none focus:border-brand-900"></textarea>
+                    <p class="text-[10px] text-slate-400 mt-1">Estos datos se mostrarán a las agencias al momento de pagar su suscripción.</p>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Link de Pago Directo (Opcional)</label>
+                    <input type="url" id="edit_method_payment_url" name="payment_url" placeholder="Ej: https://mpago.la/... o enlace de checkout" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900">
+                </div>
+            </div>
+
+            <!-- Footer (Pinned) -->
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
+                <button type="button" onclick="closeEditRegionMethodModal()" class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold rounded-xl transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 bg-brand-900 hover:bg-brand-950 text-white font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Guardar Cambios</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal para Anclar Método a Múltiples Regiones (Multi-Región) -->
+
+<div id="anchorMultiRegionModal" class="hidden fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden" onclick="if(event.target === this) closeAnchorMultiRegionModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full flex flex-col max-h-[92vh] overflow-hidden relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        <!-- Header (Pinned) -->
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
+                    <i data-lucide="link-2" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0">
+                    <h3 class="text-sm sm:text-base font-bold font-display truncate">Anclar Método a Múltiples Regiones</h3>
+                    <p class="text-[11px] text-slate-400 truncate">Habilita un método desarrollado en varios países a la vez</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeAnchorMultiRegionModal()" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition cursor-pointer shrink-0">
+                <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
 
         <!-- Form -->
-        <form method="POST" action="{% url 'superadmin_regions' %}" class="p-6 space-y-4 text-xs">
+        <form method="POST" action="{% url 'superadmin_regions' %}" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="ANCHOR_MULTI_REGION">
+
+            <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+                
+                <!-- 1. Método Global / Desarrollado -->
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1.5">1. Seleccionar Método de Pago Desarrollado *</label>
+                    <select id="anchor_pm_id" name="payment_method_id" required onchange="handleSelectAnchorMethod(this)" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900 cursor-pointer">
+                        <option value="">-- Seleccionar Método a Anclar --</option>
+                        {% for gm in global_methods %}
+                        <option value="{{ gm.id }}" data-code="{{ gm.code }}">
+                            {{ gm.name }} ({{ gm.code }}){% if gm.provider %} — Pasarela Online{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Info Box de Método Desarrollado -->
+                <div id="anchor_dev_badge" class="hidden p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 flex items-start gap-2.5">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+                    <div>
+                        <span class="font-bold block text-xs text-emerald-900">Desarrollo Oficial en Catálogo Maestro</span>
+                        <span class="text-[11px] text-emerald-800 block mt-0.5">Se hereda automáticamente el desarrollo completo (QR recortado, copiado 1 a 1 y datos bancarios oficiales).</span>
+                    </div>
+                </div>
+
+                <!-- 2. Selección de Regiones Destino -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block font-bold text-slate-800">2. Regiones donde habilitar este método *</label>
+                        <div class="flex items-center gap-2 text-[10px]">
+                            <button type="button" onclick="selectAllMultiRegions(true)" class="text-brand-800 hover:underline font-bold cursor-pointer">Seleccionar Todas</button>
+                            <span class="text-slate-300">•</span>
+                            <button type="button" onclick="selectAllMultiRegions(false)" class="text-slate-500 hover:underline font-semibold cursor-pointer">Limpiar</button>
+                        </div>
+                    </div>
+
+                    <!-- Regiones actualmente en uso -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 border border-slate-200 rounded-2xl p-2.5 bg-slate-50/50">
+                        {% for reg in active_regions %}
+                        <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/20 transition cursor-pointer">
+                            <input type="checkbox" name="region_ids" value="{{ reg.id }}" class="multi-region-cb w-4 h-4 rounded text-emerald-700 focus:ring-emerald-700">
+                            <div class="min-w-0 flex-1">
+                                <span class="text-[11px] font-bold text-slate-900 truncate block">{{ reg.name }}</span>
+                                <span class="text-[9px] font-mono text-slate-400 block">{{ reg.currency_symbol }} ({{ reg.code }})</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    {% if available_inactive_regions %}
+                    <!-- Opción para habilitar en otra región disponible -->
+                    <div class="mt-3 pt-3 border-t border-slate-200">
+                        <details class="group">
+                            <summary class="flex items-center justify-between cursor-pointer text-xs font-bold text-slate-700 hover:text-emerald-700 select-none py-1">
+                                <span class="flex items-center gap-1.5">
+                                    <i data-lucide="globe" class="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600"></i>
+                                    <span>¿Deseas habilitar y anclar en otra región disponible?</span>
+                                </span>
+                                <span class="text-[10px] text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">{{ available_inactive_regions|length }} países listos</span>
+                            </summary>
+                            <p class="text-[10px] text-slate-500 mt-1 mb-2">Al marcar un país de esta lista, se activará en tu plataforma y se le anclará este método:</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-1.5 custom-scrollbar border border-slate-200 rounded-2xl p-2 bg-slate-50/50">
+                                {% for reg in available_inactive_regions %}
+                                <label class="flex items-center gap-2 p-1.5 rounded-xl border border-slate-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/20 transition cursor-pointer">
+                                    <input type="checkbox" name="region_ids" value="{{ reg.id }}" class="multi-region-cb w-4 h-4 rounded text-emerald-700 focus:ring-emerald-700">
+                                    <div class="min-w-0 flex-1">
+                                        <span class="text-[11px] font-bold text-slate-800 truncate block">{{ reg.name }}</span>
+                                        <span class="text-[9px] font-mono text-slate-400 block">{{ reg.currency_symbol }} ({{ reg.code }})</span>
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </details>
+                    </div>
+                    {% endif %}
+                    <p class="text-[10px] text-slate-400 mt-1">El método quedará habilitado de inmediato para las agencias y facturación de estas regiones.</p>
+                </div>
+
+                <!-- 3. Instrucciones / Cuentas Bancarias Pre-cargadas -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block font-bold text-slate-800">3. Instrucciones / Cuentas Bancarias</label>
+                        <span class="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Pre-cargadas del Catálogo</span>
+                    </div>
+                    <textarea id="anchor_instructions" name="instructions" rows="4" placeholder="Selecciona un método para cargar sus instrucciones oficiales..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-mono text-xs focus:outline-none focus:border-brand-900"></textarea>
+                    <p class="text-[10px] text-slate-400 mt-1">Puedes mantener las cuentas bancarias oficiales desarrolladas o modificarlas si lo requieres.</p>
+                </div>
+
+                <!-- 4. Link de Pago Directo (Opcional) -->
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Link de Pago Directo (Opcional)</label>
+                    <input type="url" id="anchor_payment_url" name="payment_url" placeholder="Ej: https://mpago.la/... o link de pasarela" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-brand-900">
+                </div>
+
+            </div>
+
+            <!-- Footer (Pinned) -->
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
+                <button type="button" onclick="closeAnchorMultiRegionModal()" class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold rounded-xl transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="link" class="w-4 h-4"></i>
+                    <span>Anclar a las Regiones Seleccionadas</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal para Crear / Editar Región -->
+
+<!-- Modal para Crear / Editar Región -->
+<div id="regionModal" class="hidden fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-hidden" onclick="if(event.target === this) closeRegionModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full flex flex-col max-h-[90vh] overflow-hidden relative animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        <!-- Modal Header (Pinned) -->
+        <div class="px-6 py-4 bg-slate-950 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                <div class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30 shrink-0">
+                    <i data-lucide="globe" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0">
+                    <h3 id="modalTitle" class="text-sm sm:text-base font-bold font-display truncate">Nueva Región</h3>
+                    <p class="text-[11px] text-slate-400 truncate">Configuración de región comercial y moneda</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeRegionModal()" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition cursor-pointer shrink-0">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Form with scrollable body and pinned footer -->
+        <form method="POST" action="{% url 'superadmin_regions' %}" class="flex flex-col flex-1 min-h-0 overflow-hidden">
             {% csrf_token %}
             <input type="hidden" id="region_action" name="action" value="CREATE">
             <input type="hidden" id="region_id" name="region_id" value="">
 
-            <div id="latam_preset_wrapper" class="p-3 rounded-xl bg-brand-50/50 border border-brand-100">
-                <label class="block font-bold text-brand-900 mb-1">Plantilla Rápida (País Latinoamericano)</label>
-                <select id="region_latam_preset" onchange="applyLatamPreset(this.value)" class="w-full bg-white border border-brand-200 rounded-xl p-2 text-slate-900 font-bold focus:outline-none focus:border-brand-900 cursor-pointer">
-                    <option value="">-- Seleccionar país para autocompletar --</option>
-                    <option value="AR">🇦🇷 Argentina (+54 · ARS · $)</option>
-                    <option value="BO">🇧🇴 Bolivia (+591 · BOB · Bs.)</option>
-                    <option value="BR">🇧🇷 Brasil (+55 · BRL · R$)</option>
-                    <option value="CL">🇨🇱 Chile (+56 · CLP · CLP $)</option>
-                    <option value="CO">🇨🇴 Colombia (+57 · COP · COP $)</option>
-                    <option value="CR">🇨🇷 Costa Rica (+506 · CRC · ₡)</option>
-                    <option value="CU">🇨🇺 Cuba (+53 · CUP · $)</option>
-                    <option value="EC">🇪🇨 Ecuador (+593 · USD · $)</option>
-                    <option value="SV">🇸🇻 El Salvador (+503 · USD · $)</option>
-                    <option value="GT">🇬🇹 Guatemala (+502 · GTQ · Q)</option>
-                    <option value="HN">🇭🇳 Honduras (+504 · HNL · L)</option>
-                    <option value="MX">🇲🇽 México (+52 · MXN · MXN $)</option>
-                    <option value="NI">🇳🇮 Nicaragua (+505 · NIO · C$)</option>
-                    <option value="PA">🇵🇦 Panamá (+507 · USD · $)</option>
-                    <option value="PY">🇵🇾 Paraguay (+595 · PYG · Gs.)</option>
-                    <option value="PE">🇵🇪 Perú (+51 · PEN · S/)</option>
-                    <option value="PR">🇵🇷 Puerto Rico (+1787 · USD · $)</option>
-                    <option value="DO">🇩🇴 República Dominicana (+1809 · DOP · RD$)</option>
-                    <option value="UY">🇺🇾 Uruguay (+598 · UYU · $U)</option>
-                    <option value="VE">🇻🇪 Venezuela (+58 · USD · $)</option>
-                </select>
-            </div>
+            <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+                <div id="latam_preset_wrapper" class="p-3.5 rounded-2xl bg-brand-50/50 border border-brand-100">
+                    <label class="block font-bold text-brand-900 mb-1">Plantilla Rápida (País Latinoamericano)</label>
+                    <select id="region_latam_preset" onchange="applyLatamPreset(this.value)" class="w-full bg-white border border-brand-200 rounded-xl p-2 text-slate-900 font-bold focus:outline-none focus:border-brand-900 cursor-pointer">
+                        <option value="">-- Seleccionar país para autocompletar --</option>
+                        <option value="AR">🇦🇷 Argentina (+54 · ARS · $)</option>
+                        <option value="BO">🇧🇴 Bolivia (+591 · BOB · Bs.)</option>
+                        <option value="BR">🇧🇷 Brasil (+55 · BRL · R$)</option>
+                        <option value="CL">🇨🇱 Chile (+56 · CLP · CLP $)</option>
+                        <option value="CO">🇨🇴 Colombia (+57 · COP · COP $)</option>
+                        <option value="CR">🇨🇷 Costa Rica (+506 · CRC · ₡)</option>
+                        <option value="CU">🇨🇺 Cuba (+53 · CUP · $)</option>
+                        <option value="EC">🇪🇨 Ecuador (+593 · USD · $)</option>
+                        <option value="SV">🇸🇻 El Salvador (+503 · USD · $)</option>
+                        <option value="GT">🇬🇹 Guatemala (+502 · GTQ · Q)</option>
+                        <option value="HN">🇭🇳 Honduras (+504 · HNL · L)</option>
+                        <option value="MX">🇲🇽 México (+52 · MXN · MXN $)</option>
+                        <option value="NI">🇳🇮 Nicaragua (+505 · NIO · C$)</option>
+                        <option value="PA">🇵🇦 Panamá (+507 · USD · $)</option>
+                        <option value="PY">🇵🇾 Paraguay (+595 · PYG · Gs.)</option>
+                        <option value="PE">🇵🇪 Perú (+51 · PEN · S/)</option>
+                        <option value="PR">🇵🇷 Puerto Rico (+1787 · USD · $)</option>
+                        <option value="DO">🇩🇴 República Dominicana (+1809 · DOP · RD$)</option>
+                        <option value="UY">🇺🇾 Uruguay (+598 · UYU · $U)</option>
+                        <option value="VE">🇻🇪 Venezuela (+58 · USD · $)</option>
+                    </select>
+                </div>
 
-            <div>
-                <label class="block font-bold text-slate-800 mb-1">Nombre de la Región</label>
-                <input type="text" id="region_name" name="name" required placeholder="Ej: Argentina, Chile, Global..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block font-bold text-slate-800 mb-1">Código (Único)</label>
-                    <input type="text" id="region_code" name="code" required placeholder="Ej: 54, 56, CL" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-mono font-bold uppercase focus:outline-none focus:border-brand-900">
+                    <label class="block font-bold text-slate-800 mb-1">Nombre de la Región *</label>
+                    <input type="text" id="region_name" name="name" required placeholder="Ej: Argentina, Chile, Global..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
                 </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Código (Único) *</label>
+                        <input type="text" id="region_code" name="code" required placeholder="Ej: 54, 56, CL" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-mono font-bold uppercase focus:outline-none focus:border-brand-900">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Símbolo de Moneda *</label>
+                        <input type="text" id="region_currency" name="currency_symbol" required placeholder="Ej: $, Bs., CLP $, S/" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block font-bold text-slate-800 mb-1">Moneda ISO para pasarelas (Mercado Pago, etc.)</label>
+                        <input type="text" id="region_currency_code" name="currency_code" maxlength="3" placeholder="Ej: ARS, CLP, COP, MXN, PEN, UYU, VES" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-mono font-bold uppercase focus:outline-none focus:border-brand-900">
+                    </div>
+                </div>
+
                 <div>
-                    <label class="block font-bold text-slate-800 mb-1">Símbolo de Moneda</label>
-                    <input type="text" id="region_currency" name="currency_symbol" required placeholder="Ej: $, Bs., CLP $, S/" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900">
+                    <label class="block font-bold text-slate-800 mb-1">Códigos de País (Auto-detección)</label>
+                    <select id="region_country_codes" name="country_codes" multiple class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900 h-28 custom-scrollbar">
+                        <option value="AR">🇦🇷 Argentina (AR)</option>
+                        <option value="BO">🇧🇴 Bolivia (BO)</option>
+                        <option value="BR">🇧🇷 Brasil (BR)</option>
+                        <option value="CL">🇨🇱 Chile (CL)</option>
+                        <option value="CO">🇨🇴 Colombia (CO)</option>
+                        <option value="CR">🇨🇷 Costa Rica (CR)</option>
+                        <option value="CU">🇨🇺 Cuba (CU)</option>
+                        <option value="EC">🇪🇨 Ecuador (EC)</option>
+                        <option value="SV">🇸🇻 El Salvador (SV)</option>
+                        <option value="GT">🇬🇹 Guatemala (GT)</option>
+                        <option value="HN">🇭🇳 Honduras (HN)</option>
+                        <option value="MX">🇲🇽 México (MX)</option>
+                        <option value="NI">🇳🇮 Nicaragua (NI)</option>
+                        <option value="PA">🇵🇦 Panamá (PA)</option>
+                        <option value="PY">🇵🇾 Paraguay (PY)</option>
+                        <option value="PE">🇵🇪 Perú (PE)</option>
+                        <option value="PR">🇵🇷 Puerto Rico (PR)</option>
+                        <option value="DO">🇩🇴 República Dominicana (DO)</option>
+                        <option value="UY">🇺🇾 Uruguay (UY)</option>
+                        <option value="VE">🇻🇪 Venezuela (VE)</option>
+                        <option value="ES">🇪🇸 España (ES)</option>
+                        <option value="US">🇺🇸 Estados Unidos (US)</option>
+                    </select>
+                    <p class="text-[10px] text-slate-500 mt-1">Mantén presionado Ctrl (o Cmd) para seleccionar varios.</p>
                 </div>
-                <div class="col-span-2">
-                    <label class="block font-bold text-slate-800 mb-1">Moneda ISO para pasarelas (Mercado Pago, etc.)</label>
-                    <input type="text" id="region_currency_code" name="currency_code" maxlength="3" placeholder="Ej: ARS, CLP, COP, MXN, PEN, UYU, VES" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-mono font-bold uppercase focus:outline-none focus:border-brand-900">
+
+                <div class="flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="region_is_active" name="is_active" checked class="w-4 h-4 rounded text-brand-900 focus:ring-brand-900">
+                    <label for="region_is_active" class="font-bold text-slate-800 cursor-pointer">Región Activa</label>
                 </div>
             </div>
 
-            <div>
-                <label class="block font-bold text-slate-800 mb-1">Códigos de País (Auto-detección)</label>
-                <select id="region_country_codes" name="country_codes" multiple class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-brand-900 h-32 custom-scrollbar">
-                    <option value="AR">🇦🇷 Argentina (AR)</option>
-                    <option value="BO">🇧🇴 Bolivia (BO)</option>
-                    <option value="BR">🇧🇷 Brasil (BR)</option>
-                    <option value="CL">🇨🇱 Chile (CL)</option>
-                    <option value="CO">🇨🇴 Colombia (CO)</option>
-                    <option value="CR">🇨🇷 Costa Rica (CR)</option>
-                    <option value="CU">🇨🇺 Cuba (CU)</option>
-                    <option value="EC">🇪🇨 Ecuador (EC)</option>
-                    <option value="SV">🇸🇻 El Salvador (SV)</option>
-                    <option value="GT">🇬🇹 Guatemala (GT)</option>
-                    <option value="HN">🇭🇳 Honduras (HN)</option>
-                    <option value="MX">🇲🇽 México (MX)</option>
-                    <option value="NI">🇳🇮 Nicaragua (NI)</option>
-                    <option value="PA">🇵🇦 Panamá (PA)</option>
-                    <option value="PY">🇵🇾 Paraguay (PY)</option>
-                    <option value="PE">🇵🇪 Perú (PE)</option>
-                    <option value="PR">🇵🇷 Puerto Rico (PR)</option>
-                    <option value="DO">🇩🇴 República Dominicana (DO)</option>
-                    <option value="UY">🇺🇾 Uruguay (UY)</option>
-                    <option value="VE">🇻🇪 Venezuela (VE)</option>
-                    <option value="ES">🇪🇸 España (ES)</option>
-                    <option value="US">🇺🇸 Estados Unidos (US)</option>
-                </select>
-                <p class="text-[10px] text-slate-500 mt-1">Mantén presionado Ctrl (o Cmd en Mac) para seleccionar varios. Usado para autoseleccionar la región en la landing web.</p>
-            </div>
-
-            <div class="flex items-center gap-2 pt-2">
-                <input type="checkbox" id="region_is_active" name="is_active" checked class="w-4 h-4 rounded text-brand-900 focus:ring-brand-900">
-                <label for="region_is_active" class="font-bold text-slate-800">Región Activa</label>
-            </div>
-
-            <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
-                <button type="button" onclick="closeRegionModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer">
+            <!-- Modal Footer (Pinned) -->
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
+                <button type="button" onclick="closeRegionModal()" class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold rounded-xl transition cursor-pointer">
                     Cancelar
                 </button>
                 <button type="submit" class="px-5 py-2 bg-brand-900 hover:bg-brand-950 text-white font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer">
@@ -328,8 +604,11 @@
         </form>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
+const catalogMethodsData = {{ catalog_methods_json|safe|default:'{}' }};
 const LATAM_PRESETS = {
     AR: { name: 'Argentina', code: '54', symbol: '$', iso: 'ARS' },
     BO: { name: 'Bolivia', code: '591', symbol: 'Bs.', iso: 'BOB' },
@@ -409,9 +688,78 @@ function openEditRegionModal(id, name, code, currency, countryCodes, isActive, c
     if (window.lucide) lucide.createIcons();
 }
 
+
+let currentAvailableMethods = [];
+
+function openAddRegionMethodModal(regionId, regionName, availableMethods) {
+    currentAvailableMethods = availableMethods || [];
+    document.getElementById('add_method_region_id').value = regionId;
+    document.getElementById('addMethodModalTitle').innerText = 'Agregar Método a ' + regionName;
+    document.getElementById('addMethodModalSub').innerText = 'Región ' + regionName;
+    document.getElementById('add_method_instructions').value = '';
+    document.getElementById('add_method_payment_url').value = '';
+
+    const select = document.getElementById('add_payment_method_id');
+    select.innerHTML = '<option value="">-- Seleccionar Método a incorporar --</option>';
+    currentAvailableMethods.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name + ' (' + m.code + ')';
+        select.appendChild(opt);
+    });
+
+    document.getElementById('addRegionMethodModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function handleSelectAddMethod(select) {
+    const methodId = select.value;
+    const selected = currentAvailableMethods.find(m => m.id === methodId);
+    const textarea = document.getElementById('add_method_instructions');
+    if (selected) {
+        if (selected.code && catalogMethodsData && catalogMethodsData[selected.code]) {
+            textarea.value = catalogMethodsData[selected.code].instructions || '';
+        } else if (selected.description) {
+            textarea.value = selected.description;
+        }
+    }
+}
+
+function closeAddRegionMethodModal() {
+    document.getElementById('addRegionMethodModal').classList.add('hidden');
+}
+
+function openEditRegionMethodModal(rpmId, regionName, methodName, instructions, paymentUrl) {
+    document.getElementById('edit_region_payment_method_id').value = rpmId;
+    document.getElementById('editMethodModalTitle').innerText = 'Editar: ' + methodName;
+    document.getElementById('editMethodModalSub').innerText = 'Región ' + regionName;
+    document.getElementById('edit_method_instructions').value = instructions || '';
+    document.getElementById('edit_method_payment_url').value = paymentUrl || '';
+
+    document.getElementById('editRegionMethodModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeEditRegionMethodModal() {
+    document.getElementById('editRegionMethodModal').classList.add('hidden');
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAddRegionMethodModal();
+        closeEditRegionMethodModal();
+    }
+});
+
 function closeRegionModal() {
     document.getElementById('regionModal').classList.add('hidden');
 }
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeRegionModal();
+    }
+});
 
 function toggleRegionMethodCard(regionId, methodId, isChecked) {
     const card = document.getElementById(`card_${regionId}_${methodId}`);
@@ -432,5 +780,63 @@ function toggleRegionMethodCard(regionId, methodId, isChecked) {
     }
     if (window.lucide) lucide.createIcons();
 }
+
+
+function openAnchorMultiRegionModal() {
+    document.getElementById('anchor_pm_id').value = '';
+    document.getElementById('anchor_instructions').value = '';
+    document.getElementById('anchor_payment_url').value = '';
+    document.getElementById('anchor_dev_badge').classList.add('hidden');
+    selectAllMultiRegions(false);
+    document.getElementById('anchorMultiRegionModal').classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeAnchorMultiRegionModal() {
+    document.getElementById('anchorMultiRegionModal').classList.add('hidden');
+}
+
+function selectAllMultiRegions(checked) {
+    document.querySelectorAll('.multi-region-cb').forEach(cb => {
+        cb.checked = checked;
+    });
+}
+
+function handleSelectAnchorMethod(select) {
+    const opt = select.options[select.selectedIndex];
+    const code = opt ? opt.getAttribute('data-code') : '';
+    const badge = document.getElementById('anchor_dev_badge');
+    const textarea = document.getElementById('anchor_instructions');
+
+    if (code && catalogMethodsData[code]) {
+        badge.classList.remove('hidden');
+        textarea.value = catalogMethodsData[code].instructions || '';
+    } else {
+        badge.classList.add('hidden');
+        textarea.value = '';
+    }
+}
+
+function toggleAddExtraRegions(labelElem) {
+    const cb = labelElem.querySelector('input[type="checkbox"]');
+    const container = document.getElementById('extra_regions_container');
+    if (cb && container) {
+        if (cb.checked) {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+            selectAllExtraRegions(false);
+        }
+    }
+}
+
+function selectAllExtraRegions(checked) {
+    document.querySelectorAll('.extra-region-cb').forEach(cb => {
+        cb.checked = checked;
+    });
+}
+
+
+
 </script>
 {% endblock %}

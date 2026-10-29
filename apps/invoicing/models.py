@@ -15,8 +15,12 @@ class Invoice(TimeStampedModel):
     ]
 
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="invoices")
-    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="invoices")
+    client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, blank=True, related_name="invoices")
     sale = models.OneToOneField(Sale, on_delete=models.SET_NULL, null=True, blank=True, related_name="invoice")
+    payment_plan = models.ForeignKey('invoicing.PaymentPlan', on_delete=models.SET_NULL, null=True, blank=True, related_name="invoices", verbose_name="Plan de Cobro")
+    installment = models.ForeignKey('invoicing.PaymentInstallment', on_delete=models.SET_NULL, null=True, blank=True, related_name="invoices", verbose_name="Cuota Origen")
+    quote = models.ForeignKey('invoicing.Quote', on_delete=models.SET_NULL, null=True, blank=True, related_name="invoices", verbose_name="Cotización Origen")
+    payment_method = models.CharField(max_length=50, blank=True, null=True, verbose_name="Método de Pago")
     invoice_number = models.CharField(max_length=50, verbose_name="Número de Factura")
     issue_date = models.DateField(verbose_name="Fecha Emisión")
     due_date = models.DateField(verbose_name="Fecha Vencimiento")
@@ -268,6 +272,7 @@ class PaymentInstallment(TimeStampedModel):
     payment_method = models.CharField(max_length=50, blank=True, null=True, verbose_name="Método de Pago")
     reference = models.CharField(max_length=100, blank=True, null=True, verbose_name="Nº Referencia / Comprobante")
     sale = models.ForeignKey(Sale, on_delete=models.SET_NULL, null=True, blank=True, related_name="installment_payments", verbose_name="Venta Financiera Generada")
+    invoice = models.ForeignKey(Invoice, on_delete=models.SET_NULL, null=True, blank=True, related_name="installments", verbose_name="Factura / Comprobante")
     notes = models.TextField(blank=True, null=True, verbose_name="Notas del Cobro")
 
     class Meta:
@@ -277,6 +282,12 @@ class PaymentInstallment(TimeStampedModel):
 
     def __str__(self):
         return f"Cuota #{self.installment_number}: {self.concept} - ${self.amount} ({self.get_status_display()})"
+
+    def save(self, *args, **kwargs):
+        # Auto-corrección: evitar que un cobro duplicado guarde un monto pagado mayor al total de la cuota
+        if self.amount > 0 and self.amount_paid > self.amount and self.status == 'PAID':
+            self.amount_paid = self.amount
+        super().save(*args, **kwargs)
 
     @property
     def balance(self):

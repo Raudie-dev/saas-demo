@@ -1,3 +1,4 @@
+import json
 import datetime
 import uuid
 from decimal import Decimal
@@ -7,7 +8,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from django.utils.text import slugify
 from apps.business.models import Business, User, StaffMember, Branch
 from apps.agenda.models import Appointment
@@ -330,6 +331,14 @@ def user_detail_view(request, business_id):
     payment_methods = business.payment_methods.all()
     business_users = business.users.all()
     all_regions = Region.objects.filter(is_active=True).order_by('name')
+
+    # Auto-sincronizar pagos de Mercado Pago pendientes
+    try:
+        from apps.superadmin import mercadopago as mp
+        mp.sync_pending_payments_for_business(business)
+    except Exception:
+        pass
+
     subscription_payments = SubscriptionPayment.objects.filter(business=business).select_related(
         'plan', 'region_payment_method', 'region_payment_method__payment_method'
     ).order_by('-created_at')
@@ -347,6 +356,102 @@ def user_detail_view(request, business_id):
         'business_users': business_users,
         'all_regions': all_regions,
         'subscription_payments': subscription_payments,
+    })
+
+@superadmin_required
+@ensure_csrf_cookie
+def superadmin_payments_list_view(request):
+    """
+    Panel centralizado para auditar, monitorear, aprobar y rechazar
+    todos los comprobantes y pagos de suscripción de la plataforma
+    sin necesidad de entrar en la ficha individual de cada agencia.
+    """
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        payment_id = request.POST.get('payment_id')
+        payment = get_object_or_404(SubscriptionPayment.objects.select_related('business', 'plan'), id=payment_id)
+
+        if action == 'APPROVE_PAYMENT':
+            from apps.superadmin.mercadopago import apply_approved_payment
+            apply_approved_payment(
+                payment,
+                reviewer=request.superadmin_user,
+                actor_email=request.superadmin_user.email or request.superadmin_user.username
+            )
+            messages.success(request, f"¡Pago de '{payment.business.name}' por ${payment.amount} aprobado con éxito! La licencia fue renovada/activada.")
+            return redirect('superadmin_payments')
+
+        elif action == 'REJECT_PAYMENT':
+            reject_notes = request.POST.get('reject_notes', '').strip()
+            payment.status = 'REJECTED'
+            payment.notes = reject_notes
+            payment.reviewed_at = timezone.now()
+            payment.reviewed_by = request.superadmin_user
+            payment.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="PAGO_RECHAZADO",
+                details=f"Pago #{payment.id} de '{payment.business.name}' por ${payment.amount} marcado como rechazado. Motivo: {reject_notes or 'Sin motivo'}",
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            messages.warning(request, f"Pago de '{payment.business.name}' marcado como rechazado.")
+            return redirect('superadmin_payments')
+
+    status_filter = request.GET.get('status', 'ALL')
+    query = request.GET.get('q', '').strip()
+
+    payments_qs = SubscriptionPayment.objects.select_related(
+        'business', 'plan', 'region_payment_method', 'region_payment_method__payment_method', 'reviewed_by'
+    ).order_by('-created_at')
+
+    if status_filter != 'ALL':
+        payments_qs = payments_qs.filter(status=status_filter)
+
+    if query:
+        payments_qs = payments_qs.filter(
+            Q(business__name__icontains=query) |
+            Q(reference__icontains=query) |
+            Q(mp_payment_id__icontains=query) |
+            Q(plan__name__icontains=query)
+        )
+
+    all_payments = SubscriptionPayment.objects.all()
+    pending_count = all_payments.filter(status='PENDING').count()
+    approved_count = all_payments.filter(status='APPROVED').count()
+    rejected_count = all_payments.filter(status='REJECTED').count()
+    total_approved = all_payments.filter(status='APPROVED').aggregate(total=Sum('amount'))['total'] or 0
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(payments_qs, 20)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    return render(request, 'superadmin/payments.html', {
+        'payments': page_obj,
+        'page_obj': page_obj,
+        'status_filter': status_filter,
+        'query': query,
+        'pending_count': pending_count,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
+        'total_approved': total_approved,
+    })
+
+@superadmin_required
+def superadmin_payment_receipt_view(request, payment_id):
+    """Comprobante oficial detallado para auditoría del SuperAdmin."""
+    payment = get_object_or_404(
+        SubscriptionPayment.objects.select_related(
+            'business', 'business__region', 'business__subscription',
+            'plan', 'region_payment_method', 'region_payment_method__payment_method',
+            'reviewed_by'
+        ),
+        id=payment_id
+    )
+    return render(request, 'superadmin/subscription_receipt.html', {
+        'payment': payment,
+        'business': payment.business,
+        'is_superadmin': True,
     })
 
 def _safe_delete_file(field_file):
@@ -624,6 +729,16 @@ def plans_management_view(request):
         'regions': regions
     })
 
+DEVELOPED_PAYMENT_METHOD_CODES = [
+    'MERCADOPAGO',
+    'BINANCE_PAY',
+    'PAGOMOVIL',
+    'TRANSFERENCIA_BS',
+    'ALIAS_CBU',
+    'TRANSFERENCIA_INTL',
+    'TRANSFERENCIA',
+]
+
 @superadmin_required
 @ensure_csrf_cookie
 def ai_settings_view(request):
@@ -736,6 +851,7 @@ def payment_methods_management_view(request):
                     region_id=r_id, 
                     payment_method=pm, 
                     use_for_sales=True, 
+                    use_for_billing=True,
                     is_active=True, 
                     instructions=description
                 )
@@ -758,11 +874,12 @@ def payment_methods_management_view(request):
             pm.save()
             
             selected_regions = request.POST.getlist('regions')
-            RegionPaymentMethod.objects.filter(payment_method=pm).update(use_for_sales=False)
+            RegionPaymentMethod.objects.filter(payment_method=pm).exclude(region_id__in=selected_regions).update(use_for_sales=False, use_for_billing=False)
             
             for r_id in selected_regions:
                 rpm, _ = RegionPaymentMethod.objects.get_or_create(region_id=r_id, payment_method=pm)
                 rpm.use_for_sales = True
+                rpm.use_for_billing = True
                 rpm.is_active = True
                 rpm.save()
 
@@ -791,7 +908,7 @@ def payment_methods_management_view(request):
 
     _ensure_default_payment_methods()
     _ensure_default_regions()
-    payment_methods = GlobalPaymentMethod.objects.all().order_by('name')
+    payment_methods = GlobalPaymentMethod.objects.filter(code__in=DEVELOPED_PAYMENT_METHOD_CODES, is_active=True).order_by('name')
     all_regions = Region.objects.filter(is_active=True).order_by('name')
     
     import json
@@ -847,6 +964,196 @@ def regions_management_view(request):
             messages.success(request, f"¡Región '{region.name}' actualizada correctamente!")
             return redirect('superadmin_regions')
 
+        elif action == 'ACTIVATE_REGION':
+            region_id = request.POST.get('region_id')
+            region = get_object_or_404(Region, id=region_id)
+            region.is_active = True
+            region.save(update_fields=['is_active'])
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="HABILITAR_REGION",
+                details=f"Se habilitó la región '{region.name}' ({region.code})."
+            )
+            messages.success(request, f"¡Región '{region.name}' habilitada exitosamente! Ahora puedes asignarle métodos de pago.")
+            return redirect('superadmin_regions')
+
+        elif action == 'DEACTIVATE_REGION':
+            region_id = request.POST.get('region_id')
+            region = get_object_or_404(Region, id=region_id)
+            if region.is_default:
+                messages.error(request, f"No puedes desactivar la región predeterminada ({region.name}).")
+                return redirect('superadmin_regions')
+
+            region.is_active = False
+            region.save(update_fields=['is_active'])
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="DESACTIVAR_REGION",
+                details=f"Se desactivó la región '{region.name}' ({region.code})."
+            )
+            messages.info(request, f"Región '{region.name}' desactivada.")
+            return redirect('superadmin_regions')
+
+        elif action == 'ADD_REGION_PAYMENT_METHOD':
+            region_id = request.POST.get('region_id')
+            payment_method_id = request.POST.get('payment_method_id')
+            instructions = request.POST.get('instructions', '').strip()
+            payment_url = request.POST.get('payment_url', '').strip()
+            additional_region_ids = request.POST.getlist('additional_region_ids')
+
+            region = get_object_or_404(Region, id=region_id)
+            pm = get_object_or_404(GlobalPaymentMethod, id=payment_method_id)
+
+            from apps.superadmin.regional_payment_registry import (
+                PAYMENT_METHOD_CATALOG, anchor_method_to_regions, normalize_region_key
+            )
+            catalog_def = PAYMENT_METHOD_CATALOG.get(pm.code)
+            base_instr = instructions or (catalog_def.instructions if catalog_def else (pm.description or ''))
+
+            all_target_ids = [region_id] + [r for r in additional_region_ids if str(r) != str(region_id)]
+            target_regions = Region.objects.filter(id__in=all_target_ids)
+            anchored_names = []
+            anchored_codes = []
+
+            for r_obj in target_regions:
+                if not r_obj.is_active:
+                    r_obj.is_active = True
+                    r_obj.save(update_fields=['is_active'])
+
+                reg_key = normalize_region_key(r_obj)
+                reg_instr = base_instr
+                if reg_key == 'VE' and pm.code in ('TRANSFERENCIA', 'PAGOMOVIL', 'TRANSFERENCIA_BS'):
+                    ve_def = PAYMENT_METHOD_CATALOG.get('TRANSFERENCIA_BS') or PAYMENT_METHOD_CATALOG.get('PAGOMOVIL')
+                    if ve_def and not instructions:
+                        reg_instr = ve_def.instructions
+
+                rpm, _ = RegionPaymentMethod.objects.update_or_create(
+                    region=r_obj,
+                    payment_method=pm,
+                    defaults={
+                        'use_for_billing': True,
+                        'use_for_sales': True,
+                        'instructions': reg_instr,
+                        'payment_url': payment_url,
+                        'is_active': True,
+                    }
+                )
+                anchored_names.append(r_obj.name)
+                anchored_codes.append(r_obj.code)
+
+            anchor_method_to_regions(pm.code, anchored_codes)
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="AGREGAR_METODO_REGION",
+                details=f"Se agregó '{pm.name}' para: {', '.join(anchored_names)}."
+            )
+            messages.success(request, f"¡Método '{pm.name}' habilitado en {len(target_regions)} región(es) ({', '.join(anchored_names)}) exitosamente!")
+            return redirect('superadmin_regions')
+
+        elif action == 'ANCHOR_MULTI_REGION':
+            payment_method_id = request.POST.get('payment_method_id')
+            region_ids = request.POST.getlist('region_ids')
+            instructions = request.POST.get('instructions', '').strip()
+            payment_url = request.POST.get('payment_url', '').strip()
+
+            if not payment_method_id:
+                messages.error(request, "Por favor selecciona un método de pago.")
+                return redirect('superadmin_regions')
+
+            if not region_ids:
+                messages.error(request, "Debes seleccionar al menos una región para anclar el método.")
+                return redirect('superadmin_regions')
+
+            pm = get_object_or_404(GlobalPaymentMethod, id=payment_method_id)
+            from apps.superadmin.regional_payment_registry import (
+                PAYMENT_METHOD_CATALOG, anchor_method_to_regions, normalize_region_key
+            )
+            catalog_def = PAYMENT_METHOD_CATALOG.get(pm.code)
+            base_instructions = instructions or (catalog_def.instructions if catalog_def else (pm.description or ''))
+
+            target_regions = Region.objects.filter(id__in=region_ids)
+            anchored_names = []
+            anchored_codes = []
+
+            for reg in target_regions:
+                if not reg.is_active:
+                    reg.is_active = True
+                    reg.save(update_fields=['is_active'])
+
+                reg_key = normalize_region_key(reg)
+                reg_instr = base_instructions
+                if reg_key == 'VE' and pm.code in ('TRANSFERENCIA', 'PAGOMOVIL', 'TRANSFERENCIA_BS'):
+                    ve_def = PAYMENT_METHOD_CATALOG.get('TRANSFERENCIA_BS') or PAYMENT_METHOD_CATALOG.get('PAGOMOVIL')
+                    if ve_def and not instructions:
+                        reg_instr = ve_def.instructions
+
+                rpm, _ = RegionPaymentMethod.objects.update_or_create(
+                    region=reg,
+                    payment_method=pm,
+                    defaults={
+                        'use_for_billing': True,
+                        'use_for_sales': True,
+                        'instructions': reg_instr,
+                        'payment_url': payment_url,
+                        'is_active': True,
+                    }
+                )
+                anchored_names.append(reg.name)
+                anchored_codes.append(reg.code)
+
+            anchor_method_to_regions(pm.code, anchored_codes)
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="ANCLAJE_MULTI_REGION",
+                details=f"Método '{pm.name}' anclado a {len(target_regions)} regiones: {', '.join(anchored_names)}."
+            )
+            messages.success(
+                request,
+                f"¡Método '{pm.name}' anclado exitosamente a {len(target_regions)} regiones ({', '.join(anchored_names)})!"
+            )
+            return redirect('superadmin_regions')
+
+        elif action == 'UPDATE_REGION_PAYMENT_METHOD':
+            rpm_id = request.POST.get('region_payment_method_id')
+            rpm = get_object_or_404(RegionPaymentMethod, id=rpm_id)
+            instructions = request.POST.get('instructions', '').strip()
+            payment_url = request.POST.get('payment_url', '').strip()
+
+            rpm.instructions = instructions
+            rpm.payment_url = payment_url
+            rpm.use_for_billing = True
+            rpm.is_active = True
+            rpm.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="ACTUALIZAR_METODO_REGION",
+                details=f"Se actualizó '{rpm.payment_method.name}' en {rpm.region.name}."
+            )
+            messages.success(request, f"¡Método '{rpm.payment_method.name}' en {rpm.region.name} actualizado!")
+            return redirect('superadmin_regions')
+
+        elif action == 'REMOVE_REGION_PAYMENT_METHOD':
+            rpm_id = request.POST.get('region_payment_method_id')
+            rpm = get_object_or_404(RegionPaymentMethod, id=rpm_id)
+            method_name = rpm.payment_method.name
+            region_name = rpm.region.name
+
+            rpm.use_for_billing = False
+            rpm.save()
+
+            SystemAuditLog.objects.create(
+                actor_email=request.superadmin_user.email or request.superadmin_user.username,
+                action="QUITAR_METODO_REGION",
+                details=f"Se quitó el método '{method_name}' de la región {region_name}."
+            )
+            messages.success(request, f"Método '{method_name}' quitado de {region_name}.")
+            return redirect('superadmin_regions')
+
         elif action == 'UPDATE_PAYMENT_METHODS':
             region_id = request.POST.get('region_id')
             region = get_object_or_404(Region, id=region_id)
@@ -876,36 +1183,67 @@ def regions_management_view(request):
     _ensure_default_payment_methods()
     _ensure_default_regions()
     from apps.superadmin.payment_gateways import is_available
-    regions = Region.objects.all().order_by('name')
-    global_methods = GlobalPaymentMethod.objects.filter(is_active=True).order_by('name')
+    active_regions = Region.objects.filter(is_active=True).order_by('name')
+    available_inactive_regions = Region.objects.filter(is_active=False).order_by('name')
+    global_methods = GlobalPaymentMethod.objects.filter(is_active=True, code__in=DEVELOPED_PAYMENT_METHOD_CODES).order_by('name')
     
-    # Pre-fetch region payment methods
+    # Pre-fetch region payment methods exclusivamente para las regiones activas en uso
     regions_data = []
-    for region in regions:
-        region_methods = {rpm.payment_method_id: rpm for rpm in region.payment_methods.all()}
-        primary_methods = []
-        other_methods = []
-        for gm in global_methods:
-            rc = region_methods.get(gm.id)
-            item_dict = {
-                'global_method': gm,
-                'region_config': rc,
-                'credentials_ok': is_available(gm.provider, region) if gm.provider else None,
-            }
-            if region.code == 'GLOBAL' or (rc and (rc.use_for_sales or rc.use_for_billing)):
-                primary_methods.append(item_dict)
-            else:
-                other_methods.append(item_dict)
+    for region in active_regions:
+        active_rpms = RegionPaymentMethod.objects.filter(
+            region=region,
+            use_for_billing=True
+        ).select_related('payment_method').order_by('payment_method__name')
+
+        configured_methods = []
+        configured_pm_ids = set()
+        for rpm in active_rpms:
+            if rpm.payment_method.code in DEVELOPED_PAYMENT_METHOD_CODES:
+                configured_pm_ids.add(rpm.payment_method_id)
+                configured_methods.append({
+                    'rpm': rpm,
+                    'global_method': rpm.payment_method,
+                    'credentials_ok': is_available(rpm.payment_method.provider, region) if rpm.payment_method.provider else None,
+                })
+
+        available_to_add = [gm for gm in global_methods if gm.id not in configured_pm_ids]
+        available_json = json.dumps([
+            {
+                'id': str(gm.id),
+                'name': gm.name,
+                'code': gm.code,
+                'description': gm.description or '',
+                'is_integrated': bool(gm.provider)
+            } for gm in available_to_add
+        ])
 
         regions_data.append({
             'region': region,
-            'methods': primary_methods if primary_methods else other_methods,
-            'other_methods': other_methods if primary_methods else [],
+            'configured_methods': configured_methods,
+            'available_to_add': available_to_add,
+            'available_json': available_json,
+            'total_configured': len(configured_methods),
         })
+
+    from apps.superadmin.regional_payment_registry import PAYMENT_METHOD_CATALOG
+    catalog_methods_data = {}
+    for c_code, m in PAYMENT_METHOD_CATALOG.items():
+        catalog_methods_data[c_code] = {
+            'code': m.code,
+            'name': m.name,
+            'instructions': m.instructions,
+            'type': m.type,
+            'badge': m.badge,
+            'qr_image': m.qr_image,
+        }
 
     return render(request, 'superadmin/regions.html', {
         'regions_data': regions_data,
         'global_methods': global_methods,
+        'all_regions': active_regions,
+        'active_regions': active_regions,
+        'available_inactive_regions': available_inactive_regions,
+        'catalog_methods_json': json.dumps(catalog_methods_data),
     })
 
 # Helpers
@@ -913,26 +1251,10 @@ def _ensure_default_payment_methods():
     from apps.superadmin.payment_gateways import ensure_integrated_methods
     ensure_integrated_methods()
     default_methods = [
-        # Métodos transversales en Latinoamérica
         {
-            'code': 'TRANSFERENCIA',
-            'name': 'Transferencia Bancaria',
-            'description': 'Validación manual: Transferencia bancaria directa (CBU, Alias, CLABE, CCI, CuentaRUT, ACH o IBAN).'
-        },
-        {
-            'code': 'EFECTIVO',
-            'name': 'Efectivo (Caja)',
-            'description': 'Pago presencial en efectivo en moneda local o divisas en la sucursal.'
-        },
-        {
-            'code': 'TARJETA',
-            'name': 'Tarjeta de Débito / Crédito (POS)',
-            'description': 'Cobro con tarjeta de débito o crédito mediante terminal POS / datáfono o link de pago.'
-        },
-        {
-            'code': 'ZELLE',
-            'name': 'Zelle (USD)',
-            'description': 'Transferencia inmediata en dólares estadounidenses vía Zelle (correo electrónico o teléfono asociado).'
+            'code': 'MERCADOPAGO',
+            'name': 'Mercado Pago',
+            'description': 'Pasarela online automatizada en moneda local (Argentina, Chile, Colombia, México, Uruguay, Perú).'
         },
         {
             'code': 'BINANCE_PAY',
@@ -940,75 +1262,29 @@ def _ensure_default_payment_methods():
             'description': 'Pago inmediato en criptomonedas / USDT mediante Binance Pay ID, QR o correo registrado.'
         },
         {
-            'code': 'PAYPAL',
-            'name': 'PayPal',
-            'description': 'Pago internacional en USD con saldo PayPal o tarjeta mediante correo o enlace PayPal.Me.'
-        },
-        # Métodos locales por país latinoamericano
-        {
             'code': 'PAGOMOVIL',
             'name': 'Pago Móvil (Venezuela)',
             'description': 'Validación manual: Pago Móvil interbancario inmediato en Bolívares (Banco, Cédula/RIF y Teléfono).'
         },
         {
-            'code': 'PIX',
-            'name': 'Pix (Brasil)',
-            'description': 'Transferencia instantánea 24/7 en Reales mediante llave Pix (CPF/CNPJ, Email, Teléfono o QR Code).'
+            'code': 'TRANSFERENCIA_BS',
+            'name': 'Transferencia Bancaria BNC (Bs.)',
+            'description': 'Transferencia nacional en Bolívares a cuenta Banco Nacional de Crédito (BNC).'
         },
         {
-            'code': 'NEQUI_DAVIPLATA',
-            'name': 'Nequi / DaviPlata / PSE (Colombia)',
-            'description': 'Transferencia rápida desde billeteras digitales Nequi, DaviPlata, Bre-B o débito PSE en Colombia.'
+            'code': 'ALIAS_CBU',
+            'name': 'Transferencia Bancaria / Alias (Argentina)',
+            'description': 'Transferencia inmediata en Pesos vía Alias o CVU de Mercado Pago.'
         },
         {
-            'code': 'YAPE_PLIN',
-            'name': 'Yape / Plin (Perú)',
-            'description': 'Pago inmediato con número de celular o código QR a través de Yape o Plin en Perú.'
+            'code': 'TRANSFERENCIA_INTL',
+            'name': 'Transferencia Bancaria Internacional',
+            'description': 'Transferencia bancaria internacional o Swift para pagos transfronterizos.'
         },
         {
-            'code': 'SPEI_OXXO',
-            'name': 'SPEI / CoDi / OXXO (México)',
-            'description': 'Transferencia interbancaria CLABE (SPEI), cobro digital CoDi o depósito en efectivo en OXXO.'
-        },
-        {
-            'code': 'WEBPAY_KHIPU',
-            'name': 'Webpay / CuentaRUT / Khipu (Chile)',
-            'description': 'Pago con tarjetas vía Transbank Webpay, Khipu o transferencia a CuentaRUT BancoEstado.'
-        },
-        {
-            'code': 'SINPE_MOVIL',
-            'name': 'SINPE Móvil (Costa Rica)',
-            'description': 'Transferencia bancaria inmediata al número de teléfono celular afiliado a SINPE Móvil.'
-        },
-        {
-            'code': 'YAPPY',
-            'name': 'Yappy / ACH Xpress (Panamá)',
-            'description': 'Pago rápido por directorio comercial o número celular en Yappy (Banco General) o ACH Xpress.'
-        },
-        {
-            'code': 'QR_SIMPLE',
-            'name': 'QR Simple (Bolivia)',
-            'description': 'Cobro interbancario inmediato en Bolivianos mediante código QR Simple.'
-        },
-        {
-            'code': 'SIPAP',
-            'name': 'SIPAP / Giros Tigo (Paraguay)',
-            'description': 'Transferencia bancaria instantánea vía SIPAP / Alias o billetera móvil Giros Tigo.'
-        },
-        {
-            'code': 'DEUNA',
-            'name': 'Deuna! / Pago QR (Ecuador)',
-            'description': 'Pago inmediato sin comisión mediante código QR o número celular con Deuna! (Banco Pichincha).'
-        },
-        {
-            'code': 'TRANSFER365',
-            'name': 'Transfer365 / Billetera Local (El Salvador)',
-            'description': 'Transferencia interbancaria inmediata 24/7 vía Transfer365 del BCR en El Salvador.'
-        },
-        {
-            'code': 'ATH_MOVIL',
-            'name': 'ATH Móvil (Puerto Rico)',
-            'description': 'Pago instantáneo a número telefónico o tarjeta mediante ATH Móvil / ATH Móvil Business.'
+            'code': 'TRANSFERENCIA',
+            'name': 'Transferencia Bancaria',
+            'description': 'Transferencia bancaria directa en moneda local o divisas.'
         },
     ]
 
@@ -1023,9 +1299,14 @@ def _ensure_default_payment_methods():
                 description=item['description'],
                 is_active=True
             )
-        elif item['code'] == 'PAGOMOVIL' and pm.name == 'Pago Móvil':
-            pm.name = item['name']
-            pm.save(update_fields=['name'])
+        else:
+            if not pm.code:
+                pm.code = item['code']
+            pm.is_active = True
+            pm.save()
+
+    # Desactivar métodos de prueba/dummy no desarrollados para no contaminar los selectores
+    GlobalPaymentMethod.objects.exclude(code__in=DEVELOPED_PAYMENT_METHOD_CODES).update(is_active=False)
 
 def _ensure_default_regions():
     """
@@ -1036,8 +1317,8 @@ def _ensure_default_regions():
     latam_regions = [
         {
             'name': 'Argentina', 'code': '54', 'country_codes': 'AR', 'currency_symbol': '$', 'currency_code': 'ARS',
-            'methods': ['MERCADOPAGO', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'BINANCE_PAY', 'ZELLE', 'PAYPAL'],
-            'transfer_instructions': 'Transferencia en Pesos (ARS) o USD: Indicar Banco/Billetera, CBU/CVU, Alias y CUIT/CUIL.'
+            'methods': ['MERCADOPAGO', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'BINANCE_PAY', 'PAYPAL'],
+            'transfer_instructions': 'Alias: isabella.deabreu\nCVU: 0000003100066158325774\nTitular: Raulymar De Abreu\nBilletera / Banco: Mercado Pago'
         },
         {
             'name': 'Bolivia', 'code': '591', 'country_codes': 'BO', 'currency_symbol': 'Bs.', 'currency_code': 'BOB',
@@ -1126,8 +1407,8 @@ def _ensure_default_regions():
         },
         {
             'name': 'Venezuela', 'code': '58', 'country_codes': 'VE', 'currency_symbol': '$', 'currency_code': 'USD',
-            'methods': ['PAGOMOVIL', 'ZELLE', 'BINANCE_PAY', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'PAYPAL'],
-            'transfer_instructions': 'Transferencia Bancaria Nacional (Bs. a tasa oficial BCV o USD): Indicar Banco, Código de 20 dígitos de Cuenta, Titular y Cédula/RIF.'
+            'methods': ['PAGOMOVIL', 'BINANCE_PAY', 'TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'PAYPAL'],
+            'transfer_instructions': 'Banco: Banco BNC (Código 0191)\nCuenta Corriente: 0191-0025-11-2125078240\nCédula: V-31473363\nTitular: Raulymar De Abreu'
         },
     ]
 
@@ -1141,14 +1422,15 @@ def _ensure_default_regions():
         ).first()
 
         if not region:
+            is_active_initial = item['code'] in ('54', '58')
             region = Region.objects.create(
                 name=item['name'],
                 code=item['code'],
                 country_codes=item['country_codes'],
                 currency_symbol=item['currency_symbol'],
                 currency_code=item['currency_code'],
-                is_active=True,
-                is_default=False,
+                is_active=is_active_initial,
+                is_default=(item['code'] == '54'),
             )
         else:
             updated = False

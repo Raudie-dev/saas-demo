@@ -430,8 +430,8 @@ class UserRolesAndPermissionsTestCase(TestCase):
         res_owner = self.client.get(reverse('subscription_billing'))
         self.assertEqual(res_owner.status_code, 200)
         self.assertContains(res_owner, "Región Activa: Argentina")
-        self.assertContains(res_owner, "MIEMPRESA.PAGOS")
-        self.assertContains(res_owner, "Transferencia Bancaria")
+        self.assertContains(res_owner, "Transferencia Bancaria / Alias")
+        self.assertContains(res_owner, "Mercado Pago")
 
     def test_subscription_billing_report_and_approve_payment(self):
         """

@@ -25,43 +25,51 @@
     </div>
 
     <!-- Region Selector Header Bar -->
-    <div class="glass-card bg-gradient-to-r from-slate-900 via-slate-800 to-rose-950 p-5 sm:p-7 rounded-3xl text-white shadow-xl relative overflow-hidden">
-        <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-rose-600/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="glass-card bg-gradient-to-r from-slate-950 via-slate-900 to-rose-950 p-6 sm:p-7 rounded-3xl text-white shadow-xl relative overflow-hidden border border-white/10">
+        <div class="absolute -right-10 -bottom-10 w-72 h-72 bg-rose-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute left-1/3 -top-12 w-64 h-64 bg-slate-700/20 rounded-full blur-2xl pointer-events-none"></div>
 
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6 relative z-10">
-            <div>
-                <div class="flex flex-wrap items-center gap-2 mb-2.5">
-                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-400/30 flex items-center gap-1.5 backdrop-blur-sm whitespace-nowrap">
-                        <i data-lucide="globe-2" class="w-3.5 h-3.5 shrink-0"></i>
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+            <div class="space-y-2.5">
+                <!-- Badges Row -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/20 backdrop-blur-md transition shadow-xs">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
                         <span>Región Activa: {{ current_region.name }}</span>
                     </span>
-                    <span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-white/10 text-white border border-white/20 whitespace-nowrap">
-                        Moneda: {{ currency_symbol }} ({{ current_region.code }})
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-white/10 text-rose-200 border border-white/20 backdrop-blur-md shadow-xs">
+                        <span>Moneda: {{ currency_symbol }} ({{ current_region.code }})</span>
                     </span>
+                    {% if bcv_info %}
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-200 border border-amber-400/40 backdrop-blur-md shadow-xs" title="Actualizado vía API Oficial BCV">
+                        <i data-lucide="trending-up" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>Tasa Oficial BCV:</span>
+                        <span class="font-mono font-black text-amber-300 bg-amber-400/25 px-1.5 py-0.5 rounded-md border border-amber-400/30">Bs. {{ bcv_info.rate_formatted }} / USD</span>
+                    </span>
+                    {% endif %}
                 </div>
+
                 <h2 class="text-xl sm:text-2xl font-black font-display tracking-tight text-white">
                     Planes & Métodos de Pago de tu Región
                 </h2>
-                <p class="text-xs text-slate-300 max-w-2xl mt-1.5 leading-relaxed">
+                <p class="text-xs text-slate-300 max-w-2xl leading-relaxed">
                     Las tarifas, bancos e instrucciones de cobro se adaptan a tu ubicación geográfica. Elige tu plan y abona mediante canales locales verificados (CBU, Mercado Pago, transferencias o pasarelas locales).
                 </p>
             </div>
 
-            <!-- Verified Region Status & Protected Change Button -->
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0 w-full md:w-auto">
-                <div class="px-4 py-2.5 sm:py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm flex items-center justify-between sm:block">
-                    <div class="flex items-center gap-2 text-xs font-bold text-slate-300">
-                        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
-                        <span>Región Asignada</span>
-                    </div>
-                    <div class="text-sm font-black font-display text-white mt-0.5 flex items-center gap-2">
-                        <span>{{ current_region.name }}</span>
-                        <span class="text-xs font-mono font-bold text-rose-300">({{ current_region.currency_symbol }})</span>
-                    </div>
+            <!-- Verified Region Status & Interactive Action Button (Uno abajo del otro) -->
+            <div class="flex flex-col items-start lg:items-end justify-center gap-2 shrink-0">
+                <div class="text-left lg:text-right">
+                    <span class="text-xs text-slate-300 block leading-tight">Región asignada:</span>
+                    <span class="text-sm font-black text-white font-display">
+                        {{ current_region.name }} <span class="text-rose-400 font-mono font-bold">({{ current_region.currency_symbol }})</span>
+                    </span>
                 </div>
 
-                <button type="button" onclick="openRegionChangeModal()" class="w-full sm:w-auto justify-center px-4 py-2.5 sm:py-3 rounded-2xl bg-white/10 hover:bg-white/20 active:bg-white/15 text-slate-200 hover:text-white border border-white/15 text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-2xs">
-                    <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-300"></i>
+                <button type="button" 
+                        onclick="openRegionChangeModal()" 
+                        class="px-4 py-2.5 rounded-xl bg-[#e5534b] hover:bg-[#d84840] active:scale-[0.98] text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer whitespace-nowrap">
+                    <i data-lucide="arrow-left-right" class="w-3.5 h-3.5"></i>
                     <span>Cambiar Región</span>
                 </button>
             </div>
@@ -235,6 +243,20 @@
                             <span class="text-3xl font-black text-slate-900 font-display">{{ plan.currency }}{{ plan.display_annual }}</span>
                             <span class="text-xs font-semibold text-slate-500">/ año</span>
                         </div>
+                        {% if plan.bs_monthly_formatted %}
+                        <div class="price-monthly mt-1.5">
+                            <span class="text-[11px] font-black text-amber-900 bg-amber-50 border border-amber-200/90 rounded-lg px-2 py-0.5 inline-flex items-center gap-1 shadow-2xs">
+                                <i data-lucide="calculator" class="w-3 h-3 text-amber-700"></i>
+                                <span>≈ Bs. {{ plan.bs_monthly_formatted }} / mes (BCV)</span>
+                            </span>
+                        </div>
+                        <div class="price-annual hidden mt-1.5">
+                            <span class="text-[11px] font-black text-amber-900 bg-amber-50 border border-amber-200/90 rounded-lg px-2 py-0.5 inline-flex items-center gap-1 shadow-2xs">
+                                <i data-lucide="calculator" class="w-3 h-3 text-amber-700"></i>
+                                <span>≈ Bs. {{ plan.bs_annual_formatted }} / año (BCV)</span>
+                            </span>
+                        </div>
+                        {% endif %}
                         {% if plan.savings_pct > 0 %}
                         <span class="price-annual hidden text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 mt-1 inline-block">
                             🎉 Ahorras {{ plan.savings_pct }}% facturando anualmente
@@ -280,227 +302,365 @@
         </div>
     </div>
 
-    <!-- Section: Regional Payment Methods Available -->
-    <div class="space-y-4 pt-4">
-        <div class="flex items-center justify-between border-b border-slate-200/80 pb-3">
-            <div>
-                <h3 class="text-lg font-black font-display text-slate-900 flex items-center gap-2">
-                    <i data-lucide="wallet" class="w-5 h-5 text-rose-900"></i>
-                    <span>Canales de Pago Autorizados para {{ current_region.name }}</span>
-                </h3>
-                <p class="text-xs text-slate-500">Realiza tu pago utilizando cualquiera de estas opciones habilitadas y luego sube tu comprobante a continuación</p>
+    <!-- Section: Centro Unificado de Pago de Suscripción -->
+    <div id="payment-form-section" class="space-y-4 pt-4 scroll-mt-6">
+        
+        <!-- Header & Selector de Método -->
+        <div class="glass-card bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                <div>
+                    <h3 class="text-base sm:text-lg font-black font-display text-slate-900 flex items-center gap-2">
+                        <i data-lucide="wallet-cards" class="w-5 h-5 text-rose-900"></i>
+                        <span>Medio de Pago para {{ current_region.name }}</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Selecciona cómo deseas pagar tu suscripción: pasarela online automática o transferencia bancaria.</p>
+                </div>
+                <span class="self-start sm:self-auto px-3 py-1 rounded-full text-[11px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="globe" class="w-3.5 h-3.5 text-rose-900"></i>
+                    <span>Región: {{ current_region.name }} ({{ current_region.code }})</span>
+                </span>
             </div>
+
+            {% if gateway_methods or billing_methods %}
+            <!-- Tabs de Selección de Métodos de Pago -->
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">1. Selecciona tu método preferido:</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" id="paymentMethodTabs">
+                    
+                    <!-- Pasarelas Online Automáticas (ej. Mercado Pago) -->
+                    {% for gm in gateway_methods %}
+                    <button type="button" 
+                            onclick="switchPaymentTab('gateway-{{ gm.id }}', 'GATEWAY', '{{ gm.id }}')"
+                            id="tab-gateway-{{ gm.id }}"
+                            data-tab-id="gateway-{{ gm.id }}"
+                            data-type="GATEWAY"
+                            class="payment-tab-btn text-left p-3.5 rounded-2xl border-2 transition-all duration-150 cursor-pointer flex items-center gap-3 bg-white border-slate-200 hover:border-sky-400 hover:bg-sky-50/50 shadow-xs hover:shadow-sm active:scale-[0.99] group">
+                        <div class="w-10 h-10 rounded-xl bg-sky-50 text-[#009EE3] border border-sky-200 flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-sky-100 transition-all shadow-2xs">
+                            <i data-lucide="credit-card" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="font-bold text-slate-900 text-xs truncate">{{ gm.payment_method.name }}</span>
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-sky-100 text-sky-800 uppercase shrink-0">Inmediato</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 block truncate">Acreditación online directa</span>
+                        </div>
+                    </button>
+                    {% endfor %}
+
+                    <!-- Canales de Pago Manual (Transferencia Bancaria, Alias, Pago Móvil, Binance) -->
+                    {% for rm in billing_methods %}
+                    <button type="button" 
+                            onclick="switchPaymentTab('manual-{{ rm.id }}', 'MANUAL', '{{ rm.id }}')"
+                            id="tab-manual-{{ rm.id }}"
+                            data-tab-id="manual-{{ rm.id }}"
+                            data-type="MANUAL"
+                            data-method-id="{{ rm.db_rpm_id|default:rm.id }}"
+                            data-method-name="{{ rm.payment_method.name|escapejs }}"
+                            data-instructions="{{ rm.instructions|default:''|escape }}"
+                            data-fields="{{ rm.fields_json|escape }}"
+                            data-qr="{{ rm.qr_image|default:'' }}"
+                            data-badge="{{ rm.badge|default:'Oficial'|escapejs }}"
+                            class="payment-tab-btn text-left p-3.5 rounded-2xl border-2 transition-all duration-150 cursor-pointer flex items-center gap-3 bg-white border-slate-200 hover:border-rose-400 hover:bg-rose-50/50 shadow-xs hover:shadow-sm active:scale-[0.99] group">
+                        <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-rose-100 transition-all shadow-2xs">
+                            {% if 'binance' in rm.payment_method.name|lower %}
+                            <i data-lucide="coins" class="w-5 h-5"></i>
+                            {% elif 'móvil' in rm.payment_method.name|lower or 'movil' in rm.payment_method.name|lower %}
+                            <i data-lucide="smartphone" class="w-5 h-5"></i>
+                            {% else %}
+                            <i data-lucide="landmark" class="w-5 h-5"></i>
+                            {% endif %}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="font-bold text-slate-900 text-xs truncate">{{ rm.payment_method.name }}</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 block truncate">{{ rm.badge|default:"Cuentas Oficiales" }}</span>
+                        </div>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-300 space-y-2">
+                <i data-lucide="alert-circle" class="w-6 h-6 text-amber-600 mx-auto"></i>
+                <h4 class="font-bold text-slate-800 text-sm">No hay métodos de pago configurados para {{ current_region.name }}</h4>
+                <p class="text-xs text-slate-500">Contacta con el equipo de soporte técnico para habilitar canales de cobro.</p>
+            </div>
+            {% endif %}
         </div>
 
-        {% if billing_methods %}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {% for rm in billing_methods %}
-            <div class="glass-card bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 hover:border-rose-200 transition">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 border border-slate-200 flex items-center justify-center font-bold">
-                            <i data-lucide="landmark" class="w-4 h-4 text-rose-900"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-slate-900 text-sm font-display">{{ rm.payment_method.name }}</h4>
-                            <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">{{ rm.payment_method.code }}</span>
-                        </div>
-                    </div>
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
-                        Habilitado en {{ current_region.code }}
-                    </span>
-                </div>
-
-                <!-- Instructions Block -->
-                {% if rm.instructions %}
-                <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
-                    <div class="text-xs text-slate-700 whitespace-pre-line leading-relaxed font-sans">{{ rm.instructions }}</div>
+        {% if gateway_methods or billing_methods %}
+        <!-- Dynamic Content Panels Area -->
+        <div id="paymentPanelsContainer">
+            
+            <!-- PANEL 1: GATEWAY (MERCADO PAGO) - Checkout online centrado, sin formulario manual ni espacios en blanco -->
+            {% for gm in gateway_methods %}
+            <div id="panel-gateway-{{ gm.id }}" class="payment-method-panel hidden">
+                <div class="max-w-2xl mx-auto glass-card bg-white p-6 sm:p-8 rounded-3xl border border-sky-200 shadow-sm space-y-6">
                     
-                    <!-- Quick Copy Button for instructions -->
-                    <div class="pt-2 flex flex-wrap gap-2">
-                        <button type="button" onclick="copyToClipboard('{{ rm.instructions|escapejs }}', this)" class="px-3 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
-                            <i data-lucide="copy" class="w-3 h-3 text-slate-500"></i>
-                            <span>Copiar Datos Bancarios</span>
-                        </button>
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-2xl bg-sky-50 text-[#009EE3] border border-sky-200 flex items-center justify-center shrink-0 shadow-2xs">
+                                <i data-lucide="credit-card" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-black text-slate-900 text-base font-display">{{ gm.payment_method.name }}</h4>
+                                <span class="text-[10px] font-mono text-sky-600 uppercase font-black">Pasarela Online Inmediata</span>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-[11px] font-extrabold bg-sky-50 text-sky-700 border border-sky-200">
+                            {{ gm.badge|default:"Acreditación Inmediata" }}
+                        </span>
                     </div>
-                </div>
-                {% endif %}
 
-                <!-- Direct Payment Link if available -->
-                {% if rm.payment_url %}
-                <div class="pt-1">
-                    <a href="{{ rm.payment_url }}" target="_blank" rel="noopener noreferrer" class="w-full py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-xs">
-                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                        <span>Pagar Ahora en Línea (Pasarela Externa)</span>
-                    </a>
+                    <!-- Resumen del Pago y Beneficios -->
+                    <div class="bg-sky-50/60 border border-sky-100 rounded-2xl p-4 space-y-3">
+                        <p class="text-xs text-slate-700 leading-relaxed font-sans">
+                            {{ gm.instructions|default:"Pago seguro e inmediato con tarjeta de débito/crédito, dinero en Mercado Pago o medios locales. Tu licencia se activa de forma automática al confirmarse." }}
+                        </p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-sky-100 text-[11px] text-sky-900 font-semibold">
+                            <div class="flex items-center gap-1.5">
+                                <i data-lucide="check-circle" class="w-3.5 h-3.5 text-sky-600"></i>
+                                <span>Activación 100% automática</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-sky-600"></i>
+                                <span>Pago seguro cifrado</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <i data-lucide="file-check-2" class="w-3.5 h-3.5 text-sky-600"></i>
+                                <span>Sin comprobante manual</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta de Plan Seleccionado para la Pasarela -->
+                    <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-bold text-slate-700">Plan a abonar:</span>
+                            <span class="text-[11px] text-slate-400">Puedes cambiar de plan arriba en cualquier momento</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-900 flex items-center justify-center font-bold shrink-0">
+                                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <span id="gatewayPlanTitle-{{ gm.id }}" class="text-xs font-black text-slate-900 block truncate font-display">
+                                        {% if subscription.plan %}{{ subscription.plan.name }}{% else %}Selecciona un plan arriba{% endif %}
+                                    </span>
+                                    <span class="text-[10px] text-slate-400 font-mono">Licencia del sistema</span>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span id="gatewayPlanPrice-{{ gm.id }}" class="text-sm font-black text-slate-900 font-mono">
+                                    {{ currency_symbol }}{{ current_plan_display_monthly }}
+                                </span>
+                                <span id="gatewayPlanCycle-{{ gm.id }}" class="text-[10px] text-slate-400 block font-bold">/ mes</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botón de Pago Directo Online -->
+                    <form method="POST" action="{% url 'subscription_billing' %}" onsubmit="return submitGatewayPayment(this, '{{ gm.id }}')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="PAY_GATEWAY">
+                        <input type="hidden" name="region_payment_method_id" value="{{ gm.id }}">
+                        <input type="hidden" name="plan_id" value="{% if subscription.plan %}{{ subscription.plan.id }}{% endif %}">
+                        <input type="hidden" name="billing_cycle" value="MONTHLY">
+                        <button type="submit" class="w-full py-3.5 px-6 rounded-2xl bg-[#009EE3] hover:bg-[#0082ba] active:scale-[0.99] text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2.5 cursor-pointer">
+                            <i data-lucide="wallet" class="w-5 h-5"></i>
+                            <span>{{ gm.gateway.button_label|default:"Pagar ahora con Mercado Pago" }}</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                        </button>
+                    </form>
+
+                    <p class="text-center text-[11px] text-slate-400">
+                        Al hacer clic serás redirigido de forma protegida para completar la transacción.
+                    </p>
                 </div>
-                {% endif %}
             </div>
             {% endfor %}
-        </div>
-        {% else %}
-        <div class="p-8 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-300 space-y-3">
-            <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center mx-auto">
-                <i data-lucide="alert-circle" class="w-6 h-6"></i>
-            </div>
-            <h4 class="font-bold text-slate-800 text-sm">No hay métodos automáticos para {{ current_region.name }}</h4>
-            <p class="text-xs text-slate-500 max-w-md mx-auto">
-                El administrador aún no ha configurado métodos de cobro para esta región. Puedes cambiar tu región arriba o contactar al equipo de soporte para coordinar tu pago.
-            </p>
-        </div>
-        {% endif %}
-    </div>
 
-    <!-- Section: Report Payment Form (Informar Pago) -->
-    <div id="payment-form-section" class="glass-card bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 scroll-mt-6">
-        <div class="border-b border-slate-100 pb-4">
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-900 border border-rose-200 flex items-center justify-center">
-                    <i data-lucide="receipt" class="w-5 h-5"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-black font-display text-slate-900">Informar y Registrar Pago de Suscripción</h3>
-                    <p class="text-xs text-slate-500">Notifica el pago realizado adjuntando el comprobante para su validación inmediata por el equipo administrativo.</p>
-                </div>
-            </div>
-        </div>
-
-        {% if gateway_methods %}
-        {% for gm in gateway_methods %}
-        <div class="rounded-2xl border border-sky-200 bg-sky-50/60 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h4 class="text-sm font-black text-slate-900 flex items-center gap-2"><i data-lucide="credit-card" class="w-4 h-4 text-sky-600"></i> Pagar online con {{ gm.payment_method.name }}</h4>
-                <p class="text-xs text-slate-600 mt-1">Selecciona el plan y el período abajo (pasos 1 y 3) y paga de forma inmediata. La licencia se activará automáticamente al confirmarse la transacción.</p>
-            </div>
-            <form method="POST" action="{% url 'subscription_billing' %}" onsubmit="return prepareGatewayPayment(this)">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="PAY_GATEWAY">
-                <input type="hidden" name="region_payment_method_id" value="{{ gm.id }}">
-                <input type="hidden" name="plan_id" value="">
-                <input type="hidden" name="billing_cycle" value="MONTHLY">
-                <button type="submit" class="px-6 py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                    <i data-lucide="wallet" class="w-4 h-4"></i>
-                    <span>{{ gm.gateway.button_label|default:"Pagar con Mercado Pago" }}</span>
-                </button>
-            </form>
-        </div>
-        {% endfor %}
-        <script>
-            function prepareGatewayPayment(form) {
-                var planId = document.getElementById('selectPlan').value;
-                if (!planId) { alert('Selecciona primero el plan que deseas abonar.'); return false; }
-                form.plan_id.value = planId;
-                form.billing_cycle.value = document.getElementById('formBillingCycle').value || 'MONTHLY';
-                return true;
-            }
-        </script>
-        {% endif %}
-
-        <form method="POST" action="{% url 'subscription_billing' %}" enctype="multipart/form-data" class="space-y-6">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="REPORT_PAYMENT">
-            <input type="hidden" id="formBillingCycle" name="billing_cycle" value="MONTHLY">
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                
-                <!-- Plan to Pay -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">1. Plan que estás abonando *</label>
-                    <select id="selectPlan" name="plan_id" required onchange="handlePlanSelectionChange()" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition cursor-pointer">
-                        <option value="">-- Seleccionar Plan --</option>
-                        {% for plan in available_plans %}
-                        <option value="{{ plan.id }}" 
-                                data-monthly="{{ plan.display_monthly }}" 
-                                data-annual="{{ plan.display_annual }}" 
-                                data-currency="{{ plan.currency }}"
-                                {% if subscription.plan and subscription.plan.id == plan.id %}selected{% endif %}>
-                            {{ plan.name }} ({{ plan.currency }}{{ plan.display_monthly }}/m)
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Payment Method -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">2. Método de Pago Utilizado *</label>
-                    <select id="selectMethod" name="region_payment_method_id" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition cursor-pointer">
-                        <option value="">-- Seleccionar Método de Pago --</option>
-                        {% for rm in billing_methods %}
-                        <option value="{{ rm.id }}">{{ rm.payment_method.name }} ({{ current_region.name }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Amount (Select Directo) -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">3. Monto y Período a Abonar (en {{ currency_symbol }}) *</label>
-                    <div class="relative">
-                        <select id="selectAmount" onchange="handleAmountChange(this)" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition cursor-pointer">
-                            <!-- Populated dynamically via JS -->
-                        </select>
-                    </div>
-
-                    <!-- Input oculto para enviar el monto numérico final -->
-                    <input type="hidden" id="hiddenAmount" name="amount" value="">
-
-                    <!-- Input para monto personalizado si elige 'CUSTOM' -->
-                    <div id="customAmountContainer" class="hidden mt-2 relative">
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500">{{ currency_symbol }}</span>
-                        <input type="number" step="0.01" id="inputCustomAmount" placeholder="Ingresa el monto exacto" oninput="document.getElementById('hiddenAmount').value = this.value" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 pl-8 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition">
-                    </div>
-
-                    <span class="text-[10px] text-slate-400 block mt-1">Escoge directamente en este selector si deseas pagar la cuota mensual o el total anual.</span>
-                </div>
-
-                <!-- Transaction Reference -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">4. N° de Comprobante / Transacción / Referencia *</label>
-                    <input type="text" name="reference" required placeholder="Ej: 00049281, OP-84920, o ID de Mercado Pago" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition">
-                    <span class="text-[10px] text-slate-400 block mt-1">Número de operación bancaria o identificador del pago.</span>
-                </div>
-
-                <!-- Receipt Voucher File Upload -->
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">5. Adjuntar Comprobante de Pago (Imagen o PDF)</label>
-                    <div class="border-2 border-dashed border-slate-300 hover:border-rose-700 rounded-2xl p-5 text-center bg-slate-50/50 hover:bg-slate-50 transition relative cursor-pointer" onclick="document.getElementById('receiptFileInput').click()">
-                        <input type="file" id="receiptFileInput" name="receipt_file" accept="image/*,application/pdf" class="hidden" onchange="handleFileSelected(this)">
-                        
-                        <div id="fileUploadPrompt" class="space-y-2">
-                            <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-900 flex items-center justify-center mx-auto">
-                                <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+            <!-- PANEL 2: MANUAL METHODS (TRANSFERENCIAS / ALIAS / PAGO MÓVIL / BINANCE) -->
+            <!-- 2 Columnas Balanceadas: Izquierda = Cuentas y QR (UNA VEZ); Derecha = Formulario de reporte -->
+            <div id="panel-manual-container" class="payment-method-panel hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    
+                    <!-- Columna Izquierda (lg:col-span-5): Datos Bancarios Oficiales y QR para Transferir -->
+                    <div class="lg:col-span-5 space-y-4">
+                        <div class="glass-card bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                            
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-900 border border-rose-200 flex items-center justify-center font-bold shrink-0">
+                                        <i data-lucide="landmark" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h4 id="manualActiveMethodName" class="font-black text-slate-900 text-sm font-display">Transferencia Bancaria</h4>
+                                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Datos para transferir</span>
+                                    </div>
+                                </div>
+                                <span id="manualActiveBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+                                    Oficial {{ current_region.code }}
+                                </span>
                             </div>
-                            <p class="text-xs font-bold text-slate-700">Haz clic aquí para seleccionar el archivo de comprobante</p>
-                            <p class="text-[10px] text-slate-400">Archivos permitidos: JPG, PNG, WEBP o PDF (Máximo 10 MB)</p>
-                        </div>
 
-                        <div id="fileUploadPreview" class="hidden flex items-center justify-center gap-3 text-xs font-bold text-emerald-800">
-                            <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600"></i>
-                            <span id="fileNameDisplay">comprobante.pdf</span>
-                            <button type="button" onclick="event.stopPropagation(); clearReceiptFile();" class="text-rose-700 hover:underline text-[11px] font-bold ml-2">Eliminar</button>
+                            <!-- Campos estructurados con copiado 1 a 1 -->
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between px-0.5">
+                                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                                        Cuentas Oficiales
+                                    </span>
+                                    <span class="text-[10px] text-slate-400 font-semibold">Copia cada dato con un clic</span>
+                                </div>
+
+                                <div id="manualFieldsList" class="space-y-1.5">
+                                    <!-- Dynamic fields populated via JS -->
+                                </div>
+
+                                <div id="manualInstructionsFallback" class="hidden text-xs text-slate-700 whitespace-pre-line leading-relaxed font-sans bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                                </div>
+                            </div>
+
+                            <!-- Tarjeta de Código QR -->
+                            <div id="manualQrCard" class="hidden bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3.5 flex items-center gap-3.5">
+                                <img id="manualQrImage" src="" alt="Código QR" class="w-16 h-16 object-contain rounded-xl border border-amber-200 bg-white p-1 shrink-0 cursor-pointer shadow-2xs hover:scale-105 transition" onclick="openManualActiveQr()">
+                                <div class="min-w-0">
+                                    <span class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                                        <i data-lucide="qr-code" class="w-3.5 h-3.5 text-amber-700"></i>
+                                        <span>Código QR Oficial</span>
+                                    </span>
+                                    <span class="text-[11px] text-slate-600 block mt-0.5">Escanea con la app de tu banco</span>
+                                    <button type="button" onclick="openManualActiveQr()" class="mt-1 text-[11px] font-bold text-amber-900 hover:text-amber-950 underline inline-flex items-center gap-1 cursor-pointer">
+                                        <i data-lucide="maximize-2" class="w-3 h-3"></i>
+                                        <span>Ampliar Código QR</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-[11px] text-slate-500 flex items-start gap-2">
+                                <i data-lucide="info" class="w-4 h-4 text-slate-400 shrink-0 mt-0.5"></i>
+                                <span>Realiza el pago desde tu banco o billetera y adjunta el comprobante a la derecha para su validación.</span>
+                            </div>
+
                         </div>
                     </div>
-                </div>
 
-                <!-- Notes / Comments -->
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Observaciones adicionales (Opcional)</label>
-                    <input type="text" name="notes" placeholder="Ej: Pago realizado desde cuenta de titular Juan Pérez..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 focus:outline-none focus:border-rose-900 focus:bg-white transition">
-                </div>
+                    <!-- Columna Derecha (lg:col-span-7): Formulario para Registrar Comprobante -->
+                    <div class="lg:col-span-7">
+                        <div class="glass-card bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                            
+                            <div class="border-b border-slate-100 pb-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-900 border border-rose-200 flex items-center justify-center shrink-0">
+                                        <i data-lucide="receipt" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-base font-black font-display text-slate-900">Registrar Comprobante de Pago</h4>
+                                        <p class="text-xs text-slate-500">Notifica la transferencia realizada para extender o activar tu licencia</p>
+                                    </div>
+                                </div>
+                            </div>
 
+                            <form id="manualPaymentReportForm" method="POST" action="{% url 'subscription_billing' %}" enctype="multipart/form-data" class="space-y-5">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="REPORT_PAYMENT">
+                                <input type="hidden" id="formBillingCycle" name="billing_cycle" value="MONTHLY">
+                                <input type="hidden" id="activeManualMethodId" name="region_payment_method_id" value="">
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    
+                                    <!-- Plan to Pay -->
+                                    <div class="md:col-span-1">
+                                        <label class="block text-xs font-bold text-slate-700 mb-1.5">1. Plan que estás abonando *</label>
+                                        <select id="selectPlan" name="plan_id" required onchange="handlePlanSelectionChange()" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition cursor-pointer">
+                                            <option value="">-- Seleccionar Plan --</option>
+                                            {% for plan in available_plans %}
+                                            <option value="{{ plan.id }}" 
+                                                    data-monthly="{{ plan.display_monthly }}" 
+                                                    data-annual="{{ plan.display_annual }}" 
+                                                    data-currency="{{ plan.currency }}"
+                                                    {% if subscription.plan and subscription.plan.id == plan.id %}selected{% endif %}>
+                                                {{ plan.name }} ({{ plan.currency }}{{ plan.display_monthly }}/m)
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <!-- Amount (Select Directo) -->
+                                    <div class="md:col-span-1">
+                                        <label class="block text-xs font-bold text-slate-700 mb-1.5">2. Monto y Período *</label>
+                                        <select id="selectAmount" onchange="handleAmountChange(this)" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition cursor-pointer">
+                                            <!-- Dynamic options -->
+                                        </select>
+                                        <input type="hidden" id="hiddenAmount" name="amount" value="">
+                                        <div id="customAmountContainer" class="hidden mt-2 relative">
+                                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500">{{ currency_symbol }}</span>
+                                            <input type="number" step="0.01" id="inputCustomAmount" placeholder="Ingresa el monto exacto" oninput="document.getElementById('hiddenAmount').value = this.value" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 pl-8 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition">
+                                        </div>
+                                    </div>
+
+                                    <!-- Transaction Reference -->
+                                    <div class="md:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-700 mb-1.5">3. N° de Comprobante / Transacción / Referencia *</label>
+                                        <input type="text" name="reference" required placeholder="Ej: 00049281, OP-84920, o N° de transferencia" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-900 focus:bg-white transition">
+                                        <span class="text-[10px] text-slate-400 block mt-1">Identificador único emitido por tu banco o billetera digital.</span>
+                                    </div>
+
+                                    <!-- Receipt Voucher File Upload -->
+                                    <div class="md:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-700 mb-1.5">4. Adjuntar Comprobante de Pago (Imagen o PDF)</label>
+                                        <div class="border-2 border-dashed border-slate-300 hover:border-rose-700 rounded-2xl p-4 text-center bg-slate-50/50 hover:bg-slate-50 transition relative cursor-pointer" onclick="document.getElementById('receiptFileInput').click()">
+                                            <input type="file" id="receiptFileInput" name="receipt_file" accept="image/*,application/pdf" class="hidden" onchange="handleFileSelected(this)">
+                                            
+                                            <div id="fileUploadPrompt" class="space-y-1.5">
+                                                <div class="w-9 h-9 rounded-full bg-rose-100 text-rose-900 flex items-center justify-center mx-auto">
+                                                    <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                                                </div>
+                                                <p class="text-xs font-bold text-slate-700">Haz clic aquí para seleccionar el archivo de comprobante</p>
+                                                <p class="text-[10px] text-slate-400">JPG, PNG, WEBP o PDF (Máx. 10 MB)</p>
+                                            </div>
+
+                                            <div id="fileUploadPreview" class="hidden flex items-center justify-center gap-2 text-xs font-bold text-emerald-800">
+                                                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+                                                <span id="fileNameDisplay" class="truncate max-w-[200px]">comprobante.pdf</span>
+                                                <button type="button" onclick="event.stopPropagation(); clearReceiptFile();" class="text-rose-700 hover:underline text-[11px] font-bold ml-2">Eliminar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Notes -->
+                                    <div class="md:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Observaciones adicionales (Opcional)</label>
+                                        <input type="text" name="notes" placeholder="Ej: Pago realizado desde cuenta de titular Raulymar De Abreu..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-3 text-xs text-slate-900 focus:outline-none focus:border-rose-900 focus:bg-white transition">
+                                    </div>
+                                </div>
+
+                                <!-- Submit Bar -->
+                                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                                    <span class="text-[11px] text-slate-500 flex items-center gap-1.5 justify-center sm:justify-start">
+                                        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                                        <span>Tu comprobante será verificado por el área administrativa.</span>
+                                    </span>
+                                    <button type="submit" class="w-full sm:w-auto h-11 px-6 rounded-2xl bg-rose-900 hover:bg-rose-950 active:bg-rose-900 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer shrink-0 whitespace-nowrap">
+                                        <i data-lucide="send" class="w-4 h-4"></i>
+                                        <span>Informar Pago de Licencia</span>
+                                    </button>
+                                </div>
+                            </form>
+
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
-            <!-- Submit Button Bar -->
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-slate-100">
-                <span class="text-[11px] text-slate-500 flex items-center gap-1.5 order-2 sm:order-1 text-center sm:text-left justify-center sm:justify-start">
-                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600 shrink-0"></i>
-                    <span>Tu reporte será recibido por la administración central para validar y activar la extensión.</span>
-                </span>
-                <button type="submit" class="w-full sm:w-auto h-11 px-6 rounded-2xl bg-rose-900 hover:bg-rose-950 active:bg-rose-900 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer order-1 sm:order-2 shrink-0 whitespace-nowrap">
-                    <i data-lucide="send" class="w-4 h-4"></i>
-                    <span>Informar Pago de Licencia</span>
-                </button>
-            </div>
-        </form>
+        </div>
+        {% endif %}
+
     </div>
 
     <!-- Section: Payment History Table -->
@@ -544,7 +704,7 @@
                             <span class="block text-[10px] font-mono text-slate-400 font-semibold uppercase">{{ p.get_billing_cycle_display }}</span>
                         </td>
                         <td class="py-3.5 px-4 text-slate-700 whitespace-nowrap">
-                            {{ p.region_payment_method.payment_method.name|default:"Transferencia" }}
+                            {{ p.payment_method_display_name }}
                         </td>
                         <td class="py-3.5 px-4 font-black text-rose-900 font-display whitespace-nowrap">
                             {{ currency_symbol }}{{ p.amount }}
@@ -620,7 +780,7 @@
                     <div>
                         <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Método</span>
                         <span class="font-bold text-slate-800 truncate block">
-                            {{ p.region_payment_method.payment_method.name|default:"Transferencia" }}
+                            {{ p.payment_method_display_name }}
                         </span>
                     </div>
                     <div>
@@ -745,7 +905,9 @@ const plansData = {
         monthly: "{{ plan.display_monthly }}",
         annual: "{{ plan.display_annual }}",
         currency: "{{ plan.currency|escapejs }}",
-        savings: "{{ plan.savings_pct|default:0 }}"
+        savings: "{{ plan.savings_pct|default:0 }}",
+        bsMonthly: "{{ plan.bs_monthly_formatted|default:''|escapejs }}",
+        bsAnnual: "{{ plan.bs_annual_formatted|default:''|escapejs }}"
     },
     {% endfor %}
 };
@@ -772,19 +934,21 @@ function updateAmountOptions(preferredCycle = currentCycle) {
     const plan = plansData[planId];
     const monthlyNum = parseFloat(plan.monthly).toFixed(2);
     const annualNum = parseFloat(plan.annual).toFixed(2);
+    const bsMonthlyTxt = plan.bsMonthly ? ` ≈ Bs. ${plan.bsMonthly} (BCV)` : '';
+    const bsAnnualTxt = plan.bsAnnual ? ` ≈ Bs. ${plan.bsAnnual} (BCV)` : '';
 
     // Option 1: Monthly
     const optMonthly = document.createElement('option');
     optMonthly.value = monthlyNum;
     optMonthly.setAttribute('data-cycle', 'MONTHLY');
-    optMonthly.textContent = `${plan.currency} ${monthlyNum} — Cuota Mensual (${plan.name})`;
+    optMonthly.textContent = `${plan.currency} ${monthlyNum}${bsMonthlyTxt} — Cuota Mensual (${plan.name})`;
 
     // Option 2: Annual
     const optAnnual = document.createElement('option');
     optAnnual.value = annualNum;
     optAnnual.setAttribute('data-cycle', 'ANNUAL');
     const savingsTxt = plan.savings > 0 ? ` (Ahorro ${plan.savings}%)` : '';
-    optAnnual.textContent = `${plan.currency} ${annualNum} — Cuota Anual${savingsTxt} (${plan.name})`;
+    optAnnual.textContent = `${plan.currency} ${annualNum}${bsAnnualTxt} — Cuota Anual${savingsTxt} (${plan.name})`;
 
     // Option 3: Custom
     const optCustom = document.createElement('option');
@@ -859,26 +1023,308 @@ function selectPlanToPay(planId, planName, monthlyPrice, annualPrice, currency) 
     
     updateAmountOptions(currentCycle);
 
+    syncGatewayPlanLabels();
     const formSection = document.getElementById('payment-form-section');
     formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function handlePlanSelectionChange() {
     updateAmountOptions(currentCycle);
+    syncGatewayPlanLabels();
+}
+
+function submitGatewayPayment(form, methodId) {
+    const selectPlan = document.getElementById('selectPlan');
+    const planId = selectPlan ? selectPlan.value : '';
+    if (!planId) {
+        alert('Por favor selecciona primero el plan que deseas abonar.');
+        if (selectPlan) selectPlan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+    }
+    form.plan_id.value = planId;
+    const cycleInput = document.getElementById('formBillingCycle');
+    form.billing_cycle.value = cycleInput ? cycleInput.value : currentCycle;
+    return true;
+}
+
+function syncGatewayPlanLabels() {
+    const selectPlan = document.getElementById('selectPlan');
+    if (!selectPlan) return;
+    const planId = selectPlan.value;
+    const plan = plansData[planId];
+    if (plan) {
+        const cycle = document.getElementById('formBillingCycle') ? document.getElementById('formBillingCycle').value : currentCycle;
+        const amount = (cycle === 'ANNUAL') ? plan.annual : plan.monthly;
+        const cycleLabel = (cycle === 'ANNUAL') ? '/año' : '/m';
+        const txt = `${plan.name} (${plan.currency}${amount}${cycleLabel})`;
+        
+        document.querySelectorAll('[id^="gatewayPlanLabel-"]').forEach(function(el) {
+            el.innerText = txt;
+        });
+        document.querySelectorAll('[id^="gatewayPlanTitle-"]').forEach(function(el) {
+            el.innerText = plan.name;
+        });
+        document.querySelectorAll('[id^="gatewayPlanPrice-"]').forEach(function(el) {
+            el.innerText = `${plan.currency}${amount}`;
+        });
+        document.querySelectorAll('[id^="gatewayPlanCycle-"]').forEach(function(el) {
+            el.innerText = cycleLabel;
+        });
+    }
+}
+
+let currentManualQr = '';
+let currentManualMethodName = '';
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function copySingleField(val, btnElement) {
+    const textToCopy = String(val !== undefined && val !== null ? val : '').trim();
+    if (!textToCopy) return;
+
+    function showSuccess() {
+        if (!btnElement) return;
+        const originalHTML = btnElement.innerHTML;
+        btnElement.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i><span class="text-emerald-700">¡Copiado!</span>';
+        if (window.lucide) lucide.createIcons();
+        setTimeout(() => {
+            btnElement.innerHTML = originalHTML;
+            if (window.lucide) lucide.createIcons();
+        }, 1800);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            showSuccess();
+        }).catch(() => {
+            fallbackCopy(textToCopy, showSuccess);
+        });
+    } else {
+        fallbackCopy(textToCopy, showSuccess);
+    }
+}
+
+function fallbackCopy(text, cb) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.opacity = "0";
+    textArea.setAttribute("readonly", "");
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    textArea.setSelectionRange(0, 99999);
+    try {
+        const successful = document.execCommand('copy');
+        if (successful && cb) cb();
+    } catch (err) {
+        console.error('Fallback copy error:', err);
+    }
+    document.body.removeChild(textArea);
+}
+
+function switchPaymentTab(tabId, type, methodId) {
+    // 1. Reset all tab buttons
+    document.querySelectorAll('.payment-tab-btn').forEach(btn => {
+        btn.classList.remove(
+            'border-sky-500', 'bg-sky-50/80', 'text-sky-950', 'ring-2', 'ring-sky-400/30',
+            'border-rose-900', 'bg-rose-50/80', 'text-rose-950', 'ring-rose-900/20', 'shadow-sm'
+        );
+        btn.classList.add('border-slate-200', 'bg-white', 'hover:bg-slate-50/40');
+    });
+
+    // 2. Highlight active tab
+    const activeTab = document.getElementById('tab-' + tabId);
+    if (activeTab) {
+        activeTab.classList.remove('border-slate-200', 'bg-white', 'hover:bg-slate-50/40');
+        if (type === 'GATEWAY') {
+            activeTab.classList.add('border-sky-500', 'bg-sky-50/80', 'ring-2', 'ring-sky-400/30', 'shadow-sm');
+        } else {
+            activeTab.classList.add('border-rose-900', 'bg-rose-50/80', 'ring-2', 'ring-rose-900/20', 'shadow-sm');
+        }
+    }
+
+    // 3. Toggle panels
+    document.querySelectorAll('.payment-method-panel').forEach(panel => {
+        panel.classList.add('hidden');
+    });
+
+    if (type === 'GATEWAY') {
+        const gwPanel = document.getElementById('panel-gateway-' + methodId);
+        if (gwPanel) gwPanel.classList.remove('hidden');
+    } else {
+        const manualPanel = document.getElementById('panel-manual-container');
+        if (manualPanel) {
+            manualPanel.classList.remove('hidden');
+            renderManualMethod(activeTab);
+        }
+    }
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function renderManualMethod(tabElement) {
+    if (!tabElement) return;
+
+    const methodId = tabElement.getAttribute('data-method-id') || '';
+    const methodName = tabElement.getAttribute('data-method-name') || 'Transferencia Bancaria';
+    const instructions = tabElement.getAttribute('data-instructions') || '';
+    const rawFields = tabElement.getAttribute('data-fields') || '[]';
+    const qrImage = tabElement.getAttribute('data-qr') || '';
+    const badge = tabElement.getAttribute('data-badge') || 'Oficial';
+
+    currentManualQr = qrImage;
+    currentManualMethodName = methodName;
+
+    // Set hidden input on the reporting form
+    const hiddenMethodInput = document.getElementById('activeManualMethodId');
+    if (hiddenMethodInput) hiddenMethodInput.value = methodId;
+
+    // Header info on the left card
+    const nameEl = document.getElementById('manualActiveMethodName');
+    if (nameEl) nameEl.innerText = methodName;
+
+    const badgeEl = document.getElementById('manualActiveBadge');
+    if (badgeEl) badgeEl.innerText = badge;
+
+    // Render structured fields
+    const fieldsList = document.getElementById('manualFieldsList');
+    const fallbackText = document.getElementById('manualInstructionsFallback');
+
+    let fields = [];
+    try {
+        fields = JSON.parse(rawFields);
+    } catch(e) {
+        fields = [];
+    }
+
+    // Si fields está vacío pero hay texto de instrucciones, parsear en filas estructuradas
+    // garantizando la visualización de tarjetas individuales con botones de copiado
+    if ((!fields || fields.length === 0) && instructions.trim()) {
+        const cleanText = instructions.replace(/\\u000A/g, '\n').replace(/\\n/g, '\n');
+        const lines = cleanText.split('\n');
+        const autoFields = [];
+        lines.forEach(rawLine => {
+            const line = rawLine.trim().replace(/^[•\-\*\s]+/, '');
+            if (line.includes(':')) {
+                const parts = line.split(':');
+                const label = parts[0].trim();
+                const val = parts.slice(1).join(':').trim();
+                if (label && val) {
+                    const labelLow = label.toLowerCase();
+                    const isNoCopy = ['titular', 'nombre', 'billetera', 'moneda', 'tasa', 'tipo', 'concepto', 'nota'].some(k => labelLow.includes(k));
+                    let copyVal = val;
+                    if (!isNoCopy) {
+                        if (labelLow.includes('cedula') || labelLow.includes('cédula') || labelLow.includes('rif')) {
+                            copyVal = val.replace(/[^0-9]/g, '') || val;
+                        } else if (labelLow.includes('telefono') || labelLow.includes('teléfono')) {
+                            copyVal = val.replace(/[^0-9]/g, '') || val;
+                        } else if (labelLow.includes('cuenta') || labelLow.includes('cvu') || labelLow.includes('cbu')) {
+                            copyVal = val.replace(/[-\s]/g, '') || val;
+                        } else if (labelLow.includes('banco')) {
+                            const m = val.match(/0\d{3}/);
+                            copyVal = m ? m[0] : val;
+                        }
+                    }
+                    autoFields.push({
+                        label: label,
+                        value: val,
+                        copy_value: !isNoCopy ? copyVal : '',
+                        can_copy: !isNoCopy
+                    });
+                }
+            }
+        });
+        if (autoFields.length > 0) {
+            fields = autoFields;
+        }
+    }
+
+    if (fields && fields.length > 0) {
+        let html = '';
+        fields.forEach(f => {
+            const labelEsc = escapeHtml(f.label || '');
+            const valEsc = escapeHtml(f.value || '');
+            const copyValEsc = escapeHtml(f.copy_value || f.value || '');
+            const copyBtn = f.can_copy ? `
+                <button type="button" 
+                        onclick="copySingleField('${copyValEsc}', this)" 
+                        class="shrink-0 px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                        title="Copiar ${labelEsc}">
+                    <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-500"></i>
+                    <span>Copiar</span>
+                </button>
+            ` : '';
+            html += `
+                <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 hover:border-slate-300 transition shadow-2xs gap-2">
+                    <div class="min-w-0 flex-1">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide block leading-none mb-1">${labelEsc}</span>
+                        <span class="text-xs font-black text-slate-900 font-mono break-all select-all">${valEsc}</span>
+                    </div>
+                    ${copyBtn}
+                </div>
+            `;
+        });
+        if (fieldsList) {
+            fieldsList.innerHTML = html;
+            fieldsList.classList.remove('hidden');
+        }
+        if (fallbackText) fallbackText.classList.add('hidden');
+    } else if (instructions.trim()) {
+        if (fieldsList) {
+            fieldsList.innerHTML = '';
+            fieldsList.classList.add('hidden');
+        }
+        if (fallbackText) {
+            // Limpiar cualquier escape residual
+            fallbackText.innerText = instructions.replace(/\\u000A/g, '\n').replace(/\\n/g, '\n').trim();
+            fallbackText.classList.remove('hidden');
+        }
+    } else {
+        if (fieldsList) fieldsList.classList.add('hidden');
+        if (fallbackText) fallbackText.classList.add('hidden');
+    }
+
+    // QR Image Card
+    const qrCard = document.getElementById('manualQrCard');
+    const qrImg = document.getElementById('manualQrImage');
+    if (qrImage) {
+        if (qrCard) qrCard.classList.remove('hidden');
+        if (qrImg) qrImg.src = qrImage;
+    } else {
+        if (qrCard) qrCard.classList.add('hidden');
+    }
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function openManualActiveQr() {
+    if (currentManualQr) {
+        openQrModal(currentManualQr, currentManualMethodName || 'Código QR Oficial');
+    }
+}
+
+function selectPaymentMethod(rpmId) {
+    const tab = document.getElementById('tab-manual-' + rpmId) || document.getElementById('tab-gateway-' + rpmId);
+    if (tab) {
+        tab.click();
+        const hub = document.getElementById('payment-form-section');
+        if (hub) hub.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function copyToClipboard(text, btnElement) {
-    navigator.clipboard.writeText(text).then(() => {
-        const originalHTML = btnElement.innerHTML;
-        btnElement.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i><span class="text-emerald-700">¡Copiado!</span>';
-        if(window.lucide) lucide.createIcons();
-        setTimeout(() => {
-            btnElement.innerHTML = originalHTML;
-            if(window.lucide) lucide.createIcons();
-        }, 2000);
-    }).catch(err => {
-        console.error('Error al copiar:', err);
-    });
+    copySingleField(text, btnElement);
 }
 
 function handleFileSelected(input) {
@@ -902,14 +1348,29 @@ function clearReceiptFile() {
 
 document.addEventListener('DOMContentLoaded', function() {
     handlePlanSelectionChange();
+    syncGatewayPlanLabels();
+    
+    // Select the first payment method tab by default
+    const firstTab = document.querySelector('.payment-tab-btn');
+    if (firstTab) {
+        firstTab.click();
+    }
+    
     if(window.lucide) lucide.createIcons();
 
-    const form = document.querySelector('form[action="{% url 'subscription_billing' %}"]');
+    const form = document.getElementById('manualPaymentReportForm');
     if(form) {
         form.addEventListener('submit', function(e) {
             const selectAmount = document.getElementById('selectAmount');
             const hiddenAmount = document.getElementById('hiddenAmount');
             const customInput = document.getElementById('inputCustomAmount');
+            const activeMethod = document.getElementById('activeManualMethodId');
+
+            if (!activeMethod || !activeMethod.value) {
+                e.preventDefault();
+                alert('Por favor selecciona un método de pago antes de informar.');
+                return;
+            }
             
             if(selectAmount.value === 'CUSTOM') {
                 hiddenAmount.value = customInput.value ? customInput.value.trim() : '';
@@ -924,5 +1385,45 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+</script>
+<!-- Modal para Ver Código QR -->
+<div id="qrModal" class="hidden fixed inset-0 z-[100] bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 overflow-hidden" onclick="if(event.target === this) closeQrModal()">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div class="text-left">
+                <span class="text-[10px] font-black uppercase tracking-wider text-rose-900">Escanear para Pagar</span>
+                <h4 id="qrModalTitle" class="text-base font-black font-display text-slate-900 truncate">Código QR</h4>
+            </div>
+            <button type="button" onclick="closeQrModal()" class="text-slate-400 hover:text-slate-700 p-2 rounded-2xl hover:bg-slate-100 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-center shadow-inner">
+            <img id="qrModalImage" src="" alt="Código QR de Pago" class="w-72 h-72 sm:w-80 sm:h-80 object-contain rounded-xl bg-white p-2 border border-slate-200 shadow-sm">
+        </div>
+        <p class="text-xs text-slate-600 font-medium leading-relaxed">Escanea este código con tu app bancaria o Binance desde tu teléfono móvil para transferir al instante.</p>
+        <button type="button" onclick="closeQrModal()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-2xl transition cursor-pointer shadow-sm">
+            Cerrar
+        </button>
+    </div>
+</div>
+
+<script>
+function openQrModal(imageSrc, title) {
+    var modal = document.getElementById('qrModal');
+    var img = document.getElementById('qrModalImage');
+    var titleElem = document.getElementById('qrModalTitle');
+    if (modal && img) {
+        img.src = imageSrc;
+        if (titleElem && title) titleElem.innerText = title;
+        modal.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+function closeQrModal() {
+    var modal = document.getElementById('qrModal');
+    if (modal) modal.classList.add('hidden');
+}
 </script>
 {% endblock %}
