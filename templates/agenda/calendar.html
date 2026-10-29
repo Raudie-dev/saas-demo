@@ -4,42 +4,92 @@
 {% block header_title %}Calendario Interactivo de Citas{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-4 sm:space-y-6">
 
     <!-- Header Actions & Navigation -->
-    <div class="glass-card p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-200">
-        <div class="flex items-center gap-3">
-            <a href="{% url 'agenda' %}" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
-                <i data-lucide="list" class="w-4 h-4"></i> Vista Lista Diaria
+    <div class="glass-card p-3 sm:p-4 rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 border border-slate-200 shadow-sm">
+        <!-- Switch de Vistas -->
+        <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
+            <a href="{% url 'agenda' %}" class="px-3 sm:px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition text-center shadow-sm">
+                <i data-lucide="list" class="w-4 h-4 shrink-0 text-slate-600"></i>
+                <span class="truncate">Lista Diaria</span>
             </a>
-            <span class="px-3.5 py-2 rounded-xl bg-rose-100 text-rose-900 border border-rose-200 text-xs font-bold flex items-center gap-1.5">
-                <i data-lucide="calendar" class="w-4 h-4"></i> Vista Calendario Completo
+            <span class="px-3 sm:px-3.5 py-2.5 rounded-xl bg-rose-100 text-rose-900 border border-rose-200 text-xs font-bold flex items-center justify-center gap-1.5 text-center shadow-sm">
+                <i data-lucide="calendar" class="w-4 h-4 shrink-0 text-rose-900"></i>
+                <span class="truncate">Calendario</span>
             </span>
         </div>
 
-        <div class="flex items-center gap-3">
-            <div>
-                <select id="timeFormatFilter" onchange="changeTimeFormat(this.value)" class="bg-white border border-slate-300 text-slate-900 text-xs rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-800">
-                    <option value="12h" {% if business.time_format == '12h' or not business.time_format %}selected{% endif %}>🕒 Formato 12 Horas (AM/PM)</option>
+        <!-- Filtros y Botón de Agendar -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:flex items-center gap-2 sm:gap-3 w-full lg:w-auto">
+            <div class="w-full sm:w-auto">
+                <select id="timeFormatFilter" onchange="changeTimeFormat(this.value)" class="w-full bg-white border border-slate-300 text-slate-900 text-xs rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-rose-800 shadow-sm">
+                    <option value="12h" {% if business.time_format == '12h' or not business.time_format %}selected{% endif %}>🕒 Formato 12H (AM/PM)</option>
                     <option value="24h" {% if business.time_format == '24h' %}selected{% endif %}>⏰ Formato 24 Horas</option>
                 </select>
             </div>
-            <div>
-                <select id="staffFilter" onchange="refetchCalendar()" class="bg-white border border-slate-300 text-slate-900 text-xs rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-800">
+            <div class="w-full sm:w-auto">
+                <select id="staffFilter" onchange="refetchCalendar()" class="w-full bg-white border border-slate-300 text-slate-900 text-xs rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-rose-800 shadow-sm truncate">
                     <option value="">Todos los Profesionales</option>
                     {% for staff in staff_members %}
                     <option value="{{ staff.id }}">{{ staff.full_name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <a href="{% url 'appointment_create' %}" class="px-4 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-xs flex items-center gap-2 shadow-md shadow-rose-900/20 transition">
+            <a href="{% url 'appointment_create' %}" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md shadow-rose-900/20 transition shrink-0 text-center">
                 <i data-lucide="plus" class="w-4 h-4"></i> Agendar Cita
             </a>
         </div>
     </div>
 
-    <!-- Calendar Container -->
-    <div class="glass-card p-6 rounded-2xl border border-slate-200 shadow-md">
+    <!-- VISTA MÓVIL ESTILO GOOGLE CALENDAR (Solo en pantallas < 768px) -->
+    <div class="block md:hidden space-y-3.5">
+        <!-- Barra de Navegación de Semana y Mes -->
+        <div class="glass-card p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-2 bg-white">
+            <div class="flex items-center gap-1">
+                <button type="button" onclick="mobilePrevWeek()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95" title="Semana anterior">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="mobileNextWeek()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95" title="Semana siguiente">
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="mobileGoToday()" class="px-2.5 py-1 text-xs font-bold rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition active:scale-95 ml-1">
+                    Hoy
+                </button>
+            </div>
+            <h4 id="mobileMonthYearLabel" class="text-xs sm:text-sm font-extrabold text-slate-900 capitalize font-display truncate">
+                Cargando...
+            </h4>
+        </div>
+
+        <!-- Tira Horizontal de 7 Días de la Semana -->
+        <div class="glass-card p-2 rounded-2xl border border-slate-200 shadow-sm bg-white">
+            <div id="mobileWeekStrip" class="grid grid-cols-7 gap-1">
+                <!-- Se llena dinámicamente con JS -->
+            </div>
+        </div>
+
+        <!-- Sección de Citas del Día Seleccionado -->
+        <div class="space-y-2.5">
+            <div class="flex items-center justify-between px-1.5">
+                <h5 id="mobileSelectedDayTitle" class="text-xs font-bold text-slate-700 capitalize flex items-center gap-1.5">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-rose-900"></i>
+                    <span>Cargando día...</span>
+                </h5>
+                <span id="mobileSelectedDayBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-200">
+                    0 citas
+                </span>
+            </div>
+
+            <!-- Lista de Citas o Estado Vacío -->
+            <div id="mobileAppointmentsList" class="space-y-2.5">
+                <!-- Se renderizan las tarjetas de citas dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA ESCRITORIO FULLCALENDAR (Solo en pantallas >= 768px) -->
+    <div class="hidden md:block glass-card p-4 lg:p-6 rounded-2xl border border-slate-200 shadow-md overflow-hidden bg-white">
         <div id="fullCalendar" class="text-sm"></div>
     </div>
 
@@ -77,6 +127,7 @@
         border-radius: 0.75rem;
         padding: 0.4rem 0.8rem;
         text-transform: capitalize;
+        transition: all 0.15s ease-in-out;
     }
     .fc .fc-button-primary:hover {
         background-color: #701a2b;
@@ -89,14 +140,23 @@
         color: #ffffff !important;
     }
     .fc .fc-col-header-cell {
-        padding: 0.75rem 0;
-        background-color: #f1f5f9;
+        padding: 0.5rem 0.25rem;
+        background-color: #f8fafc;
         color: #475569;
         font-size: 0.75rem;
         font-weight: 700;
         text-transform: uppercase;
+        border-color: #e2e8f0;
     }
-    /* Cell and event height adjustments for clear, legible appointments */
+    .fc .fc-col-header-cell-cushion {
+        display: inline-flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        line-height: 1.2 !important;
+        gap: 2px !important;
+        padding: 4px 2px !important;
+    }
     .fc-timegrid-slot {
         height: 48px !important;
     }
@@ -107,7 +167,7 @@
     }
     .fc-v-event {
         border-radius: 0.6rem !important;
-        padding: 4px 6px !important;
+        padding: 3px 5px !important;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12) !important;
         border: 1px solid rgba(255, 255, 255, 0.25) !important;
     }
@@ -136,28 +196,15 @@
         background: transparent !important;
         border: none !important;
     }
-
-    /* Mobile responsiveness for FullCalendar header without !important */
-    @media (max-width: 640px) {
-        div#fullCalendar.fc .fc-header-toolbar.fc-toolbar {
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-        div#fullCalendar.fc .fc-header-toolbar .fc-toolbar-chunk {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        div#fullCalendar.fc .fc-header-toolbar .fc-toolbar-title {
-            font-size: 0.85rem;
-            text-align: center;
-        }
-    }
 </style>
 
 <script>
     let calendar;
+    let cachedEvents = [];
+
+    // Estado del Calendario Móvil
+    let mobileCurrentMonday = getMonday(new Date());
+    let mobileSelectedDate = new Date();
 
     const timeFormats = {
         '12h': {
@@ -170,130 +217,354 @@
         }
     };
 
+    function getMonday(d) {
+        const date = new Date(d);
+        const day = date.getDay();
+        const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+        const mon = new Date(date.setDate(diff));
+        mon.setHours(0, 0, 0, 0);
+        return mon;
+    }
+
+    function formatDateYMD(d) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function formatTimeDisplay(dateOrString, is12h) {
+        if (!dateOrString) return '';
+        const d = new Date(dateOrString);
+        if (isNaN(d.getTime())) return '';
+        if (is12h) {
+            let h = d.getHours();
+            const m = String(d.getMinutes()).padStart(2, '0');
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${h}:${m} ${ampm}`;
+        } else {
+            const h = String(d.getHours()).padStart(2, '0');
+            const m = String(d.getMinutes()).padStart(2, '0');
+            return `${h}:${m}`;
+        }
+    }
+
+    // Inicialización al cargar la página
     document.addEventListener('DOMContentLoaded', function() {
         const calendarEl = document.getElementById('fullCalendar');
         const initialFormat = document.getElementById('timeFormatFilter').value || '12h';
         const currentFormatObj = timeFormats[initialFormat] || timeFormats['12h'];
-        
-        // Define formatting function before config
-        function formatCalendarHeader() {
-            const isMobile = window.innerWidth <= 640;
-            const header = document.querySelector('.fc-header-toolbar');
-            if (header) {
-                if (isMobile) {
-                    header.style.cssText = 'display: flex; flex-direction: column; gap: 0.75rem;';
-                    document.querySelectorAll('.fc-toolbar-chunk').forEach(chunk => {
-                        chunk.style.cssText = 'display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem;';
-                    });
-                } else {
-                    header.style.cssText = '';
-                    document.querySelectorAll('.fc-toolbar-chunk').forEach(chunk => chunk.style.cssText = '');
-                }
-            }
-            
-            // Format title as a button always
-            const title = document.querySelector('.fc-toolbar-title');
-            if (title) {
-                title.style.cssText = 'font-size: 0.95rem; font-weight: 800; color: #0f172a; background-color: #f1f5f9; padding: 0.4rem 0.8rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; display: inline-block;';
-                if (isMobile) {
-                    title.style.fontSize = '0.85rem';
-                }
-            }
-        }
-        
-        calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
-            datesSet: formatCalendarHeader,
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            },
-            buttonText: {
-                today:    'Hoy',
-                month:    'Mes',
-                week:     'Semana',
-                day:      'Día'
-            },
-            locale: 'es',
-            firstDay: 1,
-            slotMinTime: '{{ slot_min_time|default:"00:00:00" }}',
-            slotMaxTime: '{{ slot_max_time|default:"24:00:00" }}',
-            scrollTime: '08:00:00',
-            slotDuration: '00:30:00',
-            slotLabelFormat: currentFormatObj.slotLabelFormat,
-            eventTimeFormat: currentFormatObj.eventTimeFormat,
-            allDaySlot: false,
-            eventContent: function(arg) {
-                const client = arg.event.extendedProps.client || arg.event.title || 'Cliente';
-                const service = arg.event.extendedProps.service || '';
-                const staff = arg.event.extendedProps.staff || '';
-                const timeText = arg.timeText || '';
-                const bg = arg.event.backgroundColor || '#881337';
 
-                if (arg.view.type === 'dayGridMonth') {
+        // Inicializar FullCalendar para Escritorio
+        if (calendarEl) {
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                views: {
+                    dayGridMonth: { buttonText: 'Mes' },
+                    timeGridWeek: { buttonText: 'Semana', dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'numeric' } },
+                    timeGridDay: { buttonText: 'Día', dayHeaderFormat: { weekday: 'long', day: 'numeric', month: 'long' } }
+                },
+                buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día' },
+                locale: 'es',
+                firstDay: 1,
+                slotMinTime: '{{ slot_min_time|default:"00:00:00" }}',
+                slotMaxTime: '{{ slot_max_time|default:"24:00:00" }}',
+                scrollTime: '08:00:00',
+                slotDuration: '00:30:00',
+                slotLabelFormat: currentFormatObj.slotLabelFormat,
+                eventTimeFormat: currentFormatObj.eventTimeFormat,
+                allDaySlot: false,
+                eventContent: function(arg) {
+                    const client = arg.event.extendedProps.client || arg.event.title || 'Cliente';
+                    const service = arg.event.extendedProps.service || '';
+                    const staff = arg.event.extendedProps.staff || '';
+                    const timeText = arg.timeText || '';
+                    const bg = arg.event.backgroundColor || '#881337';
+
+                    if (arg.view.type === 'dayGridMonth') {
+                        return {
+                            html: `
+                                <div class="px-2 py-0.5 rounded-md text-white text-[11px] font-bold truncate flex items-center gap-1 shadow-sm w-full" style="background-color: ${bg}; color: #ffffff !important;">
+                                    ${timeText ? `<span class="opacity-90 text-[10px] shrink-0">${timeText}</span>` : ''}
+                                    <span class="truncate">👤 ${client}</span>
+                                </div>
+                            `
+                        };
+                    }
+
                     return {
                         html: `
-                            <div class="px-2 py-0.5 rounded-md text-white text-[11px] font-bold truncate flex items-center gap-1 shadow-sm w-full" style="background-color: ${bg}; color: #ffffff !important;">
-                                ${timeText ? `<span class="opacity-90 text-[10px] shrink-0">${timeText}</span>` : ''}
-                                <span class="truncate">👤 ${client}</span>
+                            <div class="fc-custom-card h-full flex flex-col justify-start p-1.5 text-white overflow-hidden leading-tight rounded-lg shadow-sm" style="background-color: ${bg}; color: #ffffff !important;">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="font-extrabold text-xs tracking-tight truncate">👤 ${client}</span>
+                                    ${timeText ? `<span class="text-[10px] font-bold opacity-90 shrink-0 bg-black/25 px-1 py-0.2 rounded">${timeText}</span>` : ''}
+                                </div>
+                                ${service ? `<div class="text-[11px] font-semibold opacity-95 truncate mt-0.5">✂️ ${service}</div>` : ''}
+                                ${staff ? `<div class="text-[10px] font-normal opacity-85 truncate">👨‍💼 ${staff}</div>` : ''}
                             </div>
                         `
                     };
+                },
+                events: function(info, successCallback, failureCallback) {
+                    fetchEventsData(function(events) {
+                        successCallback(events);
+                        renderMobileCalendar();
+                    }, failureCallback);
+                },
+                dateClick: function(info) {
+                    const dateStr = info.dateStr.split('T')[0];
+                    const timeStr = info.dateStr.includes('T') ? info.dateStr.split('T')[1].substring(0, 5) : '';
+                    window.location.href = `{% url 'appointment_create' %}?date=${dateStr}&start_time=${timeStr}`;
+                },
+                eventClick: function(info) {
+                    if (info.event.url) {
+                        window.location.href = info.event.url;
+                        info.jsEvent.preventDefault();
+                    }
                 }
+            });
 
-                return {
-                    html: `
-                        <div class="fc-custom-card h-full flex flex-col justify-start p-1.5 text-white overflow-hidden leading-snug rounded-lg shadow-sm" style="background-color: ${bg}; color: #ffffff !important;">
-                            <div class="flex items-center justify-between gap-1">
-                                <span class="font-extrabold text-xs tracking-tight truncate">👤 ${client}</span>
-                                ${timeText ? `<span class="text-[10px] font-bold opacity-90 shrink-0 bg-black/25 px-1 rounded">${timeText}</span>` : ''}
-                            </div>
-                            ${service ? `<div class="text-[11px] font-semibold opacity-95 truncate mt-0.5">✂️ ${service}</div>` : ''}
-                            ${staff ? `<div class="text-[10px] font-normal opacity-85 truncate">👨‍💼 ${staff}</div>` : ''}
-                        </div>
-                    `
-                };
-            },
-            events: function(info, successCallback, failureCallback) {
-                const staffId = document.getElementById('staffFilter').value;
-                fetch(`{% url 'appointment_events_api' %}?staff_id=${staffId}`)
-                    .then(response => response.json())
-                    .then(data => successCallback(data))
-                    .catch(error => failureCallback(error));
-            },
-            dateClick: function(info) {
-                const dateStr = info.dateStr.split('T')[0];
-                const timeStr = info.dateStr.includes('T') ? info.dateStr.split('T')[1].substring(0, 5) : '';
-                window.location.href = `{% url 'appointment_create' %}?date=${dateStr}&start_time=${timeStr}`;
-            },
-            eventClick: function(info) {
-                if (info.event.url) {
-                    window.location.href = info.event.url;
-                    info.jsEvent.preventDefault();
-                }
-            }
+            calendar.render();
+        }
+
+        // Cargar eventos y renderizar móvil directamente
+        fetchEventsData(function(events) {
+            renderMobileCalendar();
         });
 
-        calendar.render();
-
-
-        
-        // Run immediately and on resize
-        setTimeout(formatCalendarHeader, 50);
-        window.addEventListener('resize', formatCalendarHeader);
+        // Resize handler
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                if (calendar) {
+                    calendar.updateSize();
+                }
+            }, 150);
+        });
     });
+
+    // Petición de datos unificada
+    function fetchEventsData(callback, errCallback) {
+        const staffId = document.getElementById('staffFilter').value;
+        fetch(`{% url 'appointment_events_api' %}?staff_id=${staffId}`)
+            .then(res => res.json())
+            .then(data => {
+                cachedEvents = data || [];
+                if (typeof callback === 'function') callback(cachedEvents);
+            })
+            .catch(err => {
+                console.error("Error cargando eventos:", err);
+                if (typeof errCallback === 'function') errCallback(err);
+            });
+    }
 
     function refetchCalendar() {
         if (calendar) {
             calendar.refetchEvents();
         }
+        fetchEventsData(function() {
+            renderMobileCalendar();
+        });
     }
 
     function changeTimeFormat(formatKey) {
         if (calendar && timeFormats[formatKey]) {
             calendar.setOption('slotLabelFormat', timeFormats[formatKey].slotLabelFormat);
             calendar.setOption('eventTimeFormat', timeFormats[formatKey].eventTimeFormat);
+        }
+        renderMobileAppointments();
+    }
+
+    // ==========================================
+    // LÓGICA VISTA MÓVIL (ESTILO GOOGLE CALENDAR)
+    // ==========================================
+
+    function mobilePrevWeek() {
+        mobileCurrentMonday.setDate(mobileCurrentMonday.getDate() - 7);
+        // Colocar selección en el lunes de la nueva semana
+        mobileSelectedDate = new Date(mobileCurrentMonday);
+        renderMobileCalendar();
+    }
+
+    function mobileNextWeek() {
+        mobileCurrentMonday.setDate(mobileCurrentMonday.getDate() + 7);
+        // Colocar selección en el lunes de la nueva semana
+        mobileSelectedDate = new Date(mobileCurrentMonday);
+        renderMobileCalendar();
+    }
+
+    function mobileGoToday() {
+        const today = new Date();
+        mobileCurrentMonday = getMonday(today);
+        mobileSelectedDate = today;
+        renderMobileCalendar();
+    }
+
+    function renderMobileCalendar() {
+        renderMobileHeader();
+        renderMobileWeekStrip();
+        renderMobileAppointments();
+    }
+
+    function renderMobileHeader() {
+        const label = document.getElementById('mobileMonthYearLabel');
+        if (!label) return;
+
+        // Mostrar el mes del día seleccionado (o del lunes de la semana)
+        const d = mobileSelectedDate || mobileCurrentMonday;
+        const monthName = d.toLocaleDateString('es-ES', { month: 'long' });
+        const year = d.getFullYear();
+        label.textContent = `${monthName} ${year}`;
+    }
+
+    function renderMobileWeekStrip() {
+        const strip = document.getElementById('mobileWeekStrip');
+        if (!strip) return;
+
+        const dayNames = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+        const todayStr = formatDateYMD(new Date());
+        const selectedStr = formatDateYMD(mobileSelectedDate);
+
+        let html = '';
+
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(mobileCurrentMonday);
+            dayDate.setDate(mobileCurrentMonday.getDate() + i);
+            const dateStr = formatDateYMD(dayDate);
+            const isSelected = dateStr === selectedStr;
+            const isToday = dateStr === todayStr;
+
+            // Verificar si este día tiene citas
+            const hasAppointments = cachedEvents.some(ev => ev.start && ev.start.startsWith(dateStr));
+
+            let btnClasses = "flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition active:scale-95 text-center cursor-pointer ";
+            if (isSelected) {
+                btnClasses += "bg-rose-900 text-white font-bold shadow-md shadow-rose-900/25";
+            } else if (isToday) {
+                btnClasses += "bg-rose-50 text-rose-900 font-bold border border-rose-300";
+            } else {
+                btnClasses += "bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/70";
+            }
+
+            html += `
+                <button type="button" onclick="selectMobileDate('${dateStr}')" class="${btnClasses}">
+                    <span class="text-[10px] font-bold uppercase tracking-wider ${isSelected ? 'text-rose-200' : 'text-slate-400'}">${dayNames[i]}</span>
+                    <span class="text-sm sm:text-base font-extrabold mt-0.5 leading-tight">${dayDate.getDate()}</span>
+                    <span class="h-1.5 w-1.5 rounded-full mt-1 ${hasAppointments ? (isSelected ? 'bg-white' : 'bg-rose-800') : 'opacity-0'}"></span>
+                </button>
+            `;
+        }
+
+        strip.innerHTML = html;
+    }
+
+    function selectMobileDate(dateStr) {
+        const parts = dateStr.split('-');
+        mobileSelectedDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        renderMobileCalendar();
+    }
+
+    function renderMobileAppointments() {
+        const titleEl = document.getElementById('mobileSelectedDayTitle');
+        const badgeEl = document.getElementById('mobileSelectedDayBadge');
+        const listEl = document.getElementById('mobileAppointmentsList');
+        if (!titleEl || !badgeEl || !listEl) return;
+
+        const selectedStr = formatDateYMD(mobileSelectedDate);
+        const is12h = document.getElementById('timeFormatFilter').value === '12h';
+
+        // Título de la fecha
+        const options = { weekday: 'long', day: 'numeric', month: 'long' };
+        const dayFormatted = mobileSelectedDate.toLocaleDateString('es-ES', options);
+        titleEl.innerHTML = `<i data-lucide="calendar" class="w-3.5 h-3.5 text-rose-900"></i> <span class="capitalize">${dayFormatted}</span>`;
+
+        // Filtrar citas del día seleccionado
+        const dayEvents = cachedEvents.filter(ev => ev.start && ev.start.startsWith(selectedStr));
+        dayEvents.sort((a, b) => (a.start > b.start ? 1 : -1));
+
+        badgeEl.textContent = `${dayEvents.length} cita${dayEvents.length === 1 ? '' : 's'}`;
+
+        if (dayEvents.length === 0) {
+            listEl.innerHTML = `
+                <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-6 sm:p-8 text-center space-y-3 shadow-xs">
+                    <div class="w-12 h-12 mx-auto rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-900 shadow-xs">
+                        <i data-lucide="calendar-check" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h6 class="font-bold text-slate-900 text-sm">Sin citas este día</h6>
+                        <p class="text-xs text-slate-500 mt-0.5">No hay citas agendadas para el ${dayFormatted}.</p>
+                    </div>
+                    <a href="{% url 'appointment_create' %}?date=${selectedStr}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-900 hover:bg-rose-950 text-white text-xs font-semibold shadow-sm transition active:scale-95">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Agendar Turno
+                    </a>
+                </div>
+            `;
+        } else {
+            let cardsHtml = '';
+            dayEvents.forEach(app => {
+                const startTime = formatTimeDisplay(app.start, is12h);
+                const endTime = formatTimeDisplay(app.end, is12h);
+                const status = (app.extendedProps && app.extendedProps.status) || 'Agendada';
+                const client = (app.extendedProps && app.extendedProps.client) || app.title || 'Cliente';
+                const service = (app.extendedProps && app.extendedProps.service) || '';
+                const staff = (app.extendedProps && app.extendedProps.staff) || '';
+                const price = (app.extendedProps && app.extendedProps.price) ? `• $${app.extendedProps.price}` : '';
+                const bg = app.backgroundColor || '#881337';
+
+                let statusBadge = "bg-slate-100 text-slate-700 border-slate-200";
+                if (status.toLowerCase().includes('confirmad')) {
+                    statusBadge = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                } else if (status.toLowerCase().includes('pendient')) {
+                    statusBadge = "bg-amber-50 text-amber-800 border-amber-300";
+                } else if (status.toLowerCase().includes('completad')) {
+                    statusBadge = "bg-blue-50 text-blue-700 border-blue-200";
+                } else if (status.toLowerCase().includes('cancelad')) {
+                    statusBadge = "bg-rose-50 text-rose-700 border-rose-200";
+                }
+
+                cardsHtml += `
+                    <a href="${app.url || '#'}" class="block bg-white rounded-2xl border border-slate-200 p-3.5 hover:border-rose-900/40 shadow-xs hover:shadow-md transition active:scale-[0.99]">
+                        <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-2.5">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold text-white shadow-xs" style="background-color: ${bg}">
+                                <span>🕒</span>
+                                <span>${startTime} a ${endTime}</span>
+                            </span>
+                            <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${statusBadge}">
+                                ${status}
+                            </span>
+                        </div>
+                        <div class="space-y-1.5">
+                            <div class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug truncate flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs shrink-0 font-bold">👤</span>
+                                <span class="truncate">${client}</span>
+                            </div>
+                            ${service ? `
+                            <div class="text-xs text-slate-700 font-semibold truncate flex items-center gap-2 pl-0.5">
+                                <span class="text-rose-900 shrink-0">✂️</span>
+                                <span class="truncate">${service} ${price}</span>
+                            </div>` : ''}
+                            ${staff ? `
+                            <div class="text-[11px] text-slate-500 font-medium truncate flex items-center gap-2 pl-0.5">
+                                <span class="text-slate-400 shrink-0">👨‍💼</span>
+                                <span class="truncate">${staff}</span>
+                            </div>` : ''}
+                        </div>
+                    </a>
+                `;
+            });
+            listEl.innerHTML = cardsHtml;
+        }
+
+        // Renderizar iconos de Lucide
+        if (window.lucide && typeof lucide.createIcons === 'function') {
+            lucide.createIcons();
         }
     }
 </script>

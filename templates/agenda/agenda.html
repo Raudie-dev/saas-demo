@@ -7,29 +7,61 @@
 <div class="space-y-6">
 
     <!-- Header Actions & Date / Staff Filter Bar -->
-    <div class="glass-card p-3.5 sm:p-4 rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 border border-slate-200">
-        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:flex items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
-            <div class="w-full sm:w-auto">
-                <label class="text-[11px] text-slate-500 font-semibold block mb-1">Fecha</label>
-                <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" onchange="this.form.submit()" class="w-full sm:w-auto bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-800">
+    <div class="glass-card p-3.5 sm:p-4 rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 border border-slate-200 shadow-sm">
+        <form method="GET" class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
+            <!-- Pestañas rápidas: Todas / Hoy -->
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 shrink-0">
+                <a href="{% url 'agenda' %}{% if selected_staff_id or status_filter %}?{% if selected_staff_id %}staff={{ selected_staff_id }}&{% endif %}{% if status_filter %}status={{ status_filter }}{% endif %}{% endif %}"
+                   class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition text-center {% if is_all_dates %}bg-rose-900 text-white shadow-xs{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/70{% endif %}">
+                    Todas las Citas
+                </a>
+                <a href="{% url 'agenda' %}?date=today{% if selected_staff_id %}&staff={{ selected_staff_id }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                   class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition text-center {% if not is_all_dates and is_today %}bg-rose-900 text-white shadow-xs{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/70{% endif %}">
+                    Hoy
+                </a>
             </div>
+
+            <!-- Selector de Fecha específica -->
+            <div class="flex items-center gap-1.5 w-full sm:w-auto">
+                <div class="relative flex-1 sm:flex-initial">
+                    <input type="date" name="date" value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% endif %}" onchange="this.form.submit()" title="Filtrar por fecha específica" class="w-full sm:w-auto bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-800 shadow-2xs">
+                </div>
+                {% if not is_all_dates %}
+                <a href="{% url 'agenda' %}{% if selected_staff_id or status_filter %}?{% if selected_staff_id %}staff={{ selected_staff_id }}&{% endif %}{% if status_filter %}status={{ status_filter }}{% endif %}{% endif %}" title="Ver todas las citas" class="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold flex items-center gap-1 transition">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">Limpiar</span>
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Filtro de Profesional -->
             <div class="w-full sm:w-auto">
-                <label class="text-[11px] text-slate-500 font-semibold block mb-1">Profesional</label>
-                <select name="staff" onchange="this.form.submit()" class="w-full sm:w-auto bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-800">
+                <select name="staff" onchange="this.form.submit()" class="w-full sm:w-auto bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-800 shadow-2xs">
                     <option value="">Todos los Profesionales</option>
                     {% for staff in staff_members %}
                     <option value="{{ staff.id }}" {% if selected_staff_id == staff.id|stringformat:"s" %}selected{% endif %}>{{ staff.full_name }}</option>
                     {% endfor %}
                 </select>
             </div>
+
+            <!-- Filtro de Estado -->
+            <div class="w-full sm:w-auto">
+                <select name="status" onchange="this.form.submit()" class="w-full sm:w-auto bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-800 shadow-2xs">
+                    <option value="">Todos los Estados</option>
+                    <option value="CONFIRMED" {% if status_filter == 'CONFIRMED' %}selected{% endif %}>✅ Confirmadas</option>
+                    <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>⏳ Pendientes</option>
+                    <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>🏁 Realizadas</option>
+                    <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>❌ Canceladas</option>
+                </select>
+            </div>
         </form>
 
-        <div class="grid grid-cols-2 sm:flex items-center gap-2.5 w-full lg:w-auto">
-            <a href="{% url 'appointment_calendar' %}" class="px-3 sm:px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 border border-slate-300 transition text-center">
+        <div class="grid grid-cols-2 sm:flex items-center gap-2.5 w-full lg:w-auto shrink-0">
+            <a href="{% url 'appointment_calendar' %}" class="px-3 sm:px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 border border-slate-300 transition text-center shadow-2xs">
                 <i data-lucide="calendar" class="w-4 h-4 text-rose-900 shrink-0"></i>
                 <span class="truncate">Calendario</span>
             </a>
-            <a href="{% url 'appointment_create' %}" class="px-3 sm:px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-rose-900/20 transition text-center">
+            <a href="{% url 'appointment_create' %}{% if selected_date %}?date={{ selected_date|date:'Y-m-d' }}{% endif %}" class="px-3 sm:px-4 py-2.5 rounded-xl bg-rose-900 hover:bg-rose-950 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-rose-900/20 transition text-center">
                 <i data-lucide="plus" class="w-4 h-4 shrink-0"></i>
                 <span class="truncate">Nueva Cita</span>
             </a>
@@ -37,9 +69,28 @@
     </div>
 
     <!-- Calendar Timeline View -->
-    <div class="glass-card rounded-2xl border border-slate-200">
+    <div class="glass-card rounded-2xl border border-slate-200 shadow-sm">
         <div class="p-3.5 sm:p-4 border-b border-slate-200 bg-slate-100/80 rounded-t-2xl flex items-center justify-between gap-2">
-            <h3 class="font-bold text-slate-900 font-display text-xs sm:text-base truncate">Citas para el {{ selected_date|date:"l d \d\e F, Y" }}</h3>
+            <div>
+                <h3 class="font-bold text-slate-900 font-display text-xs sm:text-base flex items-center gap-2">
+                    {% if is_all_dates %}
+                        <i data-lucide="layers" class="w-4 h-4 text-rose-900 shrink-0"></i>
+                        <span>Listado General de Citas</span>
+                    {% else %}
+                        <i data-lucide="calendar" class="w-4 h-4 text-rose-900 shrink-0"></i>
+                        <span>Citas para el {{ selected_date|date:"l d \d\e F, Y" }}</span>
+                    {% endif %}
+                </h3>
+                <p class="text-[11px] text-slate-500 font-medium">
+                    {% if is_all_dates %}
+                        Mostrando todas las citas registradas en el sistema
+                    {% elif is_today %}
+                        Citas programadas para el día de hoy
+                    {% else %}
+                        Filtradas por la fecha seleccionada
+                    {% endif %}
+                </p>
+            </div>
             <span class="whitespace-nowrap shrink-0 text-[11px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full bg-rose-100 text-rose-900 font-bold border border-rose-200 shadow-xs">
                 {{ appointments|length }} cita(s)
             </span>
@@ -54,7 +105,8 @@
                 <div class="min-w-0 flex-1">
                     <!-- 1. Header Row: Time Badge + Status Pill side-by-side -->
                     <div class="flex items-center gap-3">
-                        <div class="px-3 py-1.5 rounded-xl bg-rose-900 text-white font-bold text-xs sm:text-sm text-center shrink-0 shadow-xs min-w-[64px]">
+                        <div class="px-3 py-1.5 rounded-xl bg-rose-900 text-white font-bold text-xs sm:text-sm text-center shrink-0 shadow-xs min-w-[72px]">
+                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-rose-200 leading-tight pb-0.5">{{ app.date|date:"d M Y" }}</div>
                             <div class="leading-tight">{{ app.start_time }}</div>
                             <div class="text-[10px] font-normal opacity-90 leading-tight">a {{ app.end_time }}</div>
                         </div>
@@ -213,7 +265,7 @@
                                 <form method="POST" action="{% url 'appointment_quick_status' app.id %}" data-confirm="¿Estás seguro de cancelar esta cita pendiente y liberar el horario?" data-confirm-title="Cancelar Cita" data-confirm-btn="Sí, Cancelar Cita">
                                     {% csrf_token %}
                                     <input type="hidden" name="status" value="CANCELLED">
-                                    <input type="hidden" name="next_date" value="{{ selected_date|date:'Y-m-d' }}">
+                                    <input type="hidden" name="next_date" value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% else %}all{% endif %}">
                                     <button type="submit" class="w-full text-left px-3.5 py-2.5 hover:bg-rose-50 text-rose-600 flex items-center gap-2.5 cursor-pointer transition font-semibold">
                                         <i data-lucide="x-circle" class="w-4 h-4 text-rose-500 shrink-0"></i>
                                         <span>Cancelar Cita</span>
@@ -226,7 +278,7 @@
                         <form method="POST" action="{% url 'appointment_quick_status' app.id %}" class="inline shrink-0">
                             {% csrf_token %}
                             <input type="hidden" name="status" value="CONFIRMED">
-                            <input type="hidden" name="next_date" value="{{ selected_date|date:'Y-m-d' }}">
+                            <input type="hidden" name="next_date" value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% else %}all{% endif %}">
                             <button type="submit" title="Confirmar cita"
                                     class="h-10 px-4 sm:h-9 sm:px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-800 hover:text-slate-950 border border-slate-300 text-xs font-bold inline-flex items-center justify-center cursor-pointer transition shadow-2xs">
                                 <span>Confirmar</span>
@@ -409,7 +461,7 @@
                                 <form method="POST" action="{% url 'appointment_quick_status' app.id %}" data-confirm="¿Estás seguro de cancelar esta cita y liberar el horario en la agenda?" data-confirm-title="Cancelar Cita" data-confirm-btn="Sí, Cancelar Cita">
                                     {% csrf_token %}
                                     <input type="hidden" name="status" value="CANCELLED">
-                                    <input type="hidden" name="next_date" value="{{ selected_date|date:'Y-m-d' }}">
+                                    <input type="hidden" name="next_date" value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% else %}all{% endif %}">
                                     <button type="submit" class="w-full text-left px-3.5 py-2.5 hover:bg-rose-50 text-rose-600 flex items-center gap-2.5 cursor-pointer transition font-semibold">
                                         <i data-lucide="x-circle" class="w-4 h-4 text-rose-500 shrink-0"></i>
                                         <span>Cancelar Cita</span>
@@ -432,8 +484,24 @@
                 <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
                     <i data-lucide="calendar-x" class="w-6 h-6"></i>
                 </div>
-                <h4 class="text-slate-700 font-semibold text-base">Sin citas para esta fecha</h4>
-                <p class="text-xs text-slate-500 mt-1">Haz clic en "Agendar Nueva Cita" para agregar un turno a la agenda.</p>
+                <h4 class="text-slate-700 font-semibold text-base">
+                    {% if is_all_dates %}
+                        No hay citas registradas en el sistema
+                    {% elif is_today %}
+                        No tienes citas programadas para hoy
+                    {% else %}
+                        Sin citas para el {{ selected_date|date:"l d \d\e F, Y" }}
+                    {% endif %}
+                </h4>
+                <p class="text-xs text-slate-500 mt-1">Haz clic en "Nueva Cita" para agregar un turno a la agenda.</p>
+                {% if not is_all_dates %}
+                <div class="mt-4">
+                    <a href="{% url 'agenda' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+                        <i data-lucide="layers" class="w-3.5 h-3.5 text-rose-900"></i>
+                        <span>Ver Todas las Citas</span>
+                    </a>
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
