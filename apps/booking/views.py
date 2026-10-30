@@ -19,6 +19,12 @@ from apps.agenda.utils import (
     send_booking_notification_to_client,
 )
 
+try:
+    from apps.properties.models import Property, PropertyInquiry
+except ImportError:
+    Property = None
+    PropertyInquiry = None
+
 
 def _resolve_portal_client(business, first_name, last_name, phone, email):
     """
@@ -191,12 +197,11 @@ def public_booking_view(request, business_slug):
         staff_members = StaffMember.objects.filter(business=business, is_active=True)
     
     # Check if business is real estate or has properties module enabled
-    # from apps.properties.models import Property
     is_real_estate = False
     
-    properties_qs = Property.objects.none()
+    properties_qs = Property.objects.none() if Property is not None else []
     properties_catalog_json = "[]"
-    if is_real_estate:
+    if is_real_estate and Property is not None:
         properties_qs = Property.objects.filter(business=business, status='AVAILABLE').order_by('-is_featured', '-created_at')
         properties_catalog_json = json.dumps([
             {
@@ -257,7 +262,7 @@ def public_booking_view(request, business_slug):
         # Check for property booking (inmobiliaria visit)
         property_id = request.POST.get('property_id')
         selected_property = None
-        if property_id:
+        if property_id and Property is not None:
             selected_property = Property.objects.filter(id=property_id, business=business).first()
         
         # Parse multiple services or same service multiple times
@@ -388,24 +393,25 @@ def public_booking_view(request, business_slug):
                 else:
                     calc_deposit_pct = Decimal(str(getattr(business, 'default_deposit_percentage', Decimal('30.00')) or '0.00'))
 
-            appointment_created = Appointment.objects.create(
-                business=business,
-                client=client,
-                staff=staff,
-                service=primary_service,
-                related_property=selected_property,
-                date=date_str,
-                start_time=time_str,
-                end_time=end_time,
-                total_price=total_price,
-                deposit_percentage=calc_deposit_pct,
-                deposit_amount=calc_deposit_amount,
-                status='PENDING',
-                notes=notes_text
-            )
+            appointment_kwargs = {
+                'business': business,
+                'client': client,
+                'staff': staff,
+                'service': primary_service,
+                'date': date_str,
+                'start_time': time_str,
+                'end_time': end_time,
+                'total_price': total_price,
+                'deposit_percentage': calc_deposit_pct,
+                'deposit_amount': calc_deposit_amount,
+                'status': 'PENDING',
+                'notes': notes_text,
+            }
+            if selected_branch:
+                appointment_kwargs['branch'] = selected_branch
+            appointment_created = Appointment.objects.create(**appointment_kwargs)
 
-            if selected_property:
-                # # from apps.properties.models import PropertyInquiry
+            if selected_property and PropertyInquiry is not None:
                 PropertyInquiry.objects.create(
                     business=business,
                     client=client,
@@ -542,8 +548,8 @@ def api_seller_register_view(request, business_slug):
     client.save(update_fields=['notes'])
 
     # Create structured PropertyInquiry
-    # # from apps.properties.models import PropertyInquiry
-    PropertyInquiry.objects.create(
+    if PropertyInquiry is not None:
+        PropertyInquiry.objects.create(
         business=business,
         client=client,
         inquiry_type='SELLER',

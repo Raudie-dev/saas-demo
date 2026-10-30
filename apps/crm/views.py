@@ -15,6 +15,12 @@ from apps.business.models import Business
 from apps.crm.models import Client, ClientNote, Supplier
 from apps.core.utils import split_phone_number, format_phone_with_prefix
 
+try:
+    from apps.properties.models import Property, PropertyInquiry
+except ImportError:
+    Property = None
+    PropertyInquiry = None
+
 @login_required
 def client_list_view(request):
     business = getattr(request, 'current_business', None) or request.user.business
@@ -275,6 +281,9 @@ def add_client_property_inquiry_view(request, client_id):
     if not business:
         return redirect('onboarding')
     client = get_object_or_404(Client, id=client_id, business=business)
+    if PropertyInquiry is None:
+        messages.error(request, "El módulo de inmuebles no está habilitado.")
+        return redirect('client_detail', client_id=client.id)
     
     if request.method == 'POST':
         # from apps.properties.models import Property, PropertyInquiry
@@ -346,7 +355,8 @@ def update_property_inquiry_status_view(request, inquiry_id):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    # from apps.properties.models import PropertyInquiry
+    if PropertyInquiry is None:
+        return redirect('client_list')
     inquiry = get_object_or_404(PropertyInquiry, id=inquiry_id, business=business)
     
     if request.method == 'POST':
@@ -369,7 +379,8 @@ def delete_property_inquiry_view(request, inquiry_id):
     business = getattr(request, 'current_business', None) or request.user.business
     if not business:
         return redirect('onboarding')
-    # from apps.properties.models import PropertyInquiry
+    if PropertyInquiry is None:
+        return redirect('client_list')
     inquiry = get_object_or_404(PropertyInquiry, id=inquiry_id, business=business)
     client_id = inquiry.client.id
     
